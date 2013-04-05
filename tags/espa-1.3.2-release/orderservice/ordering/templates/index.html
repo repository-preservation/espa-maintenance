@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+
+{% block title %}Ordering Interface{% endblock %}
+{% block header %} ESPA Ordering Interface {% endblock %}
+{% block style %}
+
+	div#wrapper {
+		margin:auto;
+		width:800px;
+	}
+
+	span.error {
+		color:red;
+	}
+
+{% endblock %}
+
+{% block content %}
+
+<div id="wrapper">
+	
+	<h4>Welcome to the ESPA Ordering Interface</h4>
+
+        <p>This is the LDCM Science R&amp;D (LSRD) ESPA Ordering Interface, 
+        allowing you to upload scenes and request any available level of 
+        processing free of charge.  Keep in mind that all processing provided by
+         LSRD is strictly for evaluation purposes only: The processing outputs 
+        may be considered possible candidates for standard products in the 
+        future.
+        </p>
+        <p>Current available processing includes surface reflectance for 
+        applicable Landsat 5 TM and 7 ETM+ via Ledaps.  In the future, 
+        additional processing will be available for evaluation including: T1 - 
+        River Discharge, T2 - Water Use, T3 - Ground Water, T4 - Lake Levels, T5
+         - Snow Cover, T6 - Glaciers and Ice Caps, T7 - Permafrost and 
+        Seasonally Frozen Ground, T8 - Albedo, T9 - Land Cover, T10 - fAPAR, T11
+         - Leaf Area Index, T12 - Biomass, T13 - Fire Disturbance, and finally 
+        Soil Moisture (Emerging ECV).
+        </p>
+        <p>Land Surface Temperature is another Climate Data Record planned to be offered through ESPA</p>
+
+
+</div>
+
+<div class="footer"></div>
+
+<div class="spacer"></div>
+
+{% endblock %}

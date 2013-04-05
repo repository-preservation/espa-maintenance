@@ -1,0 +1,7 @@
+dvh75@yahoo.com-abc123	scenes/standard_l1t/LT50230322006212EDC00.tar.gz	http://xmlrpc	scenes/sr
+dvh75@yahoo.com-abc123	scenes/standard_l1t/LT50290302006286EDC00.tar.gz	http://xmlrpc	scenes/sr
+dvh75@yahoo.com-abc123	scenes/standard_l1t/LT50350262001234LGS01.tar.gz	http://xmlrpc	scenes/sr
+dvh75@yahoo.com-abc123	scenes/standard_l1t/LT50280322003287LGS01.tar.gz	http://xmlrpc	scenes/sr
+dvh75@yahoo.com-abc123	scenes/standard_l1t/LT50280322005244EDC00.tar.gz	http://xmlrpc	scenes/sr
+dvh75@yahoo.com-abc123	scenes/standard_l1t/LT50280352004082LGS01.tar.gz	http://xmlrpc	scenes/sr
+dvh75@yahoo.com-abc123	scenes/standard_l1t/LT50280352005212EDC00.tar.gz	http://xmlrpc	scenes/sr

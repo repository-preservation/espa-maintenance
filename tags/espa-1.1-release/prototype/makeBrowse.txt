@@ -1,0 +1,7 @@
+#/usr/bin/env bash
+
+gdal_translate -of GTIFF -sds lndsr.L5016040_04020100506.hdf out.tiff;
+gdal_contrast_stretch -ndv -9999 -histeq 40 out.tiff3 browse.tiff3;
+gdal_contrast_stretch -ndv -9999 -histeq 40 out.tiff2 browse.tiff2;
+gdal_contrast_stretch -ndv -9999 -histeq 40 out.tiff1 browse.tiff1;
+gdal_merge_simple -in browse.tiff3 -in browse.tiff2 -in browse.tiff1 -out final.tif;

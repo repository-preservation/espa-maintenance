@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+
+{% block title %} New Order {% endblock %}
+{% block header %} New Order {% endblock %}
+{% block style %}
+
+	div#wrapper {
+		margin:auto;
+		width:800px;
+	}
+
+        div#errorbox{
+	     margin:0 auto;
+	     border:2px solid red;
+	     width:100%;
+	     color:red;
+	   
+	}
+	
+	div#errorbox table {
+	    width:400px;
+	}
+	
+	div#errorbox td{
+	    font-size:16px;
+	    color:red;
+	    padding:5px 25px;
+	    
+	}
+
+		
+{% endblock %}
+
+
+{% block content %}
+<form action="/new/" method="post" enctype="multipart/form-data"> {% csrf_token %}
+
+
+<div id="wrapper">
+    
+    {% if system_message %}
+    <div style="vertical-align:middle;border:4px solid red; margin-top:20px;padding:15px 10px 15px 10px;font-color:red;font-size:18px;">{{system_message}}</div>
+    {% endif %}
+   
+    <h4>Submitting an order</h4>
+    <p>
+            Submitting a new order is as simple as entering your email address 
+            along with a file containing your scene list and pressing the submit button
+            at the bottom of the page. For more information on creating a scene list file, 
+            please refer to the 
+            <a href="http://glovis.usgs.gov/ImgViewerHelp.shtml#SaveLoadSceneLists" target="blank">user guide instructions</a>
+            on saving and loading scene lists for the 
+            <a href="http://glovis.usgs.gov/" target="blank">USGS Global Visualization Viewer</a>.
+   </p>
+        
+    {% if errors.email or errors.file or errors.scenes %}
+	<div id="errorbox">
+	    <table>
+    {% endif %}
+    {% if errors.email %}
+	<tr><td>{{errors.email}}</td></tr>
+    {% endif %}
+    {% if errors.file %}
+        <tr><td>{{errors.file}}</td></tr>
+    {% endif %}
+    {% if errors.scenes %}
+        <tr><td>{{errors.scenes}}</td></tr>
+    {% endif %}
+    {% if errors.email or errors.file or errors.scenes %}
+	    </table>
+	</div>
+    {% endif %}
+    
+    <br/>
+    <div style="text-align:center;margin:0 auto;width:800px;padding:4px;font-size:20px;">
+	<table style="text-align:left">
+	    <tr>
+		<td colspan=1><h5>Enter your email address:</h5></td>
+	        <td colspan=3><input size=40 type="text" name="email" id="id_email" /></td>
+	    </tr>
+	    <tr><td colspan=4>&nbsp;</td></tr>
+	    <tr><td colspan=4>&nbsp;</td></tr>
+	    <tr>
+		<td colspan=1><h5>Choose Scene List</h5></td>
+	        <td colspan=3><input type=file name="file" size="40"/></td>
+	    </tr>
+	    <tr><td colspan=4>&nbsp;</td></tr>
+	    <tr><td colspan=4>&nbsp;</td></tr>
+          
+	    <tr style="{{optionstyle}}"><td colspan=4><h5>Select Product Contents</h5></td></td>
+	    <tr style="{{optionstyle}}"><td colspan=2>Source Products</td><td colspan=2>{{form.include_sourcefile}}</td></tr>
+	    <tr style="{{optionstyle}}"><td colspan=2>Source Metadata</td><td colspan=2>{{form.include_source_metadata}}</td></tr>
+	    <tr style="{{optionstyle}}"><td colspan=2>Top of Atmosphere</td><td colspan=2>{{form.include_sr_toa}}</td></tr>
+	    <tr style="{{optionstyle}}"><td colspan=2>Band 6 Thermal</td><td colspan=2>{{form.include_sr_thermal}}</td></tr>
+	    <tr style="{{optionstyle}}"><td colspan=2>Surface Reflectance</td><td colspan=2>{{form.include_sr}}</td></tr>
+	    <tr style="{{optionstyle}}"><td colspan=2>Surface Reflectance Browse</td><td colspan=2>{{form.include_sr_browse}}</td></tr>
+	    <tr style="{{optionstyle}}"><td colspan=2>Surface Reflectance NDVI</td><td colspan=2>{{form.include_sr_ndvi}}</td></tr>
+	    <tr style="{{optionstyle}}"><td colspan=2>Solr Index</td><td colspan=2>{{form.include_solr_index}}</td></tr>
+	    <tr style="{{optionstyle}}"><td colspan=4>&nbsp;</td></tr>
+	    
+	    <tr><td colspan=4>&nbsp;</td></tr>
+	    <tr><td colspan=4><h5>Order Description (optional)</h5></td></tr>
+	    <tr><td colspan=4>&nbsp;</td></tr>
+	    <tr><td colspan=4>{{form.note|escape }}</td></tr>
+	    <tr><td colspan=4>&nbsp;</td></tr>
+	    <tr><td><input type="submit" value="Submit" /></td></tr>
+	</table>
+    </div>
+</div>
+</form>
+
+<div class="footer"></div>
+<div class="spacer"></div>
+
+{% endblock %}

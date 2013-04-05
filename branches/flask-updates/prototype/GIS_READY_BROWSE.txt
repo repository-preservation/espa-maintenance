@@ -1,0 +1,1 @@
+http://earthexplorer.usgs.gov/browse/gisready/<collection_name>/<scene_id>

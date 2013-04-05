@@ -1,0 +1,752 @@
+<!DOCTYPE html>
+<!--[if lt IE 9]><script src="/js/html5.js"></script><![endif]-->
+<!--[if lt IE 7 ]> <html class="no-js ie6" lang="en"> <![endif]-->
+<!--[if IE 7 ]>    <html class="no-js ie7" lang="en"> <![endif]-->
+<!--[if IE 8 ]>    <html class="no-js ie8" lang="en"> <![endif]-->
+<!--[if (gte IE 9)|!(IE)]><!--> <html class="no-js" lang="en"> <!--<![endif]-->
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <title>ESPA</title>
+    <meta name="description" content="">
+    <meta name="author" content="">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <link rel="stylesheet" type="text/css" href="/css/style.css" />
+    <link rel="stylesheet" type="text/css" href="/css/main.css" />
+    <link rel="stylesheet" type="text/css" href="/formalize/css/formalize.css" />
+    <link rel="stylesheet" type="text/css" href="/openlayers/theme/default/style.css"/>
+    
+    <script src="/openlayers/OpenLayers.js" type="text/javascript"></script>
+    <script src="/js/jquery-1.6.1.min.js" type="text/javascript"></script>
+    <script src="/js/date-alpha-1.min.js" type="text/javascript"></script>
+    <script src="/formalize/js/jquery.formalize.min.js" type="text/javascript"></script>
+    <script src="/js/jquery.tmpl.min.js" type="text/javascript"></script>
+    <script src="/js/global.js" type="text/javascript"></script>
+    <script src="/js/progress.js" type="text/javascript"></script>
+    
+    
+</head> 
+<body>
+    <table id="content_wrap">
+        <td class="panel">
+            <aside id="sceneInfo">
+                <section class="searchOptions">
+                    <label for="sensor">Sensor:</label>
+                    <select id="sensor">
+                        <option value="GLS_2010">GLS 2010</option>
+						<option value="GLS_2005">GLS 2005</option>
+						<option value="GLS_2000">GLS 2000</option>
+						<option value="LANDSAT_ETM">Landsat ETM</option>
+						<option value="LANDSAT_ETM+">Landsat ETM+</option>
+                    </select>
+                    <label for="dayOrNight">Day or Night:</label>
+                    <select id="dayOrNight">
+                        <option value="ALL">All</option>
+                        <option value="DAY" selected="selected">Day</option>
+                        <option value="NIGHT">Night</option>
+                    </select>
+                    <label for="cloudCover">Max Cloud Cover:</label>
+                    <select id="cloudCover">
+                        <option value="0">0%</option>
+                        <option value="1">10%</option>
+                        <option value="2">20%</option>
+                        <option value="3">30%</option>
+                        <option value="4">40%</option>
+                        <option value="5">50%</option>
+                        <option value="6">60%</option>
+                        <option value="7">70%</option>
+                        <option value="8">80%</option>
+                        <option value="9">90%</option>
+                        <option value="10">100%</option>
+                    </select>
+                    <label for="imageQuality">Image Quality:</label>
+                    <select id="imageQuality">
+                        <option value="9">9</option>
+                        <option value="8">8</option>
+                        <option value="7">7</option>
+                        <option value="6">6</option>
+                        <option value="5">5</option>
+                        <option value="4">4</option>
+                        <option value="3">3</option>
+                        <option value="2">2</option>
+                        <option value="1">1</option>
+                        <option value="0">0</option>
+                    </select>
+                    <label></label>
+                    <label id="sceneQueryTime"></label>
+                    <label id="sceneCount"></label>
+                </section>
+                <section id="sceneResults" class="sceneList"></section>
+                <section id="searchResults" class="sceneList"></section>
+            </aside>
+        </td>
+        <td id="slider" class="slider"></td>
+        <td id="map"></td>
+    </table>
+</body> 
+
+<script type="text/javascript">
+
+    var MIN_SCALE = 5000000;  // minimum map scale to display the coverage layer
+    var map, scene, sceneHighlight;
+    var mapElement, panelElement, sliderElement;
+    var isBusy = false;
+    var maxRows = 500;
+    var searchResults, searchResultsTmpl, sceneResults, sceneResultsTmpl, searchStartTime;
+    var progress;
+
+    var wmsServer = '/geoserver/wms';
+    var wfsServer = '/geoserver/wfs';
+    var restServer = '/geoserver/rest';
+    var workspace = 'espa';
+
+    jQuery(document).ready(function() {
+        
+        progress = new Progress({
+            containerId: 'sceneInfo'
+        });
+
+        // pink tile avoidance
+        OpenLayers.IMAGE_RELOAD_ATTEMPTS = 5;
+        // make OL compute scale according to WMS spec
+        OpenLayers.DOTS_PER_INCH = 25.4 / 0.28;
+
+        // set up the bounds for the map
+        var bounds = new OpenLayers.Bounds(
+            -180, -90,
+            180, 90
+        );
+        var sceneBounds = new OpenLayers.Bounds(
+            -136, 52,
+            -56, 20
+        )
+
+        var options = {
+            controls: [
+                new OpenLayers.Control.PanZoomBar({
+                    position: new OpenLayers.Pixel(2, 15),
+                    zoomWorldIcon: true
+                }),
+                new OpenLayers.Control.Navigation(),
+                new OpenLayers.Control.MousePosition(),
+                new OpenLayers.Control.LayerSwitcher(),
+                new OpenLayers.Control.OverviewMap({
+                    size: new OpenLayers.Size(300, 150)
+                })
+                //new OpenLayers.Control.SelectFeature(),
+                //new OpenLayers.Control.ScaleLine()
+            ],
+            maxExtent: bounds,
+            maxResolution: 1.40625,
+            units: 'degrees',
+            projection: new OpenLayers.Projection("EPSG:4326"),
+            displayProjection: new OpenLayers.Projection("EPSG:4326")
+        };
+        map = new OpenLayers.Map('map', options);
+
+        // set up image layers
+        var bluemarble = new OpenLayers.Layer.WMS(
+            'Blue Marble', 
+            wmsServer,
+            {
+                layers: workspace + ':bluemarble_pyramid',
+                format: 'image/jpeg',
+                tilesOrigin : map.maxExtent.left + ',' + map.maxExtent.bottom
+            },
+            {
+                buffer: 0,
+                displayOutsideMaxExtent: true,
+                wrapDateLine: true,
+                isBaseLayer: true,
+                singleTile: false
+            } 
+        );
+        var gls = new OpenLayers.Layer.WMS(
+            'GLS Coverage', 
+            wmsServer,
+            {
+                layers: workspace + ':gls_coverage',
+                transparent: true,
+                format: 'image/jpeg',
+                tiled: true,
+                tilesOrigin : map.maxExtent.left + ',' + map.maxExtent.bottom
+            },
+            {
+                buffer: 0,
+                displayOutsideMaxExtent: true,
+                wrapDateLine: true,
+                isBaseLayer: false,
+                minScale: MIN_SCALE,
+                displayInLayerSwitcher: true,
+                visibility: true
+            } 
+        );    
+
+        // set up wrs2 layer
+        var wrs2 = new OpenLayers.Layer.WMS(
+            'WRS-2 Map',
+            wmsServer,
+            {
+                layers: workspace + ':wrs2_descending',
+                transparent: true,
+                tiled: false
+            },
+            {
+                opacity: 0.1,
+                singleTile: true,
+                visibility: false,
+                displayInLayerSwitcher: false
+            } 
+        );
+
+        // set up countries layer
+        var countries = new OpenLayers.Layer.WMS(
+            'Political Boundaries',
+            wmsServer,
+            {
+                layers: workspace + ':countries',
+                transparent: true,
+                tiled: false,
+                styles: 'espa_boundaries'
+            },
+            {
+                opacity: 0.5,
+                singleTile: true,
+                visibility: false
+            } 
+        );
+
+        // set up states layer
+        var states = new OpenLayers.Layer.WMS(
+            'State Boundaries',
+            wmsServer,
+            {
+                layers: workspace + ':statesp020',
+                transparent: true,
+                tiled: false,
+                styles: 'espa_boundaries'
+            },
+            {
+                opacity: 0.5,
+                singleTile: true,
+                visibility: false
+            } 
+        );  
+
+        // add layers to the map and zoom to the base level
+        var layers = [gls, countries, states, wrs2, bluemarble];
+        map.addLayers(layers);
+        map.zoomToExtent(sceneBounds);
+        //map.zoomToMaxExtent();
+
+        var info = new OpenLayers.Control.WMSGetFeatureInfo({
+            url: wmsServer, 
+            title: 'Identify features by clicking',
+            layers: [wrs2],
+            queryVisible: false,
+            //infoFormat: '',
+            eventListeners: {
+                getfeatureinfo: function(event) {
+                    // only do this if we are zoomed in to the scale where the coverage layer is displayed
+                    if (map.getScale() <= MIN_SCALE) {
+                        // remove the previously displayed scene layer
+                        removeSceneLayer();
+                        // determine the path/row for the scene that was clicked
+                        var features = null, feature = null;
+                        if (event && event.text) {
+                            features = jQuery.parseJSON(event.text);
+                        }
+                        if (features && features.length > 0) {
+                            // take the first feature to use for the path/row
+                            feature = features[0];
+                            
+                            // get the list of scenes for the current path/row
+                            var scenes = getScenesForPathRow(feature.PATH, feature.ROW);
+                            scenes.path = feature.PATH;
+                            scenes.row = feature.ROW;
+                            
+                            // write out the scene results
+                            var html = sceneResultsTmpl.tmpl(scenes, {
+                                formatDate: function(dateString) {
+                                    // use date.js because javascript date object not consistent with older IE browsers
+                                    var date = Date.parseExact(dateString, 
+                                        'yyyy-MM-dd\THH:mm:ssZ');
+                                    return (date) ? date.toString('MM/dd/yyyy') : '';
+                                }
+                            });
+                            jQuery('#sceneResults').html(html);
+                            
+                            // display the first scene in the list that exists as a layer
+                            if (scenes && scenes.docs && scenes.docs.length > 0) {
+                                var count = scenes.docs.length;
+                                for(var i = 0; i < count; i++) {
+                                    var scene = scenes.docs[i];
+                                    // show and highlight the new scene layer
+                                    if (!layerExists(scene.sceneID)) {
+                                        console.log('Scene ' + scene.sceneID + ' does not exist');
+                                    } else {
+                                        addSceneLayer(scene.sceneID);
+                                        drawSceneHighlight(
+                                            scene.lowerLeftCornerLatLong.split(',')[1] + ',' + scene.lowerLeftCornerLatLong.split(',')[0],
+                                            scene.lowerRightCornerLatLong.split(',')[1] + ',' + scene.lowerRightCornerLatLong.split(',')[0],
+                                            scene.upperLeftCornerLatLong.split(',')[1] + ',' + scene.upperLeftCornerLatLong.split(',')[0],
+                                            scene.upperRightCornerLatLong.split(',')[1] + ',' + scene.upperRightCornerLatLong.split(',')[0]
+                                        );
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        });
+        map.addControl(info);
+        info.activate();
+       
+        // handler to update search results when panning and/or zooming
+        jQuery('#sceneInfo select').attr('disabled', 'disabled')
+        map.events.register('moveend', map, function(level) {
+            if (map.getScale() <= MIN_SCALE) {
+                searchScenes();
+                jQuery('#sceneInfo select').removeAttr('disabled');
+            } else {
+                removeSceneLayer();
+                clearSearchResults();
+                clearSceneResults();
+                jQuery('#sceneInfo select').attr('disabled', 'disabled')
+            }
+        });
+        
+        // handler to execute the scene search whenever a drop-down entry changes
+        jQuery('#sceneInfo select').live('change', function() {
+            searchScenes();
+            removeSceneLayer();
+            clearSceneResults();
+        })
+                
+
+        // handler for the slider click
+        mapElement = jQuery('#map');
+        panelElement = jQuery('#content_wrap .panel');
+        sliderElement = jQuery('#slider');
+        sliderElement.live('click', function() {
+            if (panelElement.is(':visible')) {
+                sliderElement.addClass('collapsed');
+                mapElement.addClass('expanded');
+                panelElement.hide();
+            } else {
+                sliderElement.removeClass('collapsed');
+                mapElement.removeClass('expanded');
+                panelElement.show();
+            }
+            // let openlayers know to change the map size
+            map.updateSize();
+        });
+        
+        // handler for expanding/contracting search results
+        jQuery('#sceneInfo .sceneList .title').live('click', function() {
+            var header = jQuery(this).closest('.group');
+            if (header.hasClass('expanded')) {
+                jQuery('.detail', header).hide();
+                jQuery('footer', header).hide();
+                header.removeClass('expanded');
+            } else {
+                jQuery('.detail', header).show();
+                jQuery('footer', header).show();
+                header.addClass('expanded');
+            }
+        });
+        
+        // handler for responding to the scene id click
+        jQuery('#sceneInfo .sceneList .id a').live('click', function(e) {
+            e.preventDefault();
+            var scene = jQuery(this);
+            var sceneId = scene.html();
+            // remove previous scene layer
+            removeSceneLayer();
+            // show and highlight the new scene layer
+            if (!layerExists(sceneId)) {
+                // scene layer not there, mark the scene as red
+                jQuery('#' + sceneId).css('color', 'red');
+            } else {
+                addSceneLayer(sceneId);
+                drawSceneHighlight(
+                    scene.data('bounds-ll'),
+                    scene.data('bounds-lr'), 
+                    scene.data('bounds-ul'), 
+                    scene.data('bounds-ur')
+                );
+            }
+        });
+         jQuery('#searchResults .id a').live('click', function() {
+            clearSceneResults();
+        });
+        
+        // handler for the screen resize
+        jQuery('#sceneInfo').height(jQuery(window).height());
+        window.onresize = function() {
+            jQuery('#sceneInfo').height(jQuery(window).height());
+        }
+        
+        // create the search and scene results templates
+        searchResultsTmpl = jQuery('#searchResultsTmpl');    
+        sceneResultsTmpl = jQuery('#sceneResultsTmpl');    
+    });
+
+    function addSceneLayer(sceneId) {
+        if (!sceneId) {
+            alert('You need to specify a scene id.');
+            return;
+        }
+        progress.show();
+        // add the layer
+        scene = new OpenLayers.Layer.WMS(
+            sceneId, 
+            wmsServer,
+            {
+                layers: workspace + ':' + sceneId,
+                transparent: true,
+                format: 'image/jpeg',
+                tiled: true
+            },
+            {
+                buffer: 0,
+                displayOutsideMaxExtent: true,
+                wrapDateLine: true,
+                isBaseLayer: false,
+                displayInLayerSwitcher: false
+            } 
+        );
+        map.addLayer(scene);
+        progress.hide();
+    }
+
+    function removeSceneLayer() {
+        if (scene) {
+            map.removeLayer(scene);
+            scene = null;
+        }
+        removeSceneHighlight();
+    }
+
+    function drawSceneHighlight(ll, lr, ul, ur) {
+        
+        removeSceneHighlight();
+        
+        // offsets to correct the positioning of the vector layer
+        var X_OFFSET = 0.04, Y_OFFSET = 0.03;
+        
+        // create the vector layer
+        sceneHighlight = new OpenLayers.Layer.Vector('layer highlight', {
+            renderers: OpenLayers.Layer.Vector.prototype.renderers,
+            displayInLayerSwitcher: false
+        });
+        
+        // create the array of points to draw
+        var pointList = [];
+        var start = new OpenLayers.Geometry.Point(parseFloat(ll.split(',')[0]) + X_OFFSET, parseFloat(ll.split(',')[1]) + Y_OFFSET);
+        pointList.push(start);
+        pointList.push(new OpenLayers.Geometry.Point(parseFloat(ul.split(',')[0]) + X_OFFSET, parseFloat(ul.split(',')[1]) + Y_OFFSET));
+        pointList.push(new OpenLayers.Geometry.Point(parseFloat(ur.split(',')[0]) + X_OFFSET, parseFloat(ur.split(',')[1]) + Y_OFFSET));
+        pointList.push(new OpenLayers.Geometry.Point(parseFloat(lr.split(',')[0]) + X_OFFSET, parseFloat(lr.split(',')[1]) + Y_OFFSET));
+        pointList.push(start);
+        
+        // create the line feature to draw on the vector layer
+        var lineFeature = new OpenLayers.Feature.Vector(
+            new OpenLayers.Geometry.LineString(pointList),
+            null,
+            {
+                strokeColor: "#f3fa69",
+                strokeWidth: 2,
+                strokeDashstyle: "solid",
+                pointerEvents: "visiblePainted"
+            }
+        );
+            
+        // add the layer and line features to the map
+        map.addLayer(sceneHighlight);
+        sceneHighlight.addFeatures([lineFeature]);
+    }
+
+    function removeSceneHighlight() {
+        if (sceneHighlight) {
+            map.removeLayer(sceneHighlight);
+            sceneHighlight = null;
+        }
+    }
+    
+    function layerExists(sceneId) {
+        var url = restServer + '/layers/' + sceneId + '.json';
+        var response = jQuery.ajax({
+            type: 'get',
+            url: url,
+            cache: false,
+            async: false,
+            dataType: 'json'
+        });
+        return response.status == 200;
+    }
+    
+    function getScenesForPathRow(path, row) {
+        
+        var scenes = null;
+        
+        // prevent accidental resubmit
+        if (isBusy) {
+            return;
+        }
+        isBusy = true;
+        
+        progress.show();
+        
+        // build the url for the query
+        var url = '/solr/select?indent=on&version=2.2';
+        url += '&fl=sceneID,path,row,acquisitionDate,lowerLeftCornerLatLong,lowerRightCornerLatLong,upperLeftCornerLatLong,upperRightCornerLatLong';
+        url += '&q=path:' + path;
+        url += ' AND row:' + row;
+        url += ' AND cloudCover:' + jQuery('#cloudCover').val();
+        url += ' AND imageQuality1:' + jQuery('#imageQuality').val();
+        url += ((jQuery('#sensor').val() != 'ALL') ? ' AND sensor:' + jQuery('#sensor').val() : '');
+        url += ((jQuery('#dayOrNight').val() != 'ALL') ? ' AND dayOrNight:' + jQuery('#dayOrNight').val() : '');
+        url += '&sort=acquisitionDate desc,path asc,row asc';
+        url += '&rows=' + maxRows;
+        url += '&wt=json';
+        
+        jQuery.ajax({
+            type: 'get',
+            url: url,
+            cache: false,
+            async: false,
+            dataType: 'json',
+            success: function(result) {
+                if (result && result.response && result.response) {
+                    scenes = result.response;
+                }
+            },
+            error: function(xmlRequest, status, error) {
+                if (error) {
+                    alert(error);
+                }
+            }
+        });
+        progress.hide()
+        isBusy = false;
+        return scenes;
+    }
+    
+    function searchScenes() {
+        
+        // prevent accidental resubmit
+        if (isBusy) {
+            return;
+        }
+        isBusy = true;
+        
+        // get the current map extent
+        if (!map) {
+            alert('no map');
+            return;
+        }
+        var extent = map.getExtent();
+        if (!extent) {
+            alert('no extent');
+            return;
+        }
+        
+        progress.show();
+        
+        // build the url for the query
+        var url = '/solr/select?indent=on&version=2.2';
+        url += '&fl=sceneID,path,row,acquisitionDate,lowerLeftCornerLatLong,lowerRightCornerLatLong,upperLeftCornerLatLong,upperRightCornerLatLong';
+        url += '&q=sceneCenterLatLong:[' + extent.bottom + ',' + extent.left;
+        url += ' TO ' + extent.top + ',' + extent.right + ']';
+        url += ' AND cloudCover:' + jQuery('#cloudCover').val();
+        url += ' AND imageQuality1:' + jQuery('#imageQuality').val();
+        url += ((jQuery('#sensor').val() != 'ALL') ? ' AND sensor:' + jQuery('#sensor').val() : '');
+        url += ((jQuery('#dayOrNight').val() != 'ALL') ? ' AND dayOrNight:' + jQuery('#dayOrNight').val() : '');
+        url += '&sort=acquisitionDate desc,path asc,row asc';
+        url += '&rows=' + maxRows;
+        url += '&wt=json';
+        
+        searchStartTime = new Date();
+		
+		alert(url);
+        
+        // make call to the server to get the data
+        jQuery.ajax({
+            type: 'get',
+            url: url,
+            cache: false,
+            dataType: 'json',
+            success: successFetchScenes,
+            error: errorFetchScenes
+        });
+    }
+    
+    function successFetchScenes(result, status) {
+        searchResults = null;
+        if (result) {
+            // write out the elapsed time
+            jQuery('#sceneQueryTime').html('Elapsed time: ' + (new Date() - searchStartTime) + ' ms');
+            
+            // write out the scene count
+            var numRows = (result.response.docs) ? result.response.docs.length : 0;
+            var numFound = result.response.numFound;
+            jQuery('#sceneCount').html('Scenes found: ' + numFound + ' (' + numRows + ' displayed)');
+            
+            // write out the search results
+            searchResults = (numRows > 0) ? result.response : null;
+            var html = searchResultsTmpl.tmpl(searchResults, {
+                isHeader: function(index, value) {
+                    return (index == 0 || (index < numRows &&
+                        value.acquisitionDate.substring(0, 4) != searchResults.docs[index - 1].acquisitionDate.substring(0, 4)));
+                },
+                formatDate: function(dateString) {
+                    // use date.js because javascript date object not consistent with older IE browsers
+                    var date = Date.parseExact(dateString, 
+                        'yyyy-MM-dd\THH:mm:ssZ');
+                    return (date) ? date.toString('MM/dd') : '';
+                }
+            });
+            jQuery('#searchResults').html(html);
+            
+            if (result.response.numFound > maxRows) {
+                // TODO - do something here
+                console.log('max number of rows exceeded');
+            }
+            
+            progress.hide();
+            
+        } else {
+            progress.hide()
+            alert('ERROR - data not returned');
+        }
+        isBusy = false;
+    }
+    
+    function errorFetchScenes(xmlRequest, status, error) {
+        progress.hide()
+        searchResults = null;
+        if (error) {
+            alert(error);
+        }
+        isBusy = false;
+    }
+    
+    function clearSearchResults() {
+        jQuery('#sceneQueryTime').html('');
+        jQuery('#sceneCount').html('');
+        jQuery('#searchResults').html('');
+    }    
+    
+    function clearSceneResults() {
+        jQuery('#sceneResults').html('');
+    }
+    
+    function flipCoords(coords) {
+        if (!coords) {
+            return;
+        }
+        var arr = coords.split(',');
+        return arr[1] + ',' + arr[0];
+    }
+    
+</script>
+
+<!-- search results template -->
+<script id="searchResultsTmpl" type="text/x-jquery-tmpl">
+    
+    {{if docs}}
+        {{each docs}}
+           {{if $item.isHeader($index, $value)}}
+                {{if $index > 0}}
+                    </tbody></table></div><footer></footer></div>
+                {{/if}}
+                <div class="group expanded">
+                    <h3 class="title">
+                        <a>${$value.acquisitionDate.substring(0, 4)}</a>
+                    </h3>
+                    <div class="detail">
+                        <table>
+                         <thead>
+                            <tr>
+                                <th class="check"></th>
+                                <th class="id">Scene ID</th>
+                                <th class="path">Path</th>
+                                <th class="row">Row</th>
+                                <th class="date">Acq. Date</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                         
+           {{/if}}
+           <tr>
+                <td class="check"><input type="checkbox"/></td>
+                <td class="id"><a id="${$value.sceneID}" href="#" data-bounds-ll="${flipCoords($value.lowerLeftCornerLatLong)}" data-bounds-lr="${flipCoords($value.lowerRightCornerLatLong)}" data-bounds-ul="${flipCoords($value.upperLeftCornerLatLong)}" data-bounds-ur="${flipCoords($value.upperRightCornerLatLong)}">${$value.sceneID}</a></td>
+                <td class="path">${$value.path}</td>
+                <td class="row">${$value.row}</td>
+                <td class="date">${$item.formatDate($value.acquisitionDate)}</td>
+            </tr>
+        {{/each}}
+    {{else}}
+        <div class="group expanded">
+            <h3 class="title">
+                <a>Search Results</a>
+            </h3>
+            <div class="detail">
+                <table> 
+                    <tbody>
+                        <tr>
+                            <td>no data found for the search criteria</td>
+                        </tr>
+                    </tbody>            
+                </table>
+            </div>
+            <footer></footer>
+        </div>
+    {{/if}}
+     
+</script>
+
+<!-- scene results template -->
+<script id="sceneResultsTmpl" type="text/x-jquery-tmpl">
+    <div class="group expanded">
+        <h3 class="title">
+            <a>Scenes for Path: ${path}, Row: ${row}</a>
+        </h3>
+        <div class="detail">
+            <table>
+                {{if docs && docs.length > 0}}
+                    <thead>
+                        <tr>
+                            <th class="check"></th>
+                            <th class="id">Scene ID</th>
+                            <th class="date">Acq. Date</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    {{each docs}}
+                        <tr>
+                            <td class="check"><input type="checkbox"/></td>
+                            <td class="id"><a id="${$value.sceneID}" href="#" data-bounds-ll="${flipCoords($value.lowerLeftCornerLatLong)}" data-bounds-lr="${flipCoords($value.lowerRightCornerLatLong)}" data-bounds-ul="${flipCoords($value.upperLeftCornerLatLong)}" data-bounds-ur="${flipCoords($value.upperRightCornerLatLong)}">${$value.sceneID}</a></td>
+                            <td class="date">${$item.formatDate($value.acquisitionDate)}</td>
+                        </tr>
+                    {{/each}}
+                    </tbody>
+                {{else}}
+                    <tbody>
+                    <tr>
+                        <td>no scenes found</td>
+                    </tr>
+                    </tbody>                
+                {{/if}}
+            </table>
+        </div>
+        <footer></footer>
+    </div>    
+     
+</script>
+
+</html>
