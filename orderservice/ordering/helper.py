@@ -114,10 +114,6 @@ def sendTramOrder(scenes):
         return -1
 
 
-    
-
-
-
 def generate_order_id(email):
     d = datetime.datetime.now()
     return '%s-%s%s%s-%s%s%s' % (email,d.month,d.day,d.year,d.hour,d.minute,d.second)

@@ -3,25 +3,24 @@ from cStringIO import StringIO
 import urllib2
 
 class LtaServices(object):
-    ''' '''
+    ''' Client for all of LTA services from ESPA '''
+    username = None
+    password = None
     
-    order_delivery_url = None
-    order_service_url = None
-    order_update_url = None
 
     urls = {
         "dev" : {
-            "orderservice":"http://edclxs151.cr.usgs.gov/OrderWrapperServicedevsys/resources/",
+            "orderservice":"http://edclxs151.cr.usgs.gov/OrderWrapperServicedevsys/resources",
             "orderdelivery":"http://edclxs151.cr.usgs.gov/OrderDeliverydevsys/OrderDeliveryService?WSDL",
             "orderupdate":"http://edclxs151.cr.usgs.gov/OrderStatusServicedevsys/OrderStatusService?wsdl"
         },
         "tst" : {
-            "orderservice":"http://eedevmast.cr.usgs.gov/OrderWrapperServicedevmast/resources/",
+            "orderservice":"http://eedevmast.cr.usgs.gov/OrderWrapperServicedevmast/resources",
             "orderdelivery":"http://edclxs151.cr.usgs.gov/OrderDeliverydevmast/OrderDeliveryService?WSDL",
             "orderupdate":"http://edclxs151.cr.usgs.gov/OrderStatusServicedevmast/OrderStatusService?wsdl"
         },
         "ops" : {
-            "orderservice":"http://edclxs152.cr.usgs.gov/OrderWrapperService/resources/",
+            "orderservice":"http://edclxs152.cr.usgs.gov/OrderWrapperService/resources",
             "orderdelivery":"http://edclxs152.cr.usgs.gov/OrderDeliveryService/OrderDeliveryService?WSDL",
             "orderupdate":"http://edclxs152/OrderStatusService/OrderStatusService?wsdl"
         }
@@ -30,6 +29,11 @@ class LtaServices(object):
 
     def __init__(self,environment="dev"):
         self.environment = environment
+
+    def __init__(self,username, password,environment="dev"):
+        self.environment = environment
+        self.username = username
+        self.password = password
 
 
     def get_url(self,service_name):
@@ -92,8 +96,8 @@ class LtaServices(object):
 
         url = self.get_url("orderservice")
         operation = 'verifyScenes'
-        request_url = url + operation
-    
+        request_url = "%s/%s" % (url, operation)
+            
         sb = StringIO()
         sb.write(self.get_xml_header())
         sb.write("<sceneList xmlns='http://earthexplorer.usgs.gov/schema/sceneList' ")
@@ -123,15 +127,17 @@ class LtaServices(object):
 
         h.close()
 
-        print ("Response code:%s" % str(code))
-        print ("Response:")
+        #print ("Response code:%s" % str(code))
+        #print ("Response:")
         print response
         #parse, transform and return response
 
         
-    def get_order_status(order_number, username, password):
-        ''' Retuns the status of the supplied order number '''
+    def get_order_status(order_number):
+        ''' Returns the status of the supplied order number '''
         url = self.get_url("orderservice")
+        operation = 'orderStatus'
+        request_url = "%s/%s?orderNumber=%s&username=%s&password=%s" % (url, operation, order_number, self.username, self.password)
         pass
     
 
@@ -141,12 +147,54 @@ class LtaServices(object):
         pass
 
 
-    def order_scenes(self):
+    def order_scenes(self, scene_list):
         ''' Orders scenes through Order Service '''
         url = self.get_url("orderservice")
         operation = 'submitOrder'
-        request_url = url + operation
-        pass
+        request_url = "%s/%s" % (url, operation)
+
+        sb = StringIO()
+        sb.write(self.get_xml_header())
+        sb.write("<orderParameters xmlns='http://earthexplorer.usgs.gov/schema/orderParameters' ")
+        sb.write("xmlns:xsi='http://www.w3.org/2001/XMLSchema-instance' ")
+        sb.write("xsi:schemaLocation='http://earthexplorer.usgs.gov/schema/orderParameters http://earthexplorer.usgs.gov/EE/orderParameters.xsd'>")
+        sb.write("<username>%s</username>" % self.username)
+        sb.write("<password>%s</password>" % self.password)
+        sb.write("<requestor>EXTERNAL</requestor>")
+        sb.write("<externalReferenceNumber>%s</externalReferenceNumber>" % 1111111)
+        sb.write("<priority>5</priority>")
+        for s in scene_list:
+            sb.write("<scene>")
+            sb.write("<sceneId>%s</sceneId>" % s.strip())
+            sb.write("<prodCode>%s</prodCode>" % self.get_product_code(s))
+            sb.write("<sensor>%s</sensor>" % self.get_sensor_name(s))
+            sb.write("</scene>")
+        sb.write("</orderParameters>")
+
+        request_body = sb.getvalue()
+        
+        headers = dict()
+        headers['Content-Type'] = 'application/xml'
+        headers['Content-Length'] = len(request_body)
+
+        #try/catch this stuff
+        request = urllib2.Request(request_url, request_body, headers)
+        h = urllib2.urlopen(request)
+        
+        response = None
+
+        if h.getcode() == 200:
+            response = h.read()
+        else:
+            print h.getcode()
+
+        h.close()
+
+        #print ("Response code:%s" % str(code))
+        #print ("Response:")
+        print response
+        
+        
 
     
 
