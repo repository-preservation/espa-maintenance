@@ -9,6 +9,7 @@ from espa.scene_cache import SceneCache
 import time
 import json
 import datetime
+import lta
 
 
 #load configuration values
@@ -79,6 +80,8 @@ Your scenes
 def sendTramOrder(scenes):
     #configure this
     
+    lta = LtaServices()
+    
     tram_service_url = 'http://edclxs152.cr.usgs.gov/MassLoader/MassLoader?wsdl'
     client = Client(tram_service_url)
     tramorder = client.factory.create('order')
@@ -87,7 +90,7 @@ def sendTramOrder(scenes):
     for scene in scenes:
         tramscene = client.factory.create('scene')
         tramscene.sceneId = scene.name
-        tramscene.productName = getTramProductName(scene.name)
+        tramscene.productName = lta.get_product_code(scene.name)
         tramscene.recipeId = null()
         tramscene.unitComment = null()
         tramscene.parameters = null()
@@ -112,15 +115,7 @@ def sendTramOrder(scenes):
 
 
     
-#simple helper to get correct product name for tram
-def getTramProductName(sceneid):
-    if sceneid.startswith('LT5'):
-        return 'T273'
-    elif sceneid.startswith('LE7'):
-        if int(sceneid[9:13]) >= 2003 and int(sceneid[13:16]) >= 151:
-            return 'T271'
-        else:
-            return 'T272'
+
 
 
 def generate_order_id(email):
