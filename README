@@ -58,11 +58,6 @@ Dependencies (Processing Nodes)
 		(Will be installed to /usr/local/var/ledaps/anc by default)
 		
 Change Notes
-Version 2.0.4
-        Added multistep distribution to correct for bad tarballs.
-        Changed filenaming convention for products.
-        Integrated new ledaps, cfmask and spectral indices.
-
 Version 2.0.3
         Updated espa to work with ledaps 1.2 & cfmask 1.0.1
         Added ability for all users to select product options.

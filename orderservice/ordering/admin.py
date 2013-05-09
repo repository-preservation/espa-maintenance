@@ -27,8 +27,8 @@ class SceneAdmin(admin.ModelAdmin):
               'tram_order',
               'product_distro_location',
               'product_dload_url',
-              'source_distro_location',
-              'source_download_url',
+              'cksum_distro_location',
+              'cksum_download_url',
               'processing_location',
               'log_file_contents']
     list_display = ('name',

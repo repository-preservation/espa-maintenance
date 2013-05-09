@@ -16,7 +16,7 @@ from django.contrib.syndication.views import FeedDoesNotExist
 from django.shortcuts import get_object_or_404,get_list_or_404
 from django.utils.feedgenerator import Rss201rev2Feed
 import json
-
+from datetime import datetime
 
 
 
@@ -205,7 +205,7 @@ def orderdetails(request, orderid, output_format=None):
         scenes = Scene.objects.filter(order__orderid=orderid,status='Complete')
         output = ''
         for scene in scenes:
-            line = ("%s,%s,%s\n") % (scene.name,scene.download_url,scene.source_l1t_download_url)
+            line = ("%s,%s,%s\n") % (scene.name,scene.download_url,scene.cksum_download_url)
             output = output + line
         return HttpResponse(output, mimetype='text/plain')
         

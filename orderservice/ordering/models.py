@@ -97,8 +97,8 @@ class Scene(models.Model):
     product_distro_location = models.CharField(max_length=1024, blank=True)
     #full path to where this scene can be downloaded from on the distribution node
     product_dload_url = models.CharField(max_length=1024, blank=True)
-    source_distro_location = models.CharField(max_length=1024,blank=True)
-    source_download_url = models.CharField(max_length=1024, blank=True)
+    cksum_distro_location = models.CharField(max_length=1024,blank=True)
+    cksum_download_url = models.CharField(max_length=1024, blank=True)
     
 
     ###################################################################################

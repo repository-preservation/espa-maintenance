@@ -1,15 +1,14 @@
 from email.mime.text import MIMEText
 from smtplib import *
-from datetime import datetime
 from suds.client import Client
 from suds import null
 from models import Scene,Order,Configuration,TramOrder
-from datetime import datetime,timedelta
+from datetime import timedelta
 from espa.espa import *
 from espa.scene_cache import SceneCache
 import time
 import json
-
+import datetime
 
 
 #load configuration values
@@ -125,7 +124,7 @@ def getTramProductName(sceneid):
 
 
 def generate_order_id(email):
-    d = datetime.now()
+    d = datetime.datetime.now()
     return '%s-%s%s%s-%s%s%s' % (email,d.month,d.day,d.year,d.hour,d.minute,d.second)
 
 
@@ -189,7 +188,7 @@ def getScenesToProcess():
             tram_order_id = sendTramOrder(need_to_order)
             tramorder = TramOrder()
             tramorder.order_id = tram_order_id
-            tramorder.order_date = datetime.now()
+            tramorder.order_date = datetime.datetime.now()
             tramorder.save()
                     
             for to in need_to_order:
@@ -251,7 +250,7 @@ def purgeExpiredOrders():
     orders = None
     
     try:
-        cutoff = datetime.now() - timedelta(days=14)
+        cutoff = datetime.datetime.now() - timedelta(days=14)
         #get the orders where status == complete and that were completed more than 14 days ago
         orders = Order.objects.raw('select * from ordering_order oo where oo.id not in (select order_id from ordering_scene where status in ("queued","onorder","processing","distributing","oncache","purged"))')
         config = Configuration()
@@ -318,7 +317,7 @@ def setSceneError(name, orderid, processing_loc, error):
         print("setSceneError:No scene was found with the name:%s for order:%s") % (name, orderid)
         return False
 
-def markSceneComplete(name, orderid, processing_loc,completed_file_location, source_l1t_location = None,log_file_contents=None):
+def markSceneComplete(name, orderid, processing_loc,completed_file_location, destination_cksum_file = None,log_file_contents=None):
     print ("Marking scene:%s complete for order:%s" % (name, orderid))
     o = Order.objects.get(orderid = orderid)
     s = Scene.objects.get(name=name, order__id = o.id)
@@ -326,16 +325,24 @@ def markSceneComplete(name, orderid, processing_loc,completed_file_location, sou
         s.status = 'complete'
         s.processing_location = processing_loc
         s.product_distro_location = completed_file_location
-        s.completion_date = datetime.now()
+        s.completion_date = datetime.datetime.now()
+        s.cksum_distro_location = destination_cksum_file
+        
         #if source_l1t_location is not None:
             #s.source_distro_location = source_l1t_location
+
         s.log_file_contents = log_file_contents
                                 
         #Need to modify this as soon as we're going to start
         #providing more than 1 product
-        base_url = Configuration().getValue('distribution.cache.home.url')       
-        s.product_dload_url = ('%s/orders/%s/%s') % (base_url,orderid,s.name + '-sr.tar.gz' )  
-        s.source_download_url = ('%s/orders/%s/%s') % (base_url,orderid,s.name + '.tar.gz' )
+        base_url = Configuration().getValue('distribution.cache.home.url')
+
+        product_file_parts = completed_file_location.split('/')
+        product_file = product_file_parts[len(product_file_parts) - 1]
+        cksum_file_parts = destination_cksum_file.split('/')
+        cksum_file = cksum_file_parts[len(cksum_file_parts) - 1]
+        s.product_dload_url = ('%s/orders/%s/%s') % (base_url,orderid,product_file)  
+        s.cksum_download_url = ('%s/orders/%s/%s') % (base_url,orderid,cksum_file)
         s.save()
 
         sendEmailIfComplete(o.orderid,s)
@@ -362,7 +369,7 @@ def sendEmailIfComplete(orderid, scene):
     if isComplete and scenes:
         scene_names = [s.name for s in scenes if s.status != 'unavailable']
         o.status = 'complete'
-        o.completion_date = datetime.now()
+        o.completion_date = datetime.datetime.now()
         o.save()
         sendCompletionEmail(o.email,o.orderid,readyscenes=scene_names)
                        

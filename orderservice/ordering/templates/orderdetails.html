@@ -26,7 +26,7 @@ Details for: {{ order.orderid }}
     <div class="boxitem">
     {{s.name}} - {{s.get_status_display}} {% if s.note and s.note != "''" %} ({{s.note}}){% endif %}
 
-    {% if s.status == 'complete'%} - <a href="{{s.product_dload_url}}">Download</a>&nbsp;&nbsp;&nbsp;<!--<a href="{{s.source_download_url}}">Source L1T</a>-->{% endif %}
+    {% if s.status == 'complete'%} - <a href="{{s.product_dload_url}}">Download</a>&nbsp;&nbsp;&nbsp;<a href="{{s.cksum_download_url}}">Checksum</a>{% endif %}
     </div>
     {% endif %}
 {% endfor %}

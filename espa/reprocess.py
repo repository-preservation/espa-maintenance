@@ -8,7 +8,6 @@ from cStringIO import StringIO
 from frange import frange
 import json
 import random
-import datetime
 
 
 #TODO: 
@@ -28,6 +27,7 @@ def stripZeros(value):
     
     while value.startswith('0'):
         value = value[1:len(value)]
+        
     return value
 
 #==============================================================
@@ -62,12 +62,6 @@ def getSensor(scene_name):
         return 'tm'
     elif scene_name[0:3] == 'LE7':
         return 'etm'
-
-#==============================================================
-#return scene sensor code
-#==============================================================
-def getSensorCode(scene_name):
-    return scene_name[0:3]
 
 #==============================================================
 #returns the station this scene was acquired from
@@ -384,106 +378,106 @@ def makeSolrIndex(metadata, scene, work_dir, collection_name,debug=False):
 #==============================================================
 #create NDVI product for current scene
 #==============================================================
-#def makeNDVI(work_directory,scene_name,debug=False):
-#    print("Executing NDVI()")
-#                       
-#    try:
-#        ndviDir = "%s" % work_directory
-#        ndvi_output_file = "%s-sr-ndvi.tif" % scene_name
-#        ndvi_output_file = os.path.join(ndviDir, ndvi_output_file)
-#        
-#        #start with a clean slate
-#        if not os.path.exists(ndviDir):
-#            os.makedirs(ndviDir)
-#
-#        status = convertHDFToGTiff("%s/lndsr*hdf" % work_directory, "%s/out.tiff" % ndviDir)
-#        if status != 0:
-#            print ("Status %s:Error converting lndsr to Geotiff" % str(status))
-#            return status
-#
-#        gc.collect()
-#            
-#        # load the proper geotiff bands into GDAL 
-#        red_file = ("%s/out.tiff3") % (ndviDir)
-#        in_ds = gdal.Open(red_file) 
-#        red = in_ds.ReadAsArray()
-#        geo = in_ds.GetGeoTransform()  
-#        proj = in_ds.GetProjection()   
-#        shape = red.shape          
-#        in_ds = None#
-#
-#        nir_file = ("%s/out.tiff4") % (ndviDir)
-#        in_ds = gdal.Open(nir_file)
-#        nir = in_ds.ReadAsArray()
-#        in_ds = None
-#
-#
-#        # NDVI = (nearInfrared - red) / (nearInfrared + red)
-#        nir = np.array(nir, dtype = float)  # change the array data type from integer to float to allow decimals
-#        red = np.array(red, dtype = float)
-#
-#        np.seterr(divide='ignore')
-#                
-#        numerator = np.subtract(nir, red) 
-#        denominator = np.add(nir, red)
-#        nir = None
-#        red = None
-#        gc.collect()
-#
-#        ndvi = np.divide(numerator,denominator)
-#        numerator = None
-#        denominator = None
-#        gc.collect()
-#
-#        #put this into 10000 range
-#        ndvi = np.multiply(ndvi, 10000)
-#        gc.collect()
-#                
-#        #set all negative values to 0
-#        np.putmask(ndvi, ndvi < 0, 0)
-#                
-#        #set all values greater than 10000 to 10000
-#        np.putmask(ndvi, ndvi > 10000, 10000)
-#                
-#        driver = gdal.GetDriverByName('GTiff')
-#
-#     
-#        ndvifile = ('%s/ndvi.tif') % (ndviDir)
-#        dst_ds = driver.Create( ndvifile, shape[1], shape[0], 1, gdal.GDT_Float32)
-#
-#        # here we set the variable dst_ds with 
-#        # destination filename, number of columns and rows
-#        # 1 is the number of bands we will write out
-#        # gdal.GDT_Float32 is the data type - decimals
-#        dst_ds.SetGeoTransform(geo)
-#        dst_ds.SetProjection(proj) 
-#        dst_ds.GetRasterBand(1).WriteArray(ndvi)  
-#        stat = dst_ds.GetRasterBand(1).GetStatistics(1,1)
-#       dst_ds.GetRasterBand(1).SetStatistics(stat[0], stat[1], stat[2], stat[3])
-#        dst_ds = None
-#
-#        gc.collect()
-#
-#        in_ds = None
-#        dst_ds = None
-#
-#        cmd = ('gdal_translate -ot UInt16 -scale 0 10000 0 10000 -of GTiff %s %s') % (ndvifile, ndvi_output_file)
-#        status,output = commands.getstatusoutput(cmd)
-#        if status != 0:
-#            print ("Error converting ndvi.tif to %s" % ndvi_output_file)
-#            print output
-#            return status
-#                
-#        cmd = ('rm -rf %s/out.tiff* %s/ndvi.tif') % (ndviDir, ndviDir)
-#        status,output = commands.getstatusoutput(cmd)
-#    except Exception, e:
-#        print e
-#        return -1
-#    finally:
-#        gc.collect()
-#
-#    print ("NDVI() complete...")
-#    return 0
+def makeNDVI(work_directory,scene_name,debug=False):
+    print("Executing NDVI()")
+                       
+    try:
+        ndviDir = "%s" % work_directory
+        ndvi_output_file = "%s-sr-ndvi.tif" % scene_name
+        ndvi_output_file = os.path.join(ndviDir, ndvi_output_file)
+        
+        #start with a clean slate
+        if not os.path.exists(ndviDir):
+            os.makedirs(ndviDir)
+
+        status = convertHDFToGTiff("%s/lndsr*hdf" % work_directory, "%s/out.tiff" % ndviDir)
+        if status != 0:
+            print ("Status %s:Error converting lndsr to Geotiff" % str(status))
+            return status
+
+        gc.collect()
+            
+        # load the proper geotiff bands into GDAL 
+        red_file = ("%s/out.tiff3") % (ndviDir)
+        in_ds = gdal.Open(red_file) 
+        red = in_ds.ReadAsArray()
+        geo = in_ds.GetGeoTransform()  
+        proj = in_ds.GetProjection()   
+        shape = red.shape          
+        in_ds = None
+
+        nir_file = ("%s/out.tiff4") % (ndviDir)
+        in_ds = gdal.Open(nir_file)
+        nir = in_ds.ReadAsArray()
+        in_ds = None
+
+
+        # NDVI = (nearInfrared - red) / (nearInfrared + red)
+        nir = np.array(nir, dtype = float)  # change the array data type from integer to float to allow decimals
+        red = np.array(red, dtype = float)
+
+        np.seterr(divide='ignore')
+                
+        numerator = np.subtract(nir, red) 
+        denominator = np.add(nir, red)
+        nir = None
+        red = None
+        gc.collect()
+
+        ndvi = np.divide(numerator,denominator)
+        numerator = None
+        denominator = None
+        gc.collect()
+
+        #put this into 10000 range
+        ndvi = np.multiply(ndvi, 10000)
+        gc.collect()
+                
+        #set all negative values to 0
+        np.putmask(ndvi, ndvi < 0, 0)
+                
+        #set all values greater than 10000 to 10000
+        np.putmask(ndvi, ndvi > 10000, 10000)
+                
+        driver = gdal.GetDriverByName('GTiff')
+
+      
+        ndvifile = ('%s/ndvi.tif') % (ndviDir)
+        dst_ds = driver.Create( ndvifile, shape[1], shape[0], 1, gdal.GDT_Float32)
+
+        # here we set the variable dst_ds with 
+        # destination filename, number of columns and rows
+        # 1 is the number of bands we will write out
+        # gdal.GDT_Float32 is the data type - decimals
+        dst_ds.SetGeoTransform(geo)
+        dst_ds.SetProjection(proj) 
+        dst_ds.GetRasterBand(1).WriteArray(ndvi)  
+        stat = dst_ds.GetRasterBand(1).GetStatistics(1,1)
+        dst_ds.GetRasterBand(1).SetStatistics(stat[0], stat[1], stat[2], stat[3])
+        dst_ds = None
+
+        gc.collect()
+
+        in_ds = None
+        dst_ds = None
+
+        cmd = ('gdal_translate -ot UInt16 -scale 0 10000 0 10000 -of GTiff %s %s') % (ndvifile, ndvi_output_file)
+        status,output = commands.getstatusoutput(cmd)
+        if status != 0:
+            print ("Error converting ndvi.tif to %s" % ndvi_output_file)
+            print output
+            return status
+                
+        cmd = ('rm -rf %s/out.tiff* %s/ndvi.tif') % (ndviDir, ndviDir)
+        status,output = commands.getstatusoutput(cmd)
+    except Exception, e:
+        print e
+        return -1
+    finally:
+        gc.collect()
+
+    print ("NDVI() complete...")
+    return 0
 
 
 
@@ -508,150 +502,7 @@ def make_cfmask(workdir):
     finally:
         pass
     return 0
-
-
-
-###############################################################
-
-################################################ ###############
-def package_product(product_dir, output_dir, product_filename):
-
-    product_file_full_path = os.path.join(outputdir, product_filename)
-
-    #delete any old ones if they are there
-    for l in os.listdir(outputdir):
-        if l.startswith(product_filename):
-            full_path = os.path.join(outputdir, l)
-            os.remove(full_path)
-                                  
-    
-    print ("Packaging completed product to %s.tar.gz") % (product_file_full_path)
-    cmd = ("tar -cvf %s.tar *") % (product_file_full_path)
-    status, output = commands.getstatusoutput(cmd)
-    os.chdir(orig_cwd)
-    if status != 0:
-        print ("Error packaging finished product to %s.tar") % (product_file_full_path)
-        print output
-        return (1,)
-
-    os.chdir(output_dir)
-
-    #this is now the product filename with path
-    product_file_full_path = "%s.tar" % product_file_full_path
-    
-    #COMPRESS THE PRODUCT FILE
-    cmd = ("gzip %s") % (product_file_full_path)
-    status, output = commands.getstatusoutput(cmd)
-    if status != 0:
-        print ("Error compressing final product file:%s") % (product_file_full_path)
-        print output
-        return(2,)
-
-    #it now has a .gz extension
-    product_file_full_path = "%s.gz" % product_file_full_path
-    
-    #CHANGE FILE PERMISSIONS 
-    print ("Changing file permissions on %s to 0644" % (product_file_full_path))
-    os.chmod(product_file_full_path, 0644)
         
-    #VERIFY THAT THE ARCHIVE IS GOOD
-    cmd = ("tar -tf %s") % (product_file_full_path)
-    status, output = commands.getstatusoutput(cmd)
-    if status != 0:
-        print ("Packaged product is an invalid tgz...")
-        print output
-        return(3,)
-
-    #if it was good then create a checksum
-    cmd = ("cksum %s")% (product_file_full_path)
-    status, output = commands.getstatusoutput(cmd)
-    if status != 0:
-        print ("Couldn't generate cksum against:%s" % (product_file_full_path))
-        print output
-        return (4,)                   
-    else:
-        cksum_file = "%s.cksum" % product_filename
-        prod_file = product_file_full_path.split('/')
-        cksum_prod_filename = prod_file[len(prod_file) - 1]
-        output = output.split()
-        cksum_val = str("%s %s %s") % (str(output[0]), str(output[1]), str(cksum_prod_filename))
-        print ("Generating cksum:%s" % cksum_val)
-        h = open(cksum_file, 'wb+')
-        h.write(cksum_val)
-        h.flush()
-        cksum_file_full_path = h.name
-        h.close()
-        return (0, cksum_val, product_file_full_path, cksum_file_full_path)  
-    
-###############################################################
-
-###############################################################
-def distribute_product(product_file_full_path, cksum_file_full_path, destination_host, destination_file, destination_cksum_file):
-
-    #MAKE DISTRIBUTION DIRECTORIES
-    print ("Creating destination directories at %s" % destination_dir)
-    cmd = "ssh %s mkdir -p %s" % (destination_host, destination_dir)
-    status,output = commands.getstatusoutput(cmd)
-    if status != 0:
-        print ("Error creating destination directory %s on %s" % (destination_dir,destination_host))
-        print output
-        return (1,)
-    
-    #DISTRIBUTE THE PRODUCT FILE
-    print ("Transferring %s to %s:%s" % (product_file_full_path, destination_host, destination_file))   
-    cmd = "scp -pC %s %s:%s" % (product_file_full_path, destination_host, destination_file)       
-    status,output = commands.getstatusoutput(cmd)
-    if status != 0:
-        print ("Error transferring %s to %s:%s..." % (product_file_full_path, destination_host, destination_file))
-        print output
-        return (2,)
-
-    #DISTRIBUTE THE CHECKSUM
-    print ("Transferring %s to %s:%s" % (cksum_file_full_path, destination_host, destination_cksum_file))
-    cmd = "scp -pC %s %s:%s" % (cksum_file_full_path, destination_host, destination_cksum_file)       
-    status,output = commands.getstatusoutput(cmd)
-    if status != 0:
-        print ("Error transferring %s to %s:%s..." % (cksum_file_full_path, destination_host,destination_cksum_file))
-        print output
-        return (3,)
-                    
-    #CHECK DISTRIBUTED PRODUCT CHECKSUM
-    cmd = "ssh -q %s cksum %s" % (destination_host, destination_file)
-    status,output = commands.getstatusoutput(cmd)
-    if status != 0:
-        #problem getting checksum
-        print ("Error generating remote checksum for %s:%s... " % (destination_host, destination_file))
-        print output
-        return (4,)
-    else:
-        return (0,output)
-
-
-#wrapper for doing the distribution
-def do_distribution(outputdir, product_filename, destination_host, destination_file, destination_cksum_file):
-    attempt = 0
-    pstatus = None
-    local_chksum = None
-    cksum_file_full_path = None
-    product_file_full_path = None
-    while (attempt < 3 and pstatus != 0):
-        pstatus, local_chksum, product_file_full_path, cksum_file_full_path = package_product(workdir, outputdir, product_filename)
-        if pstatus == 0:
-            break
-        attempt = attempt + 1
-
-    attempt = 0
-    dstatus = None
-    remote_chksum = None
-    #product_file_full_path = os.path.join(outputdir, product_filename + ".tar.gz")
-    while (attempt < 3 and dstatus != 0):
-        dstatus,remote_chksum = distribute_product(product_file_full_path, cksum_file_full_path, destination_host, destination_file, destination_cksum_file)
-        if dstatus == 0:
-            break
-        attempt = attempt + 1
-
-    return (local_chksum, remote_chksum)
-            
 #==============================================================
 #Runs the script
 #==============================================================
@@ -661,17 +512,12 @@ if __name__ == '__main__':
                       action="store",
                       dest="scene",
                       help="The scene id to process")
-    parser.add_option("--source_type",
-                      action="store",
-                      dest="source_type",
-                      default="level1",
-                      help="level1,sr,toa,th")
-    parser.add_option("--source_metadata",
+    parser.add_option("--include_sourcefile_metadata",
                       action="store_true",
                       dest="sourcefile_metadata_flag",
                       default=False,
                       help="Include sourcefile metadata in output product")
-    parser.add_option("--sourcefile",
+    parser.add_option("--include_sourcefile",
                       action="store_true",
                       dest="sourcefile_flag",
                       default=False,
@@ -691,7 +537,7 @@ if __name__ == '__main__':
                       action="store",
                       default=50,
                       help="Resolution (in percent) of output browse image")
-    parser.add_option("--surface_reflectance",
+    parser.add_option("--include_surface_reflectance",
                       action="store_true",
                       dest="sr_flag",
                       default=False,
@@ -706,7 +552,7 @@ if __name__ == '__main__':
                       dest="toa_flag",
                       default=False,
                       help="Include Top of Atmosphere in output product")
-    parser.add_option("--band6",
+    parser.add_option("--band6thermal",
                       action="store_true",
                       dest="b6thermal_flag",
                       default=False,
@@ -770,6 +616,9 @@ if __name__ == '__main__':
                       dest="debug",
                       help="Print debug messages while running")
     
+    
+
+    
     (options,args) = parser.parse_args()
 
     #print str(options)
@@ -782,12 +631,12 @@ if __name__ == '__main__':
     if options.scene is None:
         print ("\n You must specify a scene to process\n")
         parser.print_help()        
-        sys.exit((-1,))
+        exit(-1)
 
     if options.ordernum is None and options.collection_name is None and options.destination_directory is None:
         print ("\n Either an ordernumber,collection name or destination directory is required \n")
         parser.print_help()
-        sys.exit((-1,))
+        exit(-1)
 
     if options.solr_flag and options.collection_name is None:
         options.collection_name = "DEFAULT_COLLECTION"
@@ -798,7 +647,7 @@ if __name__ == '__main__':
     if not os.environ.has_key("ESPA_WORK_DIR") or \
     len(os.environ.get("ESPA_WORK_DIR")) < 1:
         print '$ESPA_WORK_DIR not set... exiting'
-        sys.exit((1, "ESPA_WORK_DIR not set"))
+        sys.exit(1)
 
     if os.environ.get("ESPA_WORK_DIR") == ".":
         BASE_WORK_DIR = os.getcwd()
@@ -813,12 +662,11 @@ if __name__ == '__main__':
     base_source_path = '/data/standard_l1t'
     base_output_path = '/data2/LSRD'
     
-    #processing_level = 'sr'
+    processing_level = 'sr'
     scene = options.scene
     path = getPath(scene)
     row = getRow(scene)
     sensor = getSensor(scene)
-    sensor_code = getSensorCode(scene)
     year = getYear(scene)
     doy = getDoy(scene)
     source_host=options.source_host
@@ -827,26 +675,10 @@ if __name__ == '__main__':
         source_directory = options.source_directory
     else:
         source_directory = ("%s/%s/%s/%s/%s") % (base_source_path, sensor, path, row, year)
-
-    if options.source_type == 'level1':
-        source_filename = "%s.tar.gz" % scene
-    elif options.source_type in ('sr','toa','th'):
-        source_filename = "%s-sr.tar.gz" % scene
-    else:
-        errmsg = 'Did not recognize source file type:%s' % options.source_type
-        print (errmsg)
-        sys.exit((-1, errmsg))
-        
+    source_filename = "%s.tar.gz" % scene
     source_file = ("%s/%s") % (source_directory,source_filename)
-
-    #MODIFY THIS TO MATCH THE NEW NAMING FORMAT
-    #scene minus station and version-monthdayyearminutesecond
-    #product_filename = ("%s-%s") % (scene,processing_level)
     
-    ts = datetime.datetime.today()
-    product_filename = ("%s%s%s%s%s") % (sensor_code,path,row,year,doy)
-    product_filename = ("%s-%s%s%s%s%s") % (product_filename, ts.month,ts.day,ts.year,ts.minute,ts.second)
-    
+    product_filename = ("%s-%s") % (scene,processing_level)
 
     destination_dir = None
     if options.destination_directory is not None:
@@ -854,30 +686,14 @@ if __name__ == '__main__':
     elif options.ordernum is not None:
         destination_dir = ("%s/orders/%s") % (base_output_path, options.ordernum)
     else:
-        errmsg = "Error determining if scene should be distributed as an order or to a directory"
-        print (errmsg)
-        sys.exit((-1, errmsg))
+        print ("Error determining if scene should be distributed as an order or to a directory")
+        sys.exit(-1)
     
     destination_file = ("%s/%s.tar.gz") % (destination_dir,product_filename)
-    destination_cksum_file = ("%s/%s.cksum") % (destination_dir, product_filename)
     randdir = str(int(random.random() * 100000))
-    stagedir = ("%s/%s/%s/stage") % (BASE_WORK_DIR,randdir,scene)
-    workdir = ("%s/%s/%s/work") % (BASE_WORK_DIR,randdir,scene)
-    outputdir=("%s/%s/%s/output") % (BASE_WORK_DIR,randdir,scene)
+    workdir = ("%s/espawork/%s/%s/work") % (BASE_WORK_DIR,randdir,scene)
+    outputdir=("%s/espawork/%s/%s/output") % (BASE_WORK_DIR,randdir,scene)
     localhostname = socket.gethostname()
-
-    #PREPARE LOCAL STAGING DIRECTORY
-    try:
-        if os.path.exists(stagedir):
-            cmd = "rm -rf %s" % stagedir
-            status,output = commands.getstatusoutput(cmd)
-            if status != 0:
-                raise Exception(output)
-        os.makedirs(stagedir, mode=0755)
-    except Exception,e:
-        print ("Error cleaning & creating stagedir:%s... exiting") % (stagedir)
-        print e
-        sys.exit((2, e))
 
     #PREPARE LOCAL WORK DIRECTORY
     try:
@@ -890,7 +706,7 @@ if __name__ == '__main__':
     except Exception,e:
         print ("Error cleaning & creating workdir:%s... exiting") % (workdir)
         print e
-        sys.exit((3, e))
+        sys.exit(1)
     
     #PREPARE LOCAL OUTPUT DIRECTORY
     try:
@@ -903,25 +719,25 @@ if __name__ == '__main__':
     except Exception, e:
         print ("Error cleaning & creating outputdir:%s... exiting") % (outputdir)
         print e
-        sys.exit((4, e))
+        sys.exit(2)
     
     #TRANSFER THE SOURCE FILE TO THE LOCAL MACHINE
     print ("Transferring %s from %s to %s") % (source_file,source_host,localhostname)  
-    cmd = ("scp -C %s:%s %s") % (source_host, source_file, stagedir)
+    cmd = ("scp -C %s:%s %s") % (source_host, source_file, outputdir)
     (status,output) = commands.getstatusoutput(cmd)
     if status != 0:
-        print ("Error transferring %s:%s to %s... exiting") % (source_host, source_file, stagedir)
+        print ("Error transferring %s:%s to %s... exiting") % (source_host, source_file, outputdir)
         print output
-        sys.exit((5, output))
+        sys.exit(3)
     
     #UNPACK THE SOURCE FILE
-    print ("Unpacking %s to %s") % (source_filename, workdir)
-    cmd = ("tar --directory %s -xvf %s/%s") % (workdir, stagedir, source_filename)
+    print ("Unpacking %s.tar.gz to %s") % (scene, workdir)
+    cmd = ("tar --directory %s -xvf %s/%s.tar.gz") % (workdir, outputdir, scene)
     (status,output) = commands.getstatusoutput(cmd)
     if status != 0:
-        print ("Error unpacking source file to %s/%s") % (workdir,source_filename)
+        print ("Error unpacking source file to %s/%s.tar.gz") % (outputdir,scene)
         print output
-        sys.exit((6, output))
+        sys.exit(4)
 
     metadata = getMetaData(workdir)
     if options.debug is not None:
@@ -930,15 +746,7 @@ if __name__ == '__main__':
             print ("%s : %s" % (m, metadata[m]))
            
     #MAKE THE PRODUCT
-    #ONLY RUN THIS IF THE SOURCE FILE IS A LEVEL 1
-    #SKIP IF ITS AN SR,TOA,OR TH
-    if options.source_type == 'level1' and \
-         (options.sr_browse_flag
-         or options.sr_ndvi_flag
-         or options.sr_flag
-         or options.b6thermal_flag
-         or options.toa_flag
-         or options.cfmask_flag):
+    if options.sr_browse_flag or options.sr_ndvi_flag or options.sr_flag or options.b6thermal_flag or options.toa_flag or options.cfmask_flag:
         cmd = ("cd %s; do_ledaps.py --metafile %s") % (workdir, metadata['mtl_file'])
         print ("LEDAPS COMMAND:%s" % cmd)
         print ("Running LEDAPS against %s with metafile %s") % (scene,metadata['mtl_file'])
@@ -946,7 +754,7 @@ if __name__ == '__main__':
         if status != 0:
             print ("LEDAPS error detected... exiting")
             print output
-            sys.exit((7, output))
+            sys.exit(5)
 
      
     #MAKE BROWSE IMAGE
@@ -954,37 +762,27 @@ if __name__ == '__main__':
         status = makeBrowse(workdir, metadata, scene, options.browse_resolution)
         if status != 0:
             print ("Error generating browse... exiting")
-            sys.exit((8, output))
+            sys.exit(6)
 
     #MAKE NDVI
-    #if options.sr_ndvi_flag:
-    #    status = makeNDVI(workdir, scene)
-    #    if status != 0:
-    #        print ("Error creating NDVI... exiting")
-    #        sys.exit(7)
-
     if options.sr_ndvi_flag:
-        cmd = ("cd %s; do_spectral_indices.py --ndvi -i %s") % (workdir, "lndsr*hdf")
-        print ("NDVI COMMAND:%s" % cmd)
-        print ("Running NDVI")
-        status,output = commands.getstatusoutput(cmd)
+        status = makeNDVI(workdir, scene)
         if status != 0:
-            print ("NDVI error detected... exiting")
-            print output
-            sys.exit((9, output))
+            print ("Error creating NDVI... exiting")
+            sys.exit(7)
     
     #MAKE SOLR INDEX
     if options.solr_flag:
         status = makeSolrIndex(metadata, scene, workdir, options.collection_name)
         if status != 0:
             print ("Error creating solr index... exiting")
-            sys.exit((10, output))
+            sys.exit(8)
 
     if options.cfmask_flag:
         status = make_cfmask(workdir)
         if status != 0:
             print ("Error creating cfmask (status %s)... exiting" % status)
-            sys.exit((11, output))
+            sys.exit(9)
 
     #DELETE UNNEEDED FILES FROM PRODUCT DIRECTORY
     print("Purging unneeded files from %s") % workdir
@@ -1006,14 +804,6 @@ if __name__ == '__main__':
         sb.write(" *lndcal* ")
     if not options.sr_flag:
         sb.write(" *lndsr* ")
-    if not options.sr_browse_flag:
-        sb.write(" *browse* ")
-    if not options.sr_ndvi_flag:
-        sb.write(" *ndvi* ")
-    if not options.solr_flag:
-        sb.write(" *index* ")
-    if not options.cfmask_flag:
-        sb.write(" *fmask* ")
     
     sb.flush()
     
@@ -1024,95 +814,83 @@ if __name__ == '__main__':
     if status != 0:
         print("Error purging files from %s... exiting") % workdir
         print output
-        sys.exit((12, output))
+        sys.exit(10)
 
-
-    #PACKAGE THE PRODUCT    
-    attempt = 0
-    success = False
-    while (attempt < 3):
-        local,remote = do_distribution(outputdir, product_filename, destination_host, destination_file, destination_cksum_file)
-        print ("Comparing checksums")
-        print ("Local  cksum:%s  type:%s" % (local, type(local)))
-        print ("Remote cksum:%s  type:%s" % (remote, type(remote)))
-        
-        if local.split()[0] == remote.split()[0]:
-            print ("Distribution complete for %s:%s" % (destination_host, destination_file))
-            success = True
-            break
-        else:
-            print ("Checksums do not match for %s:%s... retrying" % (destination_host, destination_file))
-            print ("Local cksum:%s" % local.split()[0])
-            print ("Remote cksum:%s" % remote.split()[0])
-            attempt = attempt + 1
-
-    if not success:
-        print ("Packaging and distribution for %s:%s failed after 3 attempts" % (destination_host,destination_file))
-        sys.exit((13, "Failed to distribute %s" % destination_file))
-        
     
-        
     #PACKAGE THE PRODUCT FILE
-    #print ("Packaging completed product to %s/%s.tar.gz") % (outputdir,product_filename)
-    #cmd = ("tar -cvf %s/%s.tar *") % (outputdir, product_filename)
-    #status,output = commands.getstatusoutput(cmd)
-    #os.chdir(orig_cwd)
-    #if status != 0:
-    #    print ("Error packaging finished product to %s/%s.tar") % (outputdir,product_filename)
-    #    print output
-    #    sys.exit(11)
+    print ("Packaging completed product to %s/%s.tar.gz") % (outputdir,product_filename)
+    cmd = ("tar -cvf %s/%s.tar *") % (outputdir, product_filename)
+    status,output = commands.getstatusoutput(cmd)
+    os.chdir(orig_cwd)
+    if status != 0:
+        print ("Error packaging finished product to %s/%s.tar") % (outputdir,product_filename)
+        print output
+        sys.exit(11)
     
     #COMPRESS THE PRODUCT FILE
-    #cmd = ("gzip %s/%s.tar") % (outputdir,product_filename)
-    #status,output = commands.getstatusoutput(cmd)
-    #if status != 0:
-    #    print ("Error compressing final product file:%s/%s.tar") % (outputdir,product_filename)
-    #    print output
-    #    sys.exit(12)
+    cmd = ("gzip %s/%s.tar") % (outputdir,product_filename)
+    status,output = commands.getstatusoutput(cmd)
+    if status != 0:
+        print ("Error compressing final product file:%s/%s.tar") % (outputdir,product_filename)
+        print output
+        sys.exit(12)
     
     
     #MAKE DISTRIBUTION DIRECTORIES
-    #print ("Creating destination directories at %s" % destination_dir)
-    #cmd = "ssh %s mkdir -p %s" % (destination_host, destination_dir)
-    #status,output = commands.getstatusoutput(cmd)
-    #if status != 0:
-    #    print ("Error creating destination directory %s on %s" % (destination_dir,destination_host))
-    #    print output
-    #    sys.exit(13)
+    print ("Creating destination directories at %s" % destination_dir)
+    cmd = "ssh %s mkdir -p %s" % (destination_host, destination_dir)
+    status,output = commands.getstatusoutput(cmd)
+    if status != 0:
+        print ("Error creating destination directory %s on %s" % (destination_dir,destination_host))
+        print output
+        sys.exit(13)
     
     
-    #print ("Changing file permissions on  %s/%s.tar.gz to 0644" % (outputdir,product_filename))
-    #cmd = "chmod 0644 %s/%s.tar.gz" % (outputdir, product_filename)
-    ##os.chmod("%s/%s.tar.gz" % (outputdir, product_filename), 644)
-    #status,output = commands.getstatusoutput(cmd)
-    #if status != 0:
-    #    print ("Error changing permissions on %s/%s.tar.gz to 0644... exiting" % (outputdir,product_filename))
-    #    print output
-    #    sys.exit(14)
+    print ("Changing file permissions on  %s/%s.tar.gz to 0644" % (outputdir,product_filename))
+    cmd = "chmod 0644 %s/%s.tar.gz" % (outputdir, product_filename)
+    #os.chmod("%s/%s.tar.gz" % (outputdir, product_filename), 644)
+    status,output = commands.getstatusoutput(cmd)
+    if status != 0:
+        print ("Error changing permissions on %s/%s.tar.gz to 0644... exiting" % (outputdir,product_filename))
+        print output
+        sys.exit(14)
     
     #DISTRIBUTE THE PRODUCT FILE
-    #print ("Transferring %s.tar.gz to %s:%s" % (product_filename,destination_host,destination_file))   
-    #cmd = "scp -p -C %s/%s.tar.gz %s:%s" % (outputdir, product_filename, destination_host, destination_file)       
+    print ("Transferring %s.tar.gz to %s:%s" % (product_filename,destination_host,destination_file))   
+    cmd = "scp -p -C %s/%s.tar.gz %s:%s" % (outputdir, product_filename, destination_host, destination_file)       
+    status,output = commands.getstatusoutput(cmd)
+    if status != 0:
+        print ("Error transferring %s.tar to %s:%s... exiting" % (product_filename, destination_host,destination_file))
+        print output
+        sys.exit(15)
+    
+    #print ("Changing file permissions on  %s/%s to 0644" % (outputdir,source_filename))
+    #cmd = "chmod 0644 %s/%s" % (outputdir, source_filename)
     #status,output = commands.getstatusoutput(cmd)
     #if status != 0:
-    #    print ("Error transferring %s.tar to %s:%s... exiting" % (product_filename, destination_host,destination_file))
+    #    print ("Error changing permissions on %s/%s.tar.gz to 0644... exiting" % (outputdir,source_filename))
     #    print output
-    #    sys.exit(15)
-           
+    #    sys.exit(16)
+    
+    #DISTRIBUTE THE SOURCE FILE (THIS SHOULD GO AWAY ONCE USERS CAN SELECT WHAT THEY WANT)
+    #print ("Transferring %s to %s:%s" % (source_filename,destination_host,destination_dir))   
+    #cmd = "scp -p -C %s/%s %s:%s" % (outputdir, source_filename, destination_host,destination_dir)
+    #status,output = commands.getstatusoutput(cmd)
+    #if status != 0:
+    #    print ("Error transferring %s.tar to %s:%s... exiting" % (source_filename, destination_host,destination_dir))
+    #    print output
+    #    sys.exit(17)    
+        
     
     #CLEAN UP THE LOCAL FILESYSTEM
     status,output = commands.getstatusoutput("cd /tmp")
-    print ("Cleaning local directories:%s %s %s" % (outputdir,workdir,stagedir))
-    cmd = "rm -rf %s %s %s" % (outputdir,workdir,stagedir)
+    print ("Cleaning local directories:%s %s" % (outputdir,workdir))
+    cmd = "rm -rf %s %s" % (outputdir,workdir)
     status,output = commands.getstatusoutput(cmd)
 
     if status != 0:
-        print("Error cleaning output:%s work:%s stage:%s directories... exiting" % (outputdir,workdir,stagedir))
+        print("Error cleaning output:%s and work:%s directories... exiting" % (outputdir,workdir))
         print output
-        sys.exit((14,output))
+        sys.exit(18)
     
     print ("ESPA Complete")
-    #return 0 and the file we distributed
-    {u'f1': u'aaa', u'f2': u'adsf'}
-    print ('espa.result={"destination_file":"%s", "destination_cksum_file":"%s"}' % (destination_file, destination_cksum_file))
-    sys.exit()

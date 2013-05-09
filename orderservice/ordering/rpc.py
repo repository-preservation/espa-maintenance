@@ -70,7 +70,7 @@ def _updateStatus(name, orderid, processing_loc, status):
 def _setSceneError(name, orderid, processing_loc, error):
 	return setSceneError(name, orderid, processing_loc, error)
 
-def _markSceneComplete(name,orderid,processing_loc,completed_scene_location,source_l1t_location,log_file_contents_binary):
+def _markSceneComplete(name,orderid,processing_loc,completed_scene_location,cksum_file_location,log_file_contents_binary):
         
         log_file_contents = None
         if type(log_file_contents_binary) is str:
@@ -78,7 +78,7 @@ def _markSceneComplete(name,orderid,processing_loc,completed_scene_location,sour
         else:
             log_file_contents = log_file_contents_binary.data
         
-        return markSceneComplete(name,orderid,processing_loc,completed_scene_location,source_l1t_location,log_file_contents)
+        return markSceneComplete(name,orderid,processing_loc,completed_scene_location,cksum_file_location,log_file_contents)
 
 #method to expose master configuration repository to the system
 def _getConfiguration(key):
