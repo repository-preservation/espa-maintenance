@@ -74,45 +74,6 @@ Your scenes
     s.sendmail('espa@usgs.gov', email, msg.as_string())
     s.quit()
     
-    
-
-
-def sendTramOrder(scenes):
-    #configure this
-    
-    lta = LtaServices()
-    
-    tram_service_url = 'http://edclxs152.cr.usgs.gov/MassLoader/MassLoader?wsdl'
-    client = Client(tram_service_url)
-    tramorder = client.factory.create('order')
-    tramscenes = client.factory.create('scenes')
-    tramorder.scenes = tramscenes
-    for scene in scenes:
-        tramscene = client.factory.create('scene')
-        tramscene.sceneId = scene.name
-        tramscene.productName = lta.get_product_code(scene.name)
-        tramscene.recipeId = null()
-        tramscene.unitComment = null()
-        tramscene.parameters = null()
-        tramorder.scenes.scene.append(tramscene)
-        #print('sceneid:%s, prodname:%s' % (scene.name, getTramProductName(scene.name)))
-    tramorder.externalRefNumber = '111111'
-    tramorder.orderComment = null()
-    tramorder.priority = 5
-    #configure this
-    tramorder.registrationId = '252380'
-    #configure this
-    tramorder.requestor = 'EE'
-    tramorder.roleId = null()
-    
-    try:
-        response = client.service.submitOrder(tramorder)
-        return response
-    except Exception, e:
-        print ("An error occurred submitting the order to tram: %s" % (e))
-        #log error
-        return -1
-
 
 def generate_order_id(email):
     d = datetime.datetime.now()
@@ -176,7 +137,7 @@ def getScenesToProcess():
         #order these scenes from Tram now
         if len(need_to_order) > 0:
                         
-            tram_order_id = sendTramOrder(need_to_order)
+            tram_order_id = lta.LtaServices().sendTramOrder(need_to_order)
             tramorder = TramOrder()
             tramorder.order_id = tram_order_id
             tramorder.order_date = datetime.datetime.now()
