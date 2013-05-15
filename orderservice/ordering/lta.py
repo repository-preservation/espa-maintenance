@@ -105,7 +105,7 @@ class LtaServices(object):
         url = self.get_url("orderservice")
         operation = 'verifyScenes'
         request_url = "%s/%s" % (url, operation)
-            
+        
         sb = StringIO()
         sb.write(self.get_xml_header())
         sb.write("<sceneList xmlns='http://earthexplorer.usgs.gov/schema/sceneList' ")
@@ -121,10 +121,14 @@ class LtaServices(object):
         headers = dict()
         headers['Content-Type'] = 'application/xml'
         headers['Content-Length'] = len(request_body)
-
+        
         request = urllib2.Request(request_url, request_body, headers)
-
-        h = urllib2.urlopen(request)
+        h = None
+        try:
+            h = urllib2.urlopen(request)
+        except Exception,e:
+            print e
+            raise Exception("Error occurred verifying scene list:%s" % s)
     
         code = h.getcode()
         response = None
@@ -137,11 +141,11 @@ class LtaServices(object):
 
        
         #parse, transform and return response
-        retval = list()
+        retval = dict()
         root = xml.fromstring(response)
         scenes = root.getchildren()
         for s in scenes:
-            retval.append({s.text:s.attrib['valid']})
+            retval[s.text] = s.attrib['valid']
         return retval    
 
         
@@ -173,7 +177,6 @@ class LtaServices(object):
         return retval
         
     
-
     def update_order(self, order_number, unit_number, status):
         ''' Update the status of orders that ESPA is working on '''
         client = SoapClient(self.get_url("orderupdate"))

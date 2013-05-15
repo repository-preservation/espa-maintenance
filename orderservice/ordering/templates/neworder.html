@@ -18,7 +18,7 @@
 	}
 	
 	div#errorbox table {
-	    width:400px;
+	    width:700px;
 	}
 	
 	div#errorbox td{
@@ -55,7 +55,7 @@
         
     {% if errors.email or errors.file or errors.scenes %}
 	<div id="errorbox">
-	    <table>
+	    <table><tr><td><strong>Errors were found in your request.&nbsp;&nbsp;Please correct them and retry your order.</strong></td></tr>
     {% endif %}
     {% if errors.email %}
 	<tr><td>{{errors.email}}</td></tr>
@@ -64,7 +64,9 @@
         <tr><td>{{errors.file}}</td></tr>
     {% endif %}
     {% if errors.scenes %}
-        <tr><td>{{errors.scenes}}</td></tr>
+    {% for err_scene in errors.scenes %}
+        <tr><td>{{err_scene}}</td></tr>
+    {% endfor %}
     {% endif %}
     {% if errors.email or errors.file or errors.scenes %}
 	    </table>
