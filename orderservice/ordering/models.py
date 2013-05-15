@@ -40,8 +40,8 @@ class Order(models.Model):
     #json for all product options
     product_options = models.TextField(blank=False,null=False)
 
-    order_source = models.CharField(max_length=20, choices=ORDER_SOURCE,db_index=True)
-    ee_order_id = models.CharField(max_length=100, blank=True)
+    order_source = models.CharField(max_length=10, choices=ORDER_SOURCE,db_index=True)
+    ee_order_id = models.CharField(max_length=13, blank=True)
 
 class Scene(models.Model):
 
@@ -90,14 +90,14 @@ class Scene(models.Model):
     # This will only be populated if the scene had to be placed on order through
     # EE to satisfy the request.
     ###################################################################################
-    tram_order_id = models.CharField(max_length=100, blank=True)
+    tram_order_id = models.CharField(max_length=13, blank=True)
      
     ###################################################################################
     # Flags for order origination.  These will only be populated if the scene request
     # came from EE.
     ###################################################################################
     
-    ee_unit_id = models.IntegerField(blank=True)
+    ee_unit_id = models.IntegerField(max_length=11, blank=True)
     
     ###################################################################################
     # General status flags for this scene
