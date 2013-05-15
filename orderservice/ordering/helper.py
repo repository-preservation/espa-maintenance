@@ -142,7 +142,7 @@ def getScenesToProcess():
         #order these scenes from Tram now
         if len(need_to_order) > 0:
                         
-            tram_order_id = lta.LtaServices().sendTramOrder(need_to_order)
+            tram_order_id = lta.LtaServices().order_scenes(need_to_order)
             #tramorder = TramOrder()
             #tramorder.order_id = tram_order_id
             #tramorder.order_date = datetime.datetime.now()
