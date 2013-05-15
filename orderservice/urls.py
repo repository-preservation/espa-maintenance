@@ -14,6 +14,8 @@ urlpatterns = patterns('',
     (r'^status/(?P<email>[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,4})/rss/$', StatusFeed()),
        
     (r'^status/(?P<orderid>[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,4}-[0-9]{6,8}-[0-9]{3,6})/$', 'ordering.views.orderdetails'),
+    (r'^status/(?P<orderid>[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,4}-[0-9]{13})/$', 'ordering.views.orderdetails'),
+
     (r'^admin/', include(admin.site.urls)),
     (r'^login/$', 'django.contrib.auth.views.login', {'template_name': 'login.html'}),
     (r'^$', 'ordering.views.neworder'),
