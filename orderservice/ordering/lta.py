@@ -1,4 +1,5 @@
 from suds.client import Client as SoapClient
+from suds import null
 from cStringIO import StringIO
 import urllib2
 import re
