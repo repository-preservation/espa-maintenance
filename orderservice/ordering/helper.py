@@ -89,6 +89,9 @@ def getSceneInputPath(sceneid):
 
 def getScenesToProcess():
     #sanity checks
+
+    #load up any orders from ee that are waiting for us.
+    load_ee_orders()
     
     #are there even any scenes to handle?
     if Scene.objects.filter(status__in=['submitted', 'onorder', 'oncache']).count() <= 0:
