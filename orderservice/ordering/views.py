@@ -12,7 +12,7 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from django.contrib.auth.models import User
 from django.contrib.auth import logout
 
-from ordering.models import Scene,Order,TramOrder,Configuration#,SceneOrder
+from ordering.models import Scene,Order,Configuration#,SceneOrder
 from ordering.helper import *
 import lta
 from espa.espa import *
@@ -137,6 +137,7 @@ def neworder(request):
             order.status = 'ordered'
             order.order_date = datetime.now()
             order.product_options = option_string
+            order.order_source = 'espa'
             order.save()
                 
             for s in set(scenelist):

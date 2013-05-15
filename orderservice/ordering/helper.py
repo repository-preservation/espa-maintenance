@@ -1,8 +1,8 @@
 from email.mime.text import MIMEText
 from smtplib import *
-from suds.client import Client
-from suds import null
-from models import Scene,Order,Configuration,TramOrder
+from models import Scene
+from models import Order
+from models import Configuration
 from datetime import timedelta
 from espa.espa import *
 from espa.scene_cache import SceneCache
@@ -14,7 +14,6 @@ import lta
 
 #load configuration values
 try:
-    tram_service_url = Configuration().getValue('tram.service.url')
     smtp_url = Configuration().getValue('smtp.url')
     espa_email_address = Configuration().getValue('espa.email.address')
     order_status_base_url = Configuration().getValue('order.status.base.url')
@@ -79,6 +78,9 @@ def generate_order_id(email):
     d = datetime.datetime.now()
     return '%s-%s%s%s-%s%s%s' % (email,d.month,d.day,d.year,d.hour,d.minute,d.second)
 
+def generate_ee_order_id(email,eeorder):
+    return '%s-%s' % (email,eeorder)
+
 
 def getSceneInputPath(sceneid):
     scene = Scene.objects.get(name=sceneid)
@@ -138,13 +140,13 @@ def getScenesToProcess():
         if len(need_to_order) > 0:
                         
             tram_order_id = lta.LtaServices().sendTramOrder(need_to_order)
-            tramorder = TramOrder()
-            tramorder.order_id = tram_order_id
-            tramorder.order_date = datetime.datetime.now()
-            tramorder.save()
+            #tramorder = TramOrder()
+            #tramorder.order_id = tram_order_id
+            #tramorder.order_date = datetime.datetime.now()
+            #tramorder.save()
                     
             for to in need_to_order:
-                to.tram_order = tramorder
+                to.tram_order_id = tram_order_id
                 to.status = 'onorder'
                 to.save()
 
@@ -297,7 +299,12 @@ def markSceneComplete(name, orderid, processing_loc,completed_file_location, des
         s.cksum_download_url = ('%s/orders/%s/%s') % (base_url,orderid,cksum_file)
         s.save()
 
-        sendEmailIfComplete(o.orderid,s)
+        if o.order_source == 'ee':
+            #update ee
+            lta_service = lta.LtaService()
+            lta_service.update_order(o.ee_order_id, s.ee_unit_id, 'C')
+        
+        update_order_if_complete(o.orderid,s)
             
         return True
     else:
@@ -305,7 +312,7 @@ def markSceneComplete(name, orderid, processing_loc,completed_file_location, des
         return False
 
 
-def sendEmailIfComplete(orderid, scene):
+def update_order_if_complete(orderid, scene):
     '''Method to send out the order completion email for orders if the completion of a scene completes the order'''    
     o = Order.objects.get(orderid = orderid)
     scenes = Scene.objects.filter(order__id = o.id)
@@ -323,11 +330,77 @@ def sendEmailIfComplete(orderid, scene):
         o.status = 'complete'
         o.completion_date = datetime.datetime.now()
         o.save()
-        sendCompletionEmail(o.email,o.orderid,readyscenes=scene_names)
-                       
+
+        #only send the email if this was an espa order.
+        if o.order_source == 'espa':        
+            sendCompletionEmail(o.email,o.orderid,readyscenes=scene_names)
+
+                      
+def load_ee_orders():
+    ''' Loads all the available orders from lta into our database and updates their status '''
+    lta_service = lta.LtaServices()
+
+    #This returns a dict that contains a list of dicts{}
+    #key:(order_num,email) = list({sceneid:, unit_num:})
+    orders = lta_service.get_available_orders()
+    new_espa_orders = dict()
+    for eeorder,email in orders:
+        order_status = lta_service.get_order_status(eeorder)
+        for unit in order_status['units']:
+            #only capture the ones that have a status of Q (Queued means waiting for us)
+            if unit['unit_status'] == "Q":
+                if not new_espa_orders.has_key((eeorder,email)):
+                    new_espa_orders[eeorder,email] = list()
+                new_espa_orders[eeorder,email].append({'unit_num':unit['unit_num'], 'sceneid':unit['sceneid']})
+
+    options = {
+                'include_sourcefile':False,
+                'include_source_metadata':False,
+                'include_sr_toa':False,
+                'include_sr_thermal':False,
+                'include_sr':True,
+                'include_sr_browse':False,
+                'include_sr_ndvi':False,
+                'include_solr_index':False,
+                'include_cfmask':False
+    }
+
+    #Capture in our db
+    for eeorder,email in new_espa_orders:
         
+        order = Order()
+        order.orderid = generate_ee_order_id(email,eeorder)
+        order.email = email
+        order.chain = 'sr_ondemand'
+        order.status = 'ordered'
+        order.note = 'EarthExplorer order id:%s' % eeorder
+        order.product_options = json.dumps(options)
+        order.ee_order_id = eeorder
+        order.order_source = 'ee'
+        order.order_date = datetime.datetime.now()
+        order.save()
+
+        for s in new_espa_orders[eeorder,email]:
+            scene = Scene()
+            scene.name = s['sceneid']
+            scene.ee_unit_id = s['unit_num']
+            scene.order = order
+            scene.order_date = datetime.datetime.now()
+            scene.status = 'submitted'
+            scene.save()
         
 
+    #Update unit status
+    for key in new_espa_orders:
+        eeorder,email = key
+        unit = new_espa_orders[key]
+        for u in unit:
+            #update status to I for Inprocess
+            lta_service.update_order(eeorder, u['unit_num'], "I")
+    
+
+                
+            
     
 
     

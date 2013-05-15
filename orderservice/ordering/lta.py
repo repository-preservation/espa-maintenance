@@ -3,6 +3,8 @@ from cStringIO import StringIO
 import urllib2
 import re
 import xml.etree.ElementTree as xml
+import os
+import socket
 
 class LtaServices(object):
     ''' Client for all of LTA services from ESPA '''
@@ -33,7 +35,25 @@ class LtaServices(object):
         self.environment = environment
 
     def get_url(self,service_name):
-        return self.urls[self.environment][service_name]
+        ''' Service locator pattern.  Attempts to identify the environment
+            first by looking for ESPA_ENV.  If that is not set it checks
+            the hostname for known ops or tst servers.  If none of those
+            conditions are met then it uses whatever was passed in on the
+            constructor.  This is restrictive on the end user on purpose
+            to minimize the chance of having calls go to the wrong environment. '''
+        
+        if os.environ.has_key("ESPA_ENV"):
+            if os.environ['ESPA_ENV'].lower() == "ops":
+                return self.urls["ops"][service_name]
+            elif os.environ['ESPA_ENV'].lower() == "tst":
+                return self.urls["tst"][service_name]
+        else:
+            if socket.gethostname().lower().startswith("l8srlscp03"):
+                return self.urls["ops"][service_name]
+            elif socket.gethostname().lower().startswith("l8srlscp12"):
+                return self.urls["tst"][service_name]
+            else:
+                return self.urls[self.environment][service_name]
 
 
     def get_xml_header(self):
@@ -82,7 +102,9 @@ class LtaServices(object):
 
     def get_available_orders(self):
         ''' Returns all the orders that were submitted for ESPA through EE '''
-        returnVal = list()
+        returnVal = dict()
+        
+        
         client = SoapClient(self.get_url("orderdelivery"))
         resp = client.factory.create("getAvailableOrdersResponse")
         
@@ -91,11 +113,23 @@ class LtaServices(object):
         except Exception,e:
             print e
             raise e
+        
+        #if there were none just return
+        if len(resp.units) == 0:
+            return returnVal
 
-        #return these to the caller.
+        #return these to the caller.        
         for u in resp.units.unit:
-            line = {"order_num":u.orderNbr, "sceneid":u.orderingId, "unit_num":u.unitNbr}
-            returnVal.append(line)
+            params = u.processingParam
+       
+            #This isn't a typo... they really did jack up the xml with a backslash instead of fwd slash
+            email = params[params.index("<email>") + 7:params.index("</email>")]
+            
+            #This is a dictionary that contains a list of dictionaries
+            if not returnVal.has_key((str(u.orderNbr), str(email))):
+                returnVal[str(u.orderNbr), str(email)] = list()
+                
+            returnVal[str(u.orderNbr),str(email)].append({"sceneid":str(u.orderingId), "unit_num":int(u.unitNbr)})
         return returnVal
             
 

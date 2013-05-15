@@ -1,23 +1,8 @@
 from django.db import models
 from django.contrib import admin
-#import paramiko
-#import os
-#from abc import ABCMeta, abstractmethod, abstractproperty
-#from espa.espa import *
+
 
     
-class TramOrder(models.Model):
-    
-    def __unicode__(self):
-        return self.order_id
-    
-    order_id = models.CharField(max_length=255)
-    order_date = models.DateTimeField('order date', blank=True, null=True)
-        
-    #need to tie into the orderstatus service to get this.
-    #order_status = models.CharField(max_length=255)
-    #order_complete_date = models.DateTimeField('delivered date', blank=True, null=True)
-
 class Order(models.Model):
 
     def __unicode__(self):
@@ -36,6 +21,11 @@ class Order(models.Model):
         ('complete', 'Complete')
         
     )
+
+    ORDER_SOURCE = (
+        ('espa', 'ESPA'),
+        ('ee', 'EE')
+    )
     
     #orderid should be in the format email_MMDDYY_HHMMSS
     orderid = models.CharField(max_length=255, unique=True, db_index=True)
@@ -49,6 +39,9 @@ class Order(models.Model):
     note = models.CharField(max_length=2048, blank=True, null=True)
     #json for all product options
     product_options = models.TextField(blank=False,null=False)
+
+    order_source = models.CharField(max_length=20, choices=ORDER_SOURCE,db_index=True)
+    ee_order_id = models.CharField(max_length=100, blank=True)
 
 class Scene(models.Model):
 
@@ -70,13 +63,6 @@ class Scene(models.Model):
         ('unavailable','Unavailable'),
         ('error', 'Error')
     )
-
-    #These will be populated if the scene had to be ordered from TRAM.  Should be
-    #migrated to a subclass at some point if we have to start handling MODIS data as
-    #well.
-    #tram_order_id = models.CharField(max_length=256, blank=True)
-    #tram_order_date = models.DateTimeField('tram order date', blank=True, null=True)
-    tram_order = models.ForeignKey(to=TramOrder, blank=True, null=True)
     
     #scene file name, with no suffix
     name = models.CharField(max_length=256,db_index=True)
@@ -99,8 +85,20 @@ class Scene(models.Model):
     product_dload_url = models.CharField(max_length=1024, blank=True)
     cksum_distro_location = models.CharField(max_length=1024,blank=True)
     cksum_download_url = models.CharField(max_length=1024, blank=True)
-    
 
+    ###################################################################################
+    # This will only be populated if the scene had to be placed on order through
+    # EE to satisfy the request.
+    ###################################################################################
+    tram_order_id = models.CharField(max_length=100, blank=True)
+     
+    ###################################################################################
+    # Flags for order origination.  These will only be populated if the scene request
+    # came from EE.
+    ###################################################################################
+    
+    ee_unit_id = models.IntegerField(blank=True)
+    
     ###################################################################################
     # General status flags for this scene
     ###################################################################################

@@ -1,10 +1,7 @@
-from ordering.models import Scene, Order, Configuration,TramOrder
+from ordering.models import Scene, Order, Configuration
 from django.contrib import admin
       
-class TramOrderAdmin(admin.ModelAdmin):
-    fields = ['order_id', 'order_date']
-    list_display = ('order_id', 'order_date')
-    
+   
          
 
 #THESE DON"T WORK LIKE YOU"D EXPECT
@@ -24,7 +21,6 @@ class SceneAdmin(admin.ModelAdmin):
               #'destDS',
               'completion_date',
               'note',
-              'tram_order',
               'product_distro_location',
               'product_dload_url',
               'cksum_distro_location',
@@ -35,7 +31,6 @@ class SceneAdmin(admin.ModelAdmin):
                     'status',
                     'completion_date',
                     'order',
-                    'tram_order',
                     #'sourceDS',
                     #'destDS')
                    )
@@ -43,11 +38,10 @@ class SceneAdmin(admin.ModelAdmin):
                    'completion_date',
                    'processing_location',
                    'order',
-                   'tram_order',
                    #'sourceDS',
                    #'destDS')
                   )
-    search_fields = ['name', 'status', 'processing_location','order__orderid','tram_order__order_id']
+    search_fields = ['name', 'status', 'processing_location','order__orderid']
     
    
     #readonly_fields = ('order_date', 'completion_date')
@@ -81,6 +75,6 @@ class ConfigurationAdmin(admin.ModelAdmin):
 admin.site.register(Scene,SceneAdmin)
 admin.site.register(Order,OrderAdmin)
 admin.site.register(Configuration, ConfigurationAdmin)
-admin.site.register(TramOrder, TramOrderAdmin)
+
 
 
