@@ -238,7 +238,7 @@ class LtaServices(object):
         tramorder = client.factory.create('order')
         tramscenes = client.factory.create('scenes')
         tramorder.scenes = tramscenes
-        for scene in scenes:
+        for scene in scene_list:
             tramscene = client.factory.create('scene')
             tramscene.sceneId = scene.name
             tramscene.productName = self.get_product_code(scene.name)
