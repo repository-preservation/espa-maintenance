@@ -21,6 +21,8 @@ class SceneAdmin(admin.ModelAdmin):
               #'destDS',
               'completion_date',
               'note',
+              'tram_order_id',
+              'ee_unit_id',
               'product_distro_location',
               'product_dload_url',
               'cksum_distro_location',
@@ -51,10 +53,10 @@ class SceneAdmin(admin.ModelAdmin):
     
 
 class OrderAdmin(admin.ModelAdmin):
-    fields = ['orderid', 'email','status','chain','order_date','completion_date','note', 'product_options']
-    list_display = ('orderid', 'email','status', 'chain', 'order_date', 'completion_date', 'product_options')
-    list_filter = ('orderid', 'email','status','chain','order_date','completion_date')
-    search_fields = ['orderid', 'email', 'status','chain']
+    fields = ['orderid', 'order_source', 'email','status', 'ee_order_id', 'chain','order_date','completion_date','note', 'product_options', ]
+    list_display = ('orderid', 'order_source', 'email','status', 'ee_order_id', 'chain', 'order_date', 'completion_date', 'product_options')
+    list_filter = ('orderid', 'order_source', 'email','status', 'ee_order_id', 'chain','order_date','completion_date')
+    search_fields = ['orderid', 'order_source', 'email', 'ee_order_id', 'status','chain']
     
     inlines = [SceneInline,]
     #filter_horizontal = ('scenes',)
