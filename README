@@ -58,6 +58,15 @@ Dependencies (Processing Nodes)
 		(Will be installed to /usr/local/var/ledaps/anc by default)
 		
 Change Notes
+Version 2.1
+        Updated web code to verify submitted scenes against the inventory before accepting them.
+        Updated web code to pull orders from EE on demand for surface reflectance only.
+        
+Version 2.0.4
+        Update espa to work with new ledaps and cfmask
+        Corrected issue with bad tarballs being distributed.
+        Generated cksum files and distribute those with the product.
+
 Version 2.0.3
         Updated espa to work with ledaps 1.2 & cfmask 1.0.1
         Added ability for all users to select product options.
