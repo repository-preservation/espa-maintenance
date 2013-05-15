@@ -2,12 +2,10 @@ from suds.client import Client as SoapClient
 from cStringIO import StringIO
 import urllib2
 import re
+import xml.etree.ElementTree as xml
 
 class LtaServices(object):
     ''' Client for all of LTA services from ESPA '''
-    username = None
-    password = None
-    
 
     urls = {
         "dev" : {
@@ -34,12 +32,6 @@ class LtaServices(object):
     def __init__(self,environment="dev"):
         self.environment = environment
 
-    #def __init__(self,username, password,environment="dev"):
-    #    self.environment = environment
-    #    self.username = username
-    #    self.password = password
-
-
     def get_url(self,service_name):
         return self.urls[self.environment][service_name]
 
@@ -47,8 +39,8 @@ class LtaServices(object):
     def get_xml_header(self):
         return "<?xml version ='1.0' encoding='UTF-8' ?>"
 
-    #validates against a properly structure L7, L5 or L4 sceneid
     def sceneid_is_sane(self, sceneid):
+        ''' validates against a properly structure L7, L5 or L4 sceneid '''
         p = re.compile('L(E7|T4|T5)\d{3}\d{3}\d{4}\d{3}\w{3}\d{2}')
         if p.match(sceneid):
             return True
@@ -71,7 +63,7 @@ class LtaServices(object):
         
     def get_sensor_name(self,sceneid):
         ''' returns the EE sensor name (e.g. 'LANDSAT_ETM') given a scene id '''
-        sensor = None
+        sensor = 'Unknown'
         code = self.get_product_code(sceneid)
         if code == "T273":
             sensor = "LANDSAT_TM"
@@ -79,14 +71,13 @@ class LtaServices(object):
             sensor = "LANDSAT_ETM"
         elif code == "T271":
             sensor = "LANDSAT_ETM_SLC_OFF"
-        else:
-            raise Exception("Unknown product code for %s" % sceneid)
+            
         return sensor
 
 
-    def get_available_sensors(self):
-        ''' Returns all the available sensors.. not needed at this time but available through order delivery service '''
-        pass
+    #def get_available_sensors(self):
+    #    ''' Returns all the available sensors.. not needed at this time but available through order delivery service '''
+    #    pass
 
 
     def get_available_orders(self):
@@ -144,9 +135,14 @@ class LtaServices(object):
 
         h.close()
 
+       
         #parse, transform and return response
-        print response
-        
+        retval = list()
+        root = xml.fromstring(response)
+        scenes = root.getchildren()
+        for s in scenes:
+            retval.append({s.text:s.attrib['valid']})
+        return retval    
 
         
     def get_order_status(self, order_number):
@@ -174,7 +170,6 @@ class LtaServices(object):
             unit['sceneid'] = str(u.orderingId)
             retval['units'].append(unit)
 
-
         return retval
         
     
@@ -190,12 +185,12 @@ class LtaServices(object):
                                                  unitRangeBegin = int(unit_number),
                                                 unitRangeEnd = int(unit_number))
         except Exception, e:
-            return (False,,e)
+            return (False,e)
         
         if resp.status == "Pass":
             return (True,)
         else:
-            return (False,resp.status,resp.message)
+            return (False,resp.message,resp.status)
         
 
 
@@ -228,13 +223,6 @@ class LtaServices(object):
             print ("An error occurred submitting the order to tram: %s" % (e))
             #log error
             return -1
-
-
-
-
-
-
-
 
 
     ########################################################
