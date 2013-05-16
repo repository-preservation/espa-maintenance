@@ -15,25 +15,48 @@ class LtaServices(object):
             "orderservice":"http://edclxs151.cr.usgs.gov/OrderWrapperServicedevsys/resources",
             "orderdelivery":"http://edclxs151.cr.usgs.gov/OrderDeliverydevsys/OrderDeliveryService?WSDL",
             "orderupdate":"http://edclxs151.cr.usgs.gov/OrderStatusServicedevsys/OrderStatusService?wsdl",
-            "massloader":"http://edclxs151.cr.usgs.gov/MassLoaderdevsys/MassLoader?wsdl"
+            "massloader":"http://edclxs151.cr.usgs.gov/MassLoaderdevsys/MassLoader?wsdl",
+            "registration":"http://edclxs151.cr.usgs.gov/RegistrationServicedevsys/RegistrationService?wsdl"
         },
         "tst" : {
             "orderservice":"http://eedevmast.cr.usgs.gov/OrderWrapperServicedevmast/resources",
             "orderdelivery":"http://edclxs151.cr.usgs.gov/OrderDeliverydevmast/OrderDeliveryService?WSDL",
             "orderupdate":"http://edclxs151.cr.usgs.gov/OrderStatusServicedevmast/OrderStatusService?wsdl",
-            "massloader":"http://edclxs151.cr.usgs.gov/MassLoaderdevmast/MassLoader?wsdl"
+            "massloader":"http://edclxs151.cr.usgs.gov/MassLoaderdevmast/MassLoader?wsdl",
+            "registration":"http://edclxs151.cr.usgs.gov/RegistrationServicedevmast/RegistrationService?wsdl"
         },
         "ops" : {
             "orderservice":"http://edclxs152.cr.usgs.gov/OrderWrapperService/resources",
             "orderdelivery":"http://edclxs152.cr.usgs.gov/OrderDeliveryService/OrderDeliveryService?WSDL",
             "orderupdate":"http://edclxs152/OrderStatusService/OrderStatusService?wsdl",
-            "massloader":"http://edclxs152.cr.usgs.gov/MassLoader/MassLoader?wsdl"
+            "massloader":"http://edclxs152.cr.usgs.gov/MassLoader/MassLoader?wsdl",
+            "registration":"http://edclxs151.cr.usgs.gov/RegistrationService/RegistrationService?wsdl"
         }
+    }
+
+    tram_ids = {
+        "dev" : "419190",
+        "tst" : "418668",
+        "ops" : "252380"
     }
        
 
     def __init__(self,environment="dev"):
         self.environment = environment
+
+    def get_environment(self):
+        if os.environ.has_key("ESPA_ENV"):
+            if os.environ['ESPA_ENV'].lower() == "ops":
+                return "ops"
+            elif os.environ['ESPA_ENV'].lower() == "tst":
+                return "tst"
+        else:
+            if socket.gethostname().lower().startswith("l8srlscp03"):
+                return "ops"
+            elif socket.gethostname().lower().startswith("l8srlscp12"):
+                return "tst"
+            else:
+                return self.environment
 
     def get_url(self,service_name):
         ''' Service locator pattern.  Attempts to identify the environment
@@ -42,20 +65,12 @@ class LtaServices(object):
             conditions are met then it uses whatever was passed in on the
             constructor.  This is restrictive on the end user on purpose
             to minimize the chance of having calls go to the wrong environment. '''
-        
-        if os.environ.has_key("ESPA_ENV"):
-            if os.environ['ESPA_ENV'].lower() == "ops":
-                return self.urls["ops"][service_name]
-            elif os.environ['ESPA_ENV'].lower() == "tst":
-                return self.urls["tst"][service_name]
-        else:
-            if socket.gethostname().lower().startswith("l8srlscp03"):
-                return self.urls["ops"][service_name]
-            elif socket.gethostname().lower().startswith("l8srlscp12"):
-                return self.urls["tst"][service_name]
-            else:
-                return self.urls[self.environment][service_name]
+        env = self.get_environment()
+        return self.urls[env][service_name]
 
+    def get_tram_id(self):
+        env = self.get_environment()
+        return self.tram_ids[env]
 
     def get_xml_header(self):
         return "<?xml version ='1.0' encoding='UTF-8' ?>"
@@ -250,7 +265,8 @@ class LtaServices(object):
         tramorder.externalRefNumber = '111111'
         tramorder.orderComment = null()
         tramorder.priority = 5
-        tramorder.registrationId = '252380'
+        #tramorder.registrationId = '252380'
+        tramorder.registrationId = self.get_tram_id()
         tramorder.requestor = 'EE'
         tramorder.roleId = null()
     
