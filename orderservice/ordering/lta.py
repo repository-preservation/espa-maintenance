@@ -22,7 +22,10 @@ class LtaServices(object):
             "orderservice":"http://eedevmast.cr.usgs.gov/OrderWrapperServicedevmast/resources",
             "orderdelivery":"http://edclxs151.cr.usgs.gov/OrderDeliverydevmast/OrderDeliveryService?WSDL",
             "orderupdate":"http://edclxs151.cr.usgs.gov/OrderStatusServicedevmast/OrderStatusService?wsdl",
-            "massloader":"http://edclxs151.cr.usgs.gov/MassLoaderdevmast/MassLoader?wsdl",
+            #"massloader":"http://edclxs151.cr.usgs.gov/MassLoaderdevmast/MassLoader?wsdl",
+            #The tst env for MassLoader is wired to ops because Landsat doesn't usually
+            #fulfill test orders unless they are specifically asked to.
+            "massloader":"http://edclxs152.cr.usgs.gov/MassLoader/MassLoader?wsdl",
             "registration":"http://edclxs151.cr.usgs.gov/RegistrationServicedevmast/RegistrationService?wsdl"
         },
         "ops" : {
@@ -36,7 +39,8 @@ class LtaServices(object):
 
     tram_ids = {
         "dev" : "419190",
-        "tst" : "418668",
+        #"tst" : "418668",
+        "tst" : "252380",
         "ops" : "252380"
     }
        
