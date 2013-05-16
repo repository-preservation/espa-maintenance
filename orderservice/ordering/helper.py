@@ -308,7 +308,7 @@ def markSceneComplete(name, orderid, processing_loc,completed_file_location, des
 
         if o.order_source == 'ee':
             #update ee
-            lta_service = lta.LtaService()
+            lta_service = lta.LtaServices()
             lta_service.update_order(o.ee_order_id, s.ee_unit_id, 'C')
         
         update_order_if_complete(o.orderid,s)
