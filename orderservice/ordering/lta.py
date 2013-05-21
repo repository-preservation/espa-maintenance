@@ -147,7 +147,7 @@ class LtaServices(object):
                 email = params[params.index("<email>") + 7:params.index("</email>")]
             except:
                 print ("Could not find an email address for order:%s and unit:%s... rejecting" % (u.orderNbr, u.unitNbr))
-                self.update_order(u.orderNbr, u.unitNbr, "R")
+                self.update_order(u.orderNbr, u.unitNbr, "F")
                 continue
             
             #This is a dictionary that contains a list of dictionaries
