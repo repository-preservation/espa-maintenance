@@ -58,7 +58,7 @@ def getDoy(scene_name):
 #return scene sensor
 #==============================================================
 def getSensor(scene_name):
-    if scene_name[0:3] =='LT5':
+    if scene_name[0:3] =='LT5' or scene_name[0:3] == 'LT4':
         return 'tm'
     elif scene_name[0:3] == 'LE7':
         return 'etm'
