@@ -143,7 +143,12 @@ class LtaServices(object):
             params = u.processingParam
        
             #This isn't a typo... they really did jack up the xml with a backslash instead of fwd slash
-            email = params[params.index("<email>") + 7:params.index("</email>")]
+            try:    
+                email = params[params.index("<email>") + 7:params.index("</email>")]
+            except:
+                print ("Could not find an email address for order:%s and unit:%s... rejecting" % (u.orderNbr, u.unitNbr))
+                self.update_order(u.orderNbr, u.unitNbr, "R")
+                continue
             
             #This is a dictionary that contains a list of dictionaries
             if not returnVal.has_key((str(u.orderNbr), str(email))):
