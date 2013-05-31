@@ -30,6 +30,7 @@ def stripZeros(value):
         value = value[1:len(value)]
     return value
 
+    
 #==============================================================
 #Cooresponding path for this scene
 #==============================================================
@@ -701,6 +702,38 @@ if __name__ == '__main__':
                       dest="sr_ndvi_flag",
                       default=False,
                       help="Create ndvi for this scene")
+    parser.add_option("--sr_ndmi",
+                      action="store_true",
+                      dest="sr_ndmi_flag",
+                      default=False,
+                      help="Create ndmi for this scene")
+    parser.add_option("--sr_nbr",
+                      action="store_true",
+                      dest="sr_nbr_flag",
+                      default=False,
+                      help="Create nbr for this scene")
+    parser.add_option("--sr_nbr2",
+                      action="store_true",
+                      dest="sr_nbr2_flag",
+                      default=False,
+                      help="Create nbr2 for this scene")
+    parser.add_option("--sr_savi",
+                      action="store_true",
+                      dest="sr_savi_flag",
+                      default=False,
+                      help="Create savi for this scene")
+    parser.add_option("--sr_evi",
+                      action="store_true",
+                      dest="sr_evi_flag",
+                      default=False,
+                      help="Create evi for this scene")
+
+
+
+
+
+
+    
     parser.add_option("--toa",
                       action="store_true",
                       dest="toa_flag",
@@ -838,16 +871,12 @@ if __name__ == '__main__':
         sys.exit((-1, errmsg))
         
     source_file = ("%s/%s") % (source_directory,source_filename)
-
-    #MODIFY THIS TO MATCH THE NEW NAMING FORMAT
-    #scene minus station and version-monthdayyearminutesecond
-    #product_filename = ("%s-%s") % (scene,processing_level)
     
+    #PRODUCT FILENAME NEEDS TO LOOK LIKE THIS: LE70300302004234-SC20130325164523
     ts = datetime.datetime.today()
-    product_filename = ("%s%s%s%s%s") % (sensor_code,path,row,year,doy)
-    product_filename = ("%s-%s%s%s%s%s") % (product_filename, ts.month,ts.day,ts.year,ts.minute,ts.second)
+    product_filename = ("%s%s%s%s%s") % (sensor_code,path.zfill(3),row.zfill(3),year,doy)
+    product_filename = ("%s-SC%s%s%s%s%s") % (product_filename, ts.year,ts.month,ts.day,ts.minute,ts.second)
     
-
     destination_dir = None
     if options.destination_directory is not None:
         destination_dir = options.destination_directory
@@ -935,6 +964,11 @@ if __name__ == '__main__':
     if options.source_type == 'level1' and \
          (options.sr_browse_flag
          or options.sr_ndvi_flag
+         or options.sr_ndmi_flag
+         or options.sr_nbr_flag
+         or options.sr_nbr2_flag
+         or options.sr_savi_flag
+         or options.sr_evi_flag
          or options.sr_flag
          or options.b6thermal_flag
          or options.toa_flag
@@ -956,20 +990,31 @@ if __name__ == '__main__':
             print ("Error generating browse... exiting")
             sys.exit((8, output))
 
-    #MAKE NDVI
-    #if options.sr_ndvi_flag:
-    #    status = makeNDVI(workdir, scene)
-    #    if status != 0:
-    #        print ("Error creating NDVI... exiting")
-    #        sys.exit(7)
+    
+    #MAKE SPECTRAL INDICIES
+    if (options.sr_ndvi_flag or options.sr_ndmi_flag or options.sr_nbr_flag
+        or options.sr_nbr2_flag or options.sr_savi_flag or options.sr_evi_flag):
+        index_string = ""
+        if options.sr_ndvi_flag:
+            index_string = index_string + " --ndvi"
+        if options.sr_ndmi_flag:
+            index_string = index_string + " --ndmi"
+        if options.sr_nbr_flag:
+            index_string = index_string + " --nbr"
+        if options.sr_nbr2_flag:
+            index_string = index_string + " --nbr2"
+        if options.sr_savi_flag:
+            index_string = index_string + " --savi"
+        if options.sr_evi_flag:
+            index_string = index_string + " --evi"
 
-    if options.sr_ndvi_flag:
-        cmd = ("cd %s; do_spectral_indices.py --ndvi -i %s") % (workdir, "lndsr*hdf")
-        print ("NDVI COMMAND:%s" % cmd)
-        print ("Running NDVI")
+        #cmd = ("cd %s; do_spectral_indices.py --ndvi -i %s") % (workdir, "lndsr*hdf")
+        cmd = ("cd %s; do_spectral_indices.py %s -i %s") % (workdir, index_string, "lndsr*hdf")
+        print ("SPECTRAL INDICES COMMAND:%s" % cmd)
+        print ("Running Spectral Indices")
         status,output = commands.getstatusoutput(cmd)
         if status != 0:
-            print ("NDVI error detected... exiting")
+            print ("Spectral Index error detected... exiting")
             print output
             sys.exit((9, output))
     
@@ -1050,55 +1095,7 @@ if __name__ == '__main__':
         print ("Packaging and distribution for %s:%s failed after 3 attempts" % (destination_host,destination_file))
         sys.exit((13, "Failed to distribute %s" % destination_file))
         
-    
-        
-    #PACKAGE THE PRODUCT FILE
-    #print ("Packaging completed product to %s/%s.tar.gz") % (outputdir,product_filename)
-    #cmd = ("tar -cvf %s/%s.tar *") % (outputdir, product_filename)
-    #status,output = commands.getstatusoutput(cmd)
-    #os.chdir(orig_cwd)
-    #if status != 0:
-    #    print ("Error packaging finished product to %s/%s.tar") % (outputdir,product_filename)
-    #    print output
-    #    sys.exit(11)
-    
-    #COMPRESS THE PRODUCT FILE
-    #cmd = ("gzip %s/%s.tar") % (outputdir,product_filename)
-    #status,output = commands.getstatusoutput(cmd)
-    #if status != 0:
-    #    print ("Error compressing final product file:%s/%s.tar") % (outputdir,product_filename)
-    #    print output
-    #    sys.exit(12)
-    
-    
-    #MAKE DISTRIBUTION DIRECTORIES
-    #print ("Creating destination directories at %s" % destination_dir)
-    #cmd = "ssh %s mkdir -p %s" % (destination_host, destination_dir)
-    #status,output = commands.getstatusoutput(cmd)
-    #if status != 0:
-    #    print ("Error creating destination directory %s on %s" % (destination_dir,destination_host))
-    #    print output
-    #    sys.exit(13)
-    
-    
-    #print ("Changing file permissions on  %s/%s.tar.gz to 0644" % (outputdir,product_filename))
-    #cmd = "chmod 0644 %s/%s.tar.gz" % (outputdir, product_filename)
-    ##os.chmod("%s/%s.tar.gz" % (outputdir, product_filename), 644)
-    #status,output = commands.getstatusoutput(cmd)
-    #if status != 0:
-    #    print ("Error changing permissions on %s/%s.tar.gz to 0644... exiting" % (outputdir,product_filename))
-    #    print output
-    #    sys.exit(14)
-    
-    #DISTRIBUTE THE PRODUCT FILE
-    #print ("Transferring %s.tar.gz to %s:%s" % (product_filename,destination_host,destination_file))   
-    #cmd = "scp -p -C %s/%s.tar.gz %s:%s" % (outputdir, product_filename, destination_host, destination_file)       
-    #status,output = commands.getstatusoutput(cmd)
-    #if status != 0:
-    #    print ("Error transferring %s.tar to %s:%s... exiting" % (product_filename, destination_host,destination_file))
-    #    print output
-    #    sys.exit(15)
-           
+              
     
     #CLEAN UP THE LOCAL FILESYSTEM
     status,output = commands.getstatusoutput("cd /tmp")

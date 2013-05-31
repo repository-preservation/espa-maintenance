@@ -25,7 +25,7 @@ def sendInitialEmail(order):
     status_base_url = Configuration().getValue('espa.status.url')    
     status_url = ('%s/%s') % (status_base_url, order.email)
 
-    header = ("""Thank you for your request for Surface Reflectance processing order number %s.  Your order has been received and is currently being processed.
+    header = ("""Thank you for your order ( %s ).  Your order has been received and is currently being processed.
 
 You will receive an email notification when all units on this order have been completed.
 
@@ -54,7 +54,7 @@ Requested scenes:\n""") % (order.orderid, status_url)
 def sendCompletionEmail(email,ordernum,readyscenes=[]):
     status_base_url = Configuration().getValue('espa.status.url')
     status_url = ('%s/%s') % (status_base_url, email)    
-    msg = ("""Your order for atmospherically corrected scenes is now complete. All scenes will remain available for 14 days.\n
+    msg = ("""Your order is now complete. All scenes will remain available for 14 days.\n
 After 14 days you will need to re-order the requested scenes if you were not able to retrieve them within this timeframe.\n
 Order number: %s
 Order status url: %s\n
@@ -350,15 +350,17 @@ def load_ee_orders():
     #This returns a dict that contains a list of dicts{}
     #key:(order_num,email) = list({sceneid:, unit_num:})
     orders = lta_service.get_available_orders()
-    new_espa_orders = dict()
-    for eeorder,email in orders:
-        order_status = lta_service.get_order_status(eeorder)
-        for unit in order_status['units']:
-            #only capture the ones that have a status of Q (Queued means waiting for us)
-            if unit['unit_status'] == "Q":
-                if not new_espa_orders.has_key((eeorder,email)):
-                    new_espa_orders[eeorder,email] = list()
-                new_espa_orders[eeorder,email].append({'unit_num':unit['unit_num'], 'sceneid':unit['sceneid']})
+
+
+    #new_espa_orders = dict()
+    #for eeorder,email in orders:
+    #    order_status = lta_service.get_order_status(eeorder)
+    #    for unit in order_status['units']:
+    #        #only capture the ones that have a status of Q (Queued means waiting for us)
+    #        if unit['unit_status'] == "Q":
+    #            if not new_espa_orders.has_key((eeorder,email)):
+    #                new_espa_orders[eeorder,email] = list()
+    #            new_espa_orders[eeorder,email].append({'unit_num':unit['unit_num'], 'sceneid':unit['sceneid']})
 
     options = {
                 'include_sourcefile':False,
@@ -368,26 +370,33 @@ def load_ee_orders():
                 'include_sr':True,
                 'include_sr_browse':False,
                 'include_sr_ndvi':False,
+                'include_sr_ndmi':False,
+                'include_sr_nbr':False,
+                'include_sr_nbr2':False,
+                'include_sr_savi':False,
+                'include_sr_evi':False,
                 'include_solr_index':False,
                 'include_cfmask':False
     }
 
     #Capture in our db
-    for eeorder,email in new_espa_orders:
+    #for eeorder,email in new_espa_orders:
+    for eeorder,email in orders:
         
         order = Order()
         order.orderid = generate_ee_order_id(email,eeorder)
         order.email = email
         order.chain = 'sr_ondemand'
         order.status = 'ordered'
-        order.note = 'EarthExplorer order id:%s' % eeorder
+        order.note = 'EarthExplorer order id: %s' % eeorder
         order.product_options = json.dumps(options)
         order.ee_order_id = eeorder
         order.order_source = 'ee'
         order.order_date = datetime.datetime.now()
         order.save()
 
-        for s in new_espa_orders[eeorder,email]:
+        #for s in new_espa_orders[eeorder,email]:
+        for s in orders[eeorder,email]:
             scene = Scene()
             scene.name = s['sceneid']
             scene.ee_unit_id = s['unit_num']
@@ -398,7 +407,8 @@ def load_ee_orders():
         
 
     #Update unit status
-    for key in new_espa_orders:
+    #for key in new_espa_orders:
+    for key in orders:
         eeorder,email = key
         unit = new_espa_orders[key]
         for u in unit:

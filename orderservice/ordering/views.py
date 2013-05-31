@@ -92,7 +92,7 @@ def neworder(request):
             if line.find('.tar.gz') != -1:
                 line = line[0:line.index('.tar.gz')]
             #errors['scenes'].append('%s not found in Landsat inventory' % line)
-            if len(line) >= 15:
+            if len(line) >= 15 and (line.startswith("LT") or line.startswith("LE")):
                 scenelist.add(line)
 
         lta_service = lta.LtaServices()
@@ -119,6 +119,11 @@ def neworder(request):
                 'include_sr':False,
                 'include_sr_browse':False,
                 'include_sr_ndvi':False,
+                'include_sr_ndmi':False,
+                'include_sr_nbr':False,
+                'include_sr_nbr2':False,
+                'include_sr_savi':False,
+                'include_sr_evi':False,
                 'include_solr_index':False,
                 'include_cfmask':False
                 }
@@ -252,6 +257,11 @@ class OrderForm(forms.Form):
     include_sr = forms.BooleanField(initial=True)
     include_sr_browse = forms.BooleanField(initial=False)
     include_sr_ndvi = forms.BooleanField(initial=False)
+    include_sr_ndmi = forms.BooleanField(initial=False)
+    include_sr_nbr = forms.BooleanField(initial=False)
+    include_sr_nbr2 = forms.BooleanField(initial=False)
+    include_sr_savi = forms.BooleanField(initial=False)
+    incldue_sr_evi = forms.BooleanField(initial=False)
     include_solr_index = forms.BooleanField(initial=False)
     include_cfmask = forms.BooleanField(initial=False)
         

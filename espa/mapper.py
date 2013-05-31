@@ -55,7 +55,17 @@ if __name__ == '__main__':
                 if options.has_key('browse_resolution'):
                     cmd = cmd + '--browse_resolution %s ' % options['browse_resolution']     
             if options.has_key('include_sr_ndvi') and options['include_sr_ndvi'] == True:
-                cmd = cmd + '--sr_ndvi ' 
+                cmd = cmd + '--sr_ndvi '
+            if options.has_key('include_sr_ndmi') and options['include_sr_ndmi'] == True:
+                cmd = cmd + '--sr_ndmi '
+            if options.has_key('include_sr_nbr') and options['include_sr_nbr'] == True:
+                cmd = cmd + '--sr_nbr '
+            if options.has_key('include_sr_nbr2') and options['include_sr_nbr2'] == True:
+                cmd = cmd + '--sr_nbr2 '
+            if options.has_key('include_sr_savi') and options['include_sr_savi'] == True:
+                cmd = cmd + '--sr_savi '
+            if options.has_key('include_sr_evi') and options['include_sr_evi'] == True:
+                cmd = cmd + '--sr_evi '
             if options.has_key('include_solr_index') and options['include_solr_index'] == True:
                 cmd = cmd + '--solr ' 
             if options.has_key('include_sr_thermal') and options['include_sr_thermal'] == True:

@@ -58,6 +58,14 @@ Dependencies (Processing Nodes)
 		(Will be installed to /usr/local/var/ledaps/anc by default)
 		
 Change Notes
+Version 2.1.1
+        Update internal email verbage to remove "Surface Reflectance"
+        Bug fixes for LTA integration when processing mixed orders
+        Fixed product file names
+        Added all available spectral indicies to espa_internal
+        Integrated updated cfmask
+        Integrated updated SI
+
 Version 2.1
         Updated web code to verify submitted scenes against the inventory before accepting them.
         Updated web code to pull orders from EE on demand for surface reflectance only.

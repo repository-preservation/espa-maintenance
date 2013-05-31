@@ -20,7 +20,7 @@ class LtaServices(object):
         },
         "tst" : {
             "orderservice":"http://eedevmast.cr.usgs.gov/OrderWrapperServicedevmast/resources",
-            "orderdelivery":"http://edclxs151.cr.usgs.gov/OrderDeliverydevmast/OrderDeliveryService?WSDL",
+            "orderdelivery":"http://edclxs151.cr.usgs.gov/OrderDeliverydevmast/OrderDeliveryService?WSDLhttp://edclxs151.cr.usgs.gov/OrderDeliverydevmast/OrderDeliveryService?WSDL",
             "orderupdate":"http://edclxs151.cr.usgs.gov/OrderStatusServicedevmast/OrderStatusService?wsdl",
             #"massloader":"http://edclxs151.cr.usgs.gov/MassLoaderdevmast/MassLoader?wsdl",
             #The tst env for MassLoader is wired to ops because Landsat doesn't usually
@@ -108,7 +108,7 @@ class LtaServices(object):
         if code == "T273":
             sensor = "LANDSAT_TM"
         elif code == "T272":
-            sensor = "LANDSAT_ETM"
+            sensor = "LANDSAT_ETM_PLUS"
         elif code == "T271":
             sensor = "LANDSAT_ETM_SLC_OFF"
             
@@ -140,9 +140,14 @@ class LtaServices(object):
 
         #return these to the caller.        
         for u in resp.units.unit:
+
+            #ignore anything that is not for us
+            if str(u.productCode).lower() not in ('sr01', 'sr02'):
+                print ("%s is not an ESPA product.  Order:%s Unit:%s Product code:%s... ignoring" % (u.orderingId, u.orderNbr, u.unitNbr, u.productCode))
+                continue
+            
             params = u.processingParam
        
-            #This isn't a typo... they really did jack up the xml with a backslash instead of fwd slash
             try:    
                 email = params[params.index("<email>") + 7:params.index("</email>")]
             except:
