@@ -20,7 +20,7 @@ class LtaServices(object):
         },
         "tst" : {
             "orderservice":"http://eedevmast.cr.usgs.gov/OrderWrapperServicedevmast/resources",
-            "orderdelivery":"http://edclxs151.cr.usgs.gov/OrderDeliverydevmast/OrderDeliveryService?WSDLhttp://edclxs151.cr.usgs.gov/OrderDeliverydevmast/OrderDeliveryService?WSDL",
+            "orderdelivery":"http://edclxs151.cr.usgs.gov/OrderDeliverydevmast/OrderDeliveryService?WSDL",
             "orderupdate":"http://edclxs151.cr.usgs.gov/OrderStatusServicedevmast/OrderStatusService?wsdl",
             #"massloader":"http://edclxs151.cr.usgs.gov/MassLoaderdevmast/MassLoader?wsdl",
             #The tst env for MassLoader is wired to ops because Landsat doesn't usually
