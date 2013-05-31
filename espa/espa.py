@@ -875,7 +875,7 @@ if __name__ == '__main__':
     #PRODUCT FILENAME NEEDS TO LOOK LIKE THIS: LE70300302004234-SC20130325164523
     ts = datetime.datetime.today()
     product_filename = ("%s%s%s%s%s") % (sensor_code,path.zfill(3),row.zfill(3),year,doy)
-    product_filename = ("%s-SC%s%s%s%s%s") % (product_filename, ts.year,ts.month,ts.day,ts.minute,ts.second)
+    product_filename = ("%s-SC%s%s%s%s%s%s") % (product_filename, ts.year,str(ts.month).zfill(2),str(ts.day).zfill(2),str(ts.hour).zfill(2),str(ts.minute).zfill(2),str(ts.second).zfill(2))
     
     destination_dir = None
     if options.destination_directory is not None:
