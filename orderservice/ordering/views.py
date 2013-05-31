@@ -261,7 +261,7 @@ class OrderForm(forms.Form):
     include_sr_nbr = forms.BooleanField(initial=False)
     include_sr_nbr2 = forms.BooleanField(initial=False)
     include_sr_savi = forms.BooleanField(initial=False)
-    incldue_sr_evi = forms.BooleanField(initial=False)
+    include_sr_evi = forms.BooleanField(initial=False)
     include_solr_index = forms.BooleanField(initial=False)
     include_cfmask = forms.BooleanField(initial=False)
         

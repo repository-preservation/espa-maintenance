@@ -410,7 +410,7 @@ def load_ee_orders():
     #for key in new_espa_orders:
     for key in orders:
         eeorder,email = key
-        unit = new_espa_orders[key]
+        unit = orders[key]
         for u in unit:
             #update status to I for Inprocess
             lta_service.update_order(eeorder, u['unit_num'], "I")
