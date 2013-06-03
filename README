@@ -62,9 +62,10 @@ Version 2.1.1
         Update internal email verbage to remove "Surface Reflectance"
         Bug fixes for LTA integration when processing mixed orders
         Fixed product file names
-        Added all available spectral indicies to espa_internal
-        Integrated updated cfmask
-        Integrated updated SI
+        Corrected bug where espa user interface wouldn't accept a Glovis scenelist
+        Added all available spectral indices to espa_internal
+        Integrated cfmask 1.0.4
+        Integrated updated Spectral Indices
 
 Version 2.1
         Updated web code to verify submitted scenes against the inventory before accepting them.
