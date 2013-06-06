@@ -600,7 +600,7 @@ def distribute_product(product_file_full_path, cksum_file_full_path, destination
     
     #DISTRIBUTE THE PRODUCT FILE
     print ("Transferring %s to %s:%s" % (product_file_full_path, destination_host, destination_file))   
-    cmd = "scp -pC %s %s:%s" % (product_file_full_path, destination_host, destination_file)       
+    cmd = "scp -c arcfour -pC %s %s:%s" % (product_file_full_path, destination_host, destination_file)       
     status,output = commands.getstatusoutput(cmd)
     if status != 0:
         print ("Error transferring %s to %s:%s..." % (product_file_full_path, destination_host, destination_file))
@@ -609,7 +609,7 @@ def distribute_product(product_file_full_path, cksum_file_full_path, destination
 
     #DISTRIBUTE THE CHECKSUM
     print ("Transferring %s to %s:%s" % (cksum_file_full_path, destination_host, destination_cksum_file))
-    cmd = "scp -pC %s %s:%s" % (cksum_file_full_path, destination_host, destination_cksum_file)       
+    cmd = "scp -c arcfour -pC %s %s:%s" % (cksum_file_full_path, destination_host, destination_cksum_file)       
     status,output = commands.getstatusoutput(cmd)
     if status != 0:
         print ("Error transferring %s to %s:%s..." % (cksum_file_full_path, destination_host,destination_cksum_file))
@@ -936,7 +936,7 @@ if __name__ == '__main__':
     
     #TRANSFER THE SOURCE FILE TO THE LOCAL MACHINE
     print ("Transferring %s from %s to %s") % (source_file,source_host,localhostname)  
-    cmd = ("scp -C %s:%s %s") % (source_host, source_file, stagedir)
+    cmd = ("scp -c arcfour -C %s:%s %s") % (source_host, source_file, stagedir)
     (status,output) = commands.getstatusoutput(cmd)
     if status != 0:
         print ("Error transferring %s:%s to %s... exiting") % (source_host, source_file, stagedir)
