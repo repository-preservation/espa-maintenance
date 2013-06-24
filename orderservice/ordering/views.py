@@ -22,6 +22,12 @@ import json
 from datetime import datetime
 
 
+
+def get_option_style(request):
+    if hasattr(request, 'user'):
+        user = request.user
+        return "display:none" if (user.username != 'espa_admin' and user.username != 'espa_internal') else ""
+
 #default landing page for the ordering application
 @login_required(login_url='/login/')
 def index(request):
@@ -39,15 +45,10 @@ def index(request):
 def neworder(request):
     if request.method == 'GET':
         form = OrderForm()
-        user = None
-        if hasattr(request, 'user'):
-            user = request.user
-            if user.username != 'espa_admin' and user.username != 'espa_internal':
-                optionstyle = "display:none"
-            else:
-                optionstyle = ""
-        
-        c = RequestContext(request,{'form': form, 'user':user,'optionstyle':optionstyle})
+        c = RequestContext(request,{'form': form,
+                                    'user':request.user,
+                                    'optionstyle':get_option_style(request)}
+                           )
         t = loader.get_template('neworder.html')
         
         #check for system messages that need to be displayed    
@@ -67,8 +68,12 @@ def neworder(request):
         if not request.FILES.has_key("file"):
             errors['file'] = "Please provide a scene list"
         
-        if len(errors) > 0:                    
-            c = RequestContext(request, {'form':form, 'errors':errors})
+        if len(errors) > 0:
+            c = RequestContext(request, {'form':form,
+                                         'errors':errors,
+                                         'user':request.user,
+                                         'optionstyle':get_option_style(request)}
+                               )
             t = loader.get_template('neworder.html')
             msg = Configuration().getValue('system_message')
             if len(msg) > 0 and msg != '' and msg != 'nothing':
@@ -78,39 +83,43 @@ def neworder(request):
         note = None
         if request.POST.has_key('note'):
             note = request.POST['note']
+
         #################################################    
         #Form passed' validation.... now check the scenes
         #################################################
         scenelist = set()     
         orderfile = request.FILES['file']
         lines = orderfile.read().split('\n')
-            
+
+        #Simple length and prefix checks for scenelist items   
         errors = {}
         errors['scenes'] = list()
         for line in lines:
             line = line.strip()
             if line.find('.tar.gz') != -1:
                 line = line[0:line.index('.tar.gz')]
-            #errors['scenes'].append('%s not found in Landsat inventory' % line)
             if len(line) >= 15 and (line.startswith("LT") or line.startswith("LE")):
                 scenelist.add(line)
 
+        #Run the submitted list by LTA so they can make sure the items are in the inventory
         lta_service = lta.LtaServices()
-
-        print ("Scenelist")
-        print scenelist
-        
         verified_scenes = lta_service.verify_scenes(list(scenelist))
 
         for sc,valid in verified_scenes.iteritems():
             if valid == 'false':
                 errors['scenes'].append("%s not found in Landsat inventory" % sc)
-        
-        if len(errors['scenes']) > 0:
-            c = RequestContext(request,{'form':OrderForm(),'errors':errors})
+
+        #See if LTA barked at anything, notify user if so
+        if len(errors['scenes']) > 0:                                    
+            c = RequestContext(request,{'form':OrderForm(),
+                                        'errors':errors,
+                                        'user':request.user,
+                                        'optionstyle':get_option_style(request)}
+                               )
             t = loader.get_template('neworder.html')
             return HttpResponse(t.render(c))
         else:
+            #If we made it here we are all good with the scenelist.  
             options = {
                 'include_sourcefile':False,
                 'include_source_metadata':False,
@@ -128,7 +137,7 @@ def neworder(request):
                 'include_cfmask':False
                 }
             
-           
+            #Collect requested products.
             for o in options.iterkeys():
                 if request.POST.has_key(o):
                     options[o] = True
@@ -154,10 +163,8 @@ def neworder(request):
                 scene.save()
                 
             sendInitialEmail(order)
-    
-            status_url = '/status/%s' % request.POST['email']
-    
-            return HttpResponseRedirect(status_url)
+        
+            return HttpResponseRedirect('/status/%s' % request.POST['email'])
         
 #handles displaying all orders for a given user
 #@login_required(login_url='/login/')
