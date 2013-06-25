@@ -160,29 +160,23 @@
 <script type="text/javascript">
 
     //var MIN_SCALE = 5000000;  // minimum map scale to display the coverage layer
-    //var MIN_SCALE = 9000000;  // minimum map scale to display the coverage layer
-    var MIN_SCALE = 17500000;  // minimum map scale to display the coverage layer
-    
+	//var MIN_SCALE = 9000000;  // minimum map scale to display the coverage layer
+	var MIN_SCALE = 17500000;  // minimum map scale to display the coverage layer
     var map, scene, sceneID, sceneHighlight, rightClickMenu;
-    //array to store the selected/highlighted scenes
-    var selectedSceneArray = [];
+	//array to store the selected/highlighted scenes
+	var selectedSceneArray = [];
     var mapElement, panelElement, sliderElement;
     var isBusy = false;
     var maxRows = 500;
     var searchResults, sceneResults, searchResultsTmpl, sceneResultsTmpl, searchStartTime, currentSearchResults;
     var progress;
-    var overlay, overlayLayers;
-    var downloadBaseUrl = "http://espa.cr.usgs.gov/collections/";
+	var overlay, overlayLayers;
 
-    //var wmsServer = '/geoserver/wms';
-    var wmsServer = 'http://l8srlscp20.cr.usgs.gov/cgi-bin/mapserv';
-
-    //var wmsServerWithCaching = '/geoserver/gwc/service/wms';
+	var downloadBaseUrl = "http://espa.cr.usgs.gov/collections/";
+    var wmsServer = '/geoserver/wms';
+    var wmsServerWithCaching = '/geoserver/gwc/service/wms';
     //var wmsServerWithCaching = '/geoserver/wms';
-    var wmsServerWithCaching = '/svc/tilecache';
-
-    //var wfsServer = '/geoserver/wfs';
-    var wfsServer = 'http://l8srlscp20.cr.usgs.gov/cgi-bin/mapserv';
+    var wfsServer = '/geoserver/wfs';
     var restServer = '/geoserver/rest';
     var workspace = 'espa';
 
@@ -192,7 +186,7 @@
             containerId: 'sceneInfo'
         });
 		
-	overlay = new Overlay({
+		overlay = new Overlay({
             containerId: 'sceneInfo'
         });
 
@@ -200,13 +194,16 @@
         OpenLayers.IMAGE_RELOAD_ATTEMPTS = 5;
         // make OL compute scale according to WMS spec
         OpenLayers.DOTS_PER_INCH = 25.4 / 0.28;
-        //OpenLayers.DOTS_PER_INCH = 360/512;
-
-        //OpenLayers.DOTS_PER_INCH = 90.71428571428572;
 
         // set up the bounds for the map
-        var bounds = new OpenLayers.Bounds(-180, -90, 180, 90);
-        var sceneBounds = new OpenLayers.Bounds(-136, 52, -56, 20);
+        var bounds = new OpenLayers.Bounds(
+            -180, -90,
+            180, 90
+        );
+        var sceneBounds = new OpenLayers.Bounds(
+            -136, 52,
+            -56, 20
+        )
 
         var options = {
             controls: [
@@ -214,52 +211,35 @@
                     position: new OpenLayers.Pixel(2, 15),
                     zoomWorldIcon: true
                 }),
-                
                 //new OpenLayers.Control.Navigation(),
-		new OpenLayers.Control.Navigation(),
-                
+				new OpenLayers.Control.Navigation(),
                 //new OpenLayers.Control.MousePosition(),
-		new OpenLayers.Control.MousePosition({
-  		  //emptyString: 'Mouse is not over map'
-		  div: document.getElementById('MousePosition'),
-		  formatOutput: formatMousePosData
-		}),
-                
+				new OpenLayers.Control.MousePosition({
+					//emptyString: 'Mouse is not over map'
+					div: document.getElementById('MousePosition'),
+					formatOutput: formatMousePosData
+				}),
                 new OpenLayers.Control.LayerSwitcher(),
-                
                 new OpenLayers.Control.OverviewMap({
                     size: new OpenLayers.Size(300, 150)
                 })
-                
                 //new OpenLayers.Control.SelectFeature(),
                 //new OpenLayers.Control.ScaleLine()
             ],
-            maxExtent:bounds,
-            //maxResolution: 1.40625,
-            maxResolution:0.0625,
+            maxExtent: bounds,
+            maxResolution: 1.40625,
             units: 'degrees',
             projection: new OpenLayers.Projection("EPSG:4326"),
             displayProjection: new OpenLayers.Projection("EPSG:4326")
         };
-
-//        options = OpenLayers.Util.extend({
-//            maxExtent: bounds,
-//            maxResolution:0.02,
-            //restrictedExtent: bounds,
-//            units: 'dd',
-//            projection: new OpenLayers.Projection("epsg:4326"),
-//            displayProjection: new OpenLayers.Projection("epsg:4326")
-//        }, options);
-
-        
-        
         map = new OpenLayers.Map('map', options);
 		
-	    function formatMousePosData(lonLat) {
-	        var lat = Math.round(lonLat.lat * 100000) / 100000;
-		var lon = Math.round(lonLat.lon * 100000) / 100000;
-	        return lat + ", " + lon;
-	    }
+		function formatMousePosData(lonLat) {
+			var lat = Math.round(lonLat.lat * 100000) / 100000;
+			var lon = Math.round(lonLat.lon * 100000) / 100000;
+	
+		   return lat + ", " + lon;
+		}
 		
 		
 		// Get control of the right-click event:
@@ -341,104 +321,29 @@
 				rightClickMenu.show();
 			}
 		}
-        
-
-        //var gls2005Cached = new OpenLayers.Layer.TileCache("gls2005Cached", [wmsServerWithCaching], "gls2005",
-        //    options ={
-        //      format:"image/jpeg",
-        //      layers:"gls2005",          
-              //maxResolution:0.000543931936398,
-        //      numZoomLevels:8,
-        //    });
-
-       //var gls2005Cached = new OpenLayers.Layer.WMS(
-       //     'gls 2005 cached',
-       //      wmsServerWithCaching,
-       //     {
-       //        layers:"gls2005",
-       //        format:"image/jpeg",
-       //        maxResolution:0.000543931936398,
-       //        numZoomLevels:8, 
-               
-
-        //       tilesOrigin: map.maxExtent.left + "," + map.maxExtent.bottom
-        //    },
-        //    {
-        //      buffer:0,
-        //      displayOutsideMaxExtent:true,
-        //      wrapDateLine:true,
-        //      isBaseLayer:true,
-        //      singleTile:false
-        //    }
-
-        //);
-
-        var gls2005 = new OpenLayers.Layer.WMS(
-            'GLS 2005',wmsServerWithCaching,
-            {
-               //map:"/data/browse/lsrd/gls-2005/gls2005.map",
-               layers:"gls2005",
-               format:"image/png",
-               tiled:true,
-               tilesOrigin: map.maxExtent.left + "," + map.maxExtent.bottom
-            },
-            {
-               buffer:0,
-               displayOutsideMaxExtent:false,
-               wrapDateLine: false,
-               isBaseLayer: true,
-               singleTile: false,
-               extentType:"loose",
-               
-               //maxResolution:0.00054,
-               maxResolution:0.137981216,
-               numZoomLevels:8
-            }
-        );		
-
-
-        var gls2000 = new OpenLayers.Layer.WMS(
-            'GLS 2000',wmsServerWithCaching,
-            {
-               //map:"/data/browse/lsrd/gls-2005/gls2005.map",
-               layers:"gls2000",
-               format:"image/png",
-               tiled:true,
-               //tilesOrigin: map.maxExtent.left + "," + map.maxExtent.bottom
-            },
-            {
-               buffer:0,
-               displayOutsideMaxExtent:false,
-               wrapDateLine: false,
-               isBaseLayer: true,
-               singleTile: false,
-               //extentType:"loose",
-               //maxResolution:0.00054,
-               maxResolution:0.137981216,
-               numZoomLevels:8
-            }
-        );
+		
+		
 
         // set up image layers
-        //var bluemarble = new OpenLayers.Layer.WMS(
-        //    'Blue Marble', 
+        var bluemarble = new OpenLayers.Layer.WMS(
+            'Blue Marble', 
             //wmsServer,
-	//		wmsServerWithCaching,
-        //    {
-        //        layers: workspace + ':bluemarble_pyramid',
-        //        format: 'image/jpeg',
-        //        tilesOrigin : map.maxExtent.left + ',' + map.maxExtent.bottom
-        //    },
-        //    {
-        //        buffer: 0,
-        //        displayOutsideMaxExtent: true,
-        //        wrapDateLine: true,
-        //        isBaseLayer: true,
-        //        singleTile: false
-        //    } 
-        //);
+			wmsServerWithCaching,
+            {
+                layers: workspace + ':bluemarble_pyramid',
+                format: 'image/jpeg',
+                tilesOrigin : map.maxExtent.left + ',' + map.maxExtent.bottom
+            },
+            {
+                buffer: 0,
+                displayOutsideMaxExtent: true,
+                wrapDateLine: true,
+                isBaseLayer: true,
+                singleTile: false
+            } 
+        );
 		
-	var noBaseLayer = new OpenLayers.Layer("None", {isBaseLayer: true});
+		var noBaseLayer = new OpenLayers.Layer("None", {isBaseLayer: true});
 
         // set up wrs2 layer
         var wrs2 = new OpenLayers.Layer.WMS(
@@ -616,31 +521,31 @@
 			}
 		);
 		
-		var gls_2010_pyramid = new OpenLayers.Layer.WMS('GLS 2010', wmsServerWithCaching,
-                {
-                    layers: workspace + ':gls-2010_pyramid',
-		    srs: "EPSG:4326",
-                    format: 'image/png',
-		    transparent: true
-                },
-                {
-                    isBaseLayer: false,
-		    opacity: 1.0,
-                    visibility: false,
-		    displayInLayerSwitcher: true,
-                } 
+		var gls_2010_pyramid = new OpenLayers.Layer.WMS(
+            'GLS 2010', 
+			wmsServerWithCaching,
+            {
+                layers: workspace + ':gls-2010_pyramid',
+				srs: "EPSG:4326",
+                format: 'image/png',
+				transparent: true
+            },
+            {
+                isBaseLayer: false,
+				opacity: 1.0,
+                visibility: false,
+				displayInLayerSwitcher: true,
+            } 
         );
 		*/
 		
         // add layers to the map and zoom to the base level
-        //var layers = [bluemarble, noBaseLayer, countries, noaaStatesProvincesLayer, noaaLandRegionLayer, noaaCitiesLayer, noaaOceanLayer, noaaRiversLayer, wrs2];
-	var layers = [gls2005];
-
-        overlayLayers = [countries, noaaStatesProvincesLayer, noaaLandRegionLayer, noaaCitiesLayer, noaaOceanLayer, noaaRiversLayer];
+        var layers = [bluemarble, noBaseLayer, countries, noaaStatesProvincesLayer, noaaLandRegionLayer, noaaCitiesLayer, noaaOceanLayer, noaaRiversLayer, wrs2];
+		overlayLayers = [countries, noaaStatesProvincesLayer, noaaLandRegionLayer, noaaCitiesLayer, noaaOceanLayer, noaaRiversLayer];
 		
         map.addLayers(layers);
 		
-	var raise = layers.length;
+		var raise = layers.length;
 		
         map.zoomToExtent(sceneBounds);
         //map.zoomToMaxExtent();
