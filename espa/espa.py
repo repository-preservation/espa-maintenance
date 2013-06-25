@@ -1008,8 +1008,8 @@ if __name__ == '__main__':
         if options.sr_evi_flag:
             index_string = index_string + " --evi"
 
-        #cmd = ("cd %s; do_spectral_indices.py --ndvi -i %s") % (workdir, "lndsr*hdf")
-        cmd = ("cd %s; do_spectral_indices.py %s -i %s") % (workdir, index_string, "lndsr*hdf")
+        lndsr_file = [x for x in os.listdir('workdir') if x.find('lndsr') != -1 and x.find('.hdf') != -1]
+        cmd = ("cd %s; do_spectral_indices.py %s -i %s") % (workdir, index_string, lndsr_file[0])
         print ("SPECTRAL INDICES COMMAND:%s" % cmd)
         print ("Running Spectral Indices")
         status,output = commands.getstatusoutput(cmd)
@@ -1025,12 +1025,18 @@ if __name__ == '__main__':
             print ("Error creating solr index... exiting")
             sys.exit((10, output))
 
-    if options.cfmask_flag:
+    if options.cfmask_flag or options.sr_flag:
         status = make_cfmask(workdir)
         if status != 0:
             print ("Error creating cfmask (status %s)... exiting" % status)
             sys.exit((11, output))
 
+    #IF THIS WAS JUST AN SR REQUEST THEN APPEND THE CFMASK RESULTS INTO
+    #THE SR OUTPUT.  IF CFMASK WAS ALSO REQUESTED THEN WE WILL PROVIDE IT
+    #SEPERATELY
+    if options.sr_flag and not options.cfmask_flag:
+        lndsr_file = [x for x in os.listdir('workdir') if x.find('lndsr') != -1 and x.find('.hdf') != -1]
+        cmd = ("cd %s; do_append_cfmask.py --sr_infile %s" % (workdir, lndsr_file[0]))
     #DELETE UNNEEDED FILES FROM PRODUCT DIRECTORY
     print("Purging unneeded files from %s") % workdir
     orig_cwd = os.getcwd()
