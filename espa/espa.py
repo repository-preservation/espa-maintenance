@@ -1008,7 +1008,7 @@ if __name__ == '__main__':
         if options.sr_evi_flag:
             index_string = index_string + " --evi"
 
-        lndsr_file = [x for x in os.listdir(workdir) if x.find('lndsr') != -1 and x.find('.hdf') != -1]
+        lndsr_file = [x for x in os.listdir(workdir) if x.startswith('lndsr') and x.endswith('.hdf')]
         cmd = ("cd %s; do_spectral_indices.py %s -i %s") % (workdir, index_string, lndsr_file[0])
         print ("SPECTRAL INDICES COMMAND:%s" % cmd)
         print ("Running Spectral Indices")
@@ -1035,7 +1035,7 @@ if __name__ == '__main__':
     #THE SR OUTPUT.  IF CFMASK WAS ALSO REQUESTED THEN WE WILL PROVIDE IT
     #SEPERATELY
     if options.sr_flag and not options.cfmask_flag:
-        lndsr_file = [x for x in os.listdir(workdir) if x.find('lndsr') != -1 and x.find('.hdf') != -1]
+        lndsr_file = [x for x in os.listdir(workdir) if x.startswith('lndsr') and x.endswith('.hdf')]
         cmd = ("cd %s; do_append_cfmask.py --sr_infile %s" % (workdir, lndsr_file[0]))
     #DELETE UNNEEDED FILES FROM PRODUCT DIRECTORY
     print("Purging unneeded files from %s") % workdir
