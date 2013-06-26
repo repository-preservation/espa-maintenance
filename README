@@ -1,3 +1,7 @@
+Author: David V. Hill, Information Dynamics
+License: NASA Open Source Agreement 1.3
+USGS Designation: EROS Science Processing Architecture (ESPA)
+
  System Overview
 	The ESPA system is comprised of several types of nodes.  
 
@@ -13,24 +17,34 @@
 
 	The overall system flow is as follows.   
 	A user request is submitted through the user interface whereby the request details 
-	(requested scenes plus email address) are persisted to the database.
+	(requested scenes plus email address) are persisted to the database.  Prior to storing the requested
+        scenes the bulk scene list is verified for basic sanity and cross referenced against the Long Term Archive's
+        Inventory for Landsat scenes.  Users are notified via the user interface if there are invalid scene 
+        identifiers in their order.
 	
-	A timed job (on the UI node) checks the Landsat online cache for scene availability and pulls 
-	all available requested scenes from the cache to HDFS then updates the database accordingly.  Any
-	scenes that were not available on the cache immediately are ordered through the TRAM MassLoader
-	SOAP service.  The said timed job will periodically check the online cache to determine when the 
-	ordered scenes are available.
+	Scenes newly stored in the database are marked with a status of "submitted".  A timed cron job interacts
+        with the UI's xmlrpc service to then request all 'submitted' scenes be checked to see their current
+        disposition: 1 - Not available and needing to be ordered (onorder) 2 - Available on cache and ready to 
+        be processed (oncache) or 3 - Unable to process the scene due to it being a TMA instead of TM scene (unavailable).
+        Scenes may also be marked unavailable if an unrecoverable error is encountered during processing, such as 
+        nighttime scenes being requested or missing auxillary data as examples.
 
-	Once all requested scenes for an order are in HDFS, the UI node will submit the job to Hadoop's MapReduce
-	engine, which takes care of distributing the individual scenes to available processing nodes.  Once completed,
-	each processing node will store the finished scene back to HDFS and will notifiy the UI layer that it is 
-	done.
+        Once this method completes, it returns to the cronjob via xmlrpc all the scenes that made it into oncache 
+        status.  The cron job creates the Hadoop input file, stores the file in HDFS, updates the scenes' status 
+        to 'queued', and finally starts the Hadoop job.
 
-	The UI layer will then move the files to the final distribution point (i.e. Landsat Web Server), update the 
-	database, send the requesting user an email, and finally clean up HDFS.
+        Hadoop handles distributing individual requests to available cpu's at this point.  As a request is 
+        pushed to a cpu, the individual job will update the scene status to "processing".  All requested
+        processing is applied to the scene and the resulting output product is stored on the LSRD Online 
+        Cache, which is a Lustre based system that augments the Landsat Online Cache.
 
-	After a configured period of time (right now 14 days) the UI layer will also purge scenes from the Landsat Web
-	Server to maintain adequate storage space for new orders.
+        Hadoop handles cleaning up all processing node resources nomatter if the scene processed correctly or 
+        not.  Thus as a part of the overall ESPA job, the processing chain will also store the processing log
+        file to the database via xmlrpc ONLY in the event of a failure of some sort.  In this regard, no log 
+        entry is a good log entry.
+
+        The final step in processing is a completion email is sent out to the user once their order has been
+        completed in totality. 
 
 Dependencies (All nodes)
 	64 bit Linux
@@ -40,7 +54,7 @@ Dependencies (All nodes)
 	Python Libraries:
 	suds 0.4 (for soap)
 	gsconfig.py (available from https://github.com/dwins/gsconfig.py)
-        gdal 1.6.3
+        gdal 1.9
         dans-gdal-scripts (available from http://www.gina.alaska.edu/projects/gina-tools/)
 	
 
@@ -58,6 +72,8 @@ Dependencies (Processing Nodes)
 		(Will be installed to /usr/local/var/ledaps/anc by default)
 		
 Change Notes
+Version 2.1.2
+
 Version 2.1.1
         Update internal email verbage to remove "Surface Reflectance"
         Bug fixes for LTA integration when processing mixed orders
