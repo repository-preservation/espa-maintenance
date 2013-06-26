@@ -1,8 +1,9 @@
 #!/usr/bin/env python
 import commands
 import json
-
 from cStringIO import StringIO
+
+__author__ = "David V. Hill"
 
 if __name__ == '__main__':
     cmd = "./espa.py --scene LT50290302007097PAC01 --source_host espa@edclpdsftp.cr.usgs.gov --destination_directory /tmp/bam --sr_ndvi --destination_host localhost"

@@ -2,6 +2,7 @@ from django.conf.urls.defaults import *
 from django.contrib import admin
 from ordering.views import StatusFeed
 
+__author__ = "David V. Hill"
 
 admin.autodiscover()
 

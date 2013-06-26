@@ -1,14 +1,12 @@
 #!/usr/bin/env python
 import paramiko
 import os
-
-
 import argparse
 import sys
 import time
-
-#sys.path.append("../pkgs")
 import memcache
+
+__author__ = "David V. Hill"
 
 class SceneCache(object):
     

@@ -7,6 +7,7 @@ from ordering.helper import *
 from ordering.models import Configuration
 from django.db import transaction
 
+__author__ = "David V. Hill"
 
 #Create a Dispatcher; this handles the calls and translates info to function maps
 #dispatcher = SimpleXMLRPCDispatcher() # Python 2.4

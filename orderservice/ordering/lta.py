@@ -7,6 +7,8 @@ import xml.etree.ElementTree as xml
 import os
 import socket
 
+__author__ = "David V. Hill"
+
 class LtaServices(object):
     ''' Client for all of LTA services from ESPA '''
 

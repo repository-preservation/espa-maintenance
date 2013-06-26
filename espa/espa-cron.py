@@ -1,4 +1,7 @@
 #!/usr/local/bin/python
+
+__author__ = "David V. Hill"
+
 import xmlrpclib
 import time
 import sys

@@ -1,5 +1,7 @@
 #!/usr/local/bin/python
 
+__author__ = "David V. Hill"
+
 import gc, time, commands, os, sys, socket
 import numpy as np
 from osgeo import gdal

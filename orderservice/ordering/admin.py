@@ -1,7 +1,7 @@
 from ordering.models import Scene, Order, Configuration
 from django.contrib import admin
       
-   
+__author__ = "David V. Hill"   
          
 
 #THESE DON"T WORK LIKE YOU"D EXPECT

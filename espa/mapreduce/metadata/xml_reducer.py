@@ -1,7 +1,8 @@
 #!/usr/bin/env python
+
+__author__ = "David V. Hill"
+
 import sys
-#from espa.espa import Command,Chain,PrepareDirectories,StageFileFromSFTP,UntarFile
-#from espa.espa import Ledaps,PurgeFiles,TarFile,DistributeFileToSFTP,CleanUpDirs,MarkSceneComplete,DistributeSourceL1TToSFTP
 import cStringIO
 import xml.etree.ElementTree as xml
 

@@ -12,6 +12,8 @@ import datetime
 import lta
 
 
+__author__ = "David V. Hill"
+
 #load configuration values
 try:
     smtp_url = Configuration().getValue('smtp.url')

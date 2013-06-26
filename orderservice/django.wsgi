@@ -1,6 +1,9 @@
 import os
 import sys
 
+__author__ = "David V. Hill"
+
+
 os.environ['DJANGO_SETTINGS_MODULE'] = 'settings'
 homevar = os.environ['HOME']
 if not homevar.startswith('/home/espa'):

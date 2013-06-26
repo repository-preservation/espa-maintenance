@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+#Author: David V. Hill
+
 #remove previous data if there's anything there
 hadoop dfs -rmr md-in
 hadoop dfs -rmr md-out

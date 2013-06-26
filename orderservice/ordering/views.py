@@ -11,17 +11,15 @@ from django import forms
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.contrib.auth.models import User
 from django.contrib.auth import logout
-
 from ordering.models import Scene,Order,Configuration#,SceneOrder
 from ordering.helper import *
 import lta
 from espa.espa import *
-
 import re
 import json
 from datetime import datetime
 
-
+__author__ = "David V. Hill"
 
 def get_option_style(request):
     if hasattr(request, 'user'):

@@ -1,6 +1,7 @@
 from django.db import models
 from django.contrib import admin
 
+__author__ = "David V. Hill"
 
     
 class Order(models.Model):
