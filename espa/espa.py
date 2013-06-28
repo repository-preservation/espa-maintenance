@@ -1039,6 +1039,10 @@ if __name__ == '__main__':
     if options.sr_flag and not options.cfmask_flag:
         lndsr_file = [x for x in os.listdir(workdir) if x.startswith('lndsr') and x.endswith('.hdf')]
         cmd = ("cd %s; do_append_cfmask.py --sr_infile %s" % (workdir, lndsr_file[0]))
+        status,output = commands.getstatusoutput(cmd)
+
+
+        
     #DELETE UNNEEDED FILES FROM PRODUCT DIRECTORY
     print("Purging unneeded files from %s") % workdir
     orig_cwd = os.getcwd()
