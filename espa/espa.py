@@ -1040,7 +1040,9 @@ if __name__ == '__main__':
         lndsr_file = [x for x in os.listdir(workdir) if x.startswith('lndsr') and x.endswith('.hdf')]
         cmd = ("cd %s; do_append_cfmask.py --sr_infile %s" % (workdir, lndsr_file[0]))
         status,output = commands.getstatusoutput(cmd)
-
+        if status != 0:
+            print ("Error appending cfmask to sr output... exiting")
+            sys.exit((12, output))
 
         
     #DELETE UNNEEDED FILES FROM PRODUCT DIRECTORY
@@ -1081,7 +1083,7 @@ if __name__ == '__main__':
     if status != 0:
         print("Error purging files from %s... exiting") % workdir
         print output
-        sys.exit((12, output))
+        sys.exit((13, output))
 
 
     #PACKAGE THE PRODUCT    
@@ -1105,7 +1107,7 @@ if __name__ == '__main__':
 
     if not success:
         print ("Packaging and distribution for %s:%s failed after 3 attempts" % (destination_host,destination_file))
-        sys.exit((13, "Failed to distribute %s" % destination_file))
+        sys.exit((14, "Failed to distribute %s" % destination_file))
         
               
     
@@ -1118,7 +1120,7 @@ if __name__ == '__main__':
     if status != 0:
         print("Error cleaning output:%s work:%s stage:%s directories... exiting" % (outputdir,workdir,stagedir))
         print output
-        sys.exit((14,output))
+        sys.exit((15,output))
     
     print ("ESPA Complete")
     #return 0 and the file we distributed
