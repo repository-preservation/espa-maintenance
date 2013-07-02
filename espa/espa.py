@@ -1038,7 +1038,8 @@ if __name__ == '__main__':
     #SEPERATELY
     if options.sr_flag and not options.cfmask_flag:
         lndsr_file = [x for x in os.listdir(workdir) if x.startswith('lndsr') and x.endswith('.hdf')]
-        cmd = ("cd %s; do_append_cfmask.py --sr_infile %s" % (workdir, lndsr_file[0]))
+        cfmask_file = [x for x in os.listdir(workdir) if x.startswith('fmask') and x.endswith('.hdf')]
+        cmd = ("cd %s; do_append_cfmask.py --sr_infile %s --cfmask_infile %s" % (workdir, lndsr_file[0], cfmask_file[0]))
         status,output = commands.getstatusoutput(cmd)
         if status != 0:
             print ("Error appending cfmask to sr output... exiting")
