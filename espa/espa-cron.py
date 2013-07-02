@@ -88,6 +88,9 @@ def runScenes():
             hadoop_run_command = hadoop_run_command + ' -file %s/espa-site/espa/frange.py ' % home_dir
             hadoop_run_command = hadoop_run_command + ' -mapper %s/espa-site/espa/mapper.py ' % home_dir
             hadoop_run_command = hadoop_run_command + ' -cmdenv ESPA_WORK_DIR=$ESPA_WORK_DIR'
+            hadoop_run_command = hadoop_run_command + ' -cmdenv HOME=$HOME'
+            hadoop_run_command = hadoop_run_command + ' -cmdenv USER=$USER'
+
             #hadoop_run_command = hadoop_run_command + ' -cmdenv PATH=$PATH'
             hadoop_run_command = hadoop_run_command + ' -cmdenv ANC_PATH=$ANC_PATH'
             hadoop_run_commnad = hadoop_run_command + ' -cmdenv ESUN=$ESUN'
