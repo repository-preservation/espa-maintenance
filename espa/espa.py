@@ -494,16 +494,17 @@ def make_cfmask(workdir):
     try:
         metafile = None
         for f in os.listdir(workdir):
-            if f.find('_MTL.txt') != -1:
+            if f.find('metadata.txt') != -1:
                 metafile = f
                 break
         if metafile is None:
-            raise IOError("Could not find LEDAPS *_MTL.txt in %s" % workdir)
+            raise IOError("Could not find LEDAPS metadata.txt in %s" % workdir)
         
         status,output = commands.getstatusoutput("cd %s;cfmask --metadata=%s" % (workdir, metafile))
-        if status != 0:
-            print ("Error producing cfmask for %s" % metafile)
+        if status != 1:
+            print ("Error producing cfmask for %s with status %s" % (metafile, status))
             print output
+            
             return status
         #print ("CFMask returned code:%s" % status)
         #print ("CFMask output:%s" % output)
