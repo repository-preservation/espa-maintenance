@@ -501,6 +501,7 @@ def make_cfmask(workdir):
             raise IOError("Could not find LEDAPS metadata.txt in %s" % workdir)
         
         status,output = commands.getstatusoutput("cd %s;cfmask --verbose --metadata=%s" % (workdir, metafile))
+        status = status >> 8
         if status != 1:
             print ("Error producing cfmask for %s with status %s" % (metafile, status))
             print ("CFMask output:%s" % output)
