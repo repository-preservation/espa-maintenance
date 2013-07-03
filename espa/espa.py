@@ -503,7 +503,8 @@ def make_cfmask(workdir):
         status,output = commands.getstatusoutput("cd %s;cfmask --metadata=%s" % (workdir, metafile))
         if status != 1:
             print ("Error producing cfmask for %s with status %s" % (metafile, status))
-            print output
+            print ("CFMask output:%s" % output)
+            print ("End of CFMask output")
             
             return status
         #print ("CFMask returned code:%s" % status)
@@ -1022,12 +1023,14 @@ if __name__ == '__main__':
     
     #MAKE SOLR INDEX
     if options.solr_flag:
+        print ("Running Solr Index")
         status = makeSolrIndex(metadata, scene, workdir, options.collection_name)
         if status != 0:
             print ("Error creating solr index... exiting")
             sys.exit((10, output))
 
     if options.cfmask_flag or options.sr_flag:
+        print ("Running CFMask")
         status = make_cfmask(workdir)
         if status != 0:
             print ("Error creating cfmask (status %s)... exiting" % status)
@@ -1037,6 +1040,7 @@ if __name__ == '__main__':
     #THE SR OUTPUT.  IF CFMASK WAS ALSO REQUESTED THEN WE WILL PROVIDE IT
     #SEPERATELY
     if options.sr_flag and not options.cfmask_flag:
+        print ("Running Append CFMask")
         lndsr_file = [x for x in os.listdir(workdir) if x.startswith('lndsr') and x.endswith('.hdf')]
         cfmask_file = [x for x in os.listdir(workdir) if x.startswith('fmask') and x.endswith('.hdf')]
         cmd = ("cd %s; do_append_cfmask.py --sr_infile %s --cfmask_infile %s" % (workdir, lndsr_file[0], cfmask_file[0]))
