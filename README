@@ -72,8 +72,12 @@ Dependencies (Processing Nodes)
 		(Will be installed to /usr/local/var/ledaps/anc by default)
 		
 Change Notes
-Version 2.1.2
+Version 2.1.3
+        Fix to clear logs upon non-error status update.
 
+Version 2.1.2
+        Updates for new cfmask and appending cfmask to sr outputs.
+        Multiple bug fixes related to UI css files when viewed of https
 Version 2.1.1
         Update internal email verbage to remove "Surface Reflectance"
         Bug fixes for LTA integration when processing mixed orders
