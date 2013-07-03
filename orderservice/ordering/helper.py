@@ -255,6 +255,7 @@ def updateStatus(name, orderid, processing_loc, status):
             helperlogger("Running update query for %s.  Setting status to:%s" % (s.name,status))
             s.status = status
             s.processing_location = processing_loc
+            s.log_file_contents = ""
             s.save()
             s = None
             return True
@@ -280,7 +281,7 @@ def setSceneError(name, orderid, processing_loc, error):
         print("setSceneError:No scene was found with the name:%s for order:%s") % (name, orderid)
         return False
 
-def markSceneComplete(name, orderid, processing_loc,completed_file_location, destination_cksum_file = None,log_file_contents=None):
+def markSceneComplete(name, orderid, processing_loc,completed_file_location, destination_cksum_file = None,log_file_contents=""):
     print ("Marking scene:%s complete for order:%s" % (name, orderid))
     o = Order.objects.get(orderid = orderid)
     s = Scene.objects.get(name=name, order__id = o.id)
