@@ -502,12 +502,12 @@ def make_cfmask(workdir):
         
         meta_file_with_path = os.path.join(workdir, metafile)
         status,output = commands.getstatusoutput("cfmask --metadata=%s" % meta_file_with_path)
-        #if status != 0:
-        #    print ("Error producing cfmask for %s" % meta_file_with_path)
-        #    print output
-        #    return status
-        print ("CFMask returned code:%s" % status)
-        print ("CFMask output:%s" % output)
+        if status != 0:
+            print ("Error producing cfmask for %s" % meta_file_with_path)
+            print output
+            return status
+        #print ("CFMask returned code:%s" % status)
+        #print ("CFMask output:%s" % output)
     finally:
         pass
     return 0
