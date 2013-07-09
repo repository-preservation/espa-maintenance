@@ -9,8 +9,10 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include <cassert>
 
 Tile::Tile(int x, int y, int tile_xsize, int tile_ysize, int band_count) {
+    assert(tile_xsize > 0 && tile_ysize > 0 && band_count > 0);
     ulx = x;
     uly = y;
     tile_xsize = tile_xsize;
