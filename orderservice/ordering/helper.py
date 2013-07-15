@@ -56,19 +56,21 @@ Requested scenes:\n""") % (order.orderid, status_url)
 def sendCompletionEmail(email,ordernum,readyscenes=[]):
     status_base_url = Configuration().getValue('espa.status.url')
     status_url = ('%s/%s') % (status_base_url, email)    
-    msg = ("""Your order is now complete. All scenes will remain available for 14 days.\n
-After 14 days you will need to re-order the requested scenes if you were not able to retrieve them within this timeframe.\n
-Order number: %s
-Order status url: %s\n
+    msg = ("""Your order is now complete and can be downloaded from %s
+
+This order will remain available for 14 days.  Any data not downloaded will need to be reordered after this time.
+
+Please contact Customer Services at 1-800-252-4547 or email custserv@usgs.gov with any questions.
+
 Your scenes
--------------------------------------------\n""") % (ordernum, status_url)
+-------------------------------------------\n""") % (status_url)
     
     for r in readyscenes:
         msg = msg + r + '\n'  
 
     #configure these values
     msg = MIMEText(msg)
-    msg['Subject'] = 'Processing order complete.'
+    msg['Subject'] = 'Processing for %s complete.' % (ordernum)
     msg['To'] = email
     msg['From'] = 'espa@usgs.gov'
     s = SMTP(host='gssdsflh01.cr.usgs.gov')
