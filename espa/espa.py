@@ -531,7 +531,7 @@ def package_product(product_dir, output_dir, product_filename):
                                   
     
     print ("Packaging completed product to %s.tar.gz") % (product_file_full_path)
-    cmd = ("tar -cvf %s.tar *") % (product_file_full_path)
+    cmd = ("tar -cf %s.tar *") % (product_file_full_path)
     status, output = commands.getstatusoutput(cmd)
     os.chdir(orig_cwd)
     if status != 0:

@@ -5,7 +5,6 @@ __author__ = "David V. Hill"
 import xmlrpclib
 import time
 import sys
-import paramiko
 from datetime import datetime
 import os
 import commands

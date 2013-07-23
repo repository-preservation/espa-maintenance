@@ -1,14 +1,12 @@
-# Create your views here.
 from django.http import HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.shortcuts import get_object_or_404,get_list_or_404
 from django.template import Context, loader, RequestContext
 from ordering.models import Scene,Order,Configuration
 from ordering.helper import *
-import lta
-import re
-import json
+import lta, re, json, core
 from datetime import datetime
+
 
 __author__ = "David V. Hill"
 __api__version__ = "0.1.0"
@@ -28,12 +26,6 @@ def _authenticate(request):
     #store the LTA id + roles in memcache temporarily with expiration time
     #return roles to caller or None if auth failure
     pass
-
-def _validate_email(email):
-    '''Compares incoming email address against regular expression to make sure its at
-least formatted like an email'''
-    pattern = '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,4}$'
-    return re.match(pattern, email)
 
 def _validate_order_request(request):
     '''Checks the format of the incoming order request and ensures it is acceptable before proceeding'''
@@ -74,7 +66,7 @@ def place_order(request):
     #_validate_order_request(request)
     #_is_order_under_daily_limit_status(request, len(request.get('scenes')))
     #_update_current_daily_limit_count(request, len(request.get('scenes')))
-    #return 200 or 4xx status                                      
+    #return 200 or 4xx status with error message                                     
     pass
 
 @csrf_exempt        

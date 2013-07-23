@@ -1,4 +1,3 @@
-# Create your views here.
 from django.http import HttpResponse, HttpResponseRedirect
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.csrf import csrf_exempt
@@ -11,12 +10,8 @@ from django import forms
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.contrib.auth.models import User
 from django.contrib.auth import logout
-from ordering.models import Scene,Order,Configuration#,SceneOrder
-from ordering.helper import *
-import lta
-from espa.espa import *
-import re
-import json
+from ordering.models import Scene,Order,Configuration
+import core, lta, re, json
 from datetime import datetime
 
 __author__ = "David V. Hill"
@@ -118,22 +113,7 @@ def neworder(request):
             return HttpResponse(t.render(c))
         else:
             #If we made it here we are all good with the scenelist.  
-            options = {
-                'include_sourcefile':False,
-                'include_source_metadata':False,
-                'include_sr_toa':False,
-                'include_sr_thermal':False,
-                'include_sr':False,
-                'include_sr_browse':False,
-                'include_sr_ndvi':False,
-                'include_sr_ndmi':False,
-                'include_sr_nbr':False,
-                'include_sr_nbr2':False,
-                'include_sr_savi':False,
-                'include_sr_evi':False,
-                'include_solr_index':False,
-                'include_cfmask':False
-                }
+            options = core.get_default_options()
             
             #Collect requested products.
             for o in options.iterkeys():
@@ -141,26 +121,8 @@ def neworder(request):
                     options[o] = True
                 
             option_string = json.dumps(options)
-           
-            order = Order()
-            order.orderid = generate_order_id(request.POST['email'])
-            order.email = request.POST['email']
-            order.note = note
-            order.status = 'ordered'
-            order.order_date = datetime.now()
-            order.product_options = option_string
-            order.order_source = 'espa'
-            order.save()
-                
-            for s in set(scenelist):
-                scene = Scene()
-                scene.name = s
-                scene.order = order
-                scene.order_date = datetime.now()
-                scene.status = 'submitted'
-                scene.save()
-                
-            sendInitialEmail(order)
+            order = core.enter_new_order(request.POST['email'], 'espa', scenelist, option_string, note = '')
+            core.sendInitialEmail(order)
         
             return HttpResponseRedirect('/status/%s' % request.POST['email'])
         
@@ -186,61 +148,33 @@ def listorders(request, email=None, output_format=None):
         t = loader.get_template('listorders.html')
         return HttpResponse(t.render(c))
 
-
-    mimetype = None
-    orders = None
     #if we got here it's all good, display the orders
-    if output_format is not None and output_format == 'csv':
-        scenes = Scene.objects.filter(order__email=_email,status='Complete').order_by('-order__order_date')
-        output = ''
-        for scene in scenes:
-            line = ("%s,%s,%s\n") % (scene.name,scene.download_url,scene.source_l1t_download_url)
-            output = output + line
-        return HttpResponse(output, mimetype='text/plain')
-        
-    else:
-        orders = Order.objects.filter(email=_email).order_by('-order_date')
-        t = loader.get_template('listorders_results.html')
-        mimetype = 'text/html'   
-        c = RequestContext(request)
-        c['email'] = _email
-        c['orders'] = orders
-        return HttpResponse(t.render(c), mimetype=mimetype)
+    #orders = Order.objects.filter(email=_email).order_by('-order_date')
+    orders = core.list_all_orders(_email)
+    t = loader.get_template('listorders_results.html')
+    mimetype = 'text/html'   
+    c = RequestContext(request)
+    c['email'] = _email
+    c['orders'] = orders
+    return HttpResponse(t.render(c), mimetype=mimetype)
 
-#handles displaying scenes for an order all orders for a given user
+
 
 @csrf_exempt
 def orderdetails(request, orderid, output_format=None):
-   
-    #create placeholder for any validation errors
-    errors = {}
+    '''displays scenes for an order'''           
 
-    mimetype = None
-    scenes = None
-    #if we got here it's all good, display the orders
-    if output_format is not None and output_format == 'csv':
-        scenes = Scene.objects.filter(order__orderid=orderid,status='Complete')
-        output = ''
-        for scene in scenes:
-            line = ("%s,%s,%s\n") % (scene.name,scene.download_url,scene.cksum_download_url)
-            output = output + line
-        return HttpResponse(output, mimetype='text/plain')
-        
-    else:
-        order = Order.objects.get(orderid=orderid)
-        scenes = Scene.objects.filter(order__orderid=orderid)
-        t = loader.get_template('orderdetails.html')
-        mimetype = 'text/html'   
-        c = RequestContext(request)
-        c['order'] = order
-        c['scenes'] = scenes
-        return HttpResponse(t.render(c), mimetype=mimetype)
+    t = loader.get_template('orderdetails.html')
+    mimetype = 'text/html'   
+    c = RequestContext(request)
+
+    order,scenes = core.get_order_details(orderid)
+    c['order'] = order
+    c['scenes'] = scenes
+
+    return HttpResponse(t.render(c), mimetype=mimetype)
         
         
-#email validate method
-def validate_email(email):
-    pattern = '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,4}$'
-    return re.match(pattern, email)
 
 ############################################
 # Form Objects

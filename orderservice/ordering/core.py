@@ -4,7 +4,6 @@ from models import Scene
 from models import Order
 from models import Configuration
 from datetime import timedelta
-from espa.espa import *
 from espa.scene_cache import SceneCache
 import time
 import json
@@ -23,6 +22,66 @@ except Exception, err:
     print ("Could not load configuration values:%s" % err)
 
 
+def validate_email(email):
+    '''Compares incoming email address against regular expression to make sure its at
+least formatted like an email'''
+    pattern = '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,4}$'
+    return re.match(pattern, email)
+
+def get_default_options():
+    '''returns a default set of options that can be set for espa orders'''
+    options = {
+        'include_sourcefile':False,
+        'include_source_metadata':False,
+        'include_sr_toa':False,
+        'include_sr_thermal':False,
+        'include_sr':False,
+        'include_sr_browse':False,
+        'include_sr_ndvi':False,
+        'include_sr_ndmi':False,
+        'include_sr_nbr':False,
+        'include_sr_nbr2':False,
+        'include_sr_savi':False,
+        'include_sr_evi':False,
+        'include_solr_index':False,
+        'include_cfmask':False
+    }
+    return options
+
+def list_all_orders(email):
+    '''lists out all orders for a given user'''
+    orders = Order.objects.filter(email=_email).order_by('-order_date')
+    return orders
+
+def get_order_details(orderid):
+    '''Returns the full order and all attached scenes'''
+    order = Order.objects.get(orderid=orderid)
+    scenes = Scene.objects.filter(order__orderid=orderid)
+    return order,scenes
+
+def enter_new_order(email, order_source, scene_list, option_string, note = ''):
+    '''Places a new espa order in the database'''
+    order = Order()
+    order.orderid = generate_order_id(request.POST['email'])
+    order.email = email
+    order.note = note
+    order.status = 'ordered'
+    order.order_date = datetime.now()
+    order.product_options = option_string
+    order.order_source = order_source
+    order.save()
+                
+    for s in set(scenelist):
+        scene = Scene()
+        scene.name = s
+        scene.order = order
+        scene.order_date = datetime.now()
+        scene.status = 'submitted'
+        scene.save()
+
+    return order
+    
+    
 def sendInitialEmail(order):
     status_base_url = Configuration().getValue('espa.status.url')    
     status_url = ('%s/%s') % (status_base_url, order.email)
@@ -188,11 +247,9 @@ def getScenesToProcess():
             options = order.product_options
             options = options.replace("\\", "")
             oid = order.orderid
-            #WE need a string that looks like this
-            #{'orderid':orderid, 'scene':a.name, 'options':product_options}
             orderline = json.dumps({'orderid':oid, 'scene':a.name, 'options':options})
-            print "Orderline follows"
-            print orderline
+            #print "Orderline follows"
+            #print orderline
             results.append(orderline)
 
     return results
@@ -357,17 +414,9 @@ def load_ee_orders():
     orders = lta_service.get_available_orders()
 
 
-    #new_espa_orders = dict()
-    #for eeorder,email in orders:
-    #    order_status = lta_service.get_order_status(eeorder)
-    #    for unit in order_status['units']:
-    #        #only capture the ones that have a status of Q (Queued means waiting for us)
-    #        if unit['unit_status'] == "Q":
-    #            if not new_espa_orders.has_key((eeorder,email)):
-    #                new_espa_orders[eeorder,email] = list()
-    #            new_espa_orders[eeorder,email].append({'unit_num':unit['unit_num'], 'sceneid':unit['sceneid']})
-
-    options = {
+    #This sets (hard codes) the product options that comes in from EE when someone
+    #is requesting processing via their interface
+    ee_options = {
                 'include_sourcefile':False,
                 'include_source_metadata':False,
                 'include_sr_toa':False,
@@ -385,7 +434,6 @@ def load_ee_orders():
     }
 
     #Capture in our db
-    #for eeorder,email in new_espa_orders:
     for eeorder,email in orders:
         
         order = Order()
@@ -394,13 +442,12 @@ def load_ee_orders():
         order.chain = 'sr_ondemand'
         order.status = 'ordered'
         order.note = 'EarthExplorer order id: %s' % eeorder
-        order.product_options = json.dumps(options)
+        order.product_options = json.dumps(ee_options)
         order.ee_order_id = eeorder
         order.order_source = 'ee'
         order.order_date = datetime.datetime.now()
         order.save()
 
-        #for s in new_espa_orders[eeorder,email]:
         for s in orders[eeorder,email]:
             scene = Scene()
             scene.name = s['sceneid']
@@ -409,16 +456,17 @@ def load_ee_orders():
             scene.order_date = datetime.datetime.now()
             scene.status = 'submitted'
             scene.save()
-        
+
+            #Update LTA
+            lta_service.update_order(eeorder, s['unit_num'], "I")
 
     #Update unit status
-    #for key in new_espa_orders:
-    for key in orders:
-        eeorder,email = key
-        unit = orders[key]
-        for u in unit:
+    #for key in orders:
+    #    eeorder,email = key
+    #    unit = orders[key]
+    #    for u in unit:
             #update status to I for Inprocess
-            lta_service.update_order(eeorder, u['unit_num'], "I")
+    #        lta_service.update_order(eeorder, u['unit_num'], "I")
     
 
                 

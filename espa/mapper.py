@@ -8,10 +8,29 @@ import commands
 import socket
 import sys
 from cStringIO import StringIO
+import random
+import commands
 
 
 def logger(value):
     print("Mapper.py:%s" % value)
+
+def get_cache_hostname():
+    '''Poor mans load balancer for accessing the online cache over the private network'''
+    hostlist = ['edclxs67p', 'edclxs140p']
+    hostname = random.choice(hostlist)
+
+    #Check that the host is up before returning
+    cmd = "ping -q -c 1 %s" % hostname
+    status,output = commands.getstatusoutput(cmd)
+
+    #This looks nice but it might blow up if both hosts are down    
+    if status == 0:
+        return hostname
+    else:
+        return [x for x in hostlist where x is not hostname][0]    
+    
+    
 
 if __name__ == '__main__':
     processing_location = socket.gethostname()
@@ -26,7 +45,7 @@ if __name__ == '__main__':
             orderid = line['orderid']
             sceneid = line['scene']
 
-            if type(line['options']) == str or type(line['options']) == unicode:
+            if type(line['options']) in (str, unicode):
                 options = json.loads(line['options'])
             else:
                 options = line['options']
@@ -83,11 +102,11 @@ if __name__ == '__main__':
             if options.has_key('source_host'):
                 cmd = cmd + '--source_host %s ' % options['source_host']
             else:
-                cmd = cmd + '--source_host edclpdsftp.cr.usgs.gov '
+                cmd = cmd + '--source_host %s ' % get_cache_hostname()
             if options.has_key('destination_host'):
                 cmd = cmd + '--destination_host %s ' % options['destination_host']
             else:
-                cmd = cmd + '--destination_host edclpdsftp.cr.usgs.gov ' 
+                cmd = cmd + '--destination_host %s ' % get_cache_hostname()
             if options.has_key('source_type'):
                 cmd = cmd + '--source_type %s ' % options['source_type']
             else:
