@@ -10,6 +10,8 @@ from django.db import transaction
 __author__ = "David V. Hill"
 
 #Create a Dispatcher; this handles the calls and translates info to function maps
+#dispatcher = SimpleXMLRPCDispatcher() # Python 2.4
+#dispatcher = SimpleXMLRPCDispatcher(allow_none=False, encoding=None) # Python 2.5
 
 #need this so Django's built in cross site request forgery middleware will
 #allow the call to come thru to the rpc handler
@@ -34,7 +36,8 @@ def rpc_handler(request):
 		dispatcher.register_function(_getScenesToProcess, 'getScenesToProcess')
 		dispatcher.register_function(_getScenesToPurge, 'getScenesToPurge')
 		dispatcher.register_function(_getSceneInputPath, 'getSceneInputPath')
-		
+		dispatcher.register_function(_getDataSourceCredentials, 'getDataSourceCredentials')
+
 		#if our leak isn't fixed, try checking to see if we need to close the response here.
 		response = HttpResponse(mimetype="application/xml")
 		response.write(dispatcher._marshaled_dispatch(request.raw_post_data))
@@ -52,9 +55,9 @@ def rpc_handler(request):
 			sig = dispatcher.system_methodSignature(method)
 
 			# this just reads your docblock, so fill it in!
-			help_str =  dispatcher.system_methodHelp(method)
+			help =  dispatcher.system_methodHelp(method)
 
-			response.write("<li><b>%s</b>: [%s] %s" % (method, sig, help_str))
+			response.write("<li><b>%s</b>: [%s] %s" % (method, sig, help))
 
 		response.write("</ul>")
 		response.write('<a href="http://www.djangoproject.com/"> <img src="http://media.djangoproject.com/img/badges/djangomade124x25_grey.gif" border="0" alt="Made with Django." title="Made with Django."></a>')
@@ -91,7 +94,9 @@ def _getScenesToPurge():
 def _getSceneInputPath(sceneid):
         return getSceneInputPath(sceneid)
 
-
+def _getDataSourceCredentials(name):
+	ds = DataSource.objects.get(name=name)
+	return ds.username,ds.password,ds.host,ds.port
 	
 	
 

@@ -56,10 +56,13 @@ class LtaServices(object):
                 return "ops"
             elif os.environ['ESPA_ENV'].lower() == "tst":
                 return "tst"
+        else:
+            if socket.gethostname().lower().startswith("l8srlscp03"):
+                return "ops"
+            elif socket.gethostname().lower().startswith("l8srlscp12"):
+                return "tst"
             else:
                 return self.environment
-        else:
-            raise Exception("ESPA_ENV is not set!")
 
     def get_url(self,service_name):
         ''' Service locator pattern.  Attempts to identify the environment
