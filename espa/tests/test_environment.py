@@ -16,6 +16,11 @@ class TestESPAEnvironment(unittest.TestCase):
         """    
         self.assertIsNotNone(os.getenv("ESPA_ENV"))
 
+    def test_espa_work_dir(self):
+        """Check if ESPA_WORK_DIR is set"""
+        self.assertIsNotNone(os.getenv("ESPA_WORK_DIR"))
+        
+
 class TestESPADependencies(unittest.TestCase):
     """Software dependency checking"""
 
