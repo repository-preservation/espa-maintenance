@@ -3,7 +3,7 @@ from django.http import HttpResponse
 from django.template import Context, loader
 from SimpleXMLRPCServer import SimpleXMLRPCDispatcher
 from django.views.decorators.csrf import csrf_exempt
-from ordering.helper import *
+from ordering.core import *
 from ordering.models import Configuration
 from django.db import transaction
 

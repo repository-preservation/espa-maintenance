@@ -9,6 +9,7 @@ import time
 import json
 import datetime
 import lta
+import re
 
 
 __author__ = "David V. Hill"
@@ -50,7 +51,7 @@ def get_default_options():
 
 def list_all_orders(email):
     '''lists out all orders for a given user'''
-    orders = Order.objects.filter(email=_email).order_by('-order_date')
+    orders = Order.objects.filter(email=email).order_by('-order_date')
     return orders
 
 def get_order_details(orderid):
@@ -62,20 +63,20 @@ def get_order_details(orderid):
 def enter_new_order(email, order_source, scene_list, option_string, note = ''):
     '''Places a new espa order in the database'''
     order = Order()
-    order.orderid = generate_order_id(request.POST['email'])
+    order.orderid = generate_order_id(email)
     order.email = email
     order.note = note
     order.status = 'ordered'
-    order.order_date = datetime.now()
+    order.order_date = datetime.datetime.now()
     order.product_options = option_string
     order.order_source = order_source
     order.save()
                 
-    for s in set(scenelist):
+    for s in set(scene_list):
         scene = Scene()
         scene.name = s
         scene.order = order
-        scene.order_date = datetime.now()
+        scene.order_date = datetime.datetime.now()
         scene.status = 'submitted'
         scene.save()
 

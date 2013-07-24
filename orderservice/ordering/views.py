@@ -11,7 +11,7 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from django.contrib.auth.models import User
 from django.contrib.auth import logout
 from ordering.models import Scene,Order,Configuration
-import core, lta, re, json
+import core, lta, json
 from datetime import datetime
 
 __author__ = "David V. Hill"
@@ -56,7 +56,7 @@ def neworder(request):
     #files to be uploaded
     elif request.method == 'POST':
         errors = {}
-        if not request.POST.has_key('email') or not validate_email(request.POST['email']):
+        if not request.POST.has_key('email') or not core.validate_email(request.POST['email']):
             errors['email'] = "Please provide a valid email address"
         if not request.FILES.has_key("file"):
             errors['file'] = "Please provide a scene list"
