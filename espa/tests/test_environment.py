@@ -8,15 +8,17 @@ class TestESPAEnvironment(unittest.TestCase):
         pass
 
     def test_espa_env(self):
-        '''Check if ESPA_ENV is set.
+        """Check if ESPA_ENV is set.
 
-           ESPA_ENV controls which urls
-           are used when calling into LTA'''
-        
+        ESPA_ENV controls which urls
+        are used when calling into LTA
+
+        """    
         self.assertIsNotNone(os.getenv("ESPA_ENV"))
 
 class TestESPADependencies(unittest.TestCase):
     """Software dependency checking"""
+
     def setUp(self):
         pass
 
@@ -48,10 +50,13 @@ class TestESPADependencies(unittest.TestCase):
         """Check if SI is available"""
         pass
 
+    def test_suds_exists(self):
+        """Check if suds is available"""
+        pass
+
 class TestESPANetwork(unittest.TestCase):
-    """
-    Network related tests for ESPA
-    """
+    """Network related tests for ESPA"""
+    
     def setUp(self):
         pass
 
