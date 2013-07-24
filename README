@@ -74,6 +74,10 @@ Dependencies (Processing Nodes)
 Change Notes
 Version 2.1.3
         Fix to clear logs upon non-error status update.
+        Initial version of api.py added.
+        Integration for SI 1.1.2, cfmask 1.1.1, ledaps 1.3.0, cfmask_append 1.0.1, swe 1.0.0
+        Updated code to interact with online cache over private 10Gig network
+        Added load balancing code mapper.py for contacting the online cache
 
 Version 2.1.2
         Updates for new cfmask and appending cfmask to sr outputs.
