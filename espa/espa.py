@@ -98,6 +98,19 @@ def getXY(value):
     p = p[0].split(',')
     return (p[1].strip(),p[0].strip())
 
+#==============================================================
+#returns the name of the sr file we are working on
+#==============================================================
+def get_sr_filename(scene):
+    """Return name of current sr product file"""
+    return "lndsr.%s.hdf" % scene
+
+#==============================================================
+#returns the name of the cfmask file we are working on
+#==============================================================
+def get_cfmask_filename(scene):
+    """Return name of current cfmask product file"""
+    return "fmask.%s.hdf" % scene
 
 #==============================================================
 #parse gdal coordinates from gdalinfo
@@ -514,7 +527,7 @@ def make_cfmask(workdir):
         
         status,output = commands.getstatusoutput("cd %s;cfmask --verbose --metadata=%s" % (workdir, metafile))
         status = status >> 8
-        if status != 1:
+        if status != 0:
             print ("Error producing cfmask for %s with status %s" % (metafile, status))
             print ("CFMask output:%s" % output)
             print ("End of CFMask output")
@@ -1025,8 +1038,7 @@ if __name__ == '__main__':
         if options.sr_evi_flag:
             index_string = index_string + " --evi"
 
-        lndsr_file = [x for x in os.listdir(workdir) if x.startswith('lndsr') and x.endswith('.hdf')]
-        cmd = ("cd %s; do_spectral_indices.py %s -i %s") % (workdir, index_string, lndsr_file[0])
+        cmd = ("cd %s; do_spectral_indices.py %s -i %s") % (workdir, index_string, get_sr_filename(scene))
         print ("SPECTRAL INDICES COMMAND:%s" % cmd)
         print ("Running Spectral Indices")
         status,output = commands.getstatusoutput(cmd)
@@ -1055,9 +1067,7 @@ if __name__ == '__main__':
     #SEPERATELY
     if options.sr_flag and not options.cfmask_flag:
         print ("Running Append CFMask")
-        lndsr_file = [x for x in os.listdir(workdir) if x.startswith('lndsr') and x.endswith('.hdf')]
-        cfmask_file = [x for x in os.listdir(workdir) if x.startswith('fmask') and x.endswith('.hdf')]
-        cmd = ("cd %s; do_append_cfmask.py --sr_infile %s --cfmask_infile %s" % (workdir, lndsr_file[0], cfmask_file[0]))
+        cmd = ("cd %s; do_append_cfmask.py --sr_infile %s --cfmask_infile %s" % (workdir, get_sr_filename(scene), get_cfmask_filename(scene)))
         status,output = commands.getstatusoutput(cmd)
         if status != 0:
             print ("Error appending cfmask to sr output... exiting")
