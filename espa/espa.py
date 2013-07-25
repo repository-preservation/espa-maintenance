@@ -1,3 +1,5 @@
+#!/usr/local/bin/python
+
 """Integration script for ESPA project.
 
 This is a standalone driver script that can produce any CDR or ECV
@@ -7,9 +9,6 @@ Author:  "David V. Hill"
 License: "NASA Open Source Agreement 1.3"
 
 """
-
-#!/usr/local/bin/python
-
 
 import time, commands, os, sys, socket
 import numpy as np
