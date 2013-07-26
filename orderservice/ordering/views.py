@@ -60,6 +60,12 @@ def neworder(request):
             errors['email'] = "Please provide a valid email address"
         if not request.FILES.has_key("file"):
             errors['file'] = "Please provide a scene list"
+
+        scenelist = set()     
+        orderfile = request.FILES['file']
+        lines = orderfile.read().split('\n')
+        if len(lines) <= 0:
+            errors['file'] = "No scenes found in your scenelist.  Please include at least one scene for processing."
         
         if len(errors) > 0:
             c = RequestContext(request, {'form':form,
@@ -80,10 +86,7 @@ def neworder(request):
         #################################################    
         #Form passed' validation.... now check the scenes
         #################################################
-        scenelist = set()     
-        orderfile = request.FILES['file']
-        lines = orderfile.read().split('\n')
-
+        
         #Simple length and prefix checks for scenelist items   
         errors = {}
         errors['scenes'] = list()
@@ -121,7 +124,7 @@ def neworder(request):
                     options[o] = True
                 
             option_string = json.dumps(options)
-            order = core.enter_new_order(request.POST['email'], 'espa', scenelist, option_string, note = '')
+            order = core.enter_new_order(request.POST['email'], 'espa', scenelist, option_string, note = note)
             core.sendInitialEmail(order)
         
             return HttpResponseRedirect('/status/%s' % request.POST['email'])
