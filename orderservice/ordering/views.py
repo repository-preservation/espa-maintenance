@@ -58,14 +58,16 @@ def neworder(request):
         errors = {}
         if not request.POST.has_key('email') or not core.validate_email(request.POST['email']):
             errors['email'] = "Please provide a valid email address"
-        if not request.FILES.has_key("file"):
-            errors['file'] = "Please provide a scene list"
 
-        scenelist = set()     
-        orderfile = request.FILES['file']
-        lines = orderfile.read().split('\n')
-        if len(lines) <= 0:
-            errors['file'] = "No scenes found in your scenelist.  Please include at least one scene for processing."
+        if not request.FILES.has_key("file"):
+            errors['file'] = "Please provide a scene list and include at least one scene for processing."
+        else:
+            scenelist = set()
+            orderfile = request.FILES['file']
+            lines = orderfile.read().split('\n')
+
+            if len(lines) <= 0:
+                errors['file'] = "No scenes found in your scenelist.  Please include at least one scene for processing."
         
         if len(errors) > 0:
             c = RequestContext(request, {'form':form,
