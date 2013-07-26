@@ -70,7 +70,7 @@ def neworder(request):
                 errors['file'] = "No scenes found in your scenelist.  Please include at least one scene for processing."
         
         if len(errors) > 0:
-            c = RequestContext(request, {'form':form,
+            c = RequestContext(request, {'form':OrderForm(),
                                          'errors':errors,
                                          'user':request.user,
                                          'optionstyle':get_option_style(request)}
@@ -80,14 +80,17 @@ def neworder(request):
             if len(msg) > 0 and msg != '' and msg != 'nothing':
                 c['system_message'] = msg
             return HttpResponse(t.render(c))
+
+        #################################################    
+        #Form passed' validation.... now check the scenes
+        #################################################
+
         
         note = None
         if request.POST.has_key('note'):
             note = request.POST['note']
 
-        #################################################    
-        #Form passed' validation.... now check the scenes
-        #################################################
+        
         
         #Simple length and prefix checks for scenelist items   
         errors = {}
