@@ -1092,7 +1092,9 @@ if __name__ == '__main__':
     if not options.toa_flag:
         sb.write(" *lndcal* ")
     if not options.sr_flag:
-        sb.write(" *lndsr* ")
+        sb.write(" lndsr.%s.hdf " % scene)
+        sb.write(" lndsr.%s.hdf.hdr " % scene)
+        sb.write(" lndsr.%s.txt " % scene)
     if not options.sr_browse_flag:
         sb.write(" *browse* ")
     if not options.sr_ndvi_flag:
