@@ -1086,7 +1086,7 @@ if __name__ == '__main__':
     if not options.sourcefile_flag:
         sb.write(" *TIF *gap_mask* ")
     if not options.sourcefile_metadata_flag:
-        sb.write(" *MTL* *metadata* *VER* *GCP* ")
+        sb.write(" *MTL* *VER* *GCP* ")
     if not options.b6thermal_flag:
         sb.write(" *lndth* ")
     if not options.toa_flag:
