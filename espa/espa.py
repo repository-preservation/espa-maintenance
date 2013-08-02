@@ -619,7 +619,7 @@ def distribute_product(product_file_full_path, cksum_file_full_path, destination
 
     #MAKE DISTRIBUTION DIRECTORIES
     print ("Creating destination directories at %s" % destination_dir)
-    cmd = "ssh %s mkdir -p %s" % (destination_host, destination_dir)
+    cmd = "ssh -o StrictHostKeyChecking=no %s mkdir -p %s" % (destination_host, destination_dir)
     status,output = commands.getstatusoutput(cmd)
     if status != 0:
         print ("Error creating destination directory %s on %s" % (destination_dir,destination_host))
@@ -628,7 +628,7 @@ def distribute_product(product_file_full_path, cksum_file_full_path, destination
     
     #DISTRIBUTE THE PRODUCT FILE
     print ("Transferring %s to %s:%s" % (product_file_full_path, destination_host, destination_file))   
-    cmd = "scp -c arcfour -pC %s %s:%s" % (product_file_full_path, destination_host, destination_file)       
+    cmd = "scp -o StrictHostKeyChecking=no -c arcfour -pC %s %s:%s" % (product_file_full_path, destination_host, destination_file)       
     status,output = commands.getstatusoutput(cmd)
     if status != 0:
         print ("Error transferring %s to %s:%s..." % (product_file_full_path, destination_host, destination_file))
@@ -637,7 +637,7 @@ def distribute_product(product_file_full_path, cksum_file_full_path, destination
 
     #DISTRIBUTE THE CHECKSUM
     print ("Transferring %s to %s:%s" % (cksum_file_full_path, destination_host, destination_cksum_file))
-    cmd = "scp -c arcfour -pC %s %s:%s" % (cksum_file_full_path, destination_host, destination_cksum_file)       
+    cmd = "scp -o StrictHostKeyChecking=no -c arcfour -pC %s %s:%s" % (cksum_file_full_path, destination_host, destination_cksum_file)       
     status,output = commands.getstatusoutput(cmd)
     if status != 0:
         print ("Error transferring %s to %s:%s..." % (cksum_file_full_path, destination_host,destination_cksum_file))
@@ -645,7 +645,7 @@ def distribute_product(product_file_full_path, cksum_file_full_path, destination
         return (3,)
                     
     #CHECK DISTRIBUTED PRODUCT CHECKSUM
-    cmd = "ssh -q %s cksum %s" % (destination_host, destination_file)
+    cmd = "ssh -o StrictHostKeyChecking=no -q %s cksum %s" % (destination_host, destination_file)
     status,output = commands.getstatusoutput(cmd)
     if status != 0:
         #problem getting checksum
@@ -964,7 +964,7 @@ if __name__ == '__main__':
     
     #TRANSFER THE SOURCE FILE TO THE LOCAL MACHINE
     print ("Transferring %s from %s to %s") % (source_file,source_host,localhostname)  
-    cmd = ("scp -c arcfour -C %s:%s %s") % (source_host, source_file, stagedir)
+    cmd = ("scp -o StrictHostKeyChecking=no -c arcfour -C %s:%s %s") % (source_host, source_file, stagedir)
     (status,output) = commands.getstatusoutput(cmd)
     if status != 0:
         print ("Error transferring %s:%s to %s... exiting") % (source_host, source_file, stagedir)
