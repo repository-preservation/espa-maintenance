@@ -1081,7 +1081,7 @@ if __name__ == '__main__':
     sb = StringIO()
     
     #always remove these
-    sb.write(" *sixs* LogReport* README* ")
+    sb.write(" *sixs* *metadata* LogReport* README* ")
     
     if not options.sourcefile_flag:
         sb.write(" *TIF *gap_mask* ")
