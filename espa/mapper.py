@@ -28,7 +28,7 @@ def get_cache_hostname():
     if status == 0:
         return hostname
     else:
-        return [x for x in hostlist where x is not hostname][0]    
+        return [x for x in hostlist if x is not hostname][0]    
     
     
 
