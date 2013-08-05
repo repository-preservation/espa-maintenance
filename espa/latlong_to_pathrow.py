@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 import argparse
 import sys
-from espa.conversion_tools.espa_conversion_module import LL2PR_Converter
+from convert import LL2PR_Converter
 
 #############################################################################
 #
@@ -54,8 +54,8 @@ if npathrow == 0:
     sys.exit ('Exiting. Invalid latitude/longitude point provided for input.')
 
 # Return the list of WRS path/rows which cover the specified lat/long
-print 'For latitude {0}, longitude {1} the following {2} WRS-2 path/row(s) ' \
-      'were located, in order of their distance from the point to the scene ' \
-      'center:'.format(lat, lon, npathrow)
+#print 'For latitude {0}, longitude {1} the following {2} WRS-2 path/row(s) ' \
+#      'were located, in order of their distance from the point to the scene ' \
+#      'center:'.format(lat, lon, npathrow)
 for i in range(npathrow):
     print '    p{:d}r{:d}'.format(results[1+i*2], results[2+i*2])

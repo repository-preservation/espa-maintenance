@@ -54,8 +54,8 @@ class Converter_Tools:
 
 class LL2PR_Converter:
     # Data attributes
-    WRS_FILE = "WRSCornerPoints.csv"   # WRS-2 table
-    MODIS_FILE = "MODISTileCornerPoints.csv"    # MODIS 10 degree tile table
+    WRS_FILE = "etc/WRSCornerPoints.csv"   # WRS-2 table
+    MODIS_FILE = "etc/MODISTileCornerPoints.csv"    # MODIS 10 degree tile table
     LAT = 0                         # Latitude index for lat/long points
     LON = 1                         # Longitude index for lat/long points
 

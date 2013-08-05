@@ -1,7 +1,8 @@
 #!/usr/bin/env python
+
 import argparse
 import sys
-from espa.conversion_tools.espa_conversion_module import LL2PR_Converter
+from convert import LL2PR_Converter
 
 #############################################################################
 #
@@ -53,8 +54,8 @@ if npathrow == 0:
     sys.exit ('Exiting. Invalid tile argument or tile is fill.')
 
 # Return the list of path/rows which cover the specified MODIS tile
-print 'For htile {0}, vtile {1} the following {2} path/row(s) were ' \
-      'located, in order of their distance from the center of the scene to ' \
-      'the center of the tile:'.format(htile, vtile, npathrow)
+#print 'For htile {0}, vtile {1} the following {2} path/row(s) were ' \
+#      'located, in order of their distance from the center of the scene to ' \
+#      'the center of the tile:'.format(htile, vtile, npathrow)
 for i in range(npathrow):
     print '    p{:d}r{:d}'.format(results[1+i*2], results[2+i*2])

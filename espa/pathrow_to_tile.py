@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 import argparse
 import sys
-from espa.conversion_tools.espa_conversion_module import LL2PR_Converter
+from convert import LL2PR_Converter
 
 #############################################################################
 #
@@ -43,7 +43,7 @@ if nmodis_tiles == 0:
     sys.exit ('Exiting. Invalid path/row argument.')
 
 # Return the list of MODIS tiles which cover the specified path/row
-print 'For path {0}, row {1} the following {2} MODIS 10 degree tile(s) ' \
-      'are needed:'.format(wrs_path, wrs_row, nmodis_tiles)
+#print 'For path {0}, row {1} the following {2} MODIS 10 degree tile(s) ' \
+#      'are needed:'.format(wrs_path, wrs_row, nmodis_tiles)
 for i in range(nmodis_tiles):
     print '    h{:02d}v{:02d}'.format(results[1+i*2], results[2+i*2])
