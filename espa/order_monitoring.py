@@ -35,6 +35,8 @@
 #                                                   Added '-n' option to break out runtime
 #                                                   informatoin separately from order info
 #  005          08-21-2013      Adam Dosch          Adding '__author__' references
+#  006          08-22-2013      Adam Dosch          Had a typo for today's ordered orders
+#                                                   verbage.
 #
 ##########################################################################################
 #
@@ -402,7 +404,7 @@ class OrderInfo(object):
             rows = tuple()
             
             # Order state counts
-            sql = """select "<b>Today's Total Orders(s)</b>", count(orderid) from ordering_order where order_date between '%s 00:00:00' and '%s 23:59:59' union all select "<b>Today's Partial Order(s)</b>", count(orderid) from ordering_order where order_date between '%s 00:00:00' and '%s 23:59:59' and status = 'partial' union all select "<b>Today's Completed Order(s)</b>", count(orderid) from ordering_order where order_date between '%s 00:00:00' and '%s 23:59:59' and status = 'complete' union all select "<b>Today's Orderd Order(s)</b>", count(orderid) from ordering_order where order_date between '%s 00:00:00' and '%s 23:59:59' and status = 'ordered'""" % (self.todays_date, self.todays_date, self.todays_date, self.todays_date, self.todays_date, self.todays_date, self.todays_date, self.todays_date)
+            sql = """select "<b>Today's Total Orders(s)</b>", count(orderid) from ordering_order where order_date between '%s 00:00:00' and '%s 23:59:59' union all select "<b>Today's Partial Order(s)</b>", count(orderid) from ordering_order where order_date between '%s 00:00:00' and '%s 23:59:59' and status = 'partial' union all select "<b>Today's Completed Order(s)</b>", count(orderid) from ordering_order where order_date between '%s 00:00:00' and '%s 23:59:59' and status = 'complete' union all select "<b>Today's Ordered Order(s)</b>", count(orderid) from ordering_order where order_date between '%s 00:00:00' and '%s 23:59:59' and status = 'ordered'""" % (self.todays_date, self.todays_date, self.todays_date, self.todays_date, self.todays_date, self.todays_date, self.todays_date, self.todays_date)
             hitDB = True
 
             
