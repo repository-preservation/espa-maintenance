@@ -77,6 +77,85 @@
     
     <br/>
     <div style="text-align:center;margin:0 auto;width:800px;padding:4px;font-size:20px;">
+
+        <div style="float:left;width:250px;overflow:hidden;font-size:14px; margin-left:20px;margin-right:20px;">
+        <div style="text-align:center;line-height: 30px;font-size: 14px;color:white;background:#577196;overflow:hidden;font-weight:bold;">
+         <p>Spectral Indices</p>
+        </div>
+ 
+        <div style="border:1px solid  #d0d0d0;
+           -moz-border-radius-bottomright: 5px;
+           -moz-border-radius-bottomleft: 5px;
+           -webkit-border-radius-bottomleft: 5px;
+           -webkit-border-radius-bottomright: 5px;
+           border-bottom-left-radius:5px;
+           border-bottom-right-radius:5px;
+           line-height:25px;
+">
+         
+         <table style="width:100%;margin:auto;">
+         <tr>
+         <td style="padding-left:5px;text-align:left;">Surface Reflectance NDVI</td>
+         <td style="padding-right:5px;"><input style="text-align:right" type="checkbox" /></td>
+         </tr>
+         <tr style="background:#e1e1e1;">
+         <td style="padding-left:5px;text-align:left">Surface Reflectance NDMI</td>
+         <td style="padding-right:5px;"><input type="checkbox" /></td>
+         </tr>
+         <tr>
+         <td style="padding-left:5px;text-align:left">Surface Reflectance NBR</td>
+         <td style="padding-right:5px;"><input type="checkbox" /></td>
+         </tr>
+         <tr style="background:#e1e1e1;">
+         <td style="padding-left:5px;text-align:left">Surface Reflectance NBR2</td>
+         <td style="padding-right:5px;"><input type="checkbox" /></td>
+         </tr>
+         <tr>
+         <td style="padding-left:5px;text-align:left">Surface Reflectance EVI</td>
+         <td style="padding-right:5px;"><input type="checkbox" /></td>
+         </tr>
+         <tr style="background:#e1e1e1;">
+         <td style="padding-left:5px;text-align:left">Surface Reflectance SAVI</td>
+         <td style="padding-right:5px;"><input type="checkbox" /></td>
+         </tr>
+         </table>
+        </div>
+        </div>
+
+
+ <div style="float:left;width:250px;overflow:hidden;font-size:14px;">
+        <div style="text-align:center;line-height: 30px;font-size: 14px;color:white;background:#577196;overflow:hidden;font-weight:bold;">
+         <p>Reflectance Products</p>
+        </div>
+ 
+        <div style="border:1px solid  #d0d0d0;
+           -moz-border-radius-bottomright: 5px;
+           -moz-border-radius-bottomleft: 5px;
+           -webkit-border-radius-bottomleft: 5px;
+           -webkit-border-radius-bottomright: 5px;
+           border-bottom-left-radius:5px;
+           border-bottom-right-radius:5px;
+           line-height:25px;
+">
+         
+         <table style="width:100%;margin:auto;">
+         <tr>
+         <td style="padding-left:5px;text-align:left">Top of Atmosphere Reflectance</td>
+         <td style="padding-right:5px;" ><input style="text-align:right" type="checkbox" /></td>
+         </tr>
+         <tr style="background:#e1e1e1;">
+         <td style="padding-left:5px;text-align:left">Band 6 Brightness Temperature</td>
+         <td style="padding-right:5px;"><input type="checkbox" /></td>
+         </tr>
+         <tr>
+         <td style="padding-left:5px;text-align:left">Surface Reflectance</td>
+         <td style="padding-right:5px;"><input type="checkbox" /></td>
+         </tr>
+         </table>
+        </div>
+        </div>
+
+
 	<table style="text-align:left">
 	    <tr>
 		<td colspan=1><h5>Enter your email address:</h5></td>
@@ -92,8 +171,12 @@
 	    <tr><td colspan=4>&nbsp;</td></tr>
           
 	    <tr><td colspan=4><h5>Select Product Contents</h5></td></td>
+        
+         
 	    <tr><td colspan=2>Source Products</td><td colspan=2>{{form.include_sourcefile}}</td></tr>
 	    <tr><td colspan=2>Source Metadata</td><td colspan=2>{{form.include_source_metadata}}</td></tr>
+         
+
 	    <tr><td colspan=2>Top of Atmosphere Reflectance</td><td colspan=2>{{form.include_sr_toa}}</td></tr>
 	    <tr><td colspan=2>Band 6 Brightness Temperature</td><td colspan=2>{{form.include_sr_thermal}}</td></tr>
 	    <tr><td colspan=2>Surface Reflectance</td><td colspan=2>{{form.include_sr}}</td></tr>
