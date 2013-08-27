@@ -7,7 +7,7 @@
     <link href="/ui/css/common.css" rel="stylesheet" type="text/css" />
     <link href="/ui/css/custom.css" rel="stylesheet" type="text/css" />
     <link href="/ui/css/main.css" rel="stylesheet" type="text/css" />
-    <link href="/ui/css/colorbox.css" rel="stylesheet" type="text/css" media="screen" />
+    <!--<link href="/ui/css/colorbox.css" rel="stylesheet" type="text/css" media="screen" />-->
     <link href="/ui/css/espa.css" rel="stylesheet" type="text/css" />
 
     
@@ -67,15 +67,7 @@
 	<!--End Header -->
 
 	<!-- Start nav -->
-       <div id="nav">
-                <span class="navitem"><a href="http://landsat.usgs.gov/CDR_ECV.php">Product Information</a></span>
-		<span class="navitem">|</span>
-		<span class="navitem"><a href="/new">New Order</a></span>   
-		<span class="navitem">|</span>
-		<span class="navitem"><a href="/status">Show Orders</a></span>
-		<!--<div class="admin"><a href="/admin">Admin (Login required)</a></div> -->
-		
-    	</div>		
+        {% block nav %}<div id="nav"><span class="navitem"><a href="/index">Home</a></span></div>{% endblock %}
        <!-- End nav -->
 
         <div id="content">

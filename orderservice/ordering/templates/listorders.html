@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 
-{% block title %} Order Status {% endblock %}
-{% block header %} Order Status {% endblock %}
+{% block title %} Bulk Order Status {% endblock %}
+{% block header %}Bulk Order Status {% endblock %}
 {% block style %}
 
 	span.error {
@@ -10,6 +10,7 @@
 
 {% endblock %}
 
+{% block nav %}{% include "bulk_ordering_nav.html" %}{% endblock %}
 
 {% block content %}
 <!--<form action="/status/" method="post"> {% csrf_token %}-->

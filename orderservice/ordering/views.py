@@ -22,12 +22,12 @@ def get_option_style(request):
         return "display:none" if (user.username != 'espa_admin' and user.username != 'espa_internal') else ""
 
 #default landing page for the ordering application
-@login_required(login_url='/login/')
+#@login_required(login_url='/login/')
 def index(request):
       
     t = loader.get_template('index.html')
     c = Context({
-        'my_message': 'LDCM R&D ESPA Processing',
+        'my_message': 'LSDS Science R&D Processing',
     })
             
     return HttpResponse(t.render(c))
@@ -102,6 +102,7 @@ def neworder(request):
             if len(line) >= 15 and (line.startswith("LT") or line.startswith("LE")):
                 scenelist.add(line)
 
+                    
         #Run the submitted list by LTA so they can make sure the items are in the inventory
         lta_service = lta.LtaServices()
         verified_scenes = lta_service.verify_scenes(list(scenelist))
@@ -109,6 +110,11 @@ def neworder(request):
         for sc,valid in verified_scenes.iteritems():
             if valid == 'false':
                 errors['scenes'].append("%s not found in Landsat inventory" % sc)
+         
+        #after all that validation, make sure there's actually something left to order
+        if len(scenelist) < 1:
+            errors['scenes'].append("No scenes found in scenelist.  Please provide at least one scene for processing")
+
 
         #See if LTA barked at anything, notify user if so
         if len(errors['scenes']) > 0:                                    
