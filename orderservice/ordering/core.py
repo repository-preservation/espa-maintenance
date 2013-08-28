@@ -341,6 +341,27 @@ def setSceneError(name, orderid, processing_loc, error):
         print("setSceneError:No scene was found with the name:%s for order:%s") % (name, orderid)
         return False
 
+def set_scene_unavailable(name, orderid, processing_loc, error, note):
+    o = Order.objects.get(orderid = orderid)
+    s = Scene.objects.get(name=name, order__id = o.id)
+    if s:
+        s.status = 'unavailable'
+        s.processing_location = processing_loc
+        s.log_file_contents = error
+        s.note = note
+        s.save()
+
+        if o.order_source == 'ee':
+            #update ee
+            lta_service = lta.LtaServices()
+            lta_service.update_order(o.ee_order_id, s.ee_unit_id, 'R')
+            
+        return True
+    else:
+        #something went wrong, don't clean up other disk.
+        print("set_scene_unavailable:No scene was found with the name:%s for order:%s") % (name, orderid)
+        return False
+
 def markSceneComplete(name, orderid, processing_loc,completed_file_location, destination_cksum_file = None,log_file_contents=""):
     print ("Marking scene:%s complete for order:%s" % (name, orderid))
     o = Order.objects.get(orderid = orderid)
@@ -464,6 +485,20 @@ def load_ee_orders():
             scene = None
             try:
                 scene = Scene.objects.get(order = order, ee_unit_id = s['unit_num'])
+                if scene.status == 'complete':
+                    success,msg,status = lta_service.update_order(eeorder, s['unit_num'], "C")
+                    if not success:
+                        log_msg = "Error updating lta for [eeorder:%s ee_unit_num:%s scene name:%s order:%s" % (eeorder, s['unit_num'], scene.name, order.orderid)
+                        helperlogger(log_msg)
+                        log_msg = "Error detail: lta return message:%s  lta return status code:%s" % (msg, status)
+                        helperlogger(log_msg)
+                elif scene.status == 'unavailable':
+                    success,msg,status = lta_service.update_order(eeorder, s['unit_num'], "R")
+                    if not success:
+                        log_msg = "Error updating lta for [eeorder:%s ee_unit_num:%s scene name:%s order:%s" % (eeorder, s['unit_num'], scene.name, order.orderid)
+                        helperlogger(log_msg)
+                        log_msg = "Error detail: lta return message:%s  lta return status code:%s" % (msg, status)
+                        helperlogger(log_msg)
             except:                  
                 scene = Scene()
                 scene.name = s['sceneid']

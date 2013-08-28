@@ -31,6 +31,7 @@ def rpc_handler(request):
 	if len(request.POST):
 		dispatcher.register_function(_updateStatus, 'updateStatus')
 		dispatcher.register_function(_setSceneError, 'setSceneError')
+		dispatcher.register_function(_set_scene_unavailable, 'setSceneUnavailable')
 		dispatcher.register_function(_markSceneComplete, 'markSceneComplete')
 		dispatcher.register_function(_getConfiguration, 'getConfiguration')
 		dispatcher.register_function(_getScenesToProcess, 'getScenesToProcess')
@@ -70,6 +71,9 @@ def _updateStatus(name, orderid, processing_loc, status):
 
 def _setSceneError(name, orderid, processing_loc, error):
 	return setSceneError(name, orderid, processing_loc, error)
+
+def _set_scene_unavailable(name, orderid, processing_loc, error, note):
+	return set_scene_unavailable(name, orderid, processing_loc, error, note)
 
 def _markSceneComplete(name,orderid,processing_loc,completed_scene_location,cksum_file_location,log_file_contents_binary):
         
