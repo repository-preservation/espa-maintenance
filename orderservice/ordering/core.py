@@ -299,12 +299,12 @@ def purgeExpiredOrders():
 '''
 
 def helperlogger(msg):
-    #print(msg)
+    print(msg)
     #h = open('/tmp/helper.log', 'a+')
     #h.write(msg)
     #h.flush()
     #h.close()
-    pass
+    #pass
 
     
 def updateStatus(name, orderid, processing_loc, status):
@@ -444,9 +444,6 @@ def load_ee_orders():
         try:
             order = Order.objects.get(orderid = order_id)
         except:
-            pass
-
-        if not order:
             #Didn't find it in the db... make the order now
             order = Order()
             order.orderid = generate_ee_order_id(email,eeorder)
@@ -467,29 +464,27 @@ def load_ee_orders():
             scene = None
             try:
                 scene = Scene.objects.get(order = order, ee_unit_id = s['unit_num'])
-            except:
-                #Didn't find it
-                pass
+            except:                  
+                scene = Scene()
+                scene.name = s['sceneid']
+                scene.ee_unit_id = s['unit_num']
+                scene.order = order
+                scene.order_date = datetime.datetime.now()
 
-                              
-            scene = Scene()
-            scene.name = s['sceneid']
-            scene.ee_unit_id = s['unit_num']
-            scene.order = order
-            scene.order_date = datetime.datetime.now()
+            #since the scene came in (potentially again)
+            #flip the status to submitted so it will be processed
+            #again.
             scene.status = 'submitted'
             scene.save()
 
             #Update LTA
-            lta_service.update_order(eeorder, s['unit_num'], "I")
-
-    #Update unit status
-    #for key in orders:
-    #    eeorder,email = key
-    #    unit = orders[key]
-    #    for u in unit:
-            #update status to I for Inprocess
-    #        lta_service.update_order(eeorder, u['unit_num'], "I")
+            success,msg,status = lta_service.update_order(eeorder, s['unit_num'], "I")
+            if not success:
+                log_msg = "Error updating lta for [eeorder:%s ee_unit_num:%s scene name:%s order:%s" % (eeorder, s['unit_num'], scene.name, order.orderid)
+                helperlogger(log_msg)
+                log_msg = "Error detail: lta return message:%s  lta return status code:%s" % (msg, status)
+                helperlogger(log_msg)
+   
     
 
                 
