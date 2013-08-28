@@ -9,29 +9,19 @@ Purpose:  This is the primary logic module
 License:  NASA Open Source Agreement 1.3
 """
 import datetime
-
-def log(module, msg):
-    now = datetime.datetime.now()
-    print("(%s) %s-%s-%s %s:%s.%s %s" % (module,
-                                         now.year,
-                                  now.month,
-                                  now.day,
-                                  now.hour,
-                                  now.minute,
-                                  now.second,
-                                  msg))
+import util
 
 if __name__ == '__main__':
-    log("LPVS", "Checking input parameters.")
-    log("LPVS", "Building working directories.")
-    log("LPVS", "Searching for requested MODIS Tile.")
-    log("LPVS", "Located MODIS Tile, transferring to work directory.")
-    log("LPVS", "Searching for requested Landsat scene.")
-    log("LPVS", "Located Landsat scene, transferring to work directory.")
-    log("LPVS", "Applying reprojection to MODIS and Landsat.")
-    log("LPVS", "Subsetting to requested spatial area.")
-    log("LPVS", "Running statistical analysis against MODIS and Landsat.")
-    log("LPVS", "Packaging results.")
-    log("LPVS", "Distributing results.")
-    log("LPVS", "Cleaning temporary directories.")
-    log("LPVS", "Processing complete.")
+    util.log("LPVS", "Checking input parameters.")
+    util.log("LPVS", "Building working directories.")
+    util.log("LPVS", "Searching for requested MODIS Tile.")
+    util.log("LPVS", "Located MODIS Tile, transferring to work directory.")
+    util.log("LPVS", "Searching for requested Landsat scene.")
+    util.log("LPVS", "Located Landsat scene, transferring to work directory.")
+    util.log("LPVS", "Applying reprojection to MODIS and Landsat.")
+    util.log("LPVS", "Subsetting to requested spatial area.")
+    util.log("LPVS", "Running statistical analysis against MODIS and Landsat.")
+    util.log("LPVS", "Packaging results.")
+    util.log("LPVS", "Distributing results.")
+    util.log("LPVS", "Cleaning temporary directories.")
+    util.log("LPVS", "Processing complete.")

@@ -20,15 +20,6 @@ import random
 import datetime
 import util
 
-
-def getXY(value):
-    """Returns the xy coordinates for the given line from gdalinfo"""
-    parts = value.split('(')    
-    p = parts[1].split(')')
-    p = p[0].split(',')
-    return (p[1].strip(),p[0].strip())
-
-
 def get_sr_filename(scene):
     """Return name of current sr product file"""
     return "lndsr.%s.hdf" % scene
@@ -37,35 +28,6 @@ def get_sr_filename(scene):
 def get_cfmask_filename(scene):
     """Return name of current cfmask product file"""
     return "fmask.%s.hdf" % scene
-
-
-def parseGdalInfo(gdalFile, debug=False):
-    """Runs gdalinfo against a file and returns
-    the x,y results"""
-    
-    cmd = "gdalinfo %s |grep \(" % (gdalFile)
-    
-    status,output = commands.getstatusoutput(cmd)
-    contents = output
-
-    if debug:
-        util.log("CDR_ECV", "Parse GDAL Info")
-        util.log("CDR_ECV", contents)
-
-    results = dict()
-        
-    lines = contents.split('\n')
-    for l in lines:
-        if l.startswith('Upper Left'):
-            results['browse.ul'] = getXY(l)
-        elif l.startswith('Lower Left'):
-            results['browse.ll'] = getXY(l)
-        elif l.startswith('Upper Right'):
-            results['browse.ur'] = getXY(l)
-        elif l.startswith('Lower Right'):
-            results['browse.lr'] = getXY(l)
-            
-    return results
 
 
 def getMetaData(work_dir, debug=False):
@@ -119,7 +81,6 @@ def getMetaData(work_dir, debug=False):
     fixedmeta = fixedmeta.split('\n')
     for line in fixedmeta:
         line = line.strip()
-        #util.log("CDR_ECV",'Meta line:%s' % line)
         if not line.startswith('END') and not line.startswith('GROUP'):
             parts = line.split('=')
             if len(parts) == 2:
@@ -130,22 +91,7 @@ def getMetaData(work_dir, debug=False):
     return metadata
 
 
-def convertHDFToGTiff(hdf_file, target_filename):
-    """Converts the named hdf file and all its subdatasets to GEOTIFF in separate band files"""
-    status = 0
-    output = None
-    try:
-        cmd = ('gdal_translate -a_nodata -9999 -a_nodata 12000 -of GTiff -sds %s %s') % (hdf_file, target_filename)
-        util.log("CDR_ECV", "Running %s" % cmd)
-        status,output = commands.getstatusoutput(cmd)
-        #if status != 0:
-        #    util.log("CDR_ECV", "=== Error converting HDF to Geotiff ===")
-        #    util.log("CDR_ECV",  output
-    except Exception,e:
-        util.log("CDR_ECV", output)
-        util.log("CDR_ECV", e)
-        return -1
-    return 0
+
         
 
 def makeBrowse(work_dir,metadata, scene_name,resolution=50,debug=False):
@@ -161,7 +107,7 @@ def makeBrowse(work_dir,metadata, scene_name,resolution=50,debug=False):
         if not os.path.exists(extrasdir):
             os.makedirs(extrasdir)
 
-        convertHDFToGTiff("%s/lndsr*hdf" % work_dir, "%s/out.tiff" % extrasdir)
+        util.convertHDFToGTiff("%s/lndsr*hdf" % work_dir, "%s/out.tiff" % extrasdir)
         
         cmds = []
         #scale the images to 8 bit range
@@ -318,8 +264,6 @@ def make_cfmask(workdir):
             util.log("CDR_ECV", "End of CFMask output")
             
             return status
-        #util.log("CDR_ECV", "CFMask returned code:%s" % status)
-        #util.log("CDR_ECV", "CFMask output:%s" % output)
     finally:
         pass
     return 0
@@ -464,10 +408,9 @@ def do_distribution(outputdir, product_filename, destination_host, destination_f
 
     return (local_chksum, remote_chksum)
 
-#==============================================================            
+         
 #==============================================================
 #Runs the script
-#==============================================================
 #==============================================================
 if __name__ == '__main__':
     parser = OptionParser(usage="usage: %prog [options] scenename")
@@ -868,7 +811,7 @@ if __name__ == '__main__':
 
     #IF THIS WAS JUST AN SR REQUEST THEN APPEND THE CFMASK RESULTS INTO
     #THE SR OUTPUT.  IF CFMASK WAS ALSO REQUESTED THEN WE WILL PROVIDE IT
-    #SEPERATELY
+    #SEPARATELY
     if options.sr_flag and not options.cfmask_flag:
         util.log("CDR_ECV", "Running Append CFMask")
         cmd = ("cd %s; do_append_cfmask.py --sr_infile %s --cfmask_infile %s" % (workdir, get_sr_filename(scene), get_cfmask_filename(scene)))

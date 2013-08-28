@@ -1,44 +1,39 @@
 #!/usr/bin/env python
-import csv
-import sys
-import math
+
+import csv, sys, math
 
 class Converter_Tools:
     def __init__(self):
-        # use pass statement since nothing needs to be done
         pass
 
-    #########################################################################
-    # Module: sqr
-    #
-    # Description: This function will compute the square of the value.
-    #
-    # Returns:
-    #    floating point value representing the square
-    #
-    # Developer History:
-    #     Gail Schmidt    Original Development          June 2012
-    #
-    # Notes:
-    #########################################################################
     def sqr (self, inval):
+        """This function will compute the square of the value.
+    
+           Returns:
+           floating point value representing the square
+    
+           Developer History:
+           Gail Schmidt    Original Development          June 2012
+     
+           Notes:
+        """
+        
         return math.pow (inval, 2)
     
-    #########################################################################
-    # Module: distance.py
-    #
-    # Description: This function will compute the distance between two points.
-    #
-    # Returns:
-    #    floating point value representing the distance
-    #
-    # Developer History:
-    #     Gail Schmidt    Original Development          June 2012
-    #
-    # Notes:
-    #  1. Need to handle points which cross the international dateline.
-    #########################################################################
+    
     def distance (self, pt1_lat, pt1_lon, pt2_lat, pt2_lon):
+        """This function will compute the distance between two points.
+    
+           Returns:
+           floating point value representing the distance
+     
+           Developer History:
+           Gail Schmidt    Original Development          June 2012
+    
+           Notes:
+           1. Need to handle points which cross the international dateline.
+        """
+        
         if ((pt1_lon > 170) and (pt2_lon < -170)):
             dist_lon = 180.0 - pt1_lon + abs (-180.0 - pt2_lon)
             tmpval = self.sqr(dist_lon) + self.sqr(pt2_lat - pt1_lat)
@@ -49,41 +44,37 @@ class Converter_Tools:
             tmpval = self.sqr(pt2_lon - pt1_lon) + self.sqr(pt2_lat - pt1_lat)
         return math.sqrt (tmpval) 
 
-##### End Converter_Tools class
 
 
 class LL2PR_Converter:
-    # Data attributes
-    WRS_FILE = "etc/WRSCornerPoints.csv"   # WRS-2 table
+    WRS_FILE = "etc/WRSCornerPoints.csv"            # WRS-2 table
     MODIS_FILE = "etc/MODISTileCornerPoints.csv"    # MODIS 10 degree tile table
-    LAT = 0                         # Latitude index for lat/long points
-    LON = 1                         # Longitude index for lat/long points
+    LAT = 0                                         # Latitude index for lat/long points
+    LON = 1                                         # Longitude index for lat/long points
 
     def __init__(self):
-        # use pass statement since nothing needs to be done
         pass
  
-    #########################################################################
-    # Module: pathrow_to_tile.py
-    #
-    # Description: This script will take an input WRS-2 path/row and return
-    #     the respective 10 degree MODIS tile(s) required to cover that
-    #     path/row.
-    #
-    # Inputs:
-    #     <wrs_path> is the WRS-2 path number
-    #     <wrs_row> is the WRS-2 row number
-    #
-    # Returns:
-    #     Array of integers.  The first value is the number of tiles.  The
-    #     second value is the horizontal tile number, followed by the vertical
-    #     tile number.  From there the remaining tile numbers will be staggered
-    #     (horizontal, vertical) in the array.
-    #
-    # Developer History:
-    #     Gail Schmidt    Original Development          May 2012
-    #########################################################################
+    
     def pathrow_to_tile(self, wrs_path, wrs_row):
+        """This script will take an input WRS-2 path/row and return
+           the respective 10 degree MODIS tile(s) required to cover that
+           path/row.
+     
+           Inputs:
+           <wrs_path> is the WRS-2 path number
+           <wrs_row> is the WRS-2 row number
+     
+           Returns:
+           Array of integers.  The first value is the number of tiles.  The
+           second value is the horizontal tile number, followed by the vertical
+           tile number.  From there the remaining tile numbers will be staggered
+           (horizontal, vertical) in the array.
+      
+           Developer History:
+           Gail Schmidt    Original Development          May 2012
+        """
+        
         # Validate the path/row values.  Valid paths are from 1 to 233.  Valid
         # rows are from 1 to 248.
         if (wrs_path < 1) or (wrs_path > 233):
@@ -318,43 +309,41 @@ class LL2PR_Converter:
 
         return results
 
-
-    #########################################################################
-    # Module: tile_to_pathrow.py
-    #
-    # Description: This script will take an input 10 degree MODIS tile and
-    #     return the respective descending WRS-2 path/rows which cover that
-    #     tile.
-    #
-    # Inputs:
-    #     <htile> is the MODIS horizontal tile number
-    #     <vtile> is the MODIS vertical tile number
-    #
-    # Returns:
-    #     Array of integers.  The first value is the number of path/rows.
-    #     The second value is the first path, followed by the first row.  From
-    #     there the remaining path/rows will be staggered in the array.
-    #
-    # Developer History:
-    #     Gail Schmidt    Original Development          June 2012
-    #
-    # Notes:
-    # 1. There will be a large number of path/rows which cover the bounding
-    #    coordinates of the MODIS tile.  The algorithm will list the path/rows
-    #    in order of which scene center is closest to the center of the MODIS
-    #    tile.
-    # 2. Some scenes cross the international dateline, so those coordinates
-    #    need to be handled appropriately.
-    # 3. This application currently skips over ascending rows (123 - 245). Rows
-    #    1 through 121 descend to the southmost row, which is row 122.  Rows
-    #    123 to 245 comprise the ascending portion of the orbit.  Row 246 is
-    #    the northernmost row.  And rows 247 and 248 begin the descending
-    #    portion of the next orbit (path) leading to row 1.  If the ascending
-    #    rows are processed, then the corner points will need to be flipped.
-    #    UL switched with LR and UR switched with LL.
-    #    UL -> LR, UR -> LL, LL -> UR, LR -> UL
-    ########################################################################
+    
     def tile_to_pathrow(self, htile, vtile):
+        """This script will take an input 10 degree MODIS tile and
+           return the respective descending WRS-2 path/rows which cover that
+           tile.
+    
+           Inputs:
+           <htile> is the MODIS horizontal tile number
+           <vtile> is the MODIS vertical tile number
+     
+           Returns:
+           Array of integers.  The first value is the number of path/rows.
+           The second value is the first path, followed by the first row.  From
+           there the remaining path/rows will be staggered in the array.
+     
+           Developer History:
+           Gail Schmidt    Original Development          June 2012
+     
+           Notes:
+           1. There will be a large number of path/rows which cover the bounding
+           coordinates of the MODIS tile.  The algorithm will list the path/rows
+           in order of which scene center is closest to the center of the MODIS
+           tile.
+           2. Some scenes cross the international dateline, so those coordinates
+           need to be handled appropriately.
+           3. This application currently skips over ascending rows (123 - 245). Rows
+           1 through 121 descend to the southmost row, which is row 122.  Rows
+           123 to 245 comprise the ascending portion of the orbit.  Row 246 is
+           the northernmost row.  And rows 247 and 248 begin the descending
+           portion of the next orbit (path) leading to row 1.  If the ascending
+           rows are processed, then the corner points will need to be flipped.
+           UL switched with LR and UR switched with LL.
+           UL -> LR, UR -> LL, LL -> UR, LR -> UL
+        """
+        
         # Validate the tile values.  Valid htiles are from 0 to 35.  Valid
         # vtiles are from 0 to 17.
         if (htile < 0) or (htile > 35):
@@ -645,36 +634,34 @@ class LL2PR_Converter:
 
         return results
 
-
-    #########################################################################
-    # Module: latlong_to_tile.py
-    #
-    # Description: This function will take an input latitude/longitude in
-    #     decimal degrees and return the respective 10 degree MODIS tile(s)
-    #     which cover that lat/long.
-    #
-    # Inputs:
-    #     <lat> is the latitude in decimal degrees (float)
-    #     <lon> is the longitude in decimal degrees (float)
-    #
-    # Returns:
-    #     Array of integers.  The first value is the number of tiles.  The
-    #     second value is the horizontal tile number, followed by the vertical
-    #     tile number.  From there the remaining tile numbers will be staggered
-    #     (horizontal, vertical) in the array.
-    #
-    # Developer History:
-    #     Gail Schmidt    Original Development          May 2012
-    #
-    # Notes:
-    # 1. When just using the MODIS bounding coordinates and comparing the
-    #    specified lat/long to those coordinates, the algorithem usually ends
-    #    up with more than one tile in which the point resides.  That's really
-    #    not possible, but is part of the fact that the bounding coordinates
-    #    are being used.  So the algorithm will list the tiles in order of
-    #    which tile center is closest to the point.
-    #########################################################################
+    
     def latlong_to_tile(self, lat, lon):
+        """This function will take an input latitude/longitude in
+           decimal degrees and return the respective 10 degree MODIS tile(s)
+           which cover that lat/long.
+
+           Inputs:
+           <lat> is the latitude in decimal degrees (float)
+           <lon> is the longitude in decimal degrees (float)
+    
+           Returns:
+           Array of integers.  The first value is the number of tiles.  The
+           second value is the horizontal tile number, followed by the vertical
+           tile number.  From there the remaining tile numbers will be staggered
+           (horizontal, vertical) in the array.
+    
+           Developer History:
+           Gail Schmidt    Original Development          May 2012
+     
+           Notes:
+           1. When just using the MODIS bounding coordinates and comparing the
+              specified lat/long to those coordinates, the algorithem usually ends
+              up with more than one tile in which the point resides.  That's really
+              not possible, but is part of the fact that the bounding coordinates
+              are being used.  So the algorithm will list the tiles in order of
+              which tile center is closest to the point.
+        """
+        
         # Validate the lat/long values.
         if (lat < -90.0) or (lat > 90.0):
             print 'latlong_to_tile: Latitude argument is invalid: ', lat
@@ -769,43 +756,40 @@ class LL2PR_Converter:
 
         return results
 
-
-    #########################################################################
-    # Module: latlong_to_pathrow
-    #
-    # Description: This funcion will take an input latitude/longitude in
-    #     decimal degrees and return the respective descending WRS-2
-    #     path/row(s) which cover that lat/long.
-    #
-    # Inputs:
-    #     <lat> is the latitude in decimal degrees (float)
-    #     <lon> is the longitude in decimal degrees (float)
-    #
-    # Returns:
-    #     Array of integers.  The first value is the number of path/rows.
-    #     The second value is the first path, followed by the first row.  From
-    #     there the remaining path/rows will be staggered in the array.
-    #
-    # Developer History:
-    #     Gail Schmidt    Original Development          June 2012
-    #
-    # Notes:
-    # 1. When just using the WRS-2 bounding coordinates and comparing the
-    #    specified lat/long to those coordinates, the point can reside within
-    #    multiple path/rows.  The algorithm will list the path/rows in order of
-    #    which scene center is closest to the point.
-    # 2. Some scenes cross the international dateline, so those coordinates
-    #    need to be handled appropriately.
-    # 3. This application currently skips over ascending rows (123 - 245). Rows
-    #    1 through 121 descend to the southmost row, which is row 122.  Rows
-    #    123 to 245 comprise the ascending portion of the orbit.  Row 246 is the
-    #    the northernmost row.  And rows 247 and 248 begin the descending
-    #    portion of the next orbit (path) leading to row 1.  If the ascending
-    #    rows are processed, then the corner points will need to be flipped.
-    #    UL switched with LR and UR switched with LL.
-    #    UL -> LR, UR -> LL, LL -> UR, LR -> UL
-    #########################################################################
+    
     def latlong_to_pathrow(self, lat, lon):
+        """This funcion will take an input latitude/longitude in
+           decimal degrees and return the respective descending WRS-2
+           path/row(s) which cover that lat/long.
+    
+          Inputs:
+          <lat> is the latitude in decimal degrees (float)
+          <lon> is the longitude in decimal degrees (float)
+    
+          Returns:
+          Array of integers.  The first value is the number of path/rows.
+          The second value is the first path, followed by the first row.  From
+          there the remaining path/rows will be staggered in the array.
+    
+          Developer History:
+          Gail Schmidt    Original Development          June 2012
+    
+          Notes:
+          1. When just using the WRS-2 bounding coordinates and comparing the
+          specified lat/long to those coordinates, the point can reside within
+          multiple path/rows.  The algorithm will list the path/rows in order of
+          which scene center is closest to the point.
+          2. Some scenes cross the international dateline, so those coordinates
+          need to be handled appropriately.
+          3. This application currently skips over ascending rows (123 - 245). Rows
+          1 through 121 descend to the southmost row, which is row 122.  Rows
+          123 to 245 comprise the ascending portion of the orbit.  Row 246 is the
+          the northernmost row.  And rows 247 and 248 begin the descending
+          portion of the next orbit (path) leading to row 1.  If the ascending
+          rows are processed, then the corner points will need to be flipped.
+          UL switched with LR and UR switched with LL.
+          UL -> LR, UR -> LL, LL -> UR, LR -> UL
+        """
         # Validate the lat/long values.
         if (lat < -90.0) or (lat > 90.0):
             print 'latlong_to_pathrow: Latitude argument is invalid: ', lat
@@ -1035,7 +1019,8 @@ class LL2PR_Converter:
             results.append (row_list[loop])
 
         return results
-##### End LL2PR_Converter class
+
+
 
 class LL2Zone_Converter:
 
@@ -1043,32 +1028,34 @@ class LL2Zone_Converter:
         # use pass statement since nothing needs to be done
         pass
  
-    #########################################################################
-    # Module: latlong_to_zone
-    #
-    # Description: This script will take an input latitude/longitude
-    #     and compute the UTM zone in which that latitude/longitude resides.
-    #
-    # Inputs:
-    #     <lat> is the latitude in decimal degrees (float, -90.0 to 90.0)
-    #     <lon> is the longitude in decimal degrees (float, -180.0 to 180.0)
-    #
-    # Returns:
-    #     <zone> is the integer UTM zone for the latitude/longitude.  If
-    #     the zone is negative then it falls below the equator.  Valid values
-    #     are from +-1 to +-60.  If the returned zone value is -99 then the
-    #     input lat/long was invalid.
-    #
-    # Developer History:
-    #     Gail Schmidt    Original Development          December 2012
-    #
-    # Notes:
-    # The UTM system divides the surface of Earth between 80deg S and 84deg N
-    # latitude into 60 zones, each 6deg of longitude in width. Zone 1 covers
-    # longitude 180deg to 174deg W; zone numbering increases eastward to zone
-    # 60 that covers longitude 174 to 180 East.
-    #########################################################################
+    
     def latlong_to_zone(self, lat, lon):
+        """
+        Module: latlong_to_zone
+    
+        Description: This script will take an input latitude/longitude
+        and compute the UTM zone in which that latitude/longitude resides.
+    
+        Inputs:
+           <lat> is the latitude in decimal degrees (float, -90.0 to 90.0)
+           <lon> is the longitude in decimal degrees (float, -180.0 to 180.0)
+    
+        Returns:
+          <zone> is the integer UTM zone for the latitude/longitude.  If
+          the zone is negative then it falls below the equator.  Valid values
+          are from +-1 to +-60.  If the returned zone value is -99 then the
+          input lat/long was invalid.
+    
+         Developer History:
+             Gail Schmidt    Original Development          December 2012
+    
+         Notes:
+         The UTM system divides the surface of Earth between 80deg S and 84deg N
+         latitude into 60 zones, each 6deg of longitude in width. Zone 1 covers
+         longitude 180deg to 174deg W; zone numbering increases eastward to zone
+         60 that covers longitude 174 to 180 East.
+    
+        """
         # Validate the lat/long values.
         if (lat < -90.0) or (lat > 90.0):
             print 'latlong_to_zone: Latitude argument is invalid: ', lat
@@ -1085,4 +1072,3 @@ class LL2Zone_Converter:
             zone = -zone
 
         return zone
-##### End LL2Zone_Converter class

@@ -6,16 +6,19 @@ Author:  "David V. Hill"
 License: "NASA Open Source Agreement 1.3"
 
 """
+import datetime
 
 def log(module, msg):
     """Logs a message in the ESPA standard log format"""
+
     now = datetime.datetime.now()
-    print("%s-%s-%s %s:%s.%s (%s) %s" % (now.year,                                         now.year,
-                                  now.month,
-                                  now.day,
-                                  now.hour,
-                                  now.minute,
-                                  now.second,
+
+    print("%s-%s-%s %s:%s.%s (%s) %s" % (now.year,
+                                  str(now.month).zfill(2),
+                                  str(now.day).zfill(2),
+                                  str(now.hour).zfill(2),
+                                  str(now.minute).zfill(2),
+                                  str(now.second).zfill(2),
                                   module,
                                   msg))
 
@@ -100,3 +103,57 @@ def buildMatrix(yx1, yx2, yx3, yx4):
     #sufficient make this a smaller number and rebuild the index
     result = getPoints(xmin, xmax, ymin, ymax, 0.05)
     return result
+
+def getXY(value):
+    """Returns the xy coordinates for the given line from gdalinfo"""
+    parts = value.split('(')    
+    p = parts[1].split(')')
+    p = p[0].split(',')
+    return (p[1].strip(),p[0].strip())
+
+
+def parseGdalInfo(gdalFile, debug=False):
+    """Runs gdalinfo against a file and returns
+    the x,y results"""
+    
+    cmd = "gdalinfo %s |grep \(" % (gdalFile)
+    
+    status,output = commands.getstatusoutput(cmd)
+    contents = output
+
+    if debug:
+        util.log("CDR_ECV", "Parse GDAL Info")
+        util.log("CDR_ECV", contents)
+
+    results = dict()
+        
+    lines = contents.split('\n')
+    for l in lines:
+        if l.startswith('Upper Left'):
+            results['browse.ul'] = getXY(l)
+        elif l.startswith('Lower Left'):
+            results['browse.ll'] = getXY(l)
+        elif l.startswith('Upper Right'):
+            results['browse.ur'] = getXY(l)
+        elif l.startswith('Lower Right'):
+            results['browse.lr'] = getXY(l)
+            
+    return results
+
+
+def convertHDFToGTiff(hdf_file, target_filename):
+    """Converts the named hdf file and all its subdatasets to GEOTIFF in separate band files"""
+    status = 0
+    output = None
+    try:
+        cmd = ('gdal_translate -a_nodata -9999 -a_nodata 12000 -of GTiff -sds %s %s') % (hdf_file, target_filename)
+        util.log("CDR_ECV", "Running %s" % cmd)
+        status,output = commands.getstatusoutput(cmd)
+        #if status != 0:
+        #    util.log("CDR_ECV", "=== Error converting HDF to Geotiff ===")
+        #    util.log("CDR_ECV",  output
+    except Exception,e:
+        util.log("CDR_ECV", output)
+        util.log("CDR_ECV", e)
+        return -1
+    return 0
