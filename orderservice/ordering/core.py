@@ -470,12 +470,8 @@ def load_ee_orders():
                 scene.ee_unit_id = s['unit_num']
                 scene.order = order
                 scene.order_date = datetime.datetime.now()
-
-            #since the scene came in (potentially again)
-            #flip the status to submitted so it will be processed
-            #again.
-            scene.status = 'submitted'
-            scene.save()
+                scene.status = 'submitted'
+                scene.save()
 
             #Update LTA
             success,msg,status = lta_service.update_order(eeorder, s['unit_num'], "I")
