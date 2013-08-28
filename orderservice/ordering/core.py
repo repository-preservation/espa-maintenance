@@ -249,8 +249,6 @@ def getScenesToProcess():
             options = options.replace("\\", "")
             oid = order.orderid
             orderline = json.dumps({'orderid':oid, 'scene':a.name, 'options':options})
-            #print "Orderline follows"
-            #print orderline
             results.append(orderline)
 
     return results
@@ -263,6 +261,7 @@ def getScenesToProcess():
 #/base/whatever/user@host.com/order_num hierarchy structure.  Then when we go to clean up we can just
 #wipe out the order_num and be done with it.
 
+'''
 def purgeExpiredOrders():
     config = None
     username  = None
@@ -297,6 +296,7 @@ def purgeExpiredOrders():
         port = None
         ds = None
         orders = None
+'''
 
 def helperlogger(msg):
     #print(msg)
@@ -404,8 +404,7 @@ def update_order_if_complete(orderid, scene):
         #only send the email if this was an espa order.
         if o.order_source == 'espa':        
             sendCompletionEmail(o.email,o.orderid,readyscenes=scene_names)
-
-                      
+             
 def load_ee_orders():
     ''' Loads all the available orders from lta into our database and updates their status '''
     lta_service = lta.LtaServices()
@@ -436,20 +435,43 @@ def load_ee_orders():
 
     #Capture in our db
     for eeorder,email in orders:
+
+        #create the orderid based on the info from the eeorder
+        order_id = generate_ee_order_id(email,eeorder)
+        order = None
         
-        order = Order()
-        order.orderid = generate_ee_order_id(email,eeorder)
-        order.email = email
-        order.chain = 'sr_ondemand'
-        order.status = 'ordered'
-        order.note = 'EarthExplorer order id: %s' % eeorder
-        order.product_options = json.dumps(ee_options)
-        order.ee_order_id = eeorder
-        order.order_source = 'ee'
-        order.order_date = datetime.datetime.now()
-        order.save()
+        #go look to see if it already exists in the db
+        try:
+            order = Order.objects.get(orderid = order_id)
+        except:
+            pass
+
+        if not order:
+            #Didn't find it in the db... make the order now
+            order = Order()
+            order.orderid = generate_ee_order_id(email,eeorder)
+            order.email = email
+            order.chain = 'sr_ondemand'
+            order.status = 'ordered'
+            order.note = 'EarthExplorer order id: %s' % eeorder
+            order.product_options = json.dumps(ee_options)
+            order.ee_order_id = eeorder
+            order.order_source = 'ee'
+            order.order_date = datetime.datetime.now()
+            order.save()
 
         for s in orders[eeorder,email]:
+            #go look for the scene by ee_unit_id.  This will stop
+            #duplicate key update collisions
+
+            scene = None
+            try:
+                scene = Scene.objects.get(order = order, ee_unit_id = s['unit_num'])
+            except:
+                #Didn't find it
+                pass
+
+                              
             scene = Scene()
             scene.name = s['sceneid']
             scene.ee_unit_id = s['unit_num']
