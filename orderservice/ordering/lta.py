@@ -254,10 +254,10 @@ class LtaServices(object):
                                                  unitRangeBegin = int(unit_number),
                                                 unitRangeEnd = int(unit_number))
         except Exception, e:
-            return (False,e)
+            return (False,e,None)
         
         if resp.status == "Pass":
-            return (True,)
+            return (True,None,None)
         else:
             return (False,resp.message,resp.status)
         
