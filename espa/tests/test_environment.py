@@ -1,25 +1,28 @@
-#!/usr/bin/env python
 import unittest
 import sys, os
 
 import subprocess
 
-class TestESPAEnvironment(unittest.TestCase):
+class TestESPAEnvironment1(unittest.TestCase):
 
     def setUp(self):
-        # Environment variables to check for
-        self.envvars = [
-                        'ESPA_ENV',
-                        'ESPA_WORK_DIR',
-                        'ESPA_XMLRPC',
-                        'ANC_PATH'
-        ]
-
-    def test_environment_variable_exists(self):
-        """ Checks to see if required environment variables exist for ESPA operation"""
-        for e in self.envvars:
-            print e
-            self.assertIsNotNone(os.getenv(e))
+        pass
+    
+    def test_espaenv_envar(self):
+        """Checks to see if ESPA_ENV exists in environment"""
+        self.assertIsNotNone(os.getenv('ESPA_ENV'))
+    
+    def test_espaworkdir_envar(self):
+        """Checks to see if ESPA_WORK_DIR exists in environment"""
+        self.assertIsNotNone(os.getenv('ESPA_WORK_DIR'))
+    
+    def test_espaxmlrpc_envar(self):
+        """Checks to see if ESPA_XMLRPC exists in environment"""
+        self.assertIsNotNone(os.getenv('ESPA_XMLRPC'))
+    
+    def test_ancpath_envar(self):
+        """Checks to see if LEDAPS Ancillary path exists in environment"""
+        self.assertIsNotNone(os.getenv('ANC_PATH'))
     
 class TestESPADependencies(unittest.TestCase):
     """Software dependency checking"""
@@ -238,10 +241,19 @@ class TestESPANetwork(unittest.TestCase):
         """Check NFS mount is available"""
         pass
 
-    
-if __name__ == '__main__':
+
+def main():
     unittest.main()
-    suite = unittest.TestLoader().loadTestsFromTestCase(TestESPAEnvironment)
-    unittest.TextTestResult().run(suite)
+    suite = unittest.TestLoader().loadTestsFromTestCase("TestESPAEnvironment1")
+    
+    unittest.TextTestResult(suite)
+
+if __name__ == '__main__':
+    #unittest.main()
+    #suite = unittest.TestLoader().loadTestsFromTestCase(TestESPAEnvironment)
+    #unittest.TextTestResult().run(suite)
+    
+    main()
+
 #suite = unittest.TestLoader().loadTestsFromTestCase(TestESPAEnvironment)
 #unittest.TextTestRunner(verbosity=2).run(suite)
