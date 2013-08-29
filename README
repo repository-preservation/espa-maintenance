@@ -72,6 +72,14 @@ Dependencies (Processing Nodes)
 		(Will be installed to /usr/local/var/ledaps/anc by default)
 		
 Change Notes
+Version 2.1.5
+        Added a lockfile to the scene_cache update to prevent multiple processes from running, 
+        which causes a parallel contention issue
+
+Version 2.1.4
+        Bug fix for duplicate orders from EE.  Modified core.py load_orders_from_ee() to look
+        for an order + scene in the db before attempting to add a new one
+
 Version 2.1.3
         Fix to clear logs upon non-error status update.
         Initial version of api.py added.
