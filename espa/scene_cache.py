@@ -5,10 +5,14 @@ import argparse
 import sys
 import time
 import memcache
+import datetime
 
 __author__ = "David V. Hill"
 
 class SceneCache(object):
+
+    #file used to indicate that a scene_cache update process is running
+    lock_file = '/tmp/scene_cache.lock'
     
     def __init__(self):
         pass
@@ -42,6 +46,29 @@ class SceneCache(object):
         except Exception, e:
             print "an exception occurred"
             print e
+
+    def set_lock_file(self):
+        '''Sets a lock file in self.lock_file so the scene_cache can prevent running if another
+           instance of it is already in progress.  Raises an exception if a lock_file is already
+           in place'''
+        if self.is_lock_file_set():
+            raise Exception("Cannot set lock file: Lock file %s already exists" % self.lock_file)
+        else:
+            h = open(self.lock_file, 'wb+')
+            h.write(str(datetime.datetime.now()))
+            h.write("\n")
+            h.flush()
+            h.close()
+        return True
+        
+
+    def is_lock_file_set(self):
+        '''Returns True if a lock file is already in place, False otherwise'''
+        return (os.path.exists(self.lock_file) and os.path.isfile(self.lock_file))
+
+    def clear_lock_file(self):
+        '''Clear the lock file set at self.lock_file'''
+        return os.unlink(self.lock_file)
                 
 
     def get_scene_cache(self):
@@ -100,7 +127,7 @@ class SceneCache(object):
             return results
     
         except Exception, e:
-            print ("An exception occurred:%s") % e
+            print ("An exception occurred in get_scene_cache():%s") % e
         finally:
             if ssh is not None:
                 ssh.close()
@@ -108,9 +135,21 @@ class SceneCache(object):
     
     
     def load_cache(self):
+
+        try:
+            self.set_lock_file()
+        except Exception,e:
+            print ("An error occurred in scene_cache.load_cache():")
+            print e
+            return False
+
+        
         results = self.get_scene_cache()
         cache = self.__get_memcache_client()
-        self.clear_cache()
+
+        #Tell clear_cache not to bother with the lock file
+        #as we already are handling it in this method
+        self.clear_cache(honor_lock_file=False)
         
         for r in results['scenes']:
             cache.set(r, True)                
@@ -122,10 +161,25 @@ class SceneCache(object):
         cache = None 
         results = None
 
-    def clear_cache(self):
+        self.clear_lock_file()
+        
+
+    def clear_cache(self, honor_lock_file=True):
+
+        if honor_lock_file:
+            try:
+                self.set_lock_file()
+            except Exception,e:
+                print ("An error occurred in scene_cache.clear_cache():")
+                print e
+                return False
+        
         cache = self.__get_memcache_client()
         cache.flush_all()
         cache.disconnect_all()
+
+        if honor_lock_file:
+            self.clear_lock_file()
         
         
     def has_scenes(self,scene_names):
