@@ -33,7 +33,11 @@
 #  001          08-02-2013      Adam Dosch          Initial release
 #  002          08-05-2013      Adam Dosch          Working on e-mail functionality for
 #                                                   to e-mail out on error or success
-#               
+#  003          09-04-2013      Adam Dosch          Adding functionality to auto-update
+#                                                   crontab for next scheduled run to do
+#                                                   credential changing.
+#                                                   Adding -f option for frequency of the
+#                                                   credential change (in days)
 #
 ##########################################################################################
 
@@ -237,10 +241,11 @@ def main():
     TABLE = "ordering_configuration"
     
     #Set up option handling
-    parser = argparse.ArgumentParser(description="Changes credentials supplied for -u/--username and updated Django configuration table for ESPA admin site.  Right now it needs to run on the same host where the MySQL database lives for ESPA.")
+    parser = argparse.ArgumentParser(description="Changes credentials supplied for -u/--username and updated Django configuration table for ESPA admin site.  Right now it needs to run on the same host where the MySQL database lives for ESPA.  This script will also auto-update a crontab for the user running this")
     
     parser.add_argument("-u", "--username", action="store", nargs=1, dest="username", choices=['espa','esapdev'], help="Username to changed credentials for (e.g. [espa|esapdev] )")
-
+    parser.add_argument("-f", "--frequency", action="store", type=int, default=60, dest="frequency", help="Frequency (in days) to change the following credentials")
+    
     parser.add_argument("-v", "--verbose", action='store_true', dest="verbose", default=False, help=argparse.SUPPRESS)
     
     # Parse those options!
@@ -257,6 +262,8 @@ def main():
 
     # Username
     username = "".join(args.username)
+
+    print "freq: ", args.frequency
 
     # Lets append the username of creds we are changing to e-mail subject (in case we need to send one out)
     global email_subject
@@ -376,6 +383,10 @@ def main():
     
     # Close out DB connection
     db_conn.close()
+    
+    
+    # Lastly, regardless of success or not, let's set up the next cron job
+    
     
 if __name__ == '__main__':
     main()
