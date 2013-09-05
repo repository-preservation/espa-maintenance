@@ -38,6 +38,10 @@
 #                                                   credential changing.
 #                                                   Adding -f option for frequency of the
 #                                                   credential change (in days)
+#                                                   Adding function update_crontab() to do
+#                                                   cron updating for user running script
+#                                                   which will always assumed to be the
+#                                                   user who needs their creds changed
 #
 ##########################################################################################
 
@@ -127,6 +131,59 @@ def send_email(sender, recipient, subject, body):
     smtp = smtplib.SMTP("localhost")
     smtp.sendmail(sender, recipient, msg.as_string())
     smtp.quit()
+
+def update_crontab(frequency, backDate=True):
+    """
+    Update crontab to schedule new cron entry for next password change for account.
+    
+    NOTE:  Whatever frequency passed in, it will be subtracted by two days by default unless
+           you set backDate=False
+    """
+    
+    tmpfile = "/tmp/c.out"
+    
+    # Dump current crontab to a temp file
+    (retval, output) = commands.getstatusoutput("crontab -l > %s" % tmpfile)
+    
+    # Read in the crontab dump temp file
+    try:
+        f = open(tmpfile, "r")
+        
+        data = f.readlines()
+        
+        f.close()
+        
+    except OSError, e:
+        print "Error: ", e
+    
+    # Calculate new frequency if backDate is True:
+    if backDate:
+        newfrequency = frequency - 2
+    else:
+        newfrequency = frequency
+    
+    # Loop through crontab and see if we find our change_credentials line.
+    # if we do, update it
+    for idx, cronline in enumerate(data):
+        if "change_credentials.py" in cronline:
+            (month, day) = datetime.datetime.strftime(datetime.datetime.now() + datetime.timedelta(days=newfrequency), "%m|%d").split("|")
+            
+            data[idx] = "00 05 %s %s * /usr/local/bin/python /home/%s/espa-site/tools/change_credentials.py -u %s -f %s\n" % (day, month, "espa", "espa", 60)
+    
+    # Re-write out new temp file with any crontab updates we did above
+    try:
+        f = open(tmpfile, "w")
+        
+        for line in data:
+            f.writelines(line)
+        
+        f.close()
+        
+    except OSError, e:
+        print "Error: ", e
+
+    # Update c
+    (retval, output) = commands.getstatusoutput("crontab %s && rm %s" % (tmpfile, tmpfile))
 
 def change_password(user, current_passwd, new_passwd, command):
     """
@@ -386,7 +443,7 @@ def main():
     
     
     # Lastly, regardless of success or not, let's set up the next cron job
-    
+    update_crontab(args.frequency)
     
 if __name__ == '__main__':
     main()
