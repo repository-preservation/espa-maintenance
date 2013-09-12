@@ -65,7 +65,7 @@ if __name__ == '__main__':
                 server = xmlrpclib.ServerProxy(xmlrpcurl)
                 server.updateStatus(sceneid, orderid,processing_location, 'processing')
        
-            cmd = './espa.py ' 
+            cmd = './cdr_ecv.py ' 
             cmd = cmd + '--scene %s ' % sceneid
             cmd = cmd + '--order %s ' % orderid
             

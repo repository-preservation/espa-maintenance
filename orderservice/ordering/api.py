@@ -70,8 +70,12 @@ def place_order(request):
     pass
 
 @csrf_exempt        
-def get_order_status(email, ordernum):
-    '''Returns current status of requested order for user'''
+def get_order_status(ordernum):
+    '''Returns current status of requested order for user.
+       Return 404 if not found in db.
+    '''
+        
+   
     '''
     {
     'ordernum':'abc@def.com-1234567890',
@@ -103,8 +107,38 @@ def get_order_status(email, ordernum):
     #return dict(order(email, ordernum))
     pass
 
-def get_all_orders_status(email):
-    '''Returns a full listing of all orders for the user'''
+@csrf_exempt
+def view_orders(email):
+    '''Returns a full listing of all orders for the user.
+       Return 404 if email not found in db.
+    '''
+    if not core.validate_email(email):
+        return HttpResponse(content=json.dumps({'msg':"Email address %s not found" % email},status=404)
+
+    orders = core.list_all_orders(email)
+    if orders is None:
+        return HttpResponse(content=json.dumps({'msg':"No orders found for %s" % email}, status=404)
+    
+    response_wrapper = []
+    for order in orders:
+        #retrieve the selected product options for this order
+        json_opts = json.loads(order.product_options)
+
+        #build json list of order statuses              
+        order_json['ordernum'] = order.orderid
+        order_json['status'] = order.status
+        order_json['email'] = order.email
+        order_json['order_date'] = str(order.order_date)
+        order_json['completion_date'] = str(order.completion_date)
+        order_json['note'] = order.note
+        order_json['selected_options'] = [x for x,y in json_opts.iteritems() if y == True]
+        response_wrapper.append(order_json)         
+    
+    return HttpResponse(content=json.dumps(response_wrapper), content_type="application/json", status=200)
+    
+    
+
+    
     '''
 [
 {
@@ -136,8 +170,7 @@ def get_all_orders_status(email):
 ],
 
     '''
-    #return list(orders(email))
-    pass
+
 
     
 '''

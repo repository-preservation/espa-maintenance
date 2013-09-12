@@ -49,11 +49,14 @@ def get_default_options():
     }
     return options
 
+def validate_email(email):
+    #if good return true: else return false
+    pass
+
 def list_all_orders(email):
     '''lists out all orders for a given user'''
-    orders = Order.objects.filter(email=email).order_by('-order_date')
-    return orders
-
+    return Order.objects.filter(email=email).order_by('-order_date')
+    
 def get_order_details(orderid):
     '''Returns the full order and all attached scenes'''
     order = Order.objects.get(orderid=orderid)

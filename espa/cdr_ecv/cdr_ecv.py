@@ -14,11 +14,12 @@ import time, commands, os, sys, socket
 from osgeo import gdal
 from optparse import OptionParser
 from cStringIO import StringIO
-from frange import frange
+from espa.common.frange import frange
+import espa.common.util as util
 import json
 import random
 import datetime
-import util
+
 
 def get_sr_filename(scene):
     """Return name of current sr product file"""
@@ -77,7 +78,6 @@ def getMetaData(work_dir, debug=False):
     #now we are going to read all the metadata into the context{} as
     #a dictionary.  Needed later for generating the solr index et. al.
     metadata = {}
-
     fixedmeta = fixedmeta.split('\n')
     for line in fixedmeta:
         line = line.strip()
@@ -91,8 +91,6 @@ def getMetaData(work_dir, debug=False):
     return metadata
 
 
-
-        
 
 def makeBrowse(work_dir,metadata, scene_name,resolution=50,debug=False):
     """Creates a browse image for the current scene"""
@@ -624,12 +622,12 @@ if __name__ == '__main__':
     
     #processing_level = 'sr'
     scene = options.scene
-    path = getPath(scene)
-    row = getRow(scene)
-    sensor = getSensor(scene)
-    sensor_code = getSensorCode(scene)
-    year = getYear(scene)
-    doy = getDoy(scene)
+    path = util.getPath(scene)
+    row = util.getRow(scene)
+    sensor = util.getSensor(scene)
+    sensor_code = util.getSensorCode(scene)
+    year = util.getYear(scene)
+    doy = util.getDoy(scene)
     source_host=options.source_host
     destination_host=options.destination_host
     if options.source_directory is not None:

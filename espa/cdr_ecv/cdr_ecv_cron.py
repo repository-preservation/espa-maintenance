@@ -1,6 +1,7 @@
 #!/usr/local/bin/python
 
 __author__ = "David V. Hill"
+__license__ = "NASA Open Source Agreement 1.3"
 
 import xmlrpclib
 import time
@@ -10,9 +11,7 @@ import os
 import commands
 import json
 
-#correct this - might be ok if apache is always on localhost
-#rpcurl = 'http://l8srlscp03.cr.usgs.gov/rpc'
-
+#set required variables that this script should fail on if they are not defined
 required_vars = ('ESPA_XMLRPC', "ESPA_WORK_DIR", "ANC_PATH", "PATH", "HOME")
 for r in required_vars:
     if not os.environ.has_key(r) or os.environ.get(r) is None or len(os.environ.get(r)) < 1:
@@ -21,8 +20,7 @@ for r in required_vars:
 
 rpcurl = os.environ.get("ESPA_XMLRPC")
 
-def runScenes():
-        
+def runScenes(): 
     home_dir = os.environ['HOME']
     server = xmlrpclib.ServerProxy(rpcurl)
     hadoop_executable = "%s/bin/hadoop/bin/hadoop" % home_dir
@@ -32,39 +30,25 @@ def runScenes():
         scenes = server.getScenesToProcess()
         if scenes:
             stamp = datetime.now()
-            year = stamp.year
-            month = stamp.month
-            day = stamp.day
-            hour = stamp.hour
-            minute = stamp.minute
-            second = stamp.second
+            year,month,day = stamp.year,stamp.month,stamp.day
+            hour,minute,second = stamp.hour,stamp.minute,stamp.second
             ordername = ('%s_%s_%s_%s_%s_%s-espa_job.txt') % (str(month),str(day),str(year),str(hour),str(minute),str(second))
-
             print ("Found scenes to process, generating job number:" + ordername)   
             espaorderfile = '/tmp/' + ordername
             
             f = open(espaorderfile, 'w+')
             for s in scenes:
                 line = json.loads(s)
-                orderid = line['orderid']
-                sceneid = line['scene']
-                options = line['options']
-                line['xmlrpcurl'] = rpcurl
-                
+                orderid,sceneid,options = line['orderid'],line['scene'],line['options']
+                line['xmlrpcurl'] = rpcurl 
                 line_entry = json.dumps(line)
-                #orderid = s[0]
-                #sceneid = s[1]
-                
+                               
                 #pad the entry to 512 bytes so hadoop will properly split the jobs
                 filler = ""
-                #entry_length = len(orderid.strip()) + len(sceneid.strip()) + len(rpcurl) + 4
                 entry_length = len(line_entry)
                 for i in range(1, 512 - entry_length):
                     filler = filler + "#"
-                        
-                #f.write(orderid.strip() + '\t' + sceneid.strip() + '\t' + rpcurl + '\t' + filler +'\n')
                 order_line = line_entry + filler + '\n'
-                #print "Order line length:%i" % len(order_line)
                 f.write(order_line)
             f.close()
     
@@ -96,14 +80,10 @@ def runScenes():
             hadoop_run_command = hadoop_run_command + ' -input ' + hdfs_target + ' '
             hadoop_run_command = hadoop_run_command + ' -output ' + hdfs_target + '-out'
         
-        
             #define the executables to clean up hdfs
             hadoop_delete_request_command1 = hadoop_executable + ' dfs -rmr ' + hdfs_target
             hadoop_delete_request_command2 = hadoop_executable + ' dfs -rmr ' + hdfs_target + '-out'
 
-            #print ("HDFS delete command 1:%s") % (hadoop_delete_request_command1)
-            #print ("HDFS delete command 2:%s") % (hadoop_delete_request_command2)
-        
             print ("Storing request file to hdfs...")
             status,output = commands.getstatusoutput(hadoop_store_command)
             if status != 0:
@@ -113,15 +93,13 @@ def runScenes():
                      
             #update the scene list as queued so they don't get pulled down again now that these jobs have been stored
             #in hdfs
-            #This is where it's screwed up right here.
             for s in scenes:
                 line = json.loads(s)
                 orderid = line['orderid']
                 sceneid = line['scene']
                 print ("updating scene:%s orderid:%s to queued" % (sceneid, orderid))
                 server.updateStatus(sceneid, orderid,'cron driver', 'queued')
-                #time.sleep(0.2)
-        
+                        
             print("Deleting local request file copy...")
             os.unlink(espaorderfile)
 
@@ -154,6 +132,10 @@ def runScenes():
         
 
 def cleanDistroCache():
+    '''Removes completed orders from the ordering database
+       older than 15 days (since order completion) and places
+       entries for each order/scene into our data warehouse
+    '''
     server = xmlrpclib.ServerProxy(rpcurl)
     scenes_with_paths = server.getScenesToPurge()
     if scenes_with_paths:
@@ -167,8 +149,6 @@ def cleanDistroCache():
 def usage():
     print 'espa-cron.py run-scenes | clean-cache'
     
-
-
 if __name__ == '__main__':
     if len(sys.argv) != 2:
         usage()

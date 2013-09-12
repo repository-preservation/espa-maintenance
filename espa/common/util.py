@@ -104,17 +104,17 @@ def buildMatrix(yx1, yx2, yx3, yx4):
     result = getPoints(xmin, xmax, ymin, ymax, 0.05)
     return result
 
-def getXY(value):
-    """Returns the xy coordinates for the given line from gdalinfo"""
-    parts = value.split('(')    
-    p = parts[1].split(')')
-    p = p[0].split(',')
-    return (p[1].strip(),p[0].strip())
-
 
 def parseGdalInfo(gdalFile, debug=False):
     """Runs gdalinfo against a file and returns
     the x,y results"""
+
+    def getXY(value):
+        """Inner function to return the xy coordinates for the given line from gdalinfo"""
+        parts = value.split('(')    
+        p = parts[1].split(')')
+        p = p[0].split(',')
+        return (p[1].strip(),p[0].strip())
     
     cmd = "gdalinfo %s |grep \(" % (gdalFile)
     
