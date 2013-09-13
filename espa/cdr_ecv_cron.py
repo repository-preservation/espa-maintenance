@@ -28,7 +28,7 @@ import sys
 import os
 import commands
 import json
-import common.util as util
+import util
 from datetime import datetime
 
 
@@ -88,15 +88,16 @@ def runScenes():
             #define the executable to execute the hadoop job
             #had to define the timeouts to a ridiculous number os the jobs don't get killed before they are done.... currently set 
             #to 172800000, which is 2 days
-            hadoop_run_command = hadoop_executable + ' jar %s/bin/hadoop/contrib/streaming/hadoop-streaming-0.20.203.0.jar' % home_dir
+            hadoop_run_command = hadoop_executable + ' jar %s/bin/hadoop/contrib/streaming/hadoop-streaming*.jar' % home_dir
             hadoop_run_command = hadoop_run_command + ' -D mapred.task.timeout=172800000'
             hadoop_run_command = hadoop_run_command + ' -D mapred.reduce.tasks=0'
             hadoop_run_command = hadoop_run_command + ' -D mapred.job.queue.name=ondemand'
             hadoop_run_command = hadoop_run_command + ' -D mapred.job.name="' + ordername + '"'
-            hadoop_run_command = hadoop_run_command + ' -file %s/espa-site/espa/mapper.py ' % home_dir
-            hadoop_run_command = hadoop_run_command + ' -file %s/espa-site/espa/espa.py ' % home_dir
+            hadoop_run_command = hadoop_run_command + ' -file %s/espa-site/espa/cdr_ecv.py ' % home_dir
+            hadoop_run_command = hadoop_run_command + ' -file %s/espa-site/espa/cdr_ecv_mapper.py ' % home_dir
+            hadoop_run_command = hadoop_run_command + ' -file %s/espa-site/espa/util.py ' % home_dir
             hadoop_run_command = hadoop_run_command + ' -file %s/espa-site/espa/frange.py ' % home_dir
-            hadoop_run_command = hadoop_run_command + ' -mapper %s/espa-site/espa/mapper.py ' % home_dir
+            hadoop_run_command = hadoop_run_command + ' -mapper %s/espa-site/espa/cdr_ecv_mapper.py ' % home_dir
             hadoop_run_command = hadoop_run_command + ' -cmdenv ESPA_WORK_DIR=$ESPA_WORK_DIR'
             hadoop_run_command = hadoop_run_command + ' -cmdenv HOME=$HOME'
             hadoop_run_command = hadoop_run_command + ' -cmdenv USER=$USER'
