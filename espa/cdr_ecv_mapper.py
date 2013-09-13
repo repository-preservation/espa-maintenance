@@ -189,9 +189,4 @@ if __name__ == '__main__':
             h.close()
             if server is not None: 
                 server.setSceneError(sceneid, orderid, processing_location, e)
-        
-        
-     
-    
-
-
+                
