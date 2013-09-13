@@ -1,24 +1,34 @@
 #!/usr/local/bin/python
 
-"""Integration script for ESPA project.
+'''
+    FILE: cdr_ecv.py
 
-This is a standalone driver script that can produce any CDR or ECV
-available from the LSRD project.
+    PURPOSE: Integration script for the EROS Science Processing Architecture (ESPA)
 
-Author:  "David V. Hill"
-License: "NASA Open Source Agreement 1.3"
+    PROJECT: Land Satellites Data Systems Science Research and Development (LSRD) at the
+             USGS EROS
 
-"""
+    LICENSE: NASA Open Source Agreement 1.3
 
-import time, commands, os, sys, socket
+    ORIGINAL AUTHOR:  David V. Hill
+
+    NOTES:
+
+'''
+
+import time
+import commands
+import os
+import sys
+import socket
+import datetime
+import random
+import json
 from osgeo import gdal
 from optparse import OptionParser
 from cStringIO import StringIO
 from espa.common.frange import frange
 import espa.common.util as util
-import json
-import random
-import datetime
 
 
 def get_sr_filename(scene):
@@ -244,20 +254,22 @@ def makeSolrIndex(metadata, scene, work_dir, collection_name,debug=False):
 
 def make_cfmask(workdir):
     """Runs the routines necessary to apply cfmask processing against the current scene"""
-    
+
+    #go look for the toa reflectance file for input
     try:
-        metafile = None
+        toa_file = None
         for f in os.listdir(workdir):
-            if f.find('metadata.txt') != -1:
-                metafile = f
+            if f.startswith('lndcal') and f.endswith('.hdf'):
+                toa_file = f
                 break
-        if metafile is None:
-            raise IOError("Could not find LEDAPS metadata.txt in %s" % workdir)
+        if toa_file is None:
+            raise IOError("Could not find LEDAPS TOA reflectance file in %s" % workdir)
         
-        status,output = commands.getstatusoutput("cd %s;cfmask --verbose --metadata=%s" % (workdir, metafile))
+        #status,output = commands.getstatusoutput("cd %s;cfmask --verbose --metadata=%s" % (workdir, metafile))
+        status,output = commands.getstatusoutput("cd %s;cfmask --verbose --toarefl=%s" % (workdir, toa_file))
         status = status >> 8
         if status != 0:
-            util.log("CDR_ECV", "Error producing cfmask for %s with status %s" % (metafile, status))
+            util.log("CDR_ECV", "Error producing cfmask for %s with status %s" % (toa_file, status))
             util.log("CDR_ECV", "CFMask output:%s" % output)
             util.log("CDR_ECV", "End of CFMask output")
             

@@ -1,15 +1,30 @@
 #!/usr/local/bin/python
 
-__author__ = "David V. Hill"
+'''
+    FILE: cdr_ecv_mapper.py
+
+    PURPOSE: Hadoop 'mapper' script used to map inputs to execution and processing of those
+             inputs.
+
+    PROJECT: Land Satellites Data Systems Science Research and Development (LSRD) at the
+             USGS EROS
+
+    LICENSE: NASA Open Source Agreement 1.3
+
+    ORIGINAL AUTHOR:  David V. Hill
+    
+    NOTES:
+
+'''
 
 import json
 import xmlrpclib
 import commands
 import socket
 import sys
-from cStringIO import StringIO
 import random
 import commands
+from cStringIO import StringIO
 
 
 def logger(value):
@@ -34,17 +49,14 @@ def get_cache_hostname():
 
 if __name__ == '__main__':
     processing_location = socket.gethostname()
-    server = None
-    sceneid = None   
+    server,sceneid = None, None
+    
     for line in sys.stdin:
         try:
-            logger ("Processing input...")
-            logger (line)
             line = str(line).replace("#", '')
             line = json.loads(line)
-            orderid = line['orderid']
-            sceneid = line['scene']
-
+            orderid, sceneid = line['orderid'], line['scene']
+            
             if type(line['options']) in (str, unicode):
                 options = json.loads(line['options'])
             else:
@@ -71,48 +83,66 @@ if __name__ == '__main__':
             
             if options.has_key('include_sr') and options['include_sr'] == True:
                 cmd = cmd + '--surface_reflectance ' 
+
             if options.has_key('include_sr_browse') and options['include_sr_browse'] == True:
                 cmd = cmd + '--sr_browse '
                 if options.has_key('browse_resolution'):
                     cmd = cmd + '--browse_resolution %s ' % options['browse_resolution']     
+
             if options.has_key('include_sr_ndvi') and options['include_sr_ndvi'] == True:
                 cmd = cmd + '--sr_ndvi '
+
             if options.has_key('include_sr_ndmi') and options['include_sr_ndmi'] == True:
                 cmd = cmd + '--sr_ndmi '
+
             if options.has_key('include_sr_nbr') and options['include_sr_nbr'] == True:
                 cmd = cmd + '--sr_nbr '
+
             if options.has_key('include_sr_nbr2') and options['include_sr_nbr2'] == True:
                 cmd = cmd + '--sr_nbr2 '
+
             if options.has_key('include_sr_savi') and options['include_sr_savi'] == True:
                 cmd = cmd + '--sr_savi '
+
             if options.has_key('include_sr_evi') and options['include_sr_evi'] == True:
                 cmd = cmd + '--sr_evi '
+
             if options.has_key('include_solr_index') and options['include_solr_index'] == True:
                 cmd = cmd + '--solr ' 
+
             if options.has_key('include_sr_thermal') and options['include_sr_thermal'] == True:
                 cmd = cmd + '--band6 ' 
+
             if options.has_key('include_sr_toa') and options['include_sr_toa'] == True:
                 cmd = cmd + '--toa ' 
+
             if options.has_key('include_sourcefile') and options['include_sourcefile'] == True:
                 cmd = cmd + '--sourcefile '
+
             if options.has_key('include_source_metadata') and options['include_source_metadata'] == True:
                 cmd = cmd + '--source_metadata '
+
             if options.has_key('include_cfmask') and options['include_cfmask'] == True:
                 cmd = cmd + '--cfmask '
+
             if options.has_key('source_host'):
                 cmd = cmd + '--source_host %s ' % options['source_host']
             else:
                 cmd = cmd + '--source_host %s ' % get_cache_hostname()
+
             if options.has_key('destination_host'):
                 cmd = cmd + '--destination_host %s ' % options['destination_host']
             else:
                 cmd = cmd + '--destination_host %s ' % get_cache_hostname()
+
             if options.has_key('source_type'):
                 cmd = cmd + '--source_type %s ' % options['source_type']
             else:
                 cmd = cmd + '--source_type level1 '
+
             if options.has_key('source_directory'):
                 cmd = cmd + '--source_directory %s ' % options['source_directory']
+
             if options.has_key('destination_directory'):
                 cmd = cmd + '--destination_directory %s ' % options['destination_directory']
 
@@ -140,22 +170,11 @@ if __name__ == '__main__':
                     b = StringIO(output)
                     status_line = [f for f in b.readlines() if f.startswith("espa.result")]
                                         
-                    #logger ("status_line%s" % status_line)
-                    #logger ("status_line_len:%i" % len(status_line))
-
                     if len(status_line) == 1:
-                        #print ("Loading %s into JSON" % (status_line[0]))
-
                         myjson = status_line[0].split('=')[1]
-                        #print ("MyJSON:%s" % myjson)        
-
                         data = json.loads(myjson)
-                        #print data
-
-                        #completed_scene_location = '/data2/LSRD/orders/%s/%s-sr.tar.gz' % (orderid,sceneid)
                         completed_scene_location = data['destination_file']
                         cksum_file_location = data['destination_cksum_file']
-                        
                         server.markSceneComplete(sceneid,orderid,processing_location,completed_scene_location,cksum_file_location,"")
                     else:
                         raise Exception("Did not receive a distribution location or cksum file location for:%s.  Status line was:%s\n.  Log:%s" % (sceneid,status_line, output))

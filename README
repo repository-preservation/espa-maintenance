@@ -72,6 +72,16 @@ Dependencies (Processing Nodes)
 		(Will be installed to /usr/local/var/ledaps/anc by default)
 		
 Change Notes
+Version 2.2.0
+        Added code to perform reprojection.
+        Added code to perform framing.
+        Added code to perform subsetting.
+
+Version 2.1.6
+        Reorganized the codebase to accomodate LPVS code.
+        Implemented a standardized logging format.
+        Added webpages for marketing.
+
 Version 2.1.5
         Added a lockfile to the scene_cache update to prevent multiple processes from running, 
         which causes a parallel contention issue

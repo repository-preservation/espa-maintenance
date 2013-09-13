@@ -13,7 +13,7 @@ def log(module, msg):
 
     now = datetime.datetime.now()
 
-    print("%s-%s-%s %s:%s.%s (%s) %s" % (now.year,
+    print("%s-%s-%s %s:%s.%s [%s] %s" % (now.year,
                                   str(now.month).zfill(2),
                                   str(now.day).zfill(2),
                                   str(now.hour).zfill(2),
