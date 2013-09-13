@@ -27,8 +27,8 @@ import json
 from osgeo import gdal
 from optparse import OptionParser
 from cStringIO import StringIO
-from common.frange import frange
-import common.util as util
+import frange
+import util
 
 
 def get_sr_filename(scene):
