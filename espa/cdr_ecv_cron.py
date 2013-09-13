@@ -28,7 +28,7 @@ import sys
 import os
 import commands
 import json
-import espa.common.util as util
+import common.util as util
 from datetime import datetime
 
 
