@@ -170,7 +170,7 @@ if __name__ == '__main__':
                     b = StringIO(output)
                     status_line = [f for f in b.readlines() if f.startswith("espa.result")]
                                         
-                    if len(status_line) == 1:
+                    if len(status_line) >= 1:
                         myjson = status_line[0].split('=')[1]
                         data = json.loads(myjson)
                         completed_scene_location = data['destination_file']
