@@ -186,22 +186,22 @@ if __name__ == '__main__':
                     status_line = [f for f in b.readlines() if f.startswith("espa.result")]
                                         
                     if len(status_line) >= 1:
-                        logger(sceneid, "len(status_line) >= 1")
+                        #logger(sceneid, "len(status_line) >= 1")
                                
                         myjson = status_line[0].split('=')[1]
-                        logger(sceneid, "myjson:%s" % myjson)
+                        #logger(sceneid, "myjson:%s" % myjson)
                                
                         data = json.loads(myjson)
-                        logger(sceneid, "Data:%s" % data)
+                        #logger(sceneid, "Data:%s" % data)
                         
                         completed_scene_location = data['destination_file']
-                        logger(sceneid, "completed_scene_location:%s" % completed_scene_location)
+                        #logger(sceneid, "completed_scene_location:%s" % completed_scene_location)
                         
                         cksum_file_location = data['destination_cksum_file']
-                        logger(sceneid, "cksum_file_location:%s" % cksum_file_location)
+                        #logger(sceneid, "cksum_file_location:%s" % cksum_file_location)
                         
                         server.markSceneComplete(sceneid, orderid, processing_location, completed_scene_location, cksum_file_location, "")
-                        logger(sceneid, "Mark scene complete...")
+                        #logger(sceneid, "Mark scene complete...")
                     else:
                         raise Exception("Did not receive a distribution location or cksum file location for:%s.  Status line was:%s\n.  Log:%s" % (sceneid,status_line, output))
 

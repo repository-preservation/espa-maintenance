@@ -913,6 +913,7 @@ if __name__ == '__main__':
     util.log("CDR_ECV", "ESPA Complete")
     #return 0 and the file we distributed
     #{u'f1': u'aaa', u'f2': u'adsf'}
-    util.log("CDR_ECV", 'espa.result={"destination_file":"%s", "destination_cksum_file":"%s"}' % (destination_file, destination_cksum_file))
+    #do NOT util.log the next line.  It must be printed to stdout as the return value for this script
+    print ('espa.result={"destination_file":"%s", "destination_cksum_file":"%s"}' % (destination_file, destination_cksum_file))
     sys.exit()
     
