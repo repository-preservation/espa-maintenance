@@ -174,9 +174,9 @@ if __name__ == '__main__':
                 if server is not None:
                     server.setSceneError(sceneid, orderid, processing_location, output)
                 else:
-                    logger(scene, output)
+                    logger(sceneid, output)
             else:
-                logger (scene, "Processing complete for %s" % sceneid)
+                logger (sceneid, "Processing complete for %s" % sceneid)
                 #where the hell do i get the completed_scene_location and source_l1t_location from?
                 #04-27-13 - From the standard out
                 #espa:result=[/tmp/bam/LT50290302007097PAC01-sr.tar.gz, /tmp/bam/LT50290302007097PAC01-sr.cksum]
