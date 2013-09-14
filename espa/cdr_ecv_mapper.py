@@ -86,7 +86,7 @@ if __name__ == '__main__':
                 logger(sceneid, "sceneid did not start with L")
                 continue;
         
-            logger ("Processing %s" % sceneid)
+            logger (sceneid, "Processing %s" % sceneid)
 
             if xmlrpcurl is not None:
                 server = xmlrpclib.ServerProxy(xmlrpcurl)
