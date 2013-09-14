@@ -29,16 +29,16 @@ import commands
 import util
 from cStringIO import StringIO
 
-def get_logfile(scene):
+def get_logfile(sceneid):
     return '/tmp/%s-jobdebug.txt' % sceneid
 
-def init_logfile(scene):
-    f = get_logfile(scene)
+def init_logfile(sceneid):
+    f = get_logfile(sceneid)
     if os.path.isfile(f):
         os.unlink(f)
 
-def logger(scene, value):
-    with open(get_logfile(scene), 'a+') as h:
+def logger(sceneid, value):
+    with open(get_logfile(sceneid), 'a+') as h:
         h.write(util.build_log_msg('CDR_ECV_MAPPER', value))
         h.flush()
     
