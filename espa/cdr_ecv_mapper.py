@@ -70,7 +70,7 @@ if __name__ == '__main__':
             orderid, sceneid = line['orderid'], line['scene']
 
             #get a fresh logfile in /tmp
-            init_logfile(scene)
+            init_logfile(sceneid)
             
             if type(line['options']) in (str, unicode):
                 options = json.loads(line['options'])
