@@ -915,3 +915,4 @@ if __name__ == '__main__':
     #{u'f1': u'aaa', u'f2': u'adsf'}
     util.log("CDR_ECV", 'espa.result={"destination_file":"%s", "destination_cksum_file":"%s"}' % (destination_file, destination_cksum_file))
     sys.exit()
+    

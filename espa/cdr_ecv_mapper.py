@@ -17,6 +17,8 @@
 
 '''
 
+import os
+import datetime
 import json
 import xmlrpclib
 import commands
@@ -24,12 +26,22 @@ import socket
 import sys
 import random
 import commands
+import util
 from cStringIO import StringIO
 
+def get_logfile(scene):
+    return '/tmp/%s-jobdebug.txt' % sceneid
 
-def logger(value):
-    print("Mapper.py:%s" % value)
+def init_logfile(scene):
+    f = get_logfile(scene)
+    if os.path.isfile(f):
+        os.unlink(f)
 
+def logger(scene, value):
+    with open(get_logfile(scene), 'a+') as h:
+        h.write(util.build_log_msg('CDR_ECV_MAPPER', value))
+        h.flush()
+    
 def get_cache_hostname():
     '''Poor mans load balancer for accessing the online cache over the private network'''
     hostlist = ['edclxs67p', 'edclxs140p']
@@ -56,6 +68,9 @@ if __name__ == '__main__':
             line = str(line).replace("#", '')
             line = json.loads(line)
             orderid, sceneid = line['orderid'], line['scene']
+
+            #get a fresh logfile in /tmp
+            init_logfile(scene)
             
             if type(line['options']) in (str, unicode):
                 options = json.loads(line['options'])
@@ -146,22 +161,22 @@ if __name__ == '__main__':
             if options.has_key('destination_directory'):
                 cmd = cmd + '--destination_directory %s ' % options['destination_directory']
 
-            logger ("Running command:%s" % cmd)    
-            h = open("/tmp/cmd_debug.txt", "wb+")
-            h.write(cmd)
-            h.flush()
-            h.close()
+            #logger ("Running command:%s" % cmd)    
+            #h = open("/tmp/cmd_debug.txt", "wb+")
+            #h.write(cmd)
+            #h.flush()
+            #h.close()
 
             status,output = commands.getstatusoutput(cmd)
             if status != 0:
-                logger ("Error occurred processing %s" % sceneid)
-                logger ("%s returned code:%s" % (sceneid, status))
+                logger (sceneid, "Error occurred processing %s" % sceneid)
+                logger (sceneid, "%s returned code:%s" % (sceneid, status))
                 if server is not None:
                     server.setSceneError(sceneid, orderid, processing_location, output)
                 else:
-                    logger(output)
+                    logger(scene, output)
             else:
-                logger ("Processing complete for %s" % sceneid)
+                logger (scene, "Processing complete for %s" % sceneid)
                 #where the hell do i get the completed_scene_location and source_l1t_location from?
                 #04-27-13 - From the standard out
                 #espa:result=[/tmp/bam/LT50290302007097PAC01-sr.tar.gz, /tmp/bam/LT50290302007097PAC01-sr.cksum]
@@ -180,13 +195,7 @@ if __name__ == '__main__':
                         raise Exception("Did not receive a distribution location or cksum file location for:%s.  Status line was:%s\n.  Log:%s" % (sceneid,status_line, output))
 
         except Exception, e:
-            logger ("An error occurred processing %s" % sceneid)
-            logger (e)
-            h = open('/tmp/%s-jobdebug.txt' % (sceneid), 'wb+')
-            h.write("An error occurred processing %s" % sceneid)
-            h.write(str(e))
-            h.flush()
-            h.close()
+            logger (sceneid, "An error occurred processing %s" % sceneid)
+            logger (sceneid, str(e))
             if server is not None: 
                 server.setSceneError(sceneid, orderid, processing_location, e)
-                

@@ -8,20 +8,22 @@ License: "NASA Open Source Agreement 1.3"
 """
 import datetime
 
-def log(module, msg):
-    """Logs a message in the ESPA standard log format"""
-
+def build_log_msg(module, msg):
+    """Builds a standardized log message"""
     now = datetime.datetime.now()
-
-    print("%s-%s-%s %s:%s.%s [%s] %s" % (now.year,
+    return "%s-%s-%s %s:%s.%s [%s] %s" % (now.year,
                                   str(now.month).zfill(2),
                                   str(now.day).zfill(2),
                                   str(now.hour).zfill(2),
                                   str(now.minute).zfill(2),
                                   str(now.second).zfill(2),
                                   module,
-                                  msg))
+                                  msg)
 
+def log(module, msg):
+    """Logs a message in the ESPA standard log format"""
+    print (build_log_msg(module, msg)
+    
 
 def stripZeros(value):
     """Removes all leading zeros from a string"""

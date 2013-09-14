@@ -93,17 +93,17 @@ def runScenes():
             hadoop_run_command = hadoop_run_command + ' -D mapred.reduce.tasks=0'
             hadoop_run_command = hadoop_run_command + ' -D mapred.job.queue.name=ondemand'
             hadoop_run_command = hadoop_run_command + ' -D mapred.job.name="' + ordername + '"'
-            hadoop_run_command = hadoop_run_command + ' -file %s/espa-site/espa/cdr_ecv.py ' % home_dir
-            hadoop_run_command = hadoop_run_command + ' -file %s/espa-site/espa/cdr_ecv_mapper.py ' % home_dir
-            hadoop_run_command = hadoop_run_command + ' -file %s/espa-site/espa/util.py ' % home_dir
-            hadoop_run_command = hadoop_run_command + ' -file %s/espa-site/espa/frange.py ' % home_dir
-            hadoop_run_command = hadoop_run_command + ' -mapper %s/espa-site/espa/cdr_ecv_mapper.py ' % home_dir
+            hadoop_run_command = hadoop_run_command + ' -file %s/espa-site/espa/cdr_ecv.py' % home_dir
+            hadoop_run_command = hadoop_run_command + ' -file %s/espa-site/espa/cdr_ecv_mapper.py' % home_dir
+            hadoop_run_command = hadoop_run_command + ' -file %s/espa-site/espa/util.py' % home_dir
+            hadoop_run_command = hadoop_run_command + ' -file %s/espa-site/espa/frange.py' % home_dir
+            hadoop_run_command = hadoop_run_command + ' -mapper %s/espa-site/espa/cdr_ecv_mapper.py' % home_dir
             hadoop_run_command = hadoop_run_command + ' -cmdenv ESPA_WORK_DIR=$ESPA_WORK_DIR'
             hadoop_run_command = hadoop_run_command + ' -cmdenv HOME=$HOME'
             hadoop_run_command = hadoop_run_command + ' -cmdenv USER=$USER'
             hadoop_run_command = hadoop_run_command + ' -cmdenv ANC_PATH=$ANC_PATH'
             hadoop_run_commnad = hadoop_run_command + ' -cmdenv ESUN=$ESUN'
-            hadoop_run_command = hadoop_run_command + ' -input ' + hdfs_target + ' '
+            hadoop_run_command = hadoop_run_command + ' -input ' + hdfs_target
             hadoop_run_command = hadoop_run_command + ' -output ' + hdfs_target + '-out'
         
             #define the executables to clean up hdfs
@@ -191,8 +191,3 @@ if __name__ == '__main__':
         else:
             usage()
             
-
-
-
-        
-    
