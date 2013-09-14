@@ -22,7 +22,7 @@ def build_log_msg(module, msg):
 
 def log(module, msg):
     """Logs a message in the ESPA standard log format"""
-    print (build_log_msg(module, msg)
+    print (build_log_msg(module, msg))
     
 
 def stripZeros(value):
