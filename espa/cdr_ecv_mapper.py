@@ -83,7 +83,7 @@ if __name__ == '__main__':
                 xmlrpcurl = None
         
             if (not sceneid.startswith('L')): 
-                logger("sceneid did not start with L")
+                logger(sceneid, "sceneid did not start with L")
                 continue;
         
             logger ("Processing %s" % sceneid)
