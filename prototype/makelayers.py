@@ -59,8 +59,8 @@ MAP
     shape_template = '''
 
    LAYER
-      NAME 'gls2005'
-      STATUS OFF
+      NAME "gls2005"
+      STATUS DEFAULT
       TILEINDEX "%s"
       TILEITEM "Location"
       TYPE RASTER
@@ -105,7 +105,7 @@ MAP
 
    LAYER
       NAME 'bm'
-      STATUS DEFAULT
+      STATUS OFF
       TILEINDEX "bluemarble.shp"
       TILEITEM "Location"
       TYPE RASTER
