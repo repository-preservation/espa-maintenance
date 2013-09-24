@@ -15,7 +15,7 @@
 ################################################################################################
 #  001      04-25-2013      Adam Dosch          Initial Release
 #  002      07-01-2013      Adam Dosch          Commented out test command for jps in the
-#                                               masterOrNamenode() chec
+#                                               masterOrNamenode() check
 #  003      07-15-2013      Adam Dosch          Updating to work with Hadoop 1.1.2.  HADOOP_HOME
 #                                               has been depreciated in lieu of HADOOP_PREFIX.
 #                                               Going to look for both HADOOP_HOME, if it doesn't

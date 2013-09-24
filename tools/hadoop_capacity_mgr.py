@@ -14,6 +14,7 @@
 # Change    Date            Author              Description
 ################################################################################################
 #  001      05-08-2013      Adam Dosch          Initial Release
+#  002      09-24-2013      Adam Dosch          Working on completing capacity adjustment logic
 #
 ################################################################################################
 
@@ -262,19 +263,22 @@ def getQueueCapacity(queueName="all"):
                 print "   - matched ", name
             
             if queueName == "all":
-                    
+                print "all matching"
                 if name.split(".")[3] in hadoopConfigs['mapred.queue.names']:
                     if verbose:
                         print "      |_ matched active queue,", name.split(".")[3], ", add that bitch up: ", prop.find('value').text, "to ", capTotal
                         
                     capTotal = capTotal + int(prop.find('value').text)
             else:
-                
-                if name.split(".")[3] == queueName:
+                print "else matching"
+                print capTotal
+                #if name.split(".")[3] == queueName:
+                if name.split(".")[3] in queueName:
                     if verbose:
                         print "      |_ matched active queue,", name.split(".")[3], ", adding ", prop.find('value').text, "to ", capTotal
                         
-                    capTotal = int(prop.find('value').text)
+            
+                    capTotal = capTotal + int(prop.find('value').text)
     
     return capTotal
 
@@ -335,7 +339,6 @@ def validateHadoopConfigs(hadoopHomeEnvVar):
                 # Loop through all property names and try and find them in XML configuration
                 for propName in propNames:
 
-    
                     for prop in configfile.findall('property'):
                         
                         name = prop.find('name').text
@@ -398,7 +401,8 @@ def main():
     parser = argparse.ArgumentParser()
     
     # Option(s) for: mapreducehostsexclude, dfshostsexclude, slaves and verbose (suppressed)
-    parser.add_argument("-m", "--maximum-capacity", action="store", nargs=1, dest="max-cap", choices=['add','remove','refresh'], help="Action command will affect map/reduce exclude's conf file (e.g. [add|remove|refresh])")
+    parser.add_argument("-s", "--slots", action="store", dest="slots", type=int, help="Define the number of cluster slots on run-time.")
+    #parser.add_argument("-m", "--maximum-capacity", action="store", nargs=1, dest="max-cap", choices=['add','remove','refresh'], help="Action command will affect map/reduce exclude's conf file (e.g. [add|remove|refresh])")
     #parser.add_argument("-d", "--dfs", action="store", nargs=1, dest="dfsaction", choices=['add','remove','refresh'], help="Action command will affect dfs exclude's conf file (e.g. [add|remove|refresh])")
     #parser.add_argument("-s", "--slaves", action="store", nargs=1, dest="slavesaction", choices=['add','remove'], help="Action command will affect slaves conf file (e.g. [add|remove|refresh])")
     parser.add_argument("-v", "--verbose", action='store_true', dest="verbose", default=False, help=argparse.SUPPRESS)
@@ -416,17 +420,45 @@ def main():
 
     # Set verbose status if we made it this far
     global verbose
-    
 
-    
     verbose = args.verbose
     
-    for k,v in hadoopConfigs.iteritems():
-        print k, "-->", v
+    if verbose:
+        for k,v in hadoopConfigs.iteritems():
+            print k, "-->", v    
 
-    print getQueueCapacity()
+    # Mandatory option checking here
+    if not args.slots:
+        parser.print_help()
+        sys.exit(1)
+
+
+    # Load currently 'enabled' capacity queues from configuration
     loadCapValues()
 
+    # Get current active queue capacity
+    #currentCapacity = getQueueCapacity(queueName="ondemand")
+    currentCapacity = getQueueCapacity(queueName=hadoopConfigs['mapred.queue.names'])
+
+    
+    print "---------------------------------------------------------------------"
+    print
+    print " Current defined map slot capacity: %s" % args.slots
+    print
+    print " Current queue capacity: %s%%" % currentCapacity
+    print
+    print " Current configured/active queue(s): "
+    print
+    
+    for n, queue in enumerate(hadoopConfigs['mapred.queue.names']):
+        print "   %s) %s" % (n + 1, queue)
+
+    print
+    print
+    
+    ""
+    
+    
     ###============================
     ### Start doing Hadoop actions
     ###============================
