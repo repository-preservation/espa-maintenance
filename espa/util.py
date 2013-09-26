@@ -124,8 +124,8 @@ def parseGdalInfo(gdalFile, debug=False):
     contents = output
 
     if debug:
-        util.log("CDR_ECV", "Parse GDAL Info")
-        util.log("CDR_ECV", contents)
+        log("CDR_ECV", "Parse GDAL Info")
+        log("CDR_ECV", contents)
 
     results = dict()
         
@@ -149,13 +149,13 @@ def convertHDFToGTiff(hdf_file, target_filename):
     output = None
     try:
         cmd = ('gdal_translate -a_nodata -9999 -a_nodata 12000 -of GTiff -sds %s %s') % (hdf_file, target_filename)
-        util.log("CDR_ECV", "Running %s" % cmd)
+        log("CDR_ECV", "Running %s" % cmd)
         status,output = commands.getstatusoutput(cmd)
         #if status != 0:
-        #    util.log("CDR_ECV", "=== Error converting HDF to Geotiff ===")
-        #    util.log("CDR_ECV",  output
+        #    log("CDR_ECV", "=== Error converting HDF to Geotiff ===")
+        #    log("CDR_ECV",  output
     except Exception,e:
-        util.log("CDR_ECV", output)
-        util.log("CDR_ECV", e)
+        log("CDR_ECV", output)
+        log("CDR_ECV", e)
         return -1
     return 0
