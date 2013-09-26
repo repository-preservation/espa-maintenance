@@ -74,8 +74,12 @@ def runScenes():
                 filler = ""
                 entry_length = len(line_entry)
 
-                #have to start at 1 here because the \n will be part of the overall 1024 bytes
-                for i in range(1, 1024 - entry_length):
+
+
+                #have to start at 1 here because the \n will be part of the overall 1024 bytes.
+                #1025 is not a typo. The range function goes up to but does not include the 
+                #number specified
+                for i in range(1, 1025 - entry_length):
                     filler = filler + "#"
                 order_line = line_entry + filler + '\n'
                 f.write(order_line)
