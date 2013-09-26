@@ -8,6 +8,7 @@ License: "NASA Open Source Agreement 1.3"
 """
 import datetime
 import commands
+import frange
 
 def build_log_msg(module, msg):
     """Builds a standardized log message"""
