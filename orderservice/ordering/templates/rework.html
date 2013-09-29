@@ -34,15 +34,30 @@
 	}
 
         div#errorbox{
-	     margin:0 auto;
+	     margin:15px auto;
 	     border:2px solid red;
-	     width:100%;
+	     width:750px;
+             overflow:hidden;
 	     color:red;
+             font-size:16px;
+             padding:15px;
 	}
+        
+        div#errorbox h3 {
+            border:none;
+            padding-top:10px;
+            padding-bottom:20px;
+            padding-left:10px;
+            padding-right:10px;
+            margin:0px;
+        }
+        
+        div#errorbox h4 {
+            border:none;
+            padding:0px;
+            margin:0px;
+        }
 	
-	div#errorbox table {
-	    width:700px;
-	}
 	
 	div#errorbox td{
 	    font-size:16px;
@@ -116,7 +131,6 @@
 	    text-align:left;
 	}
 	
-        
 	input#submit {
 	    display:block;
 	    clear:both;
@@ -176,24 +190,28 @@
             <a href="http://glovis.usgs.gov/" target="blank">USGS Global Visualization Viewer</a>.
    </p>
     
-    {% if errors.email or errors.file or errors.scenes %}
-	<div id="errorbox">
-	    <table><tr><td><strong>Errors were found in your request.&nbsp;&nbsp;Please correct them and retry your order.</strong></td></tr>
+    {% if errors.email or errors.file or errors.scenes or errors.product_options%}
+    <div id="errorbox">
+    <h3>Errors were found in your request.&nbsp;&nbsp;Please correct them and retry your order.</h3>
     {% endif %}
     {% if errors.email %}
-	<tr><td>{{errors.email}}</td></tr>
+    <h4>{{errors.email}}</h4>
     {% endif %}
     {% if errors.file %}
-        <tr><td>{{errors.file}}</td></tr>
+    <h4>{{errors.file}}</h4>
     {% endif %}
     {% if errors.scenes %}
     {% for err_scene in errors.scenes %}
-        <tr><td>{{err_scene}}</td></tr>
+    <h4>{{err_scene}}</h4>
     {% endfor %}
     {% endif %}
-    {% if errors.email or errors.file or errors.scenes %}
-	    </table>
-	</div>
+    {% if errors.product_options %}
+    {% for err_po in errors.product_options %}
+    <h4>{{err_po}}</h4>
+    {% endfor %}
+    {% endif %}
+    {% if errors.email or errors.file or errors.scenes or errors.product_options %}
+    </div>
     {% endif %}
     
     <br/>
@@ -320,11 +338,12 @@
 		
 		
 		<div class='inputitem'>
-		    <input type='checkbox' id='reproject' name='reproject' onclick=handle_inputitem_click('reprojection');>
+		    <input type='checkbox' id='reproject' name='reproject' onclick=handle_inputitem_click('reprojection');handle_projection_selection()>
 		    <label class='tooltip' title='Specify custom image projection for output products' for="reproject">Reproject Products</label>
 		    <div id='reprojection'>
 			<label for='projection'>Projection:</label>
-			<select id='target_projection' form='request_form' onchange=handle_projection_selection();>
+                        <input type='hidden' id='target_projection' name='target_projection' />
+			<select id='select_target_projection' form='request_form' onchange=handle_projection_selection();>
 			    <option value='lonlat'>Geographic</option>
                             <option value='aea'>Albers Equal Area</option>
 			    <option value='sinu'>Sinusoidal</option>
@@ -365,11 +384,12 @@
 		</div>
 		
 		<div class='inputitem'>
-		    <input type='checkbox' id='resize' name='resize' onclick=handle_inputitem_click('resize_options');>
+		    <input type='checkbox' id='resize' name='resize' onclick=handle_inputitem_click('resize_options');display_pixelsize_placeholder()>
 		    <label class='tooltip inline' title='Specify desired pixel size' for="resize">Pixel Resizing</label>
 		    <div id='resize_options'>
 			<input placeholder="30 to 1000" type="text" name="pixel_size" id="pixel_size" />
-  		        <select id="pixel_size_units" form='request_form' onchange="display_pixelsize_placeholder();">
+                        <input type='hidden' id='pixel_size_units' name='pixel_size_units' />
+  		        <select id="select_pixel_size_units" form='request_form' onchange="display_pixelsize_placeholder();">
                             <option value="meters">Meters</option>
                             <option value="dd">Decimal Degrees</option>
                         </select>			
@@ -378,7 +398,8 @@
 		
 		<div id="resample_options">
 		    <label class='tooltip' title='Select method for resampling' for="resample_method">Resample Method:</label>
-		    <select id="resample_method" form='request_form'>
+		    <input id="resample_method" name="resample_method" type="hidden" />
+                    <select id="select_resample_method" form='request_form' onchange="$('#resample_method').val($('#select_resample_method option:selected').val());">
 			<option value='nn'>Nearest Neighbor</option>
 			<option value='bilinear'>Bilinear Interpolation</option>
 			<option value='cubic'>Cubic Convolution</option>
@@ -483,40 +504,41 @@
       function build_albers_options() {
 	  var html = "";
 	  html += "<div class='inputitem'>";
-	  html += "<input placeholder='40.0' class='projection_params_txt' type='text' id='origin_lat'>";
+	  html += "<input value='40.0' placeholder='40.0' class='projection_params_txt' type='text' id='origin_lat' name='origin_lat'>";
 	  html += "<label for='origin_lat'>Latitude of Origin</label>";
 	  html += "</div>";
 	 
 	  html += "<div class='inputitem'>";
-	  html += "<input placeholder='-96.0' class='projection_params_txt' type='text' id='central_meridian'>";
+	  html += "<input value='-96.0' placeholder='-96.0' class='projection_params_txt' type='text' id='central_meridian' name='central_meridian'>";
 	  html += "<label for='central_meridian'>Central Meridian</label>";
 	  html += "</div>";
 	  
 	  html += "<div class='inputitem'>";
-	  html += "<input class='projection_params_txt' type='text' id='std_parallel_1' placeholder='20.0'>";
+	  html += "<input class='projection_params_txt' type='text' id='std_parallel_1' name='std_parallel_1' placeholder='20.0' value='20.0'>";
 	  html += "<label for='std_parallel_1'>1st Standard Parallel</label>";
 	  html += "</div>";
 	  
 	  html += "<div class='inputitem'>";
-	  html += "<input class='projection_params_txt' type='text' id='std_parallel_2' placeholder='60.0'>";
+	  html += "<input class='projection_params_txt' type='text' id='std_parallel_2' name='std_parallel_2' placeholder='60.0' value='60.0'>";
 	  html += "<label for='std_parallel_2'>2nd Standard Parallel</label>";
 	  html += "</div>";
 	  
 	  html += "<div class='inputitem'>";
-	  html += "<input class='projection_params_txt' type='text' id='false_easting' placeholder='0.0'>";
+	  html += "<input class='projection_params_txt' type='text' id='false_easting' name='false_easting' placeholder='0.0' value='0.0'>";
 	  html += "<label for='false_easting'>False Easting</label>";
 	  html += "</div>";
 	  	  
 	  html += "<div class='inputitem'>";
-	  html += "<input class='projection_params_txt' type='text' id='false_northing' placeholder='0.0'>";
+	  html += "<input class='projection_params_txt' type='text' id='false_northing' name='false_northing' placeholder='0.0' value='0.0'>";
 	  html += "<label for='false_northing'>False Northing</label>";
 	  html += "</div>";
 	  
 	  html += "<div class='inputitem'>";
-	  html += "<select class='projection_params_select' form='request_form' id='datum'>";
-	  html += "<option value='nad27'>NAD 27</option>";
-	  html += "<option value='nad83'>NAD 83</option>";
+          html += "<input type='hidden' id='datum' name='datum' />";
+	  html += "<select class='projection_params_select' form='request_form' id='select_datum' onchange=update_datum();>";
 	  html += "<option value='wgs84'>WGS 84</option>";
+          html += "<option value='nad27'>NAD 27</option>";
+	  html += "<option value='nad83'>NAD 83</option>";
 	  html += "</select>";
 	  
 	  html += "<label for='datum'>Datum</label>";
@@ -529,17 +551,17 @@
       function build_sinusoidal_options() {
           var html = "";
 	  html += "<div class='inputitem'>";
-	  html += "<input class='projection_params_txt' type='text' id='central_meridian' placeholder='0.0'>";
+	  html += "<input class='projection_params_txt' type='text' id='central_meridian' name='central_meridian' value='0.0' placeholder='0.0'>";
 	  html += "<label for='central_meridian'>Central Meridian</label>";
 	  html += "</div>";
 	  
 	  html += "<div class='inputitem'>";
-	  html += "<input class='projection_params_txt' type='text' id='false_easting' placeholder='0.0'>";
+	  html += "<input class='projection_params_txt' type='text' id='false_easting' name='false_easting' value='0.0' placeholder='0.0'>";
 	  html += "<label for='false_easting'>False Easting</label>";
 	  html += "</div>";
 	  	  
 	  html += "<div class='inputitem'>";
-	  html += "<input class='projection_params_txt' type='text' id='false_northing' placeholder='0.0'>";
+	  html += "<input class='projection_params_txt' type='text' id='false_northing' name='false_northing' value='0.0' placeholder='0.0'>";
 	  html += "<label for='false_northing'>False Northing</label>";
 	  html += "</div>";
 	  
@@ -553,8 +575,9 @@
 	  var html = "";
 	  html += "<div class='inputitem'>";
 	  html += "<label id='utm_zone_label' for='utm_zone'>UTM Zone</label>";
-	  html += "<input class='projection_params_txt' type='text' id='utm_zone' placeholder='1-60'>";
-	  html += "<select class='projection_params_select' form='request_form' id='utm_north_south'>";
+	  html += "<input class='projection_params_txt' type='text' name='utm_zone' id='utm_zone' placeholder='1-60' />";
+          html += "<input type='hidden' id='utm_north_south' name='utm_north_south' />";
+	  html += "<select class='projection_params_select' form='request_form' id='select_utm_north_south' onchange=update_utm_params();>";
 	  html += "<option value='north'>North</option>";
 	  html += "<option value='south'>South</option>";
 	  html += "</select>";
@@ -568,43 +591,62 @@
       /* Event listener for the projetion selection box */
       function handle_projection_selection() {
 	var html = "";
-	switch( $('#target_projection').val() ) {
+	switch( $('#select_target_projection').val() ) {
 	    case "aea":
-		html = build_albers_options();
+                $('#projection_parameters').html(build_albers_options());
 		$('#projection_parameters').css("display", "block");
 	        $('#projection_parameters').css("visibility", "visible");
+                $('#target_projection').val("aea");
+                update_datum(); 
 		break;
 	    case "sinu":
-		html = build_sinusoidal_options();
+                $('#projection_parameters').html(build_sinusoidal_options());
 		$('#projection_parameters').css("display", "block");
 	        $('#projection_parameters').css("visibility", "visible");
+                $('#target_projection').val("sinu");
 		break;
 	    case "utm":
-		html = build_utm_options();
+                $('#projection_parameters').html(build_utm_options());
 		$('#projection_parameters').css("display", "block");
 	        $('#projection_parameters').css("visibility", "visible");
-		break;
+                $('#target_projection').val("utm");
+                update_utm_params();
+                break;
 	    case "lonlat":
 		html = "";
+                $('#projection_parameters').html(html);
 		$('#projection_parameters').css("display", "none");
 	        $('#projection_parameters').css("visibility", "hidden");
+                $('#target_projection').val("lonlat");
 		break;
 	}
-	$('#projection_parameters').html(html);
+	
        }
        
        /*Simply changes the placeholder value in the pixel size input field
         depending on what is selected */
        function display_pixelsize_placeholder() {
 	var psval = "";
-	if ($('#pixel_size_units').val() == 'dd') {
+	if ($('#select_pixel_size_units option:selected').val() == 'dd') {
           psval = ".0002695 to .0089831";
 	}
 	else {
 	  psval = "30 to 1000";
 	}
+        
+        /* Populate the hidden input field */
+        $('#pixel_size_units').val($('#select_pixel_size_units option:selected').val())
 	
 	$('#pixel_size').attr('placeholder', psval);
+       }
+       
+       
+       function update_utm_params() {
+           $('#utm_north_south').val($('#select_utm_north_south option:selected').val());
+       }
+       
+       function update_datum() {
+           $('#datum').val($('#select_datum option:selected').val());
        }
       
     

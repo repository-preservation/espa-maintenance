@@ -91,14 +91,14 @@ class Scene(models.Model):
     # This will only be populated if the scene had to be placed on order through
     # EE to satisfy the request.
     ###################################################################################
-    tram_order_id = models.CharField(max_length=13, blank=True)
+    tram_order_id = models.CharField(max_length=13, blank=True, null=True)
      
     ###################################################################################
     # Flags for order origination.  These will only be populated if the scene request
     # came from EE.
     ###################################################################################
     
-    ee_unit_id = models.IntegerField(max_length=11, blank=True)
+    ee_unit_id = models.IntegerField(max_length=11, blank=True, null=True)
     
     ###################################################################################
     # General status flags for this scene

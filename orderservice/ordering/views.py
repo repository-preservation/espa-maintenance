@@ -80,20 +80,47 @@ def neworder(request):
         context, errors, scene_errors = vv.validate_input_params(request)
         prod_option_context, prod_option_errors = vv.validate_product_options(request)
         
-        if len(errors) > 0 or len(scene_errors) > 0 or len(prod_option_errors) > 0:
+        if len(prod_option_errors) > 0:
+            errors['product_options'] = prod_option_errors
+        if len(scene_errors) > 0:
+            errors['scenes'] = scene_errors
+        
+        print prod_option_context
+        print "ERRORS"
+        print errors
+        
+        if request.POST.has_key('utm_zone'):
+            print "UTM Zone:%s" % request.POST['utm_zone']
+        else:
+            print "No UTM zone came in on the request"
+            
+        if request.POST.has_key("utm_zone_north_south"):
+            print "UTM N/S:%s" % request.POST['utm_zone_north_south']
+            
+            
+        
+        if len(errors) > 0:
+            print "Errors Detected..."
             c = RequestContext(request, {'errors':errors,
-                                         'scene_errors':scene_errors,
-                                         'product_option_errors':prod_option_errors,
                                          'user':request.user,
                                          'optionstyle':get_option_style(request)}
                                )    
-            t = loader.get_template('neworder.html')
+            t = loader.get_template('rework.html')
             include_system_message(c)
             return HttpResponse(t.render(c))
         else:
+            print "No errors detected"
+            
             option_string = json.dumps(prod_option_context)
+            
+            print "Option String"
+            print option_string
+            print "Saving new order"
             order = core.enter_new_order(context['email'], 'espa', context['scenelist'], option_string, note = context['order_description'])
+            print "Sending email"
             core.sendInitialEmail(order)
+            print "Redirecting to status page"
+            
             return HttpResponseRedirect('/status/%s' % request.POST['email'])
 
 
