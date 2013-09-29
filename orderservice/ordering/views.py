@@ -68,7 +68,8 @@ def neworder(request):
         c = RequestContext(request,{'user':request.user,
                                     'optionstyle':get_option_style(request)}
                            )
-        t = loader.get_template('neworder.html')
+        #t = loader.get_template('neworder.html')
+        t = loader.get_template('rework.html')
         include_system_message(c)
         return HttpResponse(t.render(c))
         

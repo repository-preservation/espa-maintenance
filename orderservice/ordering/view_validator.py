@@ -1,4 +1,4 @@
-import lta
+import lta, core
 
 ####################################################################################################################
 # Validates all the projection params if the user chose to reproject
@@ -82,7 +82,7 @@ def validate_product_options(request):
 ####################################################################################################################
 #Ensures an email was supplied
 ####################################################################################################################
-def validate_email(context, errors):
+def validate_email(request, context, errors):
         
     #start off by making sure we have an email address.
     if not request.POST.has_key('email') or not core.validate_email(request.POST['email']):    
@@ -93,13 +93,13 @@ def validate_email(context, errors):
 ####################################################################################################################
 #Checks for the prescence of a scenelist, checks it for errors.
 ####################################################################################################################
-def validate_files_and_scenes(context, errors, scene_errors):
+def validate_files_and_scenes(request, context, errors, scene_errors):
     #make sure we have an uploaded scenelist file
-    if not request.FILES.has_key("file"):
+    if not request.FILES.has_key("scenelist"):
         errors['file'] = "Please provide a scene list and include at least one scene for processing."
     else:
         #there was a file attached to the request.  make sure its not empty.
-        orderfile = request.FILES['file']
+        orderfile = request.FILES['scenelist']
         lines = orderfile.read().split('\n')
 
         if len(lines) <= 0:
@@ -132,9 +132,9 @@ def validate_input_params(request):
         
     context, errors, scene_errors = {},{}, list()
         
-    validate_email(context, errors)
-    validate_files_and_scenes(context, errors, scene_errors)
-    validate_product_options(context,errors)        
+    validate_email(request, context, errors)
+    validate_files_and_scenes(request, context, errors, scene_errors)
+    #validate_product_options(request, context, errors)        
 
     #Look for an order_description and put it into the context if available
     if request.POST.has_key('order_description'):

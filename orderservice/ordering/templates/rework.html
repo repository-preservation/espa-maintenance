@@ -475,7 +475,7 @@
 	}
 	
 	if (element_id == 'reprojection' && isVisible('reprojection')) {
-	    handle_projection_option_selection();
+	    handle_projection_selection();
 	}
       }
       
@@ -568,7 +568,7 @@
       /* Event listener for the projetion selection box */
       function handle_projection_selection() {
 	var html = "";
-	switch($('#target_projection').val()) {
+	switch( $('#target_projection').val() ) {
 	    case "aea":
 		html = build_albers_options();
 		$('#projection_parameters').css("display", "block");
