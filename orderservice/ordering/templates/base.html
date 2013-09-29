@@ -11,6 +11,10 @@
     <link href="/ui/css/espa.css" rel="stylesheet" type="text/css" />
 
     
+    <style>
+    {% block style%}{%endblock%}
+    </style>
+    
     <!-- Google analytics thru landsat -->
     
     <script type="text/javascript">
@@ -29,9 +33,13 @@
        })();
     
     </script>
-    <style>
-    {% block style%}{%endblock%}
-    </style>
+    
+    <script src="/ui/js/jquery-1.10.2.min.js"></script>
+
+    <script type="text/javascript">
+    {% block scripts%}{% endblock %}
+    </script>
+    
 </head>
 
 <body>

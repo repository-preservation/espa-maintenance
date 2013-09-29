@@ -1,3 +1,9 @@
+########################################################################################################################
+# core.py
+# Purpose: Holds common logic needed between views.py and api.py
+# Original Author: David V. Hill
+########################################################################################################################
+
 from email.mime.text import MIMEText
 from smtplib import *
 from models import Scene
@@ -11,62 +17,109 @@ import datetime
 import lta
 import re
 
-
-__author__ = "David V. Hill"
-
-#load configuration values
+########################################################################################################################
+#load configuration values at the module level... 
+########################################################################################################################
 try:
     smtp_url = Configuration().getValue('smtp.url')
     espa_email_address = Configuration().getValue('espa.email.address')
     order_status_base_url = Configuration().getValue('order.status.base.url')
 except Exception, err:
     print ("Could not load configuration values:%s" % err)
+    
+########################################################################################################################
+# Tells us if the value in the string is a float or int.
+########################################################################################################################
+def is_number(s):
+    try:
+        float(s)
+        return True
+    except ValueError:
+        return False
 
-
-
-
+########################################################################################################################
+# Email validation method
+########################################################################################################################
 def validate_email(email):
-
     '''Compares incoming email address against regular expression to make sure its at
        least formatted like an email
     '''
-    
     pattern = '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,4}$'
-    
     return re.match(pattern, email.strip())
     
-
+########################################################################################################################
+# Returns a dictionary with all available keys present (but not necessary set)
+########################################################################################################################
 def get_default_options():
     '''returns a default set of options that can be set for espa orders'''
-    options = {
-        'include_sourcefile':False,
-        'include_source_metadata':False,
-        'include_sr_toa':False,
-        'include_sr_thermal':False,
-        'include_sr':False,
-        'include_sr_browse':False,
-        'include_sr_ndvi':False,
-        'include_sr_ndmi':False,
-        'include_sr_nbr':False,
-        'include_sr_nbr2':False,
-        'include_sr_savi':False,
-        'include_sr_evi':False,
-        'include_solr_index':False,
-        'include_cfmask':False
-    }
+    options = {}
+    #standard product selection options
+    options['include_sourcefile'] = False                 #delivers underlying raster product as part of order
+    options['include_source_metadata'] = False            #delivers underlying metadata
+    options['include_sr_toa'] = False                     #deliver LEDAPS based top of atmosphere
+    options['include_sr_thermal'] = False                 #deliver LEDAPS band 6
+    options['include_sr'] = False                         #deliver LEDAPS surface reflectance
+    options['include_sr_browse'] = False                  #generate and deliver surface reflectance browse image
+    options['include_sr_ndvi'] = False                    #deliver normalized difference vegetation
+    options['include_sr_ndmi'] = False                    #deliver normalized difference moisture
+    options['include_sr_nbr'] = False                     #deliver normalized burn ratio
+    options['include_sr_nbr2'] = False                    #deliver normalized burn ratio 2
+    options['include_sr_savi'] = False                    #deliver soil adjusted vegetation
+    options['include_sr_evi'] = False                     #deliver enhanced vegetation
+    options['include_solr_index'] = False                 #deliver a solr search index record
+    options['include_cfmask'] = False                     #deliver cfmask in a seperate file (normally delivered in sr)
+    
+    #reprojection options
+    options['reproject'] = False                          #reproject all rasters (True/False)
+    options['target_projection'] = None                   #if 'reproject' which projection?
+    options['central_meridian'] = None                    #
+    options['false_easting'] = None                       #
+    options['false_northing'] = None                      #
+    options['origin_lat'] = None                          #
+    options['std_parallel_1'] = None                      #
+    options['std_parallel_2'] = None                      #
+    options['datum'] = 'wgs84'                            #
+    
+    #utm only options
+    options['utm_zone'] = None                            # 1 to 60
+    options['utm_north_south'] = None                     # north or south
+    
+    #image framing/subsetting options
+    options['image_extents'] = False                      #modify image extents (subset or frame)
+    options['minx'] = None                                #
+    options['miny'] = None                                #
+    options['maxx'] = None                                #
+    options['maxy'] = None                                #
+    
+    #Pixel resizing options
+    options['resize'] = False                             #resize output product pixel size (True/False)
+    options['pixel_size'] = None                          #if resize, how big (valid range 30 to 1000 meters)
+    options['pixel_size_units'] = None                    #meters or dd. 
+    
+    #Must have this when reprojecting or resizing pixels
+    options['resample_method'] = 'nn'                     #for ops that need it, how would user like to resample?
+    
     return options
 
-
+########################################################################################################################
+# Runs a query against the database to list all orders for a given email
+########################################################################################################################
 def list_all_orders(email):
     '''lists out all orders for a given user'''
     return Order.objects.filter(email=email).order_by('-order_date')
-    
+
+########################################################################################################################
+#  Runs a database query to return all the scenes + status for a given order
+########################################################################################################################
 def get_order_details(orderid):
     '''Returns the full order and all attached scenes'''
     order = Order.objects.get(orderid=orderid)
     scenes = Scene.objects.filter(order__orderid=orderid)
     return order,scenes
 
+########################################################################################################################
+# Captures a new order and gets it into the database
+########################################################################################################################
 def enter_new_order(email, order_source, scene_list, option_string, note = ''):
     '''Places a new espa order in the database'''
     order = Order()
@@ -89,7 +142,10 @@ def enter_new_order(email, order_source, scene_list, option_string, note = ''):
 
     return order
     
-    
+
+########################################################################################################################
+# Sends the order submission confirmation email
+########################################################################################################################
 def sendInitialEmail(order):
     status_base_url = Configuration().getValue('espa.status.url')    
     status_url = ('%s/%s') % (status_base_url, order.email)
@@ -119,7 +175,9 @@ Requested scenes:\n""") % (order.orderid, status_url)
     s.quit()
 
 
-
+########################################################################################################################
+# Sends the order completion email
+########################################################################################################################
 def sendCompletionEmail(email,ordernum,readyscenes=[]):
     status_base_url = Configuration().getValue('espa.status.url')
     status_url = ('%s/%s') % (status_base_url, email)    
@@ -144,20 +202,29 @@ Your scenes
     s.sendmail('espa@usgs.gov', email, msg.as_string())
     s.quit()
     
-
+########################################################################################################################
+# Generate an espa order id if the order is coming in from the bulk ordering or the api
+########################################################################################################################
 def generate_order_id(email):
     d = datetime.datetime.now()
     return '%s-%s%s%s-%s%s%s' % (email,d.month,d.day,d.year,d.hour,d.minute,d.second)
 
+########################################################################################################################
+# Generate an order id if the order came from Earth Explorer
+########################################################################################################################
 def generate_ee_order_id(email,eeorder):
     return '%s-%s' % (email,eeorder)
 
-
+########################################################################################################################
+#  Returns the location on the online cache where a scene does/should reside
+########################################################################################################################
 def getSceneInputPath(sceneid):
     scene = Scene.objects.get(name=sceneid)
     return scene.getOnlineCachePath()
     
-
+########################################################################################################################
+#  Interrogates the database to determine and return what orders/scenes can be processed
+########################################################################################################################
 def getScenesToProcess():
     #sanity checks
 
@@ -217,18 +284,12 @@ def getScenesToProcess():
             #something went wrong
             if tram_order_id == -1:
                 raise Exception("Could not order scenes from TRAM!")
-            
-            #tramorder = TramOrder()
-            #tramorder.order_id = tram_order_id
-            #tramorder.order_date = datetime.datetime.now()
-            #tramorder.save()
-                    
+                                
             for to in need_to_order:
                 to.tram_order_id = tram_order_id
                 to.status = 'onorder'
                 to.save()
 
-    
     #get all the scenes that are on order and check to see if they are on cache
     ordered = Scene.objects.filter(status='onorder')
 
@@ -242,10 +303,8 @@ def getScenesToProcess():
                 s.status = 'oncache'
                 s.save()
 
-        #don't do anything with the ones that weren't oncache.  They remain on order.
-
+    #don't do anything with the ones that weren't oncache.  They remain on order.
     #now the database should be fully updated with the current status.
-
     #Pull the current oncache set from the db and include it as the result
     results = []
     available_scenes = Scene.objects.filter(status='oncache')
@@ -261,13 +320,9 @@ def getScenesToProcess():
     return results
 
 
-
-
-
 #This needs to be changed, so does the distribution datasource.  Distro datasource needs to just put all the orders in the
 #/base/whatever/user@host.com/order_num hierarchy structure.  Then when we go to clean up we can just
 #wipe out the order_num and be done with it.
-
 '''
 def purgeExpiredOrders():
     config = None
@@ -304,7 +359,9 @@ def purgeExpiredOrders():
         ds = None
         orders = None
 '''
-
+########################################################################################################################
+# Simple logger method for this module
+########################################################################################################################
 def helperlogger(msg):
     print(msg)
     #h = open('/tmp/helper.log', 'a+')
@@ -313,7 +370,9 @@ def helperlogger(msg):
     #h.close()
     #pass
 
-    
+########################################################################################################################
+#  Updates the database with a new status for a scene/order id.  Normally called via xmlrpc 
+########################################################################################################################
 def updateStatus(name, orderid, processing_loc, status):
     helperlogger("Updating status for scene:%s in order:%s from location:%s to %s\n" % (name,orderid,processing_loc,status))
     try:
@@ -333,7 +392,10 @@ def updateStatus(name, orderid, processing_loc, status):
             return False
     except Exception,e:
         helperlogger("Exception in updateStatus:%s" % e)
-    
+
+########################################################################################################################
+#  Marks a scene in error and accepts the log file contents
+########################################################################################################################
 def setSceneError(name, orderid, processing_loc, error):
     o = Order.objects.get(orderid = orderid)
     s = Scene.objects.get(name=name, order__id = o.id)
@@ -348,6 +410,9 @@ def setSceneError(name, orderid, processing_loc, error):
         print("setSceneError:No scene was found with the name:%s for order:%s") % (name, orderid)
         return False
 
+########################################################################################################################
+#  Marks a scene unavailable and stores a reason
+########################################################################################################################
 def set_scene_unavailable(name, orderid, processing_loc, error, note):
     o = Order.objects.get(orderid = orderid)
     s = Scene.objects.get(name=name, order__id = o.id)
@@ -369,6 +434,9 @@ def set_scene_unavailable(name, orderid, processing_loc, error, note):
         print("set_scene_unavailable:No scene was found with the name:%s for order:%s") % (name, orderid)
         return False
 
+########################################################################################################################
+#  Marks a scene complete in the database for a given order
+########################################################################################################################
 def markSceneComplete(name, orderid, processing_loc,completed_file_location, destination_cksum_file = None,log_file_contents=""):
     print ("Marking scene:%s complete for order:%s" % (name, orderid))
     o = Order.objects.get(orderid = orderid)
@@ -409,7 +477,9 @@ def markSceneComplete(name, orderid, processing_loc,completed_file_location, des
         print("MarkSceneComplete:No scene was found with the name:%s" % name)
         return False
 
-
+########################################################################################################################
+#  Checks to see if the named scene being completed would complete an entire order.  If so, update order status
+########################################################################################################################
 def update_order_if_complete(orderid, scene):
     '''Method to send out the order completion email for orders if the completion of a scene completes the order'''    
     o = Order.objects.get(orderid = orderid)
@@ -432,7 +502,10 @@ def update_order_if_complete(orderid, scene):
         #only send the email if this was an espa order.
         if o.order_source == 'espa':        
             sendCompletionEmail(o.email,o.orderid,readyscenes=scene_names)
-             
+
+########################################################################################################################
+# Contact LTA via web service call to see if we have any orders to process via Earth Explorer
+########################################################################################################################
 def load_ee_orders():
     ''' Loads all the available orders from lta into our database and updates their status '''
     lta_service = lta.LtaServices()
@@ -458,7 +531,10 @@ def load_ee_orders():
                 'include_sr_savi':False,
                 'include_sr_evi':False,
                 'include_solr_index':False,
-                'include_cfmask':False
+                'include_cfmask':False,
+                'reproject':False,
+                'resize':False,
+                'image_extents':False
     }
 
     #Capture in our db

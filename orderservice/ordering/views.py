@@ -1,3 +1,10 @@
+########################################################################################################################
+# Views.py
+# Purpose: Handles all the interaction with espa web pages
+# Original Author: David V. Hill
+########################################################################################################################
+
+
 from django.http import HttpResponse, HttpResponseRedirect
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.csrf import csrf_exempt
@@ -12,17 +19,23 @@ from django.contrib.auth.models import User
 from django.contrib.auth import logout
 from ordering.models import Scene,Order,Configuration
 import core, lta, json
+import view_validator as vv
 from datetime import datetime
 
-__author__ = "David V. Hill"
 
+########################################################################################################################
+# get_option_style()
+# Utility method to determine what options to display based on the user thats logged in
+########################################################################################################################
 def get_option_style(request):
     if hasattr(request, 'user'):
         user = request.user
         return "display:none" if (user.username != 'espa_admin' and user.username != 'espa_internal') else ""
 
+########################################################################################################################
 #default landing page for the ordering application
 #@login_required(login_url='/login/')
+########################################################################################################################
 def index(request):
       
     t = loader.get_template('index.html')
@@ -32,148 +45,84 @@ def index(request):
             
     return HttpResponse(t.render(c))
                        
-
-#handles getting new orders into the system
+########################################################################################################################
+#Request handler for /neworder.  Handles getting new orders into the system
+########################################################################################################################
 @login_required(login_url='/login/')
 def neworder(request):
+    
+    ####################################################################################################################
+    #Includes the system message in the request context if one is defined
+    ####################################################################################################################
+    def include_system_message(request_context):
+        msg = Configuration().getValue('system_message')
+        if len(msg) > 0 and msg != '' and msg != 'nothing':
+            c['system_message'] = msg
+    
+    
+        
+    ####################################################################################################################
+    #request handling
+    ####################################################################################################################
     if request.method == 'GET':
-        form = OrderForm()
-        c = RequestContext(request,{'form': form,
-                                    'user':request.user,
+        c = RequestContext(request,{'user':request.user,
                                     'optionstyle':get_option_style(request)}
                            )
         t = loader.get_template('neworder.html')
-        
-        #check for system messages that need to be displayed    
-        config = Configuration()
-        msg = config.getValue('system_message')
-                
-        if len(msg) > 0 and msg != '' and msg != 'nothing':
-            c['system_message'] = msg
+        include_system_message(c)
         return HttpResponse(t.render(c))
-
-    #request must be a POST and must also be encoded as multipart/form-data in order for the
-    #files to be uploaded
-    elif request.method == 'POST':
-        errors = {}
-        if not request.POST.has_key('email') or not core.validate_email(request.POST['email']):
-            errors['email'] = "Please provide a valid email address"
-
-        if not request.FILES.has_key("file"):
-            errors['file'] = "Please provide a scene list and include at least one scene for processing."
-        else:
-            scenelist = set()
-            orderfile = request.FILES['file']
-            lines = orderfile.read().split('\n')
-
-            if len(lines) <= 0:
-                errors['file'] = "No scenes found in your scenelist.  Please include at least one scene for processing."
         
-        if len(errors) > 0:
-            c = RequestContext(request, {'form':OrderForm(),
-                                         'errors':errors,
+    elif request.method == 'POST':
+        #request must be a POST and must also be encoded as multipart/form-data 
+        #in order for the files to be uploaded
+        
+        context, errors, scene_errors = vv.validate_input_params(request)
+        prod_option_context, prod_option_errors = vv.validate_product_options(request)
+        
+        if len(errors) > 0 or len(scene_errors) > 0 or len(prod_option_errors) > 0:
+            c = RequestContext(request, {'errors':errors,
+                                         'scene_errors':scene_errors,
+                                         'product_option_errors':prod_option_errors,
                                          'user':request.user,
                                          'optionstyle':get_option_style(request)}
-                               )
+                               )    
             t = loader.get_template('neworder.html')
-            msg = Configuration().getValue('system_message')
-            if len(msg) > 0 and msg != '' and msg != 'nothing':
-                c['system_message'] = msg
-            return HttpResponse(t.render(c))
-
-        #################################################    
-        #Form passed' validation.... now check the scenes
-        #################################################
-
-        
-        note = None
-        if request.POST.has_key('note'):
-            note = request.POST['note']
-
-        
-        
-        #Simple length and prefix checks for scenelist items   
-        errors = {}
-        errors['scenes'] = list()
-        for line in lines:
-            line = line.strip()
-            if line.find('.tar.gz') != -1:
-                line = line[0:line.index('.tar.gz')]
-            if len(line) >= 15 and (line.startswith("LT") or line.startswith("LE")):
-                scenelist.add(line)
-
-                    
-        #Run the submitted list by LTA so they can make sure the items are in the inventory
-        lta_service = lta.LtaServices()
-        verified_scenes = lta_service.verify_scenes(list(scenelist))
-
-        for sc,valid in verified_scenes.iteritems():
-            if valid == 'false':
-                errors['scenes'].append("%s not found in Landsat inventory" % sc)
-         
-        #after all that validation, make sure there's actually something left to order
-        if len(scenelist) < 1:
-            errors['scenes'].append("No scenes found in scenelist.  Please provide at least one scene for processing")
-
-
-        #See if LTA barked at anything, notify user if so
-        if len(errors['scenes']) > 0:                                    
-            c = RequestContext(request,{'form':OrderForm(),
-                                        'errors':errors,
-                                        'user':request.user,
-                                        'optionstyle':get_option_style(request)}
-                               )
-            t = loader.get_template('neworder.html')
+            include_system_message(c)
             return HttpResponse(t.render(c))
         else:
-            #If we made it here we are all good with the scenelist.  
-            options = core.get_default_options()
-            
-            #Collect requested products.
-            for o in options.iterkeys():
-                if request.POST.has_key(o):
-                    options[o] = True
-                
-            option_string = json.dumps(options)
-            order = core.enter_new_order(request.POST['email'], 'espa', scenelist, option_string, note = note)
+            option_string = json.dumps(prod_option_context)
+            order = core.enter_new_order(context['email'], 'espa', context['scenelist'], option_string, note = context['order_description'])
             core.sendInitialEmail(order)
-        
             return HttpResponseRedirect('/status/%s' % request.POST['email'])
-        
+
+
+########################################################################################################################
 #handles displaying all orders for a given user
+########################################################################################################################
 #@login_required(login_url='/login/')
 @csrf_exempt
 def listorders(request, email=None, output_format=None):
-    #print ("%s/%s") % (email,output_format)
-
-    _email = None
-
-    #create placeholder for any validation errors
-    errors = {}
-
-    #check to see if this was a get request with an email address in the url
-    if email is not None:
-            _email = email
 
     #no email provided, ask user for an email address
-    else:
+    if email is None or not core.validate_email(email):
         form = ListOrdersForm()
         c = RequestContext(request,{'form': form})
         t = loader.get_template('listorders.html')
         return HttpResponse(t.render(c))
 
     #if we got here it's all good, display the orders
-    #orders = Order.objects.filter(email=_email).order_by('-order_date')
-    orders = core.list_all_orders(_email)
+    orders = core.list_all_orders(email)
     t = loader.get_template('listorders_results.html')
     mimetype = 'text/html'   
     c = RequestContext(request)
-    c['email'] = _email
+    c['email'] = email
     c['orders'] = orders
     return HttpResponse(t.render(c), mimetype=mimetype)
 
 
-
+########################################################################################################################
+# Request handler to get the full listing of all the scenes & statuses for an order
+########################################################################################################################
 @csrf_exempt
 def orderdetails(request, orderid, output_format=None):
     '''displays scenes for an order'''           
@@ -190,9 +139,9 @@ def orderdetails(request, orderid, output_format=None):
         
         
 
-############################################
+########################################################################################################################
 # Form Objects
-############################################
+########################################################################################################################
 class ListOrdersForm(forms.Form):
     email = forms.EmailField()
 
@@ -218,7 +167,9 @@ class OrderForm(forms.Form):
     include_solr_index = forms.BooleanField(initial=False)
     include_cfmask = forms.BooleanField(initial=False)
         
-    
+########################################################################################################################
+
+########################################################################################################################
 class StatusFeed(Feed):
     feed_type = Rss201rev2Feed
     title = "ESPA Status Feed"
