@@ -277,6 +277,31 @@ def make_cfmask(workdir):
         pass
     return 0
 
+
+def get_hdf_global_metadata(workdir, hdf_file):
+    cmd = "gdalinfo %s/%s" % (workdir,hdf_file)
+    status,output = commands.getstatusoutput(cmd)
+    sb = StringIO()
+    
+    if status == 0:
+        intext = False
+        for line in output.split("\n"):
+            if str(line).strip().lower().startswith("metadata"):
+                intext = True
+                continue
+            if (str(line).strip().lower().startswith("subdatasets")):
+                intext = False
+                break
+            if intext:
+                sb.write(line.strip())
+                sb.write("\n")
+            
+        sb.flush()
+        val  = sb.getvalue()
+        sb.close()
+        return val
+            
+            
 ########################################################################################################################
 # Alters product extents, projections and pixel sizes
 ########################################################################################################################
@@ -305,8 +330,29 @@ def warp_outputs(workdir, projection=None, image_extents=None, pixel_size=None, 
             cmd += " -r %s" % resample_method
         cmd += " %s %s" % (sourcefile, outfile)
         return cmd
-        
     
+    
+    
+    def parse_hdf_subdatasets(hdf_file):
+        cmd = "gdalinfo %s" % hdf_file
+        print cmd
+        status,output = commands.getstatusoutput(cmd)
+        if status == 0:
+            for line in output.split("\n"):
+                if str(line).strip().lower().startswith("subdataset") and str(line).strip().lower().find("_name") != -1:
+                    parts = line.split("=")
+                    yield parts[0],parts[1]
+    
+    def run_warp(item, outitem):
+        cmd = build_warp_command(item, outitem)
+        util.log("CDR_ECV", "Warping %s in %s with %s" % (item, workdir, cmd))
+        status,output = commands.getstatusoutput(cmd)
+        if status != 0:
+            util.log("CDR_ECV", "Error detected (status %s) warping output product[%s]:%s" % (status,item,output))
+            return (1,'', '')
+        else:
+            return (0, item, outitem)
+                
     try:
         if resample_method and resample_method not in resample_methods:
             raise ValueError("Resample method [%s] unsupported. Must be one of near, bilinear, cubic, cubicspline or lanczos" % resample_method)
@@ -328,22 +374,30 @@ def warp_outputs(workdir, projection=None, image_extents=None, pixel_size=None, 
         os.chdir(workdir)
         contents = os.listdir(workdir)
         
-        what_to_warp = [x for x in contents if str(x).endswith('hdf')]
+        what_to_warp = [x for x in contents if str(x).lower().endswith('hdf') or str(x).lower().find('tif') != -1]
         
         for item in what_to_warp:
-            outitem = "warped-%s" % item
-            cmd = build_warp_command(item, outitem)
-            util.log("CDR_ECV", "Warping %s in %s with %s" % (item, workdir, cmd))
-            status,output = commands.getstatusoutput(cmd)
-            if status != 0:
-                util.log("Error detected (status %s) warping output product[%s]:%s" % (status,item,output))
-                return (1,)
-        
-        #delete originals and rename warped products
-        for item in what_to_warp:
-            os.unlink(item)
-            os.rename("warped-%s" % item, item)
-        
+            if item.lower().endswith('hdf'):                
+                hdfname = item.split(".hdf")[0]
+                for sds_desc,sds_name in parse_hdf_subdatasets(item):
+                    sds_parts = sds_name.split(":")
+                    outfilename = "%s-%s.tiff" % (hdfname,sds_parts[len(sds_parts) - 1])
+                    run_warp(sds_name, outfilename)
+                
+                md = get_hdf_global_metadata(workdir, item)
+                md_filename = "%s.txt" % hdfname
+                h = open(md_filename, 'w+')
+                h.write(md)
+                h.flush()
+                h.close()
+                os.unlink(item)
+                os.unlink("%s.hdr" % item)
+            else:
+                outfilename = "out-%s.tiff" % item
+                run_warp(item, outfilename)
+                os.unlink(item)
+                os.rename(outfilename, item)
+            
         return (0,)
     except Exception, e:
         util.log("CDR_ECV", "Error in warp_outputs():%s" % e)
@@ -634,7 +688,7 @@ if __name__ == '__main__':
     
     parser.add_option("--set_image_extent",
                       action="store",
-                      destination="image_extent",
+                      dest="image_extent",
                       help="Specify desired output image extents as minx,miny,maxx,maxy (comma seperated) \
                            Be careful to ensure these coordinates correspond to the output projection.")
     

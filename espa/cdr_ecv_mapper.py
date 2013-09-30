@@ -57,7 +57,59 @@ def get_cache_hostname():
     else:
         return [x for x in hostlist if x is not hostname][0]    
     
+
+def build_albers_proj_string(std_parallel_1, std_parallel_2, origin_lat, central_meridian, false_easting, false_northing, datum):
+    '''
+    Builds a proj.4 string for albers equal area
+    Example:
+    +proj=aea +lat_1=20 +lat_2=60 +lat_0=40 +lon_0=-96 +x_0=0 +y_0=0 +ellps=GRS80 +datum=NAD83 +units=m +no_defs 
+    '''
     
+    proj_str = '+proj=aea +lat_1=%f +lat_2=%f +lat_0=%f +lon_0=%f +x_0=%f +y_0=%f +ellps=GRS80 +datum=%s +units=m +no_defs ' \
+               % (std_parallel_1, std_parallel_2, origin_lat, central_meridian, false_easting, false_northing, datum)
+    
+    return proj_str
+
+
+def build_utm_proj_string(utm_zone, utm_north_south):
+    '''
+    Builds a proj.4 string for utm
+    Example:
+    +proj=utm +zone=60 +ellps=WGS84 +datum=WGS84 +units=m +no_defs
+    +proj=utm +zone=39 +south +ellps=WGS72 +towgs84=0,0,1.9,0,0,0.814,-0.38 +units=m +no_defs 
+    '''
+    proj_str = ''
+    if str(utm_north_south).lower() == 'north':
+        proj_str = '+proj=utm +zone=%i +ellps=WGS84 +datum=WGS84 +units=m +no_defs' % utm_zone
+    elif str(utm_north_south).lower() == 'south':
+        proj_str = '+proj=utm +zone=%i +south +ellps=WGS72 +towgs84=0,0,1.9,0,0,0.814,-0.38 +units=m +no_defs' % utm_zone
+    else:
+        raise ValueError("Invalid urm_north_south argument[%s] Argument must be one of 'north' or 'south'" % utm_north_south)
+    return proj_str       
+    
+    
+
+def build_sinu_proj_string(central_meridian, false_easting, false_northing):
+    '''
+    Builds a proj.4 string for modis
+    Example:
+    +proj=sinu +lon_0=0 +x_0=0 +y_0=0 +a=6371007.181 +b=6371007.181 +units=m +no_defs 
+    '''
+    proj_str = '+proj=sinu +lon_0=%f +x_0=%f +y_0=%f +a=6371007.181 +b=6371007.181 +units=m +no_defs' \
+               % (central_meridian, false_easting, false_northing)
+    
+    return proj_str
+
+
+def build_geographic_proj_string():
+    '''
+    Builds a proj.4 string for geographic
+    Example:
+    
+    '''
+    return '+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs'
+
+
 
 if __name__ == '__main__':
     processing_location = socket.gethostname()
@@ -160,12 +212,52 @@ if __name__ == '__main__':
 
             if options.has_key('destination_directory'):
                 cmd = cmd + '--destination_directory %s ' % options['destination_directory']
+                
+            if options.has_key('reproject') and options['reproject'] == True:
+                target_proj = str(options['target_projection']).lower()
+                
+                if target_proj == "sinu":
+                    proj = build_sinu_proj_string(float(options['central_meridian']),
+                                           float(options['false_easting']),
+                                           float(options['false_northing']))
+                    cmd += ' --projection %s ' % proj
+                    
+                elif target_proj == "aea":
+                    proj = build_albers_proj_string(float(options['std_parallel_1']),
+                                                    float(options['std_parallel_2']),
+                                                    float(options['origin_lat']),
+                                                    float(options['central_meridian']),
+                                                    float(options['false_easting']),
+                                                    float(options['false_northing']),
+                                                    options['datum'])
+                    cmd += ' --projection %s ' % proj
+                    
+                elif target_proj == "utm":
+                    proj = build_utm_proj_string(int(options['utm_zone']),
+                                                 options['utm_north_south'])
+                    cmd += ' --projection %s ' % proj
+                elif target_proj == "lonlat":
+                    cmd += ' --projection %s ' % build_geographic_proj_string()
+                else:
+                    logger(sceneid, "Unknown projection requested:%s" % target_proj)
+            
+            if options.has_key('image_extents') and options['image_extents'] == True:
+                minx,miny,maxx,maxy = options['minx'], options['miny'], options['maxx'], options['maxy']
+                cmd += ' --set_image_extent %s,%s,%s,%s ' % (minx,miny,maxx,maxy)
+            
+            if options.has_key('resize') and options['resize'] == True:
+                pixel_size = options['pixel_size']
+                pixel_unit = options['pixel_size_units']
+                cmd += ' --pixel_size %s --pixel_unit %s' % (pixel_size, pixel_unit)
+                
+            if options.has_key('resample_method'):
+                cmd += ' --resample_method %s ' % options['resample_method']
 
-            #logger ("Running command:%s" % cmd)    
-            #h = open("/tmp/cmd_debug.txt", "wb+")
-            #h.write(cmd)
-            #h.flush()
-            #h.close()
+            logger ("Running command:%s" % cmd)    
+            h = open("/tmp/cmd_debug.txt", "wb+")
+            h.write(cmd)
+            h.flush()
+            h.close()
 
             status,output = commands.getstatusoutput(cmd)
             if status != 0:

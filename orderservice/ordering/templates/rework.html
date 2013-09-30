@@ -102,7 +102,20 @@
 	div.product_boxbody input{
 	    display:inline-block;
 	}
-	
+        
+        div#order_description_productbox {
+           text-align:center;
+        }
+        
+        #order_description {
+            width: 625px;
+            height: 100px;
+            margin-top: 10px;
+            margin: 10px auto;
+            align: center;
+        }
+        
+        
 	div.inputitem {
 	    padding:5px;
 	    text-align:left;
@@ -412,7 +425,7 @@
 	    <div class='product_boxheader'>
 		Order Description (optional)
 	    </div>
-	    <div class='product_boxbody'>
+	    <div class='product_boxbody' id="order_description_productbox">
 		<input type='textarea' id='order_description' name='order_description' /> 
             </div>
         </div>
