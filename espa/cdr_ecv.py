@@ -670,13 +670,11 @@ if __name__ == '__main__':
     parser.add_option("--pixel_size",
                       action="store",
                       dest="pixel_size",
-                      default=30,
                       help="Desired pixel size for output products.  If specified --pixel_unit must also be provided.")
 
     parser.add_option("--pixel_unit",
                        action="store",
                        dest="pixel_unit",
-                       default="meters",
                        choices=['meters', 'dd'],
                        help="Units the supplied pixel_size is specified in.  Meters or decimal degrees.")
 

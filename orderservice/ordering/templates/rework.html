@@ -413,7 +413,7 @@
 		    <label class='tooltip' title='Select method for resampling' for="resample_method">Resample Method:</label>
 		    <input id="resample_method" name="resample_method" type="hidden" />
                     <select id="select_resample_method" form='request_form' onchange="$('#resample_method').val($('#select_resample_method option:selected').val());">
-			<option value='nn'>Nearest Neighbor</option>
+			<option value='near'>Nearest Neighbor</option>
 			<option value='bilinear'>Bilinear Interpolation</option>
 			<option value='cubic'>Cubic Convolution</option>
 		    </select>
