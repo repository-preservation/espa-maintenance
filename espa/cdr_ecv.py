@@ -337,7 +337,7 @@ def warp_outputs(workdir, projection=None, image_extents=None, pixel_size=None, 
         cmd = "gdalinfo %s" % hdf_file
         print cmd
         status,output = commands.getstatusoutput(cmd)
-        if status == 0:
+        if status == 0 or status == 256:
             for line in output.split("\n"):
                 if str(line).strip().lower().startswith("subdataset") and str(line).strip().lower().find("_name") != -1:
                     parts = line.split("=")
@@ -347,7 +347,7 @@ def warp_outputs(workdir, projection=None, image_extents=None, pixel_size=None, 
         cmd = build_warp_command(item, outitem)
         util.log("CDR_ECV", "Warping %s in %s with %s" % (item, workdir, cmd))
         status,output = commands.getstatusoutput(cmd)
-        if status != 0:
+        if status != 0 and status != 256:
             util.log("CDR_ECV", "Error detected (status %s) warping output product[%s]:%s" % (status,item,output))
             return (1, item, output)
         else:
@@ -383,7 +383,7 @@ def warp_outputs(workdir, projection=None, image_extents=None, pixel_size=None, 
                     sds_parts = sds_name.split(":")
                     outfilename = "%s-%s.tiff" % (hdfname,sds_parts[len(sds_parts) - 1])
                     code,item,out = run_warp(sds_name, outfilename)
-                    if code != 0:
+                    if code != 0 and code != 256:
                         util.log("CDR_ECV", "Error warping %s.  Error was %s" % (item, out))
                         raise Exception("Error warping %s.  Error was %s" % (item, out))
 
@@ -426,7 +426,7 @@ def package_product(product_dir, output_dir, product_filename):
     cmd = ("tar -cf %s.tar *") % (product_file_full_path)
     status, output = commands.getstatusoutput(cmd)
     os.chdir(orig_cwd)
-    if status != 0:
+    if status != 0 and status != 256:
         util.log("CDR_ECV", "Error packaging finished product to %s.tar" % (product_file_full_path))
         util.log("CDR_ECV", output)
         return (1,)
@@ -462,7 +462,7 @@ def package_product(product_dir, output_dir, product_filename):
     #if it was good then create a checksum
     cmd = ("cksum %s")% (product_file_full_path)
     status, output = commands.getstatusoutput(cmd)
-    if status != 0:
+    if status != 0 and status != 256:
         util.log("CDR_ECV", "Couldn't generate cksum against:%s" % (product_file_full_path))
         util.log("CDR_ECV", output)
         return (4,)                   
