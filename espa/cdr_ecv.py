@@ -318,7 +318,8 @@ def warp_outputs(workdir, projection=None, image_extents=None, pixel_size=None, 
     
     #local scope function to build a warp command for each item we need to warp
     def build_warp_command(sourcefile, outfile):
-        cmd = "gdalwarp -wm 2048 -multi "
+        cmd = "gdalwarp -wm 2048 -multi"
+        
         if image_extents:
             minx,miny,maxx,maxy = image_extents
             cmd += " -te %f %f %f %f" % (minx, miny, maxx, maxy)
@@ -331,8 +332,7 @@ def warp_outputs(workdir, projection=None, image_extents=None, pixel_size=None, 
         cmd += " %s %s" % (sourcefile, outfile)
         return cmd
     
-    
-    
+
     def parse_hdf_subdatasets(hdf_file):
         cmd = "gdalinfo %s" % hdf_file
         print cmd
@@ -398,10 +398,10 @@ def warp_outputs(workdir, projection=None, image_extents=None, pixel_size=None, 
                 os.unlink(item)
                 os.rename(outfilename, item)
             
-        return (0,)
+        return (0,'')
     except Exception, e:
         util.log("CDR_ECV", "Error in warp_outputs():%s" % e)
-        return (2,)
+        return (2,'')
 
 ########################################################################################################################
 # package_product
@@ -682,8 +682,7 @@ if __name__ == '__main__':
 
     parser.add_option("--projection",
                        action="store",
-                       dest="srs_definition",
-                       default="None",
+                       dest="projection",
                        help="Proj.4 string for desired output product projection")
     
     parser.add_option("--set_image_extent",
@@ -977,9 +976,9 @@ if __name__ == '__main__':
             sys.exit((12, output))
 
     
-    if options.projection or options.set_image_extent or options.pixel_size:
+    if options.projection or options.image_extent or options.pixel_size:
         util.log("CDR_ECV", "Warping output products")
-        status, output = warp_outputs(workdir, options.projection, option.set_image_extent, options.pixel_size, options.pixel_unit, options.resample_method)
+        status, output = warp_outputs(workdir, options.projection, options.image_extent, options.pixel_size, options.pixel_unit, options.resample_method)
         if status != 0:
             util.log("CDR_ECV", "Error warping products (status %s)... exiting" % status)
             sys.exit((13, output))
