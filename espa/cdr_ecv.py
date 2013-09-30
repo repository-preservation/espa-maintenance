@@ -30,17 +30,23 @@ from cStringIO import StringIO
 import frange
 import util
 
-
+########################################################################################################################
+# Utility to control filenames
+########################################################################################################################
 def get_sr_filename(scene):
     """Return name of current sr product file"""
     return "lndsr.%s.hdf" % scene
 
-
+########################################################################################################################
+# Utility to control filenames
+########################################################################################################################
 def get_cfmask_filename(scene):
     """Return name of current cfmask product file"""
     return "fmask.%s.hdf" % scene
 
-
+########################################################################################################################
+# parses metadata and puts it into an in memory dictionary
+########################################################################################################################
 def getMetaData(work_dir, debug=False):
     """Returns the scene metadata as a python dictionary"""
 
@@ -101,7 +107,9 @@ def getMetaData(work_dir, debug=False):
     return metadata
 
 
-
+########################################################################################################################
+# Generates browse from surface reflectance
+########################################################################################################################
 def makeBrowse(work_dir,metadata, scene_name,resolution=50,debug=False):
     """Creates a browse image for the current scene"""
     
@@ -146,20 +154,7 @@ def makeBrowse(work_dir,metadata, scene_name,resolution=50,debug=False):
                 util.log("CDR_ECV", "Error occurred running:%s" % cmd)
                 util.log("CDR_ECV", output)
                 return status
-            
-        #add the browse cornerpoints to the context here
-        #need to pull these from the level 1 metadata (IF it's already in longlat that is) instead so we have actual data cornerpoints instead of
-        #scene cornerpoints
-        #coords = parseGdalInfo(output_file)
-        #metadata['BROWSE_UL_CORNER_LAT'] = coords['browse.ul'][0]
-        #metadata['BROWSE_UL_CORNER_LON'] = coords['browse.ul'][1]
-        #metadata['BROWSE_UR_CORNER_LAT'] = coords['browse.ur'][0]
-        #metadata['BROWSE_UR_CORNER_LON'] = coords['browse.ur'][1]
-        #metadata['BROWSE_LL_CORNER_LAT'] = coords['browse.ll'][0]
-        #metadata['BROWSE_LL_CORNER_LON'] = coords['browse.ll'][1]
-        #metadata['BROWSE_LR_CORNER_LAT'] = coords['browse.lr'][0]
-        #metadata['BROWSE_LR_CORNER_LON'] = coords['browse.lr'][1]          
-                                    
+                                        
         util.log("CDR_ECV", "MakeBrowse() complete...")
     except Exception,e:
         util.log("CDR_ECV", e)
@@ -168,7 +163,9 @@ def makeBrowse(work_dir,metadata, scene_name,resolution=50,debug=False):
         pass
     return 0
 
-
+########################################################################################################################
+# Builds a solr index
+########################################################################################################################
 def makeSolrIndex(metadata, scene, work_dir, collection_name,debug=False):
     """Generates a solr index for the current scene"""
     
@@ -251,7 +248,9 @@ def makeSolrIndex(metadata, scene, work_dir, collection_name,debug=False):
     util.log("CDR_ECV", "MakeSolrIndex() complete...")
     return 0
 
-
+########################################################################################################################
+# Runs cfmask
+########################################################################################################################
 def make_cfmask(workdir):
     """Runs the routines necessary to apply cfmask processing against the current scene"""
 
@@ -278,7 +277,82 @@ def make_cfmask(workdir):
         pass
     return 0
 
+########################################################################################################################
+# Alters product extents, projections and pixel sizes
+########################################################################################################################
+def warp_outputs(workdir, projection=None, image_extents=None, pixel_size=None, pixel_unit=None, resample_method=None):
+    '''
+     projection = a valid proj.4 projection string
+     image_extents = minx,miny,maxx,maxy
+     pixel_size = value in units specified by pixel_units (meters or dd)
+     pixel_units = meters or dd
+     resample_method = near (default), bilinear, cubic, cubicspline, lanczos
+    '''
+    resample_methods = ('near', 'bilinear', 'cubic', 'cubicspline', 'lanczos')
+    pixel_units = ('meters', 'dd')
+    
+    #local scope function to build a warp command for each item we need to warp
+    def build_warp_command(sourcefile, outfile):
+        cmd = "gdalwarp -wm 2048 -multi "
+        if image_extents:
+            minx,miny,maxx,maxy = image_extents
+            cmd += " -te %f %f %f %f" % (minx, miny, maxx, maxy)
+        if pixel_size:
+            cmd += " -tr %s %s" % (pixel_size,pixel_size)
+        if projection:
+            cmd += " -t_srs %s" % projection
+        if resample_method:
+            cmd += " -r %s" % resample_method
+        cmd += " %s %s" % (sourcefile, outfile)
+        return cmd
+        
+    
+    try:
+        if resample_method and resample_method not in resample_methods:
+            raise ValueError("Resample method [%s] unsupported. Must be one of near, bilinear, cubic, cubicspline or lanczos" % resample_method)
+        
+        if pixel_unit and pixel_unit not in pixel_units:
+            raise ValueError("Pixel unit [%s] unsupported.  Must be one of meters or dd" % pixel_unit)
 
+        if image_extents:
+            try:
+                minx,miny,maxx,maxy = image_extents
+                if minx >= maxx:
+                    raise ValueError("minx must be less than maxx")
+                if miny >= maxy:
+                    raise ValueError("miny must be less than maxy")
+            except:
+                raise ValueError("image_extents must be specified as minx,miny,maxx,maxy")
+               
+        what_to_warp = []
+        os.chdir(workdir)
+        contents = os.listdir(workdir)
+        
+        what_to_warp = [x for x in contents if str(x).endswith('hdf')]
+        
+        for item in what_to_warp:
+            outitem = "warped-%s" % item
+            cmd = build_warp_command(item, outitem)
+            util.log("CDR_ECV", "Warping %s in %s with %s" % (item, workdir, cmd))
+            status,output = commands.getstatusoutput(cmd)
+            if status != 0:
+                util.log("Error detected (status %s) warping output product[%s]:%s" % (status,item,output))
+                return (1,)
+        
+        #delete originals and rename warped products
+        for item in what_to_warp:
+            os.unlink(item)
+            os.rename("warped-%s" % item, item)
+        
+        return (0,)
+    except Exception, e:
+        util.log("CDR_ECV", "Error in warp_outputs():%s" % e)
+        return (2,)
+
+########################################################################################################################
+# package_product
+# Purpose: builds a tar product file from all the requested outputs
+########################################################################################################################
 def package_product(product_dir, output_dir, product_filename):
     """Creates the CDR_ECV product file from the specified product directory."""
     
@@ -350,6 +424,10 @@ def package_product(product_dir, output_dir, product_filename):
         return (0, cksum_val, product_file_full_path, cksum_file_full_path)  
     
 
+########################################################################################################################
+# distribute_product
+# Purpose: Transfers the output product to the distribution location
+########################################################################################################################
 def distribute_product(product_file_full_path, cksum_file_full_path, destination_host, destination_file, destination_cksum_file):
     """Utility method to be called by do_distribution."""
     
@@ -391,7 +469,10 @@ def distribute_product(product_file_full_path, cksum_file_full_path, destination
     else:
         return (0,output)
 
-
+########################################################################################################################
+# do_distribution
+# Purpose: Wrapper function to execute distribute_product x number of times (for retries)
+########################################################################################################################
 def do_distribution(outputdir, product_filename, destination_host, destination_file, destination_cksum_file):
     """Distributes a packaged product file to the specified location"""
     attempt = 0
@@ -532,26 +613,37 @@ if __name__ == '__main__':
                       default=False,
                       help="Create a solr index for the product")
 
-    parser.add_option("--convert_to_tile",
-                       action="store_true",
-                       dest="tiling_flag",
-                       default=False,
-                       help="Converts this scene to the EROS tiling scheme") 
+    parser.add_option("--pixel_size",
+                      action="store",
+                      dest="pixel_size",
+                      default=30,
+                      help="Desired pixel size for output products.  If specified --pixel_unit must also be provided.")
 
-    parser.add_option("--output_format",
+    parser.add_option("--pixel_unit",
                        action="store",
-                       dest="output_format",
-                       default="GTiff",
-                       choices=['GTiff', 'JPG', 'PNG', 'HDF4','HDF5',],
-                       help="Output format for product.  Defaults to HDF4")
+                       dest="pixel_unit",
+                       default="meters",
+                       choices=['meters', 'dd'],
+                       help="Units the supplied pixel_size is specified in.  Meters or decimal degrees.")
 
     parser.add_option("--projection",
                        action="store",
-                       dest="projection",
+                       dest="srs_definition",
                        default="None",
-                       choices=['None', 'Geographic', 'UTM', 'Albers', 'Sinusoidal', 'Robinson'],
-                       help="Projection for the output product.  Defaults to no reprojection.")
-
+                       help="Proj.4 string for desired output product projection")
+    
+    parser.add_option("--set_image_extent",
+                      action="store",
+                      destination="image_extent",
+                      help="Specify desired output image extents as minx,miny,maxx,maxy (comma seperated) \
+                           Be careful to ensure these coordinates correspond to the output projection.")
+    
+    parser.add_option("--resample_method",
+                      action="store",
+                      dest="resample_method",
+                      default="near",
+                      help="One of near, bilinear, cubic, cubicspline, or lanczos")
+    
     parser.add_option("--order",
                       action="store",
                       dest="ordernum",
@@ -830,7 +922,16 @@ if __name__ == '__main__':
             util.log("CDR_ECV", "Error appending cfmask to sr output... exiting")
             sys.exit((12, output))
 
-        
+    
+    if options.projection or options.set_image_extent or options.pixel_size:
+        util.log("CDR_ECV", "Warping output products")
+        status, output = warp_outputs(workdir, options.projection, option.set_image_extent, options.pixel_size, options.pixel_unit, options.resample_method)
+        if status != 0:
+            util.log("CDR_ECV", "Error warping products (status %s)... exiting" % status)
+            sys.exit((13, output))
+    
+    
+    
     #DELETE UNNEEDED FILES FROM PRODUCT DIRECTORY
     util.log("CDR_ECV", "Purging unneeded files from %s" % workdir)
     orig_cwd = os.getcwd()
@@ -861,7 +962,6 @@ if __name__ == '__main__':
         sb.write(" *index* ")
     if not options.cfmask_flag:
         sb.write(" *fmask* ")
-    
     sb.flush()
     
     cmd = "rm -rf %s " % sb.getvalue()
@@ -871,8 +971,7 @@ if __name__ == '__main__':
     if status != 0:
         util.log("CDR_ECV", "Error purging files from %s... exiting" % workdir)
         util.log("CDR_ECV",  output)
-        sys.exit((13, output))
-
+        sys.exit((14, output))
 
     #PACKAGE THE PRODUCT    
     attempt = 0
@@ -895,7 +994,7 @@ if __name__ == '__main__':
 
     if not success:
         util.log("CDR_ECV", "Packaging and distribution for %s:%s failed after 3 attempts" % (destination_host,destination_file))
-        sys.exit((14, "Failed to distribute %s" % destination_file))
+        sys.exit((15, "Failed to distribute %s" % destination_file))
         
               
     
@@ -908,7 +1007,7 @@ if __name__ == '__main__':
     if status != 0:
         util.log("CDR_ECV", "Error cleaning output:%s work:%s stage:%s directories... exiting" % (outputdir,workdir,stagedir))
         util.log("CDR_ECV",  output)
-        sys.exit((15,output))
+        sys.exit((16,output))
     
     util.log("CDR_ECV", "ESPA Complete")
     #return 0 and the file we distributed
