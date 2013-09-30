@@ -349,7 +349,7 @@ def warp_outputs(workdir, projection=None, image_extents=None, pixel_size=None, 
         status,output = commands.getstatusoutput(cmd)
         if status != 0:
             util.log("CDR_ECV", "Error detected (status %s) warping output product[%s]:%s" % (status,item,output))
-            return (1,'', '')
+            return (1, item, output)
         else:
             return (0, item, outitem)
                 
@@ -382,8 +382,11 @@ def warp_outputs(workdir, projection=None, image_extents=None, pixel_size=None, 
                 for sds_desc,sds_name in parse_hdf_subdatasets(item):
                     sds_parts = sds_name.split(":")
                     outfilename = "%s-%s.tiff" % (hdfname,sds_parts[len(sds_parts) - 1])
-                    run_warp(sds_name, outfilename)
-                
+                    code,item,out = run_warp(sds_name, outfilename)
+                    if code != 0:
+                        util.log("CDR_ECV", "Error warping %s.  Error was %s" % (item, out))
+                        raise Exception("Error warping %s.  Error was %s" % (item, out))
+
                 md = get_hdf_global_metadata(workdir, item)
                 md_filename = "%s.txt" % hdfname
                 h = open(md_filename, 'w+')
@@ -401,7 +404,7 @@ def warp_outputs(workdir, projection=None, image_extents=None, pixel_size=None, 
         return (0,'')
     except Exception, e:
         util.log("CDR_ECV", "Error in warp_outputs():%s" % e)
-        return (2,'')
+        return (2, e)
 
 ########################################################################################################################
 # package_product

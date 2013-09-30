@@ -260,7 +260,7 @@ if __name__ == '__main__':
             h.close()
 
             status,output = commands.getstatusoutput(cmd)
-            if status != 0:
+            if status != 0 and status != 256:
                 logger (sceneid, "Error occurred processing %s" % sceneid)
                 logger (sceneid, "%s returned code:%s" % (sceneid, status))
                 if server is not None:
