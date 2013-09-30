@@ -24,6 +24,7 @@ import commands
 import re
 import argparse
 import xml.etree.ElementTree as xml
+import math
 
 err_code = { 'err_prelim': 2,
              'err_valconf': 3,
@@ -217,21 +218,23 @@ def loadCapValues():
     if verbose:
         print "Entering loadCapValues()"
     
-    #try:
-    #    tree = xml.parse(hadoopConfigs['mapred.capacitytaskscheduler.allocation.file'])
+    try:
+        tree = xml.parse(hadoopConfigs['mapred.capacitytaskscheduler.allocation.file'])
 
-    #    configfile = tree.getroot()
-    #except Exception, e:
-    #    print "Error: ", e
+        configfile = tree.getroot()
+        
+    except Exception, e:
+        print "Error: ", e
     
-    #for prop in configfile.findall('property'):
-    for name in hadoopConfigs.iterkeys():
-        #name = prop.find('name').text        
+    for prop in configfile.findall('property'):
+        
+        name = prop.find('name').text        
         
         if verbose:
             print "analyzing ", name
         
-        if re.match("^mapred\.capacity-scheduler\.queue\.\S+\.\S+$", name):
+        if re.search("mapred\.capacity\-scheduler\.queue\.\S+\.\S+", name):
+            
             if name.split(".")[3] in hadoopConfigs['mapred.queue.names']:
                 if verbose:
                     print "  - Matched queue, ", name.split(".")[3], ", get all queue properties"
@@ -245,9 +248,12 @@ def getQueueCapacity(queueName="all"):
     if verbose:
         print "Entering getQueueCapacity()"
     
-    tree = xml.parse(hadoopConfigs['mapred.capacitytaskscheduler.allocation.file'])
+    try:
+        tree = xml.parse(hadoopConfigs['mapred.capacitytaskscheduler.allocation.file'])
 
-    configfile = tree.getroot()
+        configfile = tree.getroot()
+    except Exception, e:
+        print "Error: ", e
 
     capTotal = 0
 
@@ -263,15 +269,14 @@ def getQueueCapacity(queueName="all"):
                 print "   - matched ", name
             
             if queueName == "all":
-                print "all matching"
+                
                 if name.split(".")[3] in hadoopConfigs['mapred.queue.names']:
                     if verbose:
                         print "      |_ matched active queue,", name.split(".")[3], ", add that bitch up: ", prop.find('value').text, "to ", capTotal
                         
                     capTotal = capTotal + int(prop.find('value').text)
             else:
-                print "else matching"
-                print capTotal
+                
                 #if name.split(".")[3] == queueName:
                 if name.split(".")[3] in queueName:
                     if verbose:
@@ -369,6 +374,66 @@ def validateHadoopConfigs(hadoopHomeEnvVar):
             print "\n Error: The needed configuration file,", configFile, ", does not exist or cannot be found.  Check 'HADOOP_HOME' and re-run.\n\n"
             sys.exit(err_code['err_valconf'])
 
+def printCapacitySummary(listOfQueues, slots):
+    currentCapacity = getQueueCapacity(queueName=listOfQueues)
+    
+    print "-" * 80
+    print
+    print " Current defined map slot capacity: %s" % slots
+    print
+    print " Total queue capacity: %s%%" % currentCapacity
+    print
+    
+    for queue, capacity in queueCapPercentageToSlotCount(listOfQueues).iteritems():
+        print "   - Capacity for '%s': %s%%" % (queue, capacity)
+        print "   - Slot capacity for '%s': %s" % (queue, float(float(slots) * (float(capacity)/float(100))))
+        print
+    
+    print "-" * 80
+    print
+
+
+def performSelection(headingMsg, selectionMsg, selectionOptions, inputType=int):
+    answer = False
+    selection = False
+    
+    print " %s: " % headingMsg
+    print
+    
+    for n, option in enumerate(selectionOptions):
+        print "   %s) %s" % (n + 1, option)
+    
+    print
+    
+    try:
+        while answer <> True:
+            selection = raw_input("%s: " % selectionMsg)
+            
+            try:
+                if inputType is int:
+                    if int(selection) in range(1, len(selectionOptions) + 1, 1):
+                        answer = True
+                
+                if inputType is str:
+                    if str(selection) in validValues:
+                        answer = True
+                
+            except ValueError, e:
+                continue
+                
+    except KeyboardInterrupt, e:
+        return False
+    
+    return selection
+
+def queueCapPercentageToSlotCount(listOfQueues):
+    queueSlots = {}
+    
+    for queue in listOfQueues:
+        queueSlots[queue] = hadoopConfigs["mapred.capacity-scheduler.queue." + queue + ".capacity"]
+    
+    return queueSlots
+
 ################################################################################################
 #        START OF APPLICATION - DO NOT EDIT BELOW UNLESS YOU KNOW WHAT YOU ARE DOING
 ################################################################################################
@@ -401,7 +466,7 @@ def main():
     parser = argparse.ArgumentParser()
     
     # Option(s) for: mapreducehostsexclude, dfshostsexclude, slaves and verbose (suppressed)
-    parser.add_argument("-s", "--slots", action="store", dest="slots", type=int, help="Define the number of cluster slots on run-time.")
+    parser.add_argument("-s", "--slots", action="store", dest="slots", type=int, help="Define the number of cluster slots on run-time to calculate queue capacity.")
     #parser.add_argument("-m", "--maximum-capacity", action="store", nargs=1, dest="max-cap", choices=['add','remove','refresh'], help="Action command will affect map/reduce exclude's conf file (e.g. [add|remove|refresh])")
     #parser.add_argument("-d", "--dfs", action="store", nargs=1, dest="dfsaction", choices=['add','remove','refresh'], help="Action command will affect dfs exclude's conf file (e.g. [add|remove|refresh])")
     #parser.add_argument("-s", "--slaves", action="store", nargs=1, dest="slavesaction", choices=['add','remove'], help="Action command will affect slaves conf file (e.g. [add|remove|refresh])")
@@ -436,34 +501,14 @@ def main():
     # Load currently 'enabled' capacity queues from configuration
     loadCapValues()
 
-    # Get current active queue capacity
-    #currentCapacity = getQueueCapacity(queueName="ondemand")
-    currentCapacity = getQueueCapacity(queueName=hadoopConfigs['mapred.queue.names'])
-
+    # Print out current Capacity Configuration
+    printCapacitySummary(hadoopConfigs['mapred.queue.names'], args.slots)
     
-    print "---------------------------------------------------------------------"
-    print
-    print " Current defined map slot capacity: %s" % args.slots
-    print
-    print " Current queue capacity: %s%%" % currentCapacity
-    print
-    print " Current configured/active queue(s): "
-    print
+    # Setup selection menu for editing queue
+    selection = performSelection("Current configured/active queue(s)", "Select queue to edit", hadoopConfigs['mapred.queue.names'])
     
-    for n, queue in enumerate(hadoopConfigs['mapred.queue.names']):
-        print "   %s) %s" % (n + 1, queue)
-
-    print
-    print
-    
-    ""
-    
-    
-    ###============================
-    ### Start doing Hadoop actions
-    ###============================
-
-    #retval = performActions(args)
+    if selection:
+        print selection
 
 if __name__ == '__main__':
     main()

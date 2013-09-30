@@ -17,7 +17,10 @@
 #######################################################################################################################
 #  001		07-12-2013		Adam Dosch			Initial Release
 #  002		09-17-2013		Adam Dosch			Adding --loglocation parameter for external 
-#									logging
+# 									logging
+#  003		09-25-2013		Adam Dosch			Removing timestamp from logfile generation
+#									and letting logrotate handle this
+#									Adding zero parameter check to print_usage
 #
 #######################################################################################################################
 
@@ -51,7 +54,7 @@ function print_usage
 }
 
 # Checking parameters
-if [ $# -gt 4 ]; then
+if [ $# -gt 4 -o $# -eq 0 ]; then
    print_usage
 else
    # Validating parameters
@@ -78,7 +81,7 @@ else
 
          --loglocation=*)
             LOGFILE=$(echo $param | cut -d= -f2)
-            LOGFILE="$LOGFILE/syncrepo-${TIMESTAMP}.log"
+            LOGFILE="$LOGFILE/syncrepo.log"
             ;;
 
          --repo2sync=*)
