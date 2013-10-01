@@ -89,16 +89,6 @@ def neworder(request):
         print "ERRORS"
         print errors
         
-        if request.POST.has_key('utm_zone'):
-            print "UTM Zone:%s" % request.POST['utm_zone']
-        else:
-            print "No UTM zone came in on the request"
-            
-        if request.POST.has_key("utm_zone_north_south"):
-            print "UTM N/S:%s" % request.POST['utm_zone_north_south']
-            
-            
-        
         if len(errors) > 0:
             print "Errors Detected..."
             c = RequestContext(request, {'errors':errors,
