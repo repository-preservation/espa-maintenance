@@ -392,7 +392,7 @@ def warp_outputs(workdir, projection=None, image_extents=None, pixel_size=None, 
                     md_filename = "%s.txt" % hdfname
                     util.log("CDR_ECV", "Writing global metadata to %s" % md_filename)
                     h = open(md_filename, 'w+')
-                    h.write(md)
+                    h.write(str(md))
                     h.flush()
                     h.close()
                 util.log("CDR_ECV", "Deleting intermediate raster products following warp")
