@@ -396,12 +396,16 @@ def warp_outputs(workdir, projection=None, image_extents=None, pixel_size=None, 
                     h.flush()
                     h.close()
                 util.log("CDR_ECV", "Deleting intermediate raster products following warp")
-                os.unlink(item)
-                os.unlink("%s.hdr" % item)
+                if os.path.exists(item):
+                    os.unlink(item)
+                hdr_file = ("%s.hdr" % item)
+                if os.path.exists(hdr_file):
+                    os.unlink(hdr_file)
             else:
                 outfilename = "out-%s.tiff" % item
                 run_warp(item, outfilename)
-                os.unlink(item)
+                if os.path.exists(item):
+                    os.unlink(item)
                 os.rename(outfilename, item)
             
         return (0,'')
