@@ -386,13 +386,15 @@ def warp_outputs(workdir, projection=None, image_extents=None, pixel_size=None, 
                     if code != 0 and code != 256:
                         util.log("CDR_ECV", "Error warping %s.  Error was %s" % (item, out))
                         raise Exception("Error warping %s.  Error was %s" % (item, out))
-
+                util.log("CDR_ECV", "Retrieving global hdf metadata")
                 md = get_hdf_global_metadata(workdir, item)
                 md_filename = "%s.txt" % hdfname
+                util.log("CDR_ECV", "Writing global metadata to %s" % md_filename)
                 h = open(md_filename, 'w+')
                 h.write(md)
                 h.flush()
                 h.close()
+                util.log("CDR_ECV", "Deleting intermediate raster products following warp")
                 os.unlink(item)
                 os.unlink("%s.hdr" % item)
             else:
