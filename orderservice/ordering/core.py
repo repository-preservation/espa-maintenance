@@ -97,7 +97,7 @@ def get_default_options():
     options['pixel_size_units'] = None                    #meters or dd. 
     
     #Must have this when reprojecting or resizing pixels
-    options['resample_method'] = 'nn'                     #for ops that need it, how would user like to resample?
+    options['resample_method'] = 'near'                     #for ops that need it, how would user like to resample?
     
     return options
 
