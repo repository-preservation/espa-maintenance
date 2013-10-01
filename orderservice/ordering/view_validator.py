@@ -196,9 +196,9 @@ def validate_product_options(request):
     #Collect requested products.
     for o in default_options.iterkeys():
         #if request.POST.has_key(o) and request.POST[o] == True:
-        if request.POST.has_key(o) and request.POST[o] == True or str(request.POST[o]).lower() == 'on':
+        if request.POST.has_key(o) and (request.POST[o] == True or str(request.POST[o]).lower() == 'on'):
             default_options[o] = True
-            #default_options[o] = request.POST[o]
+            
            
     validate_projection_params(request, default_options, prod_option_errors)
     validate_boundingbox_params(request, default_options, prod_option_errors)
