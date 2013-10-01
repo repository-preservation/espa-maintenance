@@ -326,7 +326,7 @@ def warp_outputs(workdir, projection=None, image_extents=None, pixel_size=None, 
         if pixel_size:
             cmd += " -tr %s %s" % (pixel_size,pixel_size)
         if projection:
-            cmd += " -t_srs %s" % projection
+            cmd += " -t_srs '%s'" % projection
         if resample_method:
             cmd += " -r %s" % resample_method
         cmd += " %s %s" % (sourcefile, outfile)
