@@ -315,14 +315,15 @@ def warp_outputs(workdir, projection=None, image_extents=None, pixel_size=None, 
     '''
     resample_methods = ('near', 'bilinear', 'cubic', 'cubicspline', 'lanczos')
     pixel_units = ('meters', 'dd')
-    
+   
+ 
     #local scope function to build a warp command for each item we need to warp
     def build_warp_command(sourcefile, outfile):
         cmd = "gdalwarp -wm 2048 -multi"
         
         if image_extents:
-            minx,miny,maxx,maxy = image_extents
-            cmd += " -te %f %f %f %f" % (minx, miny, maxx, maxy)
+            minx,miny,maxx,maxy = image_extents.split(',')
+            cmd += " -te %f %f %f %f" % (float(minx.strip()), float(miny.strip()), float(maxx.strip()), float(maxy.strip()))
         if pixel_size:
             cmd += " -tr %s %s" % (pixel_size,pixel_size)
         if projection:
@@ -361,11 +362,12 @@ def warp_outputs(workdir, projection=None, image_extents=None, pixel_size=None, 
             raise ValueError("Pixel unit [%s] unsupported.  Must be one of meters or dd" % pixel_unit)
 
         if image_extents:
+            util.log("DEBUGGING", "Image extents:%s" % image_extents)
             try:
-                minx,miny,maxx,maxy = image_extents
-                if minx >= maxx:
+                minx,miny,maxx,maxy = image_extents.split(',')
+                if float(minx.strip()) >= float(maxx.strip()):
                     raise ValueError("minx must be less than maxx")
-                if miny >= maxy:
+                if float(miny.strip()) >= float(maxy.strip()):
                     raise ValueError("miny must be less than maxy")
             except:
                 raise ValueError("image_extents must be specified as minx,miny,maxx,maxy")
