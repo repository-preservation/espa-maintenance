@@ -245,21 +245,42 @@ if __name__ == '__main__':
                 minx,miny,maxx,maxy = options['minx'], options['miny'], options['maxx'], options['maxy']
                 cmd += ' --set_image_extent %s,%s,%s,%s ' % (minx,miny,maxx,maxy)
             
-            if options.has_key('resize') and options['resize'] == True:
+
+            #See if the user requested a pixel size. If so set and use it.
+            if (options.has_key('resize') and options['resize'] == True):
                 pixel_size = options['pixel_size']
                 pixel_unit = options['pixel_size_units']
-                cmd += ' --pixel_size %s --pixel_unit %s' % (pixel_size, pixel_unit)
-                
+
+            #somebody asked for reproject or extents but didn't specify a pixel size.
+            #default to 30 meters or dd equivalent.  Everything will default to 30 meters
+            #except if they chose geographic projection.  Then its dd equivalent.
+            elif (options.has_key('reproject') and options['reproject'] == True) or \
+                 (options.has_key('image_extents') and options['image_extents'] == True):
+                if options.has_key('target_projection') and options['target_projection']:
+                    if str(options['target_projection']).lower() == 'lonlat':
+                        pixel_size = .0022695
+                        pixel_unit = 'dd'
+                else:
+                    pixel_size = 30
+                    pixel_unit = 'meters'
+                    
+            if pixel_size and pixel_unit:
+                  cmd += ' --pixel_size %s --pixel_unit %s' % (pixel_size, pixel_unit)
+
             if options.has_key('resample_method'):
                 cmd += ' --resample_method %s ' % options['resample_method']
 
             logger(sceneid, "Running command:%s" % cmd)    
-            h = open("/tmp/cmd_debug.txt", "wb+")
+            h = open("/tmp/%s-cmd_debug.txt" % sceneid, "wb+")
             h.write(cmd)
             h.flush()
             h.close()
 
+            #right here is where we are not picking up the fact that there is an error, probably because cdr_ecv.py is returning a tuple
             status,output = commands.getstatusoutput(cmd)
+
+            logger(sceneid, "Status return from cdr_ecv:%s" % status)
+            
             if status != 0 and status != 256:
                 logger (sceneid, "Error occurred processing %s" % sceneid)
                 logger (sceneid, "%s returned code:%s" % (sceneid, status))
@@ -277,25 +298,14 @@ if __name__ == '__main__':
                     b = StringIO(output)
                     status_line = [f for f in b.readlines() if f.startswith("espa.result")]
                                         
-                    if len(status_line) >= 1:
-                        #logger(sceneid, "len(status_line) >= 1")
-                               
+                    if len(status_line) >= 1:          
                         myjson = status_line[0].split('=')[1]
-                        #logger(sceneid, "myjson:%s" % myjson)
-                               
                         data = json.loads(myjson)
-                        #logger(sceneid, "Data:%s" % data)
-                        
                         completed_scene_location = data['destination_file']
-                        #logger(sceneid, "completed_scene_location:%s" % completed_scene_location)
-                        
                         cksum_file_location = data['destination_cksum_file']
-                        #logger(sceneid, "cksum_file_location:%s" % cksum_file_location)
-                        
                         server.markSceneComplete(sceneid, orderid, processing_location, completed_scene_location, cksum_file_location, "")
-                        #logger(sceneid, "Mark scene complete...")
                     else:
-                        raise Exception("Did not receive a distribution location or cksum file location for:%s.  Status line was:%s\n.  Log:%s" % (sceneid,status_line, output))
+                        raise Exception("Did not receive a distribution location or cksum file location for:%s.\n Status code:%s\n  Status line:%s\n.  Log:%s" % (sceneid,status, status_line, output))
 
         except Exception, e:
             logger (sceneid, "An error occurred processing %s" % sceneid)

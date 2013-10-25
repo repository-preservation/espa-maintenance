@@ -289,7 +289,7 @@ def get_hdf_global_metadata(workdir, hdf_file):
             if str(line).strip().lower().startswith("metadata"):
                 intext = True
                 continue
-            if (str(line).strip().lower().startswith("subdatasets")):
+            if (str(line).strip().lower().startswith("subdatasets") or str(line).strip().lower().startswith("corner")):
                 intext = False
                 break
             if intext:
@@ -332,13 +332,23 @@ def warp_outputs(workdir, projection=None, image_extents=None, pixel_size=None, 
             cmd += " -r %s" % resample_method
         cmd += " %s %s" % (sourcefile, outfile)
         return cmd
-    
 
+    #determines if there are hdf sds in an hdf
+    def has_hdf_subdatasets(hdf_file):
+        cmd = "gdalinfo %s" % hdf_file
+        status,output = commands.getstatusoutput(cmd)
+        if status >> 8 == 0:
+            for line in output.split("\n"):
+                if str(line).strip().lower().startswith("subdataset"):
+                    return True
+            return False
+                    
+    #finds all the subdataset names in an hdf file
     def parse_hdf_subdatasets(hdf_file):
         cmd = "gdalinfo %s" % hdf_file
         print cmd
         status,output = commands.getstatusoutput(cmd)
-        if status == 0 or status == 256:
+        if status >> 8 == 0:
             for line in output.split("\n"):
                 if str(line).strip().lower().startswith("subdataset") and str(line).strip().lower().find("_name") != -1:
                     parts = line.split("=")
@@ -379,15 +389,12 @@ def warp_outputs(workdir, projection=None, image_extents=None, pixel_size=None, 
         what_to_warp = [x for x in contents if str(x).lower().endswith('hdf') or str(x).lower().find('tif') != -1]
         
         for item in what_to_warp:
-            if item.lower().endswith('hdf'):                
+
+            if item.lower().endswith('hdf'):
+
                 hdfname = item.split(".hdf")[0]
-                for sds_desc,sds_name in parse_hdf_subdatasets(item):
-                    sds_parts = sds_name.split(":")
-                    outfilename = "%s-%s.tiff" % (hdfname,sds_parts[len(sds_parts) - 1])
-                    code,item,out = run_warp(sds_name, outfilename)
-                    if code != 0 and code != 256:
-                        util.log("CDR_ECV", "Error warping %s.  Error was %s" % (item, out))
-                        raise Exception("Error warping %s.  Error was %s" % (item, out))
+
+                #copy over the global hdf metadata into a separate file
                 util.log("CDR_ECV", "Retrieving global hdf metadata")
                 md = get_hdf_global_metadata(workdir, item)
                 if md is not None and len(md) > 0:
@@ -397,17 +404,57 @@ def warp_outputs(workdir, projection=None, image_extents=None, pixel_size=None, 
                     h.write(str(md))
                     h.flush()
                     h.close()
+
+                
+                
+                if has_hdf_subdatasets(item):
+                    #handle warping if the file is hdf    
+                    for sds_desc,sds_name in parse_hdf_subdatasets(item):
+                        sds_parts = sds_name.split(":")
+                        outfilename = "%s-%s.tif" % (hdfname,sds_parts[len(sds_parts) - 1])
+                        code,sds_item,out = run_warp(sds_name, outfilename)
+                        if code >> 8 != 0:
+                            util.log("CDR_ECV", "Error warping %s.  Error was %s" % (sds_item, out))
+                            raise Exception("Error warping %s.  Error was %s" % (sds_item, out))
+                else:
+                    outfilename = "%s.tif" % hdfname
+                    code, hdf_item, out = run_warp(item, outfilename)
+                    if code >> 8 != 0:
+                        util.log("CDR_ECV", "Error warping %s.  Error was %s" % (item, out))
+                        raise Exception("Error warping %s.  Error was %s" % (item, out))
+                    
+
+                #wipe out the hdf's, don't need them anymore
                 util.log("CDR_ECV", "Deleting intermediate raster products following warp")
-                if os.path.exists(item):
-                    os.unlink(item)
-                hdr_file = ("%s.hdr" % item)
+                if os.path.exists(os.path.join(workdir,item)):
+                    util.log("CDR_ECV", "Located intermediate raster:%s... deleting" % os.path.join(workdir,item))
+                    os.unlink(os.path.join(workdir, item))
+                else:
+                    util.log("CDR_ECV", "Did not find intermediate product:%s... skipping delete" % os.path.join(workdir, item))
+
+                hdr_file = ("%s.hdr" % os.path.join(workdir, item))
+                util.log("CDR_ECV", "Deleting intermediate hdf header file:%s" % hdr_file)
+                
                 if os.path.exists(hdr_file):
+                    util.log("CDR_ECV", "Located intermediate hdr file:%s... deleting" % hdr_file)
                     os.unlink(hdr_file)
+                else:
+                    util.log("CDR_ECV", "Did not find intermediate hdr file:%s... skipping delete" % hdr_file)
             else:
-                outfilename = "out-%s.tiff" % item
-                run_warp(item, outfilename)
+                #assume if its not hdf then it must be geotiff
+                
+                outfilename = "tmp-%s.tif" % item.split(".TIF")[0].lower()
+                code,item,out = run_warp(item, outfilename)
+                if code >> 8 != 0:
+                    util.log("CDR_ECV", "Error warping %s.  Error was %s" % (item, out))
+                    raise Exception("Error warping %s.  Error was %s" % (item, out))
+
                 if os.path.exists(item):
+                    util.log("CDR_ECV", "Located intermediate geotiff file:%s... deleting" % item)
                     os.unlink(item)
+                else:
+                    util.log("CDR_ECV", "Did not find intermediate geotiff file:%s... skipping delete" % item)
+
                 os.rename(outfilename, item)
             
         return (0,'')
@@ -770,6 +817,8 @@ if __name__ == '__main__':
         options.collection_name = "DEFAULT_COLLECTION"
         util.log("CDR_ECV", "\n A collection name was not provided but is required when generating a solr index \n")
         util.log("CDR_ECV", "\n collection_name is being set to 'DEFAULT_COLLECTION' \n")
+
+
         
     #WE WON'T RUN ANYTHING WITHOUT HAVING THE WORKING DIRECTORY SET
     if not os.environ.has_key("ESPA_WORK_DIR") or \
@@ -957,7 +1006,7 @@ if __name__ == '__main__':
         util.log("CDR_ECV", "SPECTRAL INDICES COMMAND:%s" % cmd)
         util.log("CDR_ECV", "Running Spectral Indices")
         status,output = commands.getstatusoutput(cmd)
-        if status != 0:
+        if status >> 8 != 0:
             util.log("CDR_ECV", "Spectral Index error detected... exiting")
             util.log("CDR_ECV", output)
             sys.exit((9, output))
@@ -989,33 +1038,29 @@ if __name__ == '__main__':
             sys.exit((12, output))
 
     
-    if options.projection or options.image_extent or options.pixel_size:
-        util.log("CDR_ECV", "Warping output products")
-        status, output = warp_outputs(workdir, options.projection, options.image_extent, options.pixel_size, options.pixel_unit, options.resample_method)
-        if status != 0:
-            util.log("CDR_ECV", "Error warping products (status %s)... exiting" % status)
-            sys.exit((13, output))
-    
-    
-    
     #DELETE UNNEEDED FILES FROM PRODUCT DIRECTORY
     util.log("CDR_ECV", "Purging unneeded files from %s" % workdir)
+    util.log("CDR_ECV", "Workdir contents:%s" % os.listdir(workdir))
     orig_cwd = os.getcwd()
     os.chdir(workdir)
     
     sb = StringIO()
     
     #always remove these
-    sb.write(" *sixs* *metadata* LogReport* README* ")
+    sb.write(" *sixs* *metadata* LogReport* README* fmask*txt ")
     
     if not options.sourcefile_flag:
         sb.write(" *TIF *gap_mask* ")
     if not options.sourcefile_metadata_flag:
         sb.write(" *MTL* *VER* *GCP* ")
     if not options.b6thermal_flag:
-        sb.write(" *lndth* ")
+        sb.write(" lndth.%s.hdf " % scene)
+        sb.write(" lndth.%s.hdf.hdr " % scene)
+        sb.write(" lndth.%s.txt " % scene)
     if not options.toa_flag:
-        sb.write(" *lndcal* ")
+        sb.write(" lndcal.%s.hdf " % scene)
+        sb.write(" lndcal.%s.hdf.hdr " % scene)
+        sb.write(" lndcal.%s.txt " % scene)
     if not options.sr_flag:
         sb.write(" lndsr.%s.hdf " % scene)
         sb.write(" lndsr.%s.hdf.hdr " % scene)
@@ -1026,18 +1071,29 @@ if __name__ == '__main__':
         sb.write(" *ndvi* ")
     if not options.solr_flag:
         sb.write(" *index* ")
-    if not options.cfmask_flag:
+    if not options.cfmask_flag \
+       and not options.projection \
+       and not options.image_extent \
+       and not options.pixel_size:
         sb.write(" *fmask* ")
+        
     sb.flush()
-    
     cmd = "rm -rf %s " % sb.getvalue()
-    
     sb.close()
     status,output = commands.getstatusoutput(cmd)
     if status != 0:
         util.log("CDR_ECV", "Error purging files from %s... exiting" % workdir)
         util.log("CDR_ECV",  output)
-        sys.exit((14, output))
+        sys.exit((13, output))
+
+    #warp outputs if necessary
+
+    if options.projection or options.image_extent or options.pixel_size:
+        util.log("CDR_ECV", "Warping output products")
+        status, output = warp_outputs(workdir, options.projection, options.image_extent, options.pixel_size, options.pixel_unit, options.resample_method)
+        if status != 0:
+            util.log("CDR_ECV", "Error warping products (status %s)... exiting" % status)
+            sys.exit((14, output))
 
     #PACKAGE THE PRODUCT    
     attempt = 0
