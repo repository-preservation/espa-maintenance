@@ -1071,10 +1071,7 @@ if __name__ == '__main__':
         sb.write(" *ndvi* ")
     if not options.solr_flag:
         sb.write(" *index* ")
-    if not options.cfmask_flag \
-       and not options.projection \
-       and not options.image_extent \
-       and not options.pixel_size:
+    if not options.cfmask_flag:
         sb.write(" *fmask* ")
         
     sb.flush()
