@@ -261,7 +261,7 @@ if __name__ == '__main__':
                  (options.has_key('image_extents') and options['image_extents'] == True):
                 if options.has_key('target_projection') and options['target_projection']:
                     if str(options['target_projection']).lower() == 'lonlat':
-                        pixel_size = .0022695
+                        pixel_size = .0002695
                         pixel_unit = 'dd'
                 else:
                     pixel_size = 30
