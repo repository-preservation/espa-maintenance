@@ -72,6 +72,15 @@ Dependencies (Processing Nodes)
 		(Will be installed to /usr/local/var/ledaps/anc by default)
 		
 Change Notes
+Version 2.2.1
+        Fixed bug reprojecting spectral indices
+        Fixed bug reprojecting cfmask
+        Modified reprojected filename extensions to '.tif'
+        Defaulted pixel size to 30 meters or dd equivalent when necessary.
+        Corrected Albers subsetting failures.
+        Modified code to properly clean up HDFs when reprojecting/reformatting to GeoTiff
+        Optimized calls to warp outputs in the cdr_ecv.
+
 Version 2.2.0
         Added code to perform reprojection.
         Added code to perform framing.
