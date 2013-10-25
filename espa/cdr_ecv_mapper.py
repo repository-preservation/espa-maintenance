@@ -263,8 +263,11 @@ if __name__ == '__main__':
                     if str(options['target_projection']).lower() == 'lonlat':
                         pixel_size = .0002695
                         pixel_unit = 'dd'
+                    else:
+                        pixel_size = 30.0
+                        pixel_unit = 'meters'
                 else:
-                    pixel_size = 30
+                    pixel_size = 30.0
                     pixel_unit = 'meters'
                     
             if pixel_size and pixel_unit:
@@ -277,8 +280,15 @@ if __name__ == '__main__':
             if options.has_key('resample_method'):
                 cmd += ' --resample_method %s ' % options['resample_method']
 
-
-
+            
+            
+            #this is for debugging only
+            #import sys
+            #print "Command"
+            #print cmd
+            #print "Quitting"
+            #sys.exit(1)
+            #end debugging
 
             logger(sceneid, "Running command:%s" % cmd)    
             h = open("/tmp/%s-cmd_debug.txt" % sceneid, "wb+")
