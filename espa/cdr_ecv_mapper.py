@@ -246,6 +246,9 @@ if __name__ == '__main__':
                 cmd += ' --set_image_extent %s,%s,%s,%s ' % (minx,miny,maxx,maxy)
             
 
+            pixel_size = None
+            pixel_unit = None
+            
             #See if the user requested a pixel size. If so set and use it.
             if (options.has_key('resize') and options['resize'] == True):
                 pixel_size = options['pixel_size']
@@ -267,8 +270,15 @@ if __name__ == '__main__':
             if pixel_size and pixel_unit:
                   cmd += ' --pixel_size %s --pixel_unit %s' % (pixel_size, pixel_unit)
 
+
+
+
+
             if options.has_key('resample_method'):
                 cmd += ' --resample_method %s ' % options['resample_method']
+
+
+
 
             logger(sceneid, "Running command:%s" % cmd)    
             h = open("/tmp/%s-cmd_debug.txt" % sceneid, "wb+")
