@@ -183,6 +183,9 @@ if __name__ == '__main__':
             if options.has_key('include_sr_toa') and options['include_sr_toa'] == True:
                 cmd = cmd + '--toa ' 
 
+            if options.has_key('include_surface_water_extent') and options['include_surface_water_extent'] == True:
+                cmd = cmd + '--surface_water_extent ' 
+
             if options.has_key('include_sourcefile') and options['include_sourcefile'] == True:
                 cmd = cmd + '--sourcefile '
 

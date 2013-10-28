@@ -30,6 +30,35 @@ from cStringIO import StringIO
 import frange
 import util
 
+##############################################################################
+class cdr_ecv_exit_codes:
+    '''
+    Description:
+      A simple class/structure to organize exit return values.
+    '''
+    exit_success              =  0
+    exit_failure              =  1
+    environment               =  2
+    creating_staging_dir      =  3
+    creating_working_dir      =  4
+    creating_output_dir       =  5
+    file_transfer             =  6
+    unpacking                 =  7
+    ledaps                    =  8
+    browse                    =  9
+    spectral_indices          = 10
+    solr                      = 11
+    cfmask                    = 12
+    cfmask_append             = 13
+    warping                   = 14
+    purging                   = 15
+    packaging_distribution    = 16
+    cleanup_output_dir        = 17
+    dem                       = 18
+    swe                       = 19
+# END class cdr_ecv_exit_codes
+
+
 ########################################################################################################################
 # Utility to control filenames
 ########################################################################################################################
@@ -272,10 +301,10 @@ def make_cfmask(workdir):
             util.log("CDR_ECV", "CFMask output:%s" % output)
             util.log("CDR_ECV", "End of CFMask output")
             
-            return status
+            return (status, output)
     finally:
         pass
-    return 0
+    return (0, '')
 
 
 def get_hdf_global_metadata(workdir, hdf_file):
@@ -705,6 +734,18 @@ if __name__ == '__main__':
                       default=False,
                       help="Create evi for this scene")
     
+    parser.add_option("--dem",
+                      action="store_true",
+                      dest="dem_flag",
+                      default=False,
+                      help="Create a DEM for this scene")
+    
+    parser.add_option("--surface_water_extent",
+                      action="store_true",
+                      dest="swe_flag",
+                      default=False,
+                      help="Create surface water extent for this scene")
+    
     parser.add_option("--toa",
                       action="store_true",
                       dest="toa_flag",
@@ -806,12 +847,12 @@ if __name__ == '__main__':
     if options.scene is None:
         util.log("CDR_ECV", "\n You must specify a scene to process\n")
         parser.print_help()        
-        sys.exit((-1,))
+        sys.exit(cdr_ecv_exit_codes.exit_failure,)
 
     if options.ordernum is None and options.collection_name is None and options.destination_directory is None:
         util.log("CDR_ECV", "\n Either an ordernumber,collection name or destination directory is required \n")
         parser.print_help()
-        sys.exit((-1,))
+        sys.exit(cdr_ecv_exit_codes.exit_failure,)
 
     if options.solr_flag and options.collection_name is None:
         options.collection_name = "DEFAULT_COLLECTION"
@@ -824,7 +865,7 @@ if __name__ == '__main__':
     if not os.environ.has_key("ESPA_WORK_DIR") or \
     len(os.environ.get("ESPA_WORK_DIR")) < 1:
         util.log("CDR_ECV", "$ESPA_WORK_DIR not set... exiting")
-        sys.exit((1, "ESPA_WORK_DIR not set"))
+        sys.exit(cdr_ecv_exit_codes.environment, "ESPA_WORK_DIR not set")
 
     if os.environ.get("ESPA_WORK_DIR") == ".":
         BASE_WORK_DIR = os.getcwd()
@@ -849,6 +890,9 @@ if __name__ == '__main__':
     doy = util.getDoy(scene)
     source_host=options.source_host
     destination_host=options.destination_host
+    dem_prefix = 'dem.envi' # used to create the DEM filename and for cleanup
+    dem_filename = dem_prefix + '.%s.bin' % scene
+
     if options.source_directory is not None:
         source_directory = options.source_directory
     else:
@@ -861,7 +905,7 @@ if __name__ == '__main__':
     else:
         errmsg = 'Did not recognize source file type:%s' % options.source_type
         util.log("CDR_ECV", errmsg)
-        sys.exit((-1, errmsg))
+        sys.exit(cdr_ecv_exit_codes.exit_failure, errmsg)
         
     source_file = ("%s/%s") % (source_directory,source_filename)
     
@@ -878,7 +922,7 @@ if __name__ == '__main__':
     else:
         errmsg = "Error determining if scene should be distributed as an order or to a directory"
         util.log("CDR_ECV", errmsg)
-        sys.exit((-1, errmsg))
+        sys.exit(cdr_ecv_exit_codes.exit_failure, errmsg)
     
     destination_file = ("%s/%s.tar.gz") % (destination_dir,product_filename)
     destination_cksum_file = ("%s/%s.cksum") % (destination_dir, product_filename)
@@ -899,7 +943,7 @@ if __name__ == '__main__':
     except Exception,e:
         util.log("CDR_ECV", "Error cleaning & creating stagedir:%s... exiting" % (stagedir))
         util.log("CDR_ECV",  e)
-        sys.exit((2, e))
+        sys.exit(cdr_ecv_exit_codes.creating_staging_dir, e)
 
     #PREPARE LOCAL WORK DIRECTORY
     try:
@@ -912,7 +956,7 @@ if __name__ == '__main__':
     except Exception,e:
         util.log("CDR_ECV", "Error cleaning & creating workdir:%s... exiting" % (workdir))
         util.log("CDR_ECV",  e)
-        sys.exit((3, e))
+        sys.exit(cdr_ecv_exit_codes.creating_working_dir, e)
     
     #PREPARE LOCAL OUTPUT DIRECTORY
     try:
@@ -925,7 +969,7 @@ if __name__ == '__main__':
     except Exception, e:
         util.log("CDR_ECV", "Error cleaning & creating outputdir:%s... exiting" % (outputdir))
         util.log("CDR_ECV", e)
-        sys.exit((4, e))
+        sys.exit(cdr_ecv_exit_codes.creating_output_dir, e)
     
     #TRANSFER THE SOURCE FILE TO THE LOCAL MACHINE
     util.log("CDR_ECV", "Transferring %s from %s to %s" % (source_file,source_host,localhostname))
@@ -934,7 +978,7 @@ if __name__ == '__main__':
     if status != 0:
         util.log("CDR_ECV", "Error transferring %s:%s to %s... exiting" % (source_host, source_file, stagedir))
         util.log("CDR_ECV", output)
-        sys.exit((5, output))
+        sys.exit(cdr_ecv_exit_codes.file_transfer, output)
     
     #UNPACK THE SOURCE FILE
     util.log("CDR_ECV", "Unpacking %s to %s" % (source_filename, workdir))
@@ -943,7 +987,7 @@ if __name__ == '__main__':
     if status != 0:
         util.log("CDR_ECV", "Error unpacking source file to %s/%s" % (workdir,source_filename))
         util.log("CDR_ECV", output)
-        sys.exit((6, output))
+        sys.exit(cdr_ecv_exit_codes.unpacking, output)
 
     metadata = getMetaData(workdir)
     if options.debug is not None:
@@ -964,6 +1008,7 @@ if __name__ == '__main__':
          or options.sr_evi_flag
          or options.sr_flag
          or options.b6thermal_flag
+         or options.swe_flag
          or options.toa_flag
          or options.cfmask_flag):
         cmd = ("cd %s; do_ledaps.py --metafile %s") % (workdir, metadata['mtl_file'])
@@ -974,7 +1019,7 @@ if __name__ == '__main__':
         if status != 0:
             util.log("CDR_ECV", "LEDAPS error detected... exiting")
             util.log("CDR_ECV", output)
-            sys.exit((7, output))
+            sys.exit(cdr_ecv_exit_codes.ledaps, output)
 
      
     #MAKE BROWSE IMAGE
@@ -982,7 +1027,7 @@ if __name__ == '__main__':
         status = makeBrowse(workdir, metadata, scene, options.browse_resolution)
         if status != 0:
             util.log("CDR_ECV", "Error generating browse... exiting")
-            sys.exit((8, output))
+            sys.exit(cdr_ecv_exit_codes.browse, output)
 
     
     #MAKE SPECTRAL INDICIES
@@ -1009,22 +1054,43 @@ if __name__ == '__main__':
         if status >> 8 != 0:
             util.log("CDR_ECV", "Spectral Index error detected... exiting")
             util.log("CDR_ECV", output)
-            sys.exit((9, output))
-    
+            sys.exit(cdr_ecv_exit_codes.spectral_indices, output)
+
+
+    #CREATE DEM for DEM or SWE
+    if (options.dem_flag or options.swe_flag):
+        cmd = ("cd %s; do_create_dem.py --metafile %s --demfile %s") \
+            % (workdir, metadata['mtl_file'], dem_filename)
+
+        if options.debug is not None:
+            util.log("CDR_ECV", "CREATE DEM COMMAND:%s" % cmd)
+
+        util.log("CDR_ECV", "Running CREATE DEM against %s with metafile %s" \
+            % (scene,metadata['mtl_file']))
+
+        status,output = commands.getstatusoutput(cmd)
+        if status != 0:
+            util.log("CDR_ECV", "CREATE DEM error detected... exiting")
+            util.log("CDR_ECV", output)
+            sys.exit(cdr_ecv_exit_codes.dem, output)
+    # END CREATE DEM
+
+
     #MAKE SOLR INDEX
     if options.solr_flag:
         util.log("CDR_ECV", "Running Solr Index")
         status = makeSolrIndex(metadata, scene, workdir, options.collection_name)
         if status != 0:
             util.log("CDR_ECV", "Error creating solr index... exiting")
-            sys.exit((10, output))
+            sys.exit(cdr_ecv_exit_codes.solr, output)
 
     if options.cfmask_flag or options.sr_flag:
         util.log("CDR_ECV", "Running CFMask")
-        status = make_cfmask(workdir)
+        status,output = make_cfmask(workdir)
         if status != 0:
-            util.log("CDR_ECV", "Error creating cfmask (status %s)... exiting" % status)
-            sys.exit((11, output))
+            util.log("CDR_ECV",
+                "Error creating cfmask (status %s)... exiting" % status)
+            sys.exit(cdr_ecv_exit_codes.cfmask, output)
 
     #IF THIS WAS JUST AN SR REQUEST THEN APPEND THE CFMASK RESULTS INTO
     #THE SR OUTPUT.  IF CFMASK WAS ALSO REQUESTED THEN WE WILL PROVIDE IT
@@ -1035,9 +1101,30 @@ if __name__ == '__main__':
         status,output = commands.getstatusoutput(cmd)
         if status != 0:
             util.log("CDR_ECV", "Error appending cfmask to sr output... exiting")
-            sys.exit((12, output))
+            sys.exit(cdr_ecv_exit_codes.cfmask_append, output)
 
-    
+
+    #CREATE SURFACE WATER EXTENT
+    if options.swe_flag:
+        cmd = "cd %s; do_surface_water_extent.py --metafile %s" \
+            " --reflectance %s --dem %s" % (workdir, metadata['mtl_file'],
+            get_sr_filename(scene), dem_filename)
+
+        if options.debug is not None:
+            util.log("CDR_ECV", "CREATE SWE COMMAND:%s" % cmd)
+
+        util.log("CDR_ECV",
+            "Running CREATE SWE against %s with metafile %s and dem %s" \
+            % (scene,metadata['mtl_file'], dem_filename))
+
+        status,output = commands.getstatusoutput(cmd)
+        if status != 0:
+            util.log("CDR_ECV", "CREATE SWE error detected... exiting")
+            util.log("CDR_ECV", output)
+            sys.exit(cdr_ecv_exit_codes.swe, output)
+    # END CREATE SURFACE WATER EXTENT
+
+
     #DELETE UNNEEDED FILES FROM PRODUCT DIRECTORY
     util.log("CDR_ECV", "Purging unneeded files from %s" % workdir)
     util.log("CDR_ECV", "Workdir contents:%s" % os.listdir(workdir))
@@ -1061,6 +1148,10 @@ if __name__ == '__main__':
         sb.write(" lndcal.%s.hdf " % scene)
         sb.write(" lndcal.%s.hdf.hdr " % scene)
         sb.write(" lndcal.%s.txt " % scene)
+    if not options.dem_flag: # The DEM files are not to be delivered
+        sb.write(' ' + dem_prefix + '.* ')
+    if not options.swe_flag:
+        sb.write(" *swe* ")
     if not options.sr_flag:
         sb.write(" lndsr.%s.hdf " % scene)
         sb.write(" lndsr.%s.hdf.hdr " % scene)
@@ -1081,7 +1172,7 @@ if __name__ == '__main__':
     if status != 0:
         util.log("CDR_ECV", "Error purging files from %s... exiting" % workdir)
         util.log("CDR_ECV",  output)
-        sys.exit((13, output))
+        sys.exit(cdr_ecv_exit_codes.purging, output)
 
     #warp outputs if necessary
 
@@ -1090,7 +1181,8 @@ if __name__ == '__main__':
         status, output = warp_outputs(workdir, options.projection, options.image_extent, options.pixel_size, options.pixel_unit, options.resample_method)
         if status != 0:
             util.log("CDR_ECV", "Error warping products (status %s)... exiting" % status)
-            sys.exit((14, output))
+            sys.exit(cdr_ecv_exit_codes.warping, output)
+
 
     #PACKAGE THE PRODUCT    
     attempt = 0
@@ -1113,7 +1205,8 @@ if __name__ == '__main__':
 
     if not success:
         util.log("CDR_ECV", "Packaging and distribution for %s:%s failed after 3 attempts" % (destination_host,destination_file))
-        sys.exit((15, "Failed to distribute %s" % destination_file))
+        msg = "Failed to distribute %s" % destination_file
+        sys.exit(cdr_ecv_exit_codes.packaging_distribution, msg)
         
               
     
@@ -1126,12 +1219,12 @@ if __name__ == '__main__':
     if status != 0:
         util.log("CDR_ECV", "Error cleaning output:%s work:%s stage:%s directories... exiting" % (outputdir,workdir,stagedir))
         util.log("CDR_ECV",  output)
-        sys.exit((16,output))
+        sys.exit(cdr_ecv_exit_codes.cleanup_output_dir, output)
     
     util.log("CDR_ECV", "ESPA Complete")
     #return 0 and the file we distributed
     #{u'f1': u'aaa', u'f2': u'adsf'}
     #do NOT util.log the next line.  It must be printed to stdout as the return value for this script
     print ('espa.result={"destination_file":"%s", "destination_cksum_file":"%s"}' % (destination_file, destination_cksum_file))
-    sys.exit()
-    
+    sys.exit(cdr_ecv_exit_codes.exit_success,)
+
