@@ -21,7 +21,8 @@ for x in ${gzfiles[*]};
 do
 #pull down all the metadata files and uncompress them
 wget http://landsat.usgs.gov/metadata_service/bulk_metadata_files/$x
-pigz -d $x
+#pigz -d $x
+gunzip $x
 done
 
 
@@ -39,19 +40,21 @@ hadoop dfs -Ddfs.replication=1 -Ddfs.block.size=$[16 * 1024 * 1024] -copyFromLoc
 done
 
 echo "Running MapReduce"
-hadoop jar /home/espa/bin/hadoop/contrib/streaming/hadoop-streaming-0.20.203.0.jar \
+#hadoop jar /home/espa/bin/hadoop/contrib/streaming/hadoop-streaming-0.20.203.0.jar \
+hadoop jar /home/espa/bin/hadoop/contrib/streaming/hadoop-streaming-*.jar \
 -D mapred.task.timeout=172800000 -D mapred.job.name=metadata_generation \
 -D mapred.reduce.tasks=50 \
 -D mapred.compress.map.output=true \
 -D mapred.reduce.tasks.speculative.execution=false \
 -D mapred.reduce.parallel.copies=15 \
 -D mapred.output.compress=true \
+-D mapred.job.queue.name=ondemand \
 -D mapred.output.compression.codec=org.apache.hadoop.io.compress.GzipCodec \
--file /home/espa/espa-site/espa/mapreduce/metadata/xml_mapper.py \
--file /home/espa/espa-site/espa/mapreduce/metadata/xml_reducer.py \
--mapper /home/espa/espa-site/espa/mapreduce/metadata/xml_mapper.py \
--reducer /home/espa/espa-site/espa/mapreduce/metadata/xml_reducer.py \
--combiner /home/espa/espa-site/espa/mapreduce/metadata/xml_reducer.py \
+-file /home/espa/espa-site/espa/metadata/xml_mapper.py \
+-file /home/espa/espa-site/espa/metadata/xml_reducer.py \
+-mapper /home/espa/espa-site/espa/metadata/xml_mapper.py \
+-reducer /home/espa/espa-site/espa/metadata/xml_reducer.py \
+-combiner /home/espa/espa-site/espa/metadata/xml_reducer.py \
 -inputreader 'StreamXmlRecordReader,begin=<metaData>,end=</metaData>' \
 -input md-in/ -output md-out/metadata-out
 
