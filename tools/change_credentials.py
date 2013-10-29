@@ -42,6 +42,7 @@
 #                                                   cron updating for user running script
 #                                                   which will always assumed to be the
 #                                                   user who needs their creds changed
+#  004          10-29-2013      Adam Dosch          Typo in -u options for user selection
 #
 ##########################################################################################
 
@@ -300,7 +301,7 @@ def main():
     #Set up option handling
     parser = argparse.ArgumentParser(description="Changes credentials supplied for -u/--username and updated Django configuration table for ESPA admin site.  Right now it needs to run on the same host where the MySQL database lives for ESPA.  This script will also auto-update a crontab for the user running this")
     
-    parser.add_argument("-u", "--username", action="store", nargs=1, dest="username", choices=['espa','esapdev'], help="Username to changed credentials for (e.g. [espa|esapdev] )")
+    parser.add_argument("-u", "--username", action="store", nargs=1, dest="username", choices=['espa','espadev'], help="Username to changed credentials for (e.g. [espa|esapdev] )")
     parser.add_argument("-f", "--frequency", action="store", type=int, default=60, dest="frequency", help="Frequency (in days) to change the following credentials")
     
     parser.add_argument("-v", "--verbose", action='store_true', dest="verbose", default=False, help=argparse.SUPPRESS)
