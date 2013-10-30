@@ -45,6 +45,7 @@
 #  004          10-29-2013      Adam Dosch          Typo in -u options for user selection
 #  005          10-30-2013      Adam Dosch          Missing import for commands module! WTF
 #                                                   Missing import for datetime module! WTF
+#                                                   Removing some debugging code.
 #
 ##########################################################################################
 
@@ -326,8 +327,6 @@ def main():
 
     # Username
     username = "".join(args.username)
-
-    print "freq: ", args.frequency
 
     # Lets append the username of creds we are changing to e-mail subject (in case we need to send one out)
     global email_subject
