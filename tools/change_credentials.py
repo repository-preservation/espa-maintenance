@@ -44,6 +44,7 @@
 #                                                   user who needs their creds changed
 #  004          10-29-2013      Adam Dosch          Typo in -u options for user selection
 #  005          10-30-2013      Adam Dosch          Missing import for commands module! WTF
+#                                                   Missing import for datetime module! WTF
 #
 ##########################################################################################
 
@@ -86,6 +87,8 @@ from email.Utils import parseaddr, formataddr
 import time
 
 import commands
+
+import datetime
 
 verbose = False
 
