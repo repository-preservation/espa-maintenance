@@ -85,6 +85,8 @@ from email.Utils import parseaddr, formataddr
 
 import time
 
+import commands
+
 verbose = False
 
 # E-mail Recipients/Subject
