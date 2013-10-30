@@ -43,6 +43,7 @@
 #                                                   which will always assumed to be the
 #                                                   user who needs their creds changed
 #  004          10-29-2013      Adam Dosch          Typo in -u options for user selection
+#  005          10-30-2013      Adam Dosch          Missing import for commands module! WTF
 #
 ##########################################################################################
 
