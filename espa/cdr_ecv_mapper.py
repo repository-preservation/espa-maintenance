@@ -186,6 +186,9 @@ if __name__ == '__main__':
             if options.has_key('include_surface_water_extent') and options['include_surface_water_extent'] == True:
                 cmd = cmd + '--surface_water_extent ' 
 
+            if options.has_key('include_snow_covered_area') and options['include_snow_covered_area'] == True:
+                cmd = cmd + '--snow_covered_area ' 
+
             if options.has_key('include_sourcefile') and options['include_sourcefile'] == True:
                 cmd = cmd + '--sourcefile '
 

@@ -56,19 +56,29 @@ class cdr_ecv_exit_codes:
     cleanup_output_dir        = 17
     dem                       = 18
     swe                       = 19
+    sca                       = 20
 # END class cdr_ecv_exit_codes
 
 
 ########################################################################################################################
-# Utility to control filenames
+# Utilities to control filenames
 ########################################################################################################################
 def get_sr_filename(scene):
     """Return name of current sr product file"""
     return "lndsr.%s.hdf" % scene
 
-########################################################################################################################
-# Utility to control filenames
-########################################################################################################################
+def get_toa_filename(scene):
+    """Return name of current sr-cal product file"""
+    return "lndcal.%s.hdf" % scene
+
+def get_b6thermal_filename(scene):
+    """Return name of current sr-thermal product file"""
+    return "lndth.%s.hdf" % scene
+
+def get_sca_filename(scene):
+    """Return name of current sca product file"""
+    return "sca.%s.hdf" % scene
+
 def get_cfmask_filename(scene):
     """Return name of current cfmask product file"""
     return "fmask.%s.hdf" % scene
@@ -746,6 +756,12 @@ if __name__ == '__main__':
                       default=False,
                       help="Create surface water extent for this scene")
     
+    parser.add_option("--snow_covered_area",
+                      action="store_true",
+                      dest="sca_flag",
+                      default=False,
+                      help="Create snow covered area for this scene")
+    
     parser.add_option("--toa",
                       action="store_true",
                       dest="toa_flag",
@@ -1057,8 +1073,8 @@ if __name__ == '__main__':
             sys.exit(cdr_ecv_exit_codes.spectral_indices, output)
 
 
-    #CREATE DEM for DEM or SWE
-    if (options.dem_flag or options.swe_flag):
+    #CREATE DEM for DEM or SWE or SCA
+    if (options.dem_flag or options.swe_flag or options.sca_flag):
         cmd = ("cd %s; do_create_dem.py --metafile %s --demfile %s") \
             % (workdir, metadata['mtl_file'], dem_filename)
 
@@ -1123,6 +1139,31 @@ if __name__ == '__main__':
             util.log("CDR_ECV", output)
             sys.exit(cdr_ecv_exit_codes.swe, output)
     # END CREATE SURFACE WATER EXTENT
+
+
+    #CREATE SNOW COVERED AREA
+    if options.sca_flag:
+        cmd = "cd %s; do_snow_cover.py --metafile %s" \
+            " --toa_infile %s --btemp_infile %s --sca_outfile %s --dem %s" \
+            % (workdir, metadata['mtl_file'], get_toa_filename(scene),
+            get_b6thermal_filename(scene), get_sca_filename(scene),
+            dem_filename)
+
+        if options.debug is not None:
+            util.log("CDR_ECV", "CREATE SCA COMMAND:%s" % cmd)
+
+        util.log("CDR_ECV",
+            "Running CREATE SCA against %s with metafile %s, toa %s,"
+            " btemp %s, and dem %s" \
+            % (scene,metadata['mtl_file'], get_toa_filename(scene),
+            get_b6thermal_filename(scene), dem_filename))
+
+        status,output = commands.getstatusoutput(cmd)
+        if status != 0:
+            util.log("CDR_ECV", "CREATE SCA error detected... exiting")
+            util.log("CDR_ECV", output)
+            sys.exit(cdr_ecv_exit_codes.sca, output)
+    # END CREATE SNOW COVERED AREA
 
 
     #DELETE UNNEEDED FILES FROM PRODUCT DIRECTORY
