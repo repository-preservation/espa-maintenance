@@ -1,0 +1,7 @@
+DEBUG = True
+SECRET_KEY = 'abc123'
+SESSION_COOKIE_NAME = 'dvh_session'
+DATABASE_USER = 'dvh'
+DATABASE_PASSWORD = 'password'
+DATABASE_URL = 'localhost'
+DATABASE_NAME = 'dvh'

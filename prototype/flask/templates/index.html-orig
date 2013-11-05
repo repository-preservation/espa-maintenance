@@ -1,0 +1,209 @@
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>{Satada:Search}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="">
+    <meta name="author" content="David V Hill">
+
+    <!-- Le styles -->
+    <link href="/static/css/bootstrap.css" rel="stylesheet">
+    <style type="text/css">
+      body {
+        padding-top: 0px;
+        padding-bottom: 40px;
+        
+      }
+
+      /* Custom container */
+      .container-narrow {
+        margin: 0 auto;
+        max-width: 700px;
+      }
+      .container-narrow > hr {
+        margin: 30px 0;
+      }
+
+      /* Main marketing message and sign up button */
+      .jumbotron {
+        margin: 60px 0;
+        text-align: center;
+      }
+      .jumbotron h1 {
+        font-size: 72px;
+        line-height: 1;
+      }
+      .jumbotron .btn {
+        font-size: 21px;
+        padding: 14px 24px;
+      }
+
+      /* Supporting marketing content */
+      .marketing {
+        margin: 30px 0;
+      }
+      .marketing p + h4 {
+        margin-top: 28px;
+      }
+
+      .mainbanner {
+        background-color:#010101;
+        border-bottom:2px solid #FEFEFE;
+        color:white;
+        #margin-bottom:-15px;
+        padding-bottom:-15px;
+        z-index:0;
+      }
+
+      .hero-unit {
+       -webkit-border-radius:1px;
+       -moz-border-radius: 1px;
+       border-radius: 1px;
+      }
+
+      .nav a {
+        color:white;
+        background-color:#010101;
+      }
+
+      .nav > .active > a {
+        color:white;
+        background-color:#010101;
+      }
+
+      .nav > li > a:hover { 
+        text-decoration: none;
+        background-color: #010101;
+      }
+
+      .nav-pills > .active > a, .nav-pills > .active > a:hover {
+        text-decoration:none;
+        background-color: #010101;
+      }
+
+      .hero-unit {
+        overflow:hidden;
+      }
+    
+    </style>
+    <link href="/static/css/bootstrap-responsive.css" rel="stylesheet">
+
+    <!-- HTML5 shim, for IE6-8 support of HTML5 elements -->
+    <!--[if lt IE 9]>
+      <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+
+    <!-- Fav and touch icons -->
+    <link rel="apple-touch-icon-precomposed" sizes="144x144" href="/static/ico/apple-touch-icon-144-precomposed.png">
+    <link rel="apple-touch-icon-precomposed" sizes="114x114" href="/static/ico/apple-touch-icon-114-precomposed.png">
+    <link rel="apple-touch-icon-precomposed" sizes="72x72" href="/static/ico/apple-touch-icon-72-precomposed.png">
+    <link rel="apple-touch-icon-precomposed" href="/static/ico/apple-touch-icon-57-precomposed.png">
+    <link rel="shortcut icon" href="/static/img/background.png">
+  </head>
+
+  <body>
+
+    <div class="container" >
+
+    <div class="container mainbanner">
+        <div class="navbar">
+            <div class="navbar-inner">
+                <a class="brand" href="#">Title</a>
+                <ul class="nav">
+                <li class="active"><a href="#">Home</a></li>
+                <li><a href="#">Link</a></li>
+                <li><a href="#">Link</a></li>
+                </ul>
+            </div>
+         </div>
+
+    <!--<div class="masthead" style="padding-left:30px;padding-right:30px;">
+        <ul class="nav nav-pills pull-left">
+          <li><a href="/">Satada Search</a></li>
+        </ul>
+
+        <ul class="nav nav-pills pull-right">
+          <li class="active"><a href="#">Home</a></li>
+          <li><a href="#">About</a></li>
+          <li><a href="#">Contact</a></li>
+        </ul>
+                
+    </div>-->
+
+    </div>
+
+    <div class="hero-unit">
+      <h1 style="width:100%;text-align:center;">So, you are looking for some data?</h1>
+      
+       
+
+       <div class="row-fluid marketing">  
+
+        <img src="/static/img/desktop.png" class="span6 img-rounded" />
+        
+        <div class="span6" style="margin-left:25px;text-align:center">
+           <p class="lead" style="text-align:left;">We know where all the Landsat and MODIS images are, and we can help you find them.</p>
+            <a style="margin-bottom:40px;margin-top:10px;" class="btn btn-large btn-warning" href="#">Sign up today</a>
+            <!--<p style="text-align:left;background:white;border-radius:40px;border:8px solid #333333;padding:40px;">
+                <strong>We've done all the hard work up front so you can get the data you need, when you need it.</strong>
+            </p>-->
+ 
+         </div>
+
+        </div>
+        
+      </div>
+
+ 
+      
+      <div class="row-fluid marketing">
+        <div class="span4">
+          <h2>Search Made Simple</h2>
+          <p>Define your area, add your filter criteria and go.  It's as easy as it should be.</p>
+          <p>The user experience is intuitive and designed with your work in mind.  Find what you want quickly with no hassels or headaches.</p>
+          <p>Search by space, time and image quality.</p>
+        </div>
+        <div class="span4">
+          <h2>Always Up To Date</h2>
+          <p>Search results are updated several times per day.</p>
+          <p>We use Big Data tools under the hood to capture new images as they become available.  What's more, our data update rates are increasing all the time!</p>
+          <p>Rest easy knowing that if the data you seek exists, we will find it.</p>
+        </div>
+        <div class="span4">
+          <h2>Compatible With USGS</h2>
+          <p>Searching for Landsat and MODIS scenes doesn't do you much good if you can't order and download them.</p>
+          <p>Save your search results and import them into Glovis, Landsat Bulk Ordering or ESPA.</p>
+          <p>Satada Search makes your life easier by bridging gaps and helping you work smarter &amp; faster.</p>
+        </div>
+       </div>
+
+    <hr>
+
+      <div class="footer">
+        <p>&copy; Satada Search 2012-2013</p>
+      </div>
+
+    </div> <!-- /container -->
+
+    <!-- Le javascript
+    ================================================== -->
+    <!-- Placed at the end of the document so the pages load faster -->
+    <script src="/static/js/jquery.js"></script>
+    <script src="/static/js/bootstrap-transition.js"></script>
+    <script src="/static/js/bootstrap-alert.js"></script>
+    <script src="/static/js/bootstrap-modal.js"></script>
+    <script src="/static/js/bootstrap-dropdown.js"></script>
+    <script src="/static/js/bootstrap-scrollspy.js"></script>
+    <script src="/static/js/bootstrap-tab.js"></script>
+    <script src="/static/js/bootstrap-tooltip.js"></script>
+    <script src="/static/js/bootstrap-popover.js"></script>
+    <script src="/static/js/bootstrap-button.js"></script>
+    <script src="/static/js/bootstrap-collapse.js"></script>
+    <script src="/static/js/bootstrap-carousel.js"></script>
+    <script src="/static/js/bootstrap-typeahead.js"></script>
+
+  </body>
+</html>
+

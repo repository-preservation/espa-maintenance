@@ -1,0 +1,20 @@
+<!doctype html>
+<html>
+<head>
+<title>Login</title>
+</head>
+
+<body>
+{% if errors %}
+    <h1>Fix These and login again.</h1>
+{% endif %}
+
+<form name="login" action="/login" method="post">
+   Username <input type='text' name='username' /><br/>
+   Password <input type='password' name='password' /><br/>
+   <input type='hidden' name='next' value='{{ next }}' />
+   <input type='submit' name='Login' />
+</form>
+
+</body>
+</html>
