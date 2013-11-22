@@ -10,6 +10,9 @@
 {% endif %}
 {% endblock %}
 
+{% block nav %}{% include "bulk_ordering_nav.html" %}{% endblock %}
+
+
 {% block content %}
 <form action="/list/" method="post">
 {% csrf_token %}

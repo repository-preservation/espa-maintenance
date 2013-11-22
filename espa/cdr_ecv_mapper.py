@@ -91,11 +91,11 @@ def build_utm_proj_string(utm_zone, utm_north_south):
 
 def build_sinu_proj_string(central_meridian, false_easting, false_northing):
     '''
-    Builds a proj.4 string for modis
+    Builds a proj.4 string for sinusoidal (modis)
     Example:
     +proj=sinu +lon_0=0 +x_0=0 +y_0=0 +a=6371007.181 +b=6371007.181 +units=m +no_defs 
     '''
-    proj_str = '+proj=sinu +lon_0=%f +x_0=%f +y_0=%f +a=6371007.181 +b=6371007.181 +units=m +no_defs' \
+    proj_str = '+proj=sinu +lon_0=%f +x_0=%f +y_0=%f +a=6371007.181 +b=6371007.181 +ellps=WGS84 +datum=WGS84 +units=m +no_defs' \
                % (central_meridian, false_easting, false_northing)
     
     return proj_str
@@ -170,6 +170,9 @@ if __name__ == '__main__':
 
             if options.has_key('include_sr_savi') and options['include_sr_savi'] == True:
                 cmd = cmd + '--sr_savi '
+                
+            if options.has_key('include_sr_msavi') and options['include_sr_msavi'] == True:
+                cmd = cmd + '--sr_msavi '
 
             if options.has_key('include_sr_evi') and options['include_sr_evi'] == True:
                 cmd = cmd + '--sr_evi '
@@ -251,10 +254,7 @@ if __name__ == '__main__':
                 minx,miny,maxx,maxy = options['minx'], options['miny'], options['maxx'], options['maxy']
                 cmd += ' --set_image_extent %s,%s,%s,%s ' % (minx,miny,maxx,maxy)
             
-
-            pixel_size = None
-            pixel_unit = None
-            
+            pixel_size, pixel_unit = None, None
             #See if the user requested a pixel size. If so set and use it.
             if (options.has_key('resize') and options['resize'] == True):
                 pixel_size = options['pixel_size']

@@ -65,6 +65,7 @@ def get_default_options():
     options['include_sr_nbr'] = False                     #deliver normalized burn ratio
     options['include_sr_nbr2'] = False                    #deliver normalized burn ratio 2
     options['include_sr_savi'] = False                    #deliver soil adjusted vegetation
+    options['include_sr_msavi'] = False                   #deliver modified soil adjusted vegetation
     options['include_sr_evi'] = False                     #deliver enhanced vegetation
     options['include_solr_index'] = False                 #deliver a solr search index record
     options['include_cfmask'] = False                     #deliver cfmask in a seperate file (normally delivered in sr)

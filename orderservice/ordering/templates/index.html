@@ -21,6 +21,10 @@
         div {
            
         }
+	
+	p {
+	    font-family:Arial, sans-serif;
+	}
 
         div.marketing_box {
            width:22%;
@@ -64,7 +68,7 @@
             text-align:left;
             border-top:1px solid #d0d0d0;
             border-bottom:1px solid #d0d0d0;
-            height:266px;
+            height:290px;
             overflow:hidden; 
         }
 
@@ -77,7 +81,7 @@
             margin-top:25px;
             padding:10px;
             width:300px;
-            height:115px;
+            height:120px;
             border:7px solid #577196;
             overflow:hidden;
             float:right;
@@ -109,6 +113,8 @@
         }
 
 {% endblock %}
+
+{% block nav %}{% include "bulk_ordering_nav.html" %}{% endblock %}
 
 
 {% block content %}
@@ -144,10 +150,10 @@
        
         <div class="marketing_box">
           <div class="marketing_header" id="bulk_ordering">
-           <p>CDR & ECV Collections</p>
+           <p>CDR/ECV Collections</p>
           </div>
           <div class="marketing_content">
-              <p>Climate Data Record (CDR) and Essential Climate Variable (ECV) Collections are a showcase of data products that have been enhanced with additional levels of processing.  All Collections are currently based upon the Global Land Survey for 2000, 2005 and 2010.
+              <p>Climate Data Record (CDR) and Essential Climate Variable (ECV) Collections are a showcase of data products that have been enhanced with additional levels of processing.  All Collections are currently based upon the Global Land Survey for 2005 and 2010.
               </p>      
           </div>
        

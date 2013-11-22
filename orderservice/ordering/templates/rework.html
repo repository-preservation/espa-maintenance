@@ -120,6 +120,10 @@
 	    padding:5px;
 	    text-align:left;
 	}
+        
+        div.inputitem label{
+            display:inline;
+        }
 	
 	div#resize_options, div#reprojection, div#scene_extents {
 	    display:none;
@@ -269,18 +273,31 @@
 	    <div class='product_boxbody'>
 		
 		<div class='inputitem'>
-		    <input type='checkbox' name='include_sr_toa'>
+		    <input type='checkbox' name='include_sr_toa'></input>
 		    <label class='tooltip' title="LEDAPS Top of Atmosphere Reflectance " for="toa_reflectance">Top of Atmosphere Reflectance</label>
 		</div>
 		
 		<div class='inputitem'>
-		    <input type='checkbox' name='include_sr'>
+		    <input type='checkbox' name='include_sr'></input>
 		    <label class='tooltip' title="LEDAPS Surface Reflectance" for="surface_reflectance">Surface Reflectance</label>
 		</div>
 		
 		<div class='inputitem'>
-		    <input type='checkbox' name='include_sr_thermal'>
+		    <input type='checkbox' name='include_sr_thermal'></input>
 		    <label class='tooltip' title="LEDAPS Thermal Band 6" for="sr_thermal">Band 6 Brightness Temperature</label>
+		</div>
+	    </div>
+	</div>
+        
+        <div style='{{ optionstyle }}' class='product_box'>
+	    <div class='product_boxheader'>
+		Essential Climate Records
+	    </div>
+	    <div class='product_boxbody'>
+		
+		<div class='inputitem'>
+		    <input type='checkbox' name='include_swe'></input>
+		    <label class='tooltip' title='Surface Water Extent' for="include_swe">Surface Water Extent</label>
 		</div>
 		
 	    </div>
@@ -293,55 +310,44 @@
 	    <div class='product_boxbody'>
 		
 		<div class='inputitem'>
-		    <input type='checkbox' name='include_sr_ndvi'>
+		    <input type='checkbox' name='include_sr_ndvi'></input>
 		    <label class='tooltip' title='Normalized Difference Vegetation Index' for="include_sr_ndvi">Surface Reflectance NDVI</label>
 		</div>
 		
 		<div class='inputitem'>
-		    <input type='checkbox' name='include_sr_ndmi'>
+		    <input type='checkbox' name='include_sr_ndmi'></input>
 		    <label class='tooltip' title='Normalized Difference Moisture Index' for="include_sr_ndmi">Surface Reflectance NDMI</label>
 		</div>
 		
 		<div class='inputitem'>
-		    <input type='checkbox' name='include_sr_nbr'>
+		    <input type='checkbox' name='include_sr_nbr'></input>
 		    <label class='tooltip' title='Normalized Burn Ratio using bands 4 &amp; 7' for="include_sr_nbr">Surface Reflectance NBR</label>
 		</div>
 		
 		<div class='inputitem'>
-		    <input type='checkbox' name='include_sr_nbr2'>
+		    <input type='checkbox' name='include_sr_nbr2'></input>
 		    <label class='tooltip' title='Normalized Burn Ratio using bands 5 &amp; 7' for="include_sr_nbr2">Surface Reflectance NBR2</label>
 		</div>
 		
 		<div class='inputitem'>
-		    <input type='checkbox' name='include_sr_savi'>
+		    <input type='checkbox' name='include_sr_savi'></input>
 		    <label class='tooltip' title='Soil Adjusted Vegetation Index' for="include_sr_savi">Surface Reflectance SAVI</label>
+		</div>
+                
+                <div class='inputitem'>
+		    <input type='checkbox' name='include_sr_msavi'></input>
+		    <label class='tooltip' title='Modified Soil Adjusted Vegetation Index' for="include_sr_msavi">Surface Reflectance MSAVI</label>
 		</div>
 		
 		<div class='inputitem'>
-		    <input type='checkbox' name='include_sr_evi'>
+		    <input type='checkbox' name='include_sr_evi'></input>
 		    <label class='tooltip' title="Enhanced Vegetation Index" for="include_sr_evi">Surface Reflectance EVI</label>
 		</div>
 		
 	    </div>
 	</div>
 	
-	<div class='product_box'>
-	    <div class='product_boxheader'>
-		Other Products
-	    </div>
-	    <div class='product_boxbody'>
-		
-		<div class='inputitem'>
-		    <input type='checkbox' name='include_cfmask'>
-		    <label class='tooltip' title='Include CFMask in a standalone file. (CFMask is normally available only as a separate band in the Surface Reflectance product)' for="include_cfmask">CFMask (standalone file)</label>
-		</div>
-		
-		<div class='inputitem'>
-		    <input type='checkbox' name='include_solr_index'>
-		    <label class='tooltip' title='Generate an Apache Solr index for the requested scene (uncommon)' for="include_solr_index">Solr Index</label>
-		</div>
-	    </div>
-	</div>
+	
 	
 	<div class='product_box'>
 	    <div class='product_boxheader'>
