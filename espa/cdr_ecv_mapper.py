@@ -40,6 +40,7 @@ def init_logfile(sceneid):
 def logger(sceneid, value):
     with open(get_logfile(sceneid), 'a+') as h:
         h.write(util.build_log_msg('CDR_ECV_MAPPER', value))
+        h.write("\n")
         h.flush()
     
 def get_cache_hostname():
@@ -306,10 +307,10 @@ if __name__ == '__main__':
                 logger (sceneid, "Error occurred processing %s" % sceneid)
                 logger (sceneid, "%s returned code:%s" % (sceneid, status))
                 if server is not None:
-                    if os.path.exists(get_logfile()):
-                        with open(get_logfile(), "r+") as h:
+                    if os.path.exists(get_logfile(sceneid)):
+                        with open(get_logfile(sceneid), "r+") as h:
                             data = h.read()                            
-                        os.unlink(get_logfile())
+                        os.unlink(get_logfile(sceneid))
                         output = output + "\n" + data
                     server.setSceneError(sceneid, orderid, processing_location, output)
                 else:
@@ -333,8 +334,8 @@ if __name__ == '__main__':
                     else:
                         raise Exception("Did not receive a distribution location or cksum file location for:%s.\n Status code:%s\n  Status line:%s\n.  Log:%s" % (sceneid,status, status_line, output))
                 
-                if os.path.exists(get_logfile()):
-                    os.unlink(get_logfile())
+                if os.path.exists(get_logfile(sceneid)):
+                    os.unlink(get_logfile(sceneid))
                 
         except Exception, e:
             logger (sceneid, "An error occurred processing %s" % sceneid)
