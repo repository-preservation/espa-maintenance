@@ -93,7 +93,7 @@ def build_sinu_proj_string(central_meridian, false_easting, false_northing):
     '''
     Builds a proj.4 string for sinusoidal (modis)
     Example:
-    +proj=sinu +lon_0=0 +x_0=0 +y_0=0 +a=6371007.181 +b=6371007.181 +units=m +no_defs 
+    +proj=sinu +lon_0=0 +x_0=0 +y_0=0 +a=6371007.181 +b=6371007.181 +ellps=WGS84 +datum=WGS84 +units=m +no_defs 
     '''
     proj_str = '+proj=sinu +lon_0=%f +x_0=%f +y_0=%f +a=6371007.181 +b=6371007.181 +ellps=WGS84 +datum=WGS84 +units=m +no_defs' \
                % (central_meridian, false_easting, false_northing)
@@ -186,10 +186,10 @@ if __name__ == '__main__':
             if options.has_key('include_sr_toa') and options['include_sr_toa'] == True:
                 cmd = cmd + '--toa ' 
 
-            if options.has_key('include_surface_water_extent') and options['include_surface_water_extent'] == True:
+            if options.has_key('include_swe') and options['include_swe'] == True:
                 cmd = cmd + '--surface_water_extent ' 
 
-            if options.has_key('include_snow_covered_area') and options['include_snow_covered_area'] == True:
+            if options.has_key('include_sca') and options['include_sca'] == True:
                 cmd = cmd + '--snow_covered_area ' 
 
             if options.has_key('include_sourcefile') and options['include_sourcefile'] == True:
@@ -279,13 +279,8 @@ if __name__ == '__main__':
             if pixel_size and pixel_unit:
                   cmd += ' --pixel_size %s --pixel_unit %s' % (pixel_size, pixel_unit)
 
-
-
-
-
             if options.has_key('resample_method'):
                 cmd += ' --resample_method %s ' % options['resample_method']
-
             
             
             #this is for debugging only
@@ -297,10 +292,10 @@ if __name__ == '__main__':
             #end debugging
 
             logger(sceneid, "Running command:%s" % cmd)    
-            h = open("/tmp/%s-cmd_debug.txt" % sceneid, "wb+")
-            h.write(cmd)
-            h.flush()
-            h.close()
+            #h = open("/tmp/%s-cmd_debug.txt" % sceneid, "wb+")
+            #h.write(cmd)
+            #h.flush()
+            #h.close()
 
             #right here is where we are not picking up the fact that there is an error, probably because cdr_ecv.py is returning a tuple
             status,output = commands.getstatusoutput(cmd)
@@ -311,6 +306,11 @@ if __name__ == '__main__':
                 logger (sceneid, "Error occurred processing %s" % sceneid)
                 logger (sceneid, "%s returned code:%s" % (sceneid, status))
                 if server is not None:
+                    if os.path.exists(get_logfile()):
+                        with open(get_logfile(), "r+") as h:
+                            data = h.read()                            
+                        os.unlink(get_logfile())
+                        output = output + "\n" + data
                     server.setSceneError(sceneid, orderid, processing_location, output)
                 else:
                     logger(sceneid, output)
@@ -332,7 +332,10 @@ if __name__ == '__main__':
                         server.markSceneComplete(sceneid, orderid, processing_location, completed_scene_location, cksum_file_location, "")
                     else:
                         raise Exception("Did not receive a distribution location or cksum file location for:%s.\n Status code:%s\n  Status line:%s\n.  Log:%s" % (sceneid,status, status_line, output))
-
+                
+                if os.path.exists(get_logfile()):
+                    os.unlink(get_logfile())
+                
         except Exception, e:
             logger (sceneid, "An error occurred processing %s" % sceneid)
             logger (sceneid, str(e))

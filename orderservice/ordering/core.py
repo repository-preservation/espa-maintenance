@@ -16,11 +16,14 @@ import json
 import datetime
 import lta
 import re
+import os
+import sys
 
 ########################################################################################################################
 #load configuration values at the module level... 
 ########################################################################################################################
 try:
+        
     smtp_url = Configuration().getValue('smtp.url')
     espa_email_address = Configuration().getValue('espa.email.address')
     order_status_base_url = Configuration().getValue('order.status.base.url')
@@ -46,12 +49,12 @@ def validate_email(email):
     '''
     pattern = '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,4}$'
     return re.match(pattern, email.strip())
-    
+
 ########################################################################################################################
-# Returns a dictionary with all available keys present (but not necessary set)
+# Default product options
 ########################################################################################################################
-def get_default_options():
-    '''returns a default set of options that can be set for espa orders'''
+def get_default_product_options():
+    '''returns default options for product selection'''
     options = {}
     #standard product selection options
     options['include_sourcefile'] = False                 #delivers underlying raster product as part of order
@@ -67,9 +70,19 @@ def get_default_options():
     options['include_sr_savi'] = False                    #deliver soil adjusted vegetation
     options['include_sr_msavi'] = False                   #deliver modified soil adjusted vegetation
     options['include_sr_evi'] = False                     #deliver enhanced vegetation
+    options['include_swe'] = False                        #deliver surface water extent
+    options['include_sca'] = False                        #deliver snow covered area
     options['include_solr_index'] = False                 #deliver a solr search index record
     options['include_cfmask'] = False                     #deliver cfmask in a seperate file (normally delivered in sr)
     
+    return options
+
+########################################################################################################################
+# Default projection options
+########################################################################################################################
+def get_default_projection_options():
+    '''returns default options for reprojecting scenes'''
+    options = {}
     #reprojection options
     options['reproject'] = False                          #reproject all rasters (True/False)
     options['target_projection'] = None                   #if 'reproject' which projection?
@@ -85,21 +98,55 @@ def get_default_options():
     options['utm_zone'] = None                            # 1 to 60
     options['utm_north_south'] = None                     # north or south
     
+    return options
+
+########################################################################################################################
+# Default subset options
+########################################################################################################################
+def get_default_subset_options():
+    '''return default options for subsetting and framing'''
+    options = {}
     #image framing/subsetting options
     options['image_extents'] = False                      #modify image extents (subset or frame)
     options['minx'] = None                                #
     options['miny'] = None                                #
     options['maxx'] = None                                #
-    options['maxy'] = None                                #
-    
+    options['maxy'] = None                                #    
+    return options
+
+########################################################################################################################
+# Default resize options
+########################################################################################################################
+def get_default_resize_options():
+    '''return default options for resizing'''
+    options = {}
     #Pixel resizing options
     options['resize'] = False                             #resize output product pixel size (True/False)
     options['pixel_size'] = None                          #if resize, how big (valid range 30 to 1000 meters)
-    options['pixel_size_units'] = None                    #meters or dd. 
-    
+    options['pixel_size_units'] = None                    #meters or dd.     
+    return options
+
+########################################################################################################################
+# Default resample options
+########################################################################################################################
+def get_default_resample_options():
+    '''returns default options required for resampling'''
+    options = {}
     #Must have this when reprojecting or resizing pixels
     options['resample_method'] = 'near'                     #for ops that need it, how would user like to resample?
+    return options
     
+########################################################################################################################
+# Returns a dictionary with all available keys present (but not necessary set)
+########################################################################################################################
+def get_default_options():
+    '''returns a default set of options that can be set for espa orders'''
+    options = {}
+    options.update(get_default_product_options())
+    options.update(get_default_projection_options())
+    options.update(get_default_subset_options())
+    options.update(get_default_resize_options())
+    options.update(get_default_resample_options())    
     return options
 
 ########################################################################################################################

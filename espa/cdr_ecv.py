@@ -737,12 +737,19 @@ if __name__ == '__main__':
                       dest="sr_savi_flag",
                       default=False,
                       help="Create savi for this scene")
+    
+    parser.add_option("--sr_msavi",
+                      action="store_true",
+                      dest="sr_msavi_flag",
+                      default=False,
+                      help="Create msavi for this scene")
 
     parser.add_option("--sr_evi",
                       action="store_true",
                       dest="sr_evi_flag",
                       default=False,
                       help="Create evi for this scene")
+       
     
     parser.add_option("--dem",
                       action="store_true",
@@ -1060,6 +1067,8 @@ if __name__ == '__main__':
             index_string = index_string + " --nbr2"
         if options.sr_savi_flag:
             index_string = index_string + " --savi"
+        if options.sr_msavi_flag:
+            index_string = index_string + " --msavi"
         if options.sr_evi_flag:
             index_string = index_string + " --evi"
 
@@ -1199,8 +1208,6 @@ if __name__ == '__main__':
         sb.write(" lndsr.%s.txt " % scene)
     if not options.sr_browse_flag:
         sb.write(" *browse* ")
-    if not options.sr_ndvi_flag:
-        sb.write(" *ndvi* ")
     if not options.solr_flag:
         sb.write(" *index* ")
     if not options.cfmask_flag:
@@ -1216,7 +1223,6 @@ if __name__ == '__main__':
         sys.exit(cdr_ecv_exit_codes.purging, output)
 
     #warp outputs if necessary
-
     if options.projection or options.image_extent or options.pixel_size:
         util.log("CDR_ECV", "Warping output products")
         status, output = warp_outputs(workdir, options.projection, options.image_extent, options.pixel_size, options.pixel_unit, options.resample_method)

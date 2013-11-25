@@ -252,6 +252,21 @@ def validate_files_and_scenes(request, context, errors, scene_errors):
             #after all that validation, make sure there's actually something left to order
             if len(context['scenelist']) < 1:
                 scene_errors.append("No scenes found in scenelist. Please provide at least one scene for processing")
+
+####################################################################################################################
+# Validates that a user selected at least one option
+####################################################################################################################
+def validate_product_selected(request, errors):
+    '''Verifies that at least one product was selected for processing'''
+    ok = False
+    for key in core.get_default_product_options().iterkeys():
+        if request.has_key(key):
+            ok = True
+            break
+    if not ok:
+        errors.append("Please select at least one product for processing")
+    
+
         
 ####################################################################################################################
 # Validation for the form request from users
@@ -262,6 +277,7 @@ def validate_input_params(request):
         
     validate_email(request, context, errors)
     validate_files_and_scenes(request, context, errors, scene_errors)
+    validate_product_selected(request, errors)
     #validate_product_options(request, context, errors)        
 
     #Look for an order_description and put it into the context if available
