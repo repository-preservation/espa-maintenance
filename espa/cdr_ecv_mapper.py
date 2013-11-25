@@ -298,9 +298,7 @@ if __name__ == '__main__':
             #h.flush()
             #h.close()
 
-            #right here is where we are not picking up the fact that there is an error, probably because cdr_ecv.py is returning a tuple
             status,output = commands.getstatusoutput(cmd)
-
             logger(sceneid, "Status return from cdr_ecv:%s" % status)
             
             if status >> 8 != 0:

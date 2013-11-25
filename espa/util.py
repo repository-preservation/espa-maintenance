@@ -13,7 +13,7 @@ from frange import frange
 def build_log_msg(module, msg):
     """Builds a standardized log message"""
     now = datetime.datetime.now()
-    return "%s-%s-%s %s:%s.%s [%s] %s" % (now.year,
+    return "%s-%s-%s %s:%s.%s [%s] %s\n" % (now.year,
                                   str(now.month).zfill(2),
                                   str(now.day).zfill(2),
                                   str(now.hour).zfill(2),
