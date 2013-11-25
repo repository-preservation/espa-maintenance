@@ -303,7 +303,7 @@ if __name__ == '__main__':
 
             logger(sceneid, "Status return from cdr_ecv:%s" % status)
             
-            if status != 0 and status != 256:
+            if status >> 8 != 0:
                 logger (sceneid, "Error occurred processing %s" % sceneid)
                 logger (sceneid, "%s returned code:%s" % (sceneid, status))
                 if server is not None:
