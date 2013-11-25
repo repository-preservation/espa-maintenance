@@ -29,6 +29,10 @@
 #                                           	to fix environment sourcing issue from cron
 # 007		08-21-2013	Adam Dosch	Adding '__author__' references
 #						Updated email_from to FQDN host
+# 008		11-25-2013	Adam Dosch	Removing GLS collection and UI reporting from
+#						the scripts --- we be tearing that shit OUT.
+#						I will keep logic in pig scripts, but just not
+#						report those in the e-mail output
 #
 #########################################################################################
 
@@ -245,34 +249,34 @@ class PigProcessor:
             #-----------------
             # GLS UI results
             #-----------------
-            if results_name == "resultsui":
-                
-                if verbose == True: print "Matched", results_name, ", reading metrics and writing header + metrics to outputfile"
-            
-                for line in rf.readlines():
-                    unique_total, unique_usgs, unique_eros, num_useragents = line.split(",")
-                
-                self.writeHeader(results_name)
-                
-                self.outputFile.write("Number of unique visitors: " + unique_total + "\n")
-                self.outputFile.write("Number of unique total USGS visitors: " + unique_usgs + "\n")
-                self.outputFile.write("Number of unique EROS visitors: " + unique_eros + "\n")
+            #if results_name == "resultsui":
+            #    
+            #    if verbose == True: print "Matched", results_name, ", reading metrics and writing header + metrics to outputfile"
+            #
+            #    for line in rf.readlines():
+            #        unique_total, unique_usgs, unique_eros, num_useragents = line.split(",")
+            #    
+            #    self.writeHeader(results_name)
+            #    
+            #    self.outputFile.write("Number of unique visitors: " + unique_total + "\n")
+            #    self.outputFile.write("Number of unique total USGS visitors: " + unique_usgs + "\n")
+            #    self.outputFile.write("Number of unique EROS visitors: " + unique_eros + "\n")
 
             #-----------------
             # GLS results
             #-----------------
-            if re.match("^results[all|20[0-9]{2}", results_name):
-            
-                if verbose == True: print "Matched", results_name, ", reading metrics and writing header + metrics to outputfile"
-            
-                for line in rf.readlines():
-                    unique_downloaders, num_downloaded_scenes, volume_distributed = line.split(",")
-                
-                self.writeHeader(results_name)
-                
-                self.outputFile.write("Number of unique downloaders: " + unique_downloaders + "\n")
-                self.outputFile.write("Total number of scenes downloaded: " + num_downloaded_scenes + "\n")
-                self.outputFile.write("Total volume distributed (GB): " + volume_distributed + "\n")
+            #if re.match("^results[all|20[0-9]{2}", results_name):
+            #
+            #    if verbose == True: print "Matched", results_name, ", reading metrics and writing header + metrics to outputfile"
+            #
+            #    for line in rf.readlines():
+            #        unique_downloaders, num_downloaded_scenes, volume_distributed = line.split(",")
+            #    
+            #    self.writeHeader(results_name)
+            #    
+            #    self.outputFile.write("Number of unique downloaders: " + unique_downloaders + "\n")
+            #    self.outputFile.write("Total number of scenes downloaded: " + num_downloaded_scenes + "\n")
+            #    self.outputFile.write("Total volume distributed (GB): " + volume_distributed + "\n")
 
             #-----------------
             # Ondemand results
