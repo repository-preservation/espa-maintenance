@@ -260,7 +260,7 @@ def validate_product_selected(request, errors):
     '''Verifies that at least one product was selected for processing'''
     ok = False
     for key in core.get_default_product_options().iterkeys():
-        if request.has_key(key):
+        if request.POST.has_key(key):
             ok = True
             break
     if not ok:
