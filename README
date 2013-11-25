@@ -72,6 +72,17 @@ Dependencies (Processing Nodes)
 		(Will be installed to /usr/local/var/ledaps/anc by default)
 		
 Change Notes
+Version 2.2.2
+        Added SCA & SWE to internal ordering
+        Corrected unchecked reprojection errors
+        Corrected Bulk Ordering Navigation
+        Fail job submission if no products selected
+        Added MSAVI to spectral indices
+        Merged all vegetation indices to a single raster
+        Removed standalone CFMask option
+        Removed solr index generation option
+        Corrected cross browser rendering issues
+
 Version 2.2.1
         Fixed bug reprojecting spectral indices
         Fixed bug reprojecting cfmask
