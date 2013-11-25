@@ -34,13 +34,13 @@ div.admin {
 #content {
     margin:auto;
     background-color: #e5e5e5;
-    background-image: url("/ui/img/bg_content.gif");
+    background-image: url("/static/img/bg_content.gif");
     background-position: center center;
     background-repeat: repeat-y;
 }
 
 #content .footer {
-    background-image: url("/ui/img/bg_footer.gif");
+    background-image: url("/static/img/bg_footer.gif");
     background-position: center center;
     background-repeat: no-repeat;
     height: 18px;
