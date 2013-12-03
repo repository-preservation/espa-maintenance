@@ -1029,6 +1029,7 @@ if __name__ == '__main__':
          or options.sr_nbr2_flag
          or options.sr_savi_flag
          or options.sr_evi_flag
+         or options.sr_msavi_flag
          or options.sr_flag
          or options.b6thermal_flag
          or options.swe_flag
@@ -1055,7 +1056,7 @@ if __name__ == '__main__':
     
     #MAKE SPECTRAL INDICIES
     if (options.sr_ndvi_flag or options.sr_ndmi_flag or options.sr_nbr_flag
-        or options.sr_nbr2_flag or options.sr_savi_flag or options.sr_evi_flag):
+        or options.sr_nbr2_flag or options.sr_savi_flag or options.sr_evi_flag or options.sr_msavi_flag):
         index_string = ""
         if options.sr_ndvi_flag:
             index_string = index_string + " --ndvi"
