@@ -70,16 +70,16 @@ def runScenes():
                 line['xmlrpcurl'] = rpcurl 
                 line_entry = json.dumps(line)
                                
-                #pad the entry to 1024 bytes so hadoop will properly split the jobs
+                #pad the entry to 2048 bytes so hadoop will properly split the jobs
                 filler = ""
                 entry_length = len(line_entry)
 
 
 
-                #have to start at 1 here because the \n will be part of the overall 1024 bytes.
-                #1025 is not a typo. The range function goes up to but does not include the 
+                #have to start at 1 here because the \n will be part of the overall 2048 bytes.
+                #2049 is not a typo. The range function goes up to but does not include the 
                 #number specified
-                for i in range(1, 1025 - entry_length):
+                for i in range(1, 2049 - entry_length):
                     filler = filler + "#"
                 order_line = line_entry + filler + '\n'
                 f.write(order_line)
