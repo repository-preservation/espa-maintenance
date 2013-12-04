@@ -45,19 +45,31 @@ def logger(sceneid, value):
     
 def get_cache_hostname():
     '''Poor mans load balancer for accessing the online cache over the private network'''
-    hostlist = ['edclxs67p', 'edclxs140p']
-    hostname = random.choice(hostlist)
 
-    #Check that the host is up before returning
-    cmd = "ping -q -c 1 %s" % hostname
-    status,output = commands.getstatusoutput(cmd)
+    #140 is here twice so the load is 2/3 + 1/3.  machines are mismatched
+    hostlist = ['edclxs67p', 'edclxs140p', 'edclxs140p']
 
-    #This looks nice but it might blow up if both hosts are down    
-    if status == 0:
-        return hostname
-    else:
-        return [x for x in hostlist if x is not hostname][0]    
+    def check_host_status(hostname):
+        cmd = "ping -q -c 1 %s" % hostname
+        status,output = commands.getstatusoutput(cmd)
+        return status
+
+    def get_hostname():  
+        hostname = random.choice(hostlist)
+        if check_host_status(hostname) == 0:
+            return hostname
+        else:
+            for x in hostlist:
+                if x == hostname:
+                    hostlist.remove(x)
+            if len(hostlist) > 0:
+                return get_hostname()
+            else:
+                raise Exception("No online cache hosts available...") 
     
+    return get_hostname()
+
+
 
 def build_albers_proj_string(std_parallel_1, std_parallel_2, origin_lat, central_meridian, false_easting, false_northing, datum):
     '''
