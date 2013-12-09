@@ -30,6 +30,8 @@ import commands
 import json
 import util
 from datetime import datetime
+import urllib
+
 
 
 #set required variables that this script should fail on if they are not defined
@@ -40,6 +42,19 @@ for r in required_vars:
         sys.exit(-1)
 
 rpcurl = os.environ.get("ESPA_XMLRPC")
+server = xmlrpclib.ServerProxy(rpcurl)
+
+user = server.getConfiguration("landsatds.username")
+if len(user) == 0:
+    util.log("CDR_ECV_CRON", "landsatds.username is not defined... exiting")
+    
+pw = urllib.quote(server.getConfiguration("landsatds.password"))
+if len(pw) == 0:
+    util.log("CDR_ECV_CRON", "landsatds.password is not defined... exiting")
+    
+host = server.getConfiguration("landsatds.host")
+if len(host) == 0:
+    util.log("CDR_ECV_CRON", "landsatds.host is not defined... exiting")
 
 
 def runScenes():
@@ -49,7 +64,7 @@ def runScenes():
     '''
     
     home_dir = os.environ['HOME']
-    server = xmlrpclib.ServerProxy(rpcurl)
+    
     hadoop_executable = "%s/bin/hadoop/bin/hadoop" % home_dir
     
     try:
@@ -67,14 +82,17 @@ def runScenes():
             for s in scenes:
                 line = json.loads(s)
                 orderid,sceneid,options = line['orderid'],line['scene'],line['options']
-                line['xmlrpcurl'] = rpcurl 
+                line['xmlrpcurl'] = rpcurl
+                line['cache_user'] = user
+                line['cache_pw'] = pw
+                            
                 line_entry = json.dumps(line)
+                
+                util.log("CDR_ECV_DEBUG", line_entry)
                                
                 #pad the entry to 2048 bytes so hadoop will properly split the jobs
                 filler = ""
                 entry_length = len(line_entry)
-
-
 
                 #have to start at 1 here because the \n will be part of the overall 2048 bytes.
                 for i in range(1, 2048 - entry_length):
