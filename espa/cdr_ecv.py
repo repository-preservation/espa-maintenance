@@ -1579,10 +1579,8 @@ if __name__ == '__main__':
 
     #########################################################################################
     # TRANSFER THE SOURCE FILE TO THE LOCAL MACHINE
-    # MODIFY THIS TO USE FTP INSTEAD
     #########################################################################################
-    #def ftp_from_online_cache(username, pw, src_host, src_file, local_file):
-    
+        
     util.log("CDR_ECV", "Transferring %s from %s to %s" \
              % (source_file,source_host,localhostname))
     
@@ -1591,14 +1589,7 @@ if __name__ == '__main__':
                           source_host,
                           source_file,
                           os.path.join(stagedir, source_filename))
-    
-    #cmd = ("scp -o StrictHostKeyChecking=no -c arcfour -C %s:%s %s") % (source_host, source_file, stagedir)
-    #(status,output) = commands.getstatusoutput(cmd)
-    #if status != 0:
-    #    util.log("CDR_ECV", "Error transferring %s:%s to %s... exiting" % (source_host, source_file, stagedir))
-    #    util.log("CDR_ECV", output)
-    #    sys.exit(cdr_ecv_exit_codes.file_transfer, output)
-    
+       
 
     #########################################################################################
     # UNPACK THE SOURCE FILE
