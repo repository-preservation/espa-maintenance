@@ -449,7 +449,9 @@
 {% endblock %}
     
 {% block scripts %}          
-      /* Simple function to show an element */
+      /*
+        Simple function to show an element
+      */
       function show_item(element_id) {
 	var elem = document.getElementById(element_id);
 	
@@ -464,7 +466,9 @@
 	return elem;
       }
       
-      /* Simple function to hide an element */
+      /*
+        Simple function to hide an element
+      */
       function hide_item(element_id) {
 	var elem = document.getElementById(element_id);
 	elem.style.display = 'none';
@@ -472,12 +476,17 @@
 	return elem;
       }
     
-      /* Returns true if an element is visible, false if not */
+      /*
+        Returns true if an element is visible, false if not
+      */
       function isVisible(element_id) {
 	return document.getElementById(element_id).style.visibility == 'visible';
       }
       
-      /* Toggles an element between visibile and hidden */
+      /*
+        Toggles an element between visibile and hidden
+      */
+      
       function show_hide(element_id) {
 	var elem = document.getElementById(element_id);    
 	
@@ -491,9 +500,11 @@
       }
       
             
-      /* Top level input item click handler.  Handles hiding/displaying an item
+      /*
+        Top level input item click handler.  Handles hiding/displaying an item
         and also ensures the 'resample' option is selected if the user
-        chooses an option that needs resampling. */
+        chooses an option that needs resampling.
+      */
       
       function handle_inputitem_click(element_id) {
 	show_hide(element_id);
@@ -587,8 +598,6 @@
 	  html += "</div>";
 	  
 	  return html;
-	  
-	
       }
       
       /* Constructs html to be displayed when utm is selected as a projection */
@@ -605,11 +614,13 @@
 	  html += "</div>";
 	  	  
 	  return html;
-	  
       }
       
             
-      /* Event listener for the projetion selection box */
+      /*
+      Event listener for the projetion selection box
+      */
+      
       function handle_projection_selection() {
 	var html = "";
 	switch( $('#select_target_projection').val() ) {
@@ -618,12 +629,16 @@
 		$('#projection_parameters').css("display", "block");
 	        $('#projection_parameters').css("visibility", "visible");
                 $('#target_projection').val("aea");
-                update_datum(); 
+                $('#select_pixel_size_units').val('meters');                          //force pixel size units to meters
+                display_pixelsize_placeholder();
+                update_datum();                                               //set hidden input field for initial value
 		break;
 	    case "sinu":
                 $('#projection_parameters').html(build_sinusoidal_options());
 		$('#projection_parameters').css("display", "block");
 	        $('#projection_parameters').css("visibility", "visible");
+                $('#select_pixel_size_units').val('meters');                          //force pixel size units to meters
+                display_pixelsize_placeholder();
                 $('#target_projection').val("sinu");
 		break;
 	    case "utm":
@@ -631,7 +646,10 @@
 		$('#projection_parameters').css("display", "block");
 	        $('#projection_parameters').css("visibility", "visible");
                 $('#target_projection').val("utm");
-                update_utm_params();
+                $('#select_pixel_size_units').val('meters');                          //force pixel size units to meters
+                display_pixelsize_placeholder();
+                update_utm_params();                                                         //update hidden input field
+                
                 break;
 	    case "lonlat":
 		html = "";
@@ -639,13 +657,19 @@
 		$('#projection_parameters').css("display", "none");
 	        $('#projection_parameters').css("visibility", "hidden");
                 $('#target_projection').val("lonlat");
+                $('#select_pixel_size_units').val('dd');                                  //force pixel size units to dd
+                display_pixelsize_placeholder();
+                
 		break;
 	}
 	
        }
        
-       /*Simply changes the placeholder value in the pixel size input field
-        depending on what is selected */
+       /*
+        Simply changes the placeholder value in the pixel size input field
+        depending on what is selected
+        */
+       
        function display_pixelsize_placeholder() {
 	var psval = "";
 	if ($('#select_pixel_size_units option:selected').val() == 'dd') {
@@ -655,7 +679,10 @@
 	  psval = "30 to 1000";
 	}
         
-        /* Populate the hidden input field */
+        /*
+        Populate the hidden input field
+        */
+        
         $('#pixel_size_units').val($('#select_pixel_size_units option:selected').val())
 	
 	$('#pixel_size').attr('placeholder', psval);

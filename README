@@ -72,6 +72,9 @@ Dependencies (Processing Nodes)
 		(Will be installed to /usr/local/var/ledaps/anc by default)
 		
 Change Notes
+Version 2.2.3
+        Altered cdr_ecv to use straight FTP rather than SCP (performance)
+
 Version 2.2.2
         Added SCA & SWE to internal ordering
         Corrected unchecked reprojection errors
