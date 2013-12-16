@@ -237,12 +237,12 @@ if __name__ == '__main__':
                 
             #added 12/5/13 to enable ftp transfers
             if options.has_key('cache_user'):
-                cmd = cmd + '--source_username %s' % options['cache_user']
-                cmd = cmd + '--destination_username %s' % options['cache_user']
+                cmd = cmd + '--source_username %s ' % options['cache_user']
+                cmd = cmd + '--destination_username %s ' % options['cache_user']
                 
             if options.has_key('cache_pw'):
-                cmd = cmd + '--source_pw %s' % options['cache_pw']
-                cmd = cmd + '--destination_pw %s' % options['cache_pw']
+                cmd = cmd + '--source_pw %s ' % options['cache_pw']
+                cmd = cmd + '--destination_pw %s ' % options['cache_pw']
             #END of 12/5/13 edits
             
             if options.has_key('reproject') and options['reproject'] == True:
