@@ -90,8 +90,8 @@ def runScenes():
                 line = json.loads(s)
                 orderid,sceneid,options = line['orderid'],line['scene'],line['options']
                 line['xmlrpcurl'] = rpcurl
-                line['cache_user'] = user
-                line['cache_pw'] = pw
+                line['options']['cache_user'] = user
+                line['options']['cache_pw'] = pw
                             
                 line_entry = json.dumps(line)
                 
