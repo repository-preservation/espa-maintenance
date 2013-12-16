@@ -99,7 +99,7 @@ def runScenes():
 
                 line['options'] = json.dumps(sOpts)
                             
-                line = json.dumps(line)
+                line_entry = json.dumps(line)
                 
                 util.log("CDR_ECV_DEBUG", line_entry)
                                
