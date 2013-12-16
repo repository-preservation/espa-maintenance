@@ -84,17 +84,22 @@ def runScenes():
             
             f = open(espaorderfile, 'w+')
             for s in scenes:
+
                 line = json.loads(s)
+
                 orderid,sceneid,options = line['orderid'],line['scene'],line['options']
+
                 line['xmlrpcurl'] = rpcurl
 
                 sOpts = json.loads(options)
+
                 sOpts['cache_user'] = user
+
                 sOpts['cache_pw'] = pw
-                options = json.dumps(sOpts)
-                line_entry['options'] = options
+
+                line['options'] = json.dumps(sOpts)
                             
-                line_entry = json.dumps(line)
+                line = json.dumps(line)
                 
                 util.log("CDR_ECV_DEBUG", line_entry)
                                
