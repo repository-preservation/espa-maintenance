@@ -43,18 +43,24 @@ for r in required_vars:
 
 rpcurl = os.environ.get("ESPA_XMLRPC")
 server = xmlrpclib.ServerProxy(rpcurl)
+if server is None:
+    util.log("CDR_ECV_CRON", "xmlrpc server was None... exiting")
+    sys.exit(-1)
 
 user = server.getConfiguration("landsatds.username")
 if len(user) == 0:
     util.log("CDR_ECV_CRON", "landsatds.username is not defined... exiting")
+    sys.exit(-1)
     
 pw = urllib.quote(server.getConfiguration("landsatds.password"))
 if len(pw) == 0:
     util.log("CDR_ECV_CRON", "landsatds.password is not defined... exiting")
+    sys.exit(-1)
     
 host = server.getConfiguration("landsatds.host")
 if len(host) == 0:
     util.log("CDR_ECV_CRON", "landsatds.host is not defined... exiting")
+    sys.exit(-1)
 
 
 def runScenes():
@@ -62,6 +68,7 @@ def runScenes():
        If there are, this method builds and executes a hadoop job and updates the xmlrpc
        service to flag all the scenes as "queued"
     '''
+    global server
     
     home_dir = os.environ['HOME']
     
