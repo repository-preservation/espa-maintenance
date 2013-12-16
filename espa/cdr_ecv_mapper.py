@@ -28,6 +28,7 @@ import random
 import commands
 import util
 from cStringIO import StringIO
+#import urllib
 
 def get_logfile(sceneid):
     return '/tmp/%s-jobdebug.txt' % sceneid
@@ -314,7 +315,7 @@ if __name__ == '__main__':
             #sys.exit(1)
             #end debugging
 
-            logger(sceneid, "Running command:%s" % cmd)    
+            logger(sceneid, "Running command:%s" % cmd)
             #h = open("/tmp/%s-cmd_debug.txt" % sceneid, "wb+")
             #h.write(cmd)
             #h.flush()

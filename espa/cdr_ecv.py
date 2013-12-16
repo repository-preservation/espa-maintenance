@@ -35,6 +35,7 @@ import frange
 import util
 import ftplib
 import shutil
+import urllib
 
 #########################################################################################
 
@@ -829,6 +830,8 @@ def ftp_from_online_cache(username, pw, host, remotefile, localfile):
     #make sure the src_file is absolute, otherwise ftp will choke
     if not remotefile.startswith("/"):
         remotefile = "/" + remotefile
+
+    pw = urllib.unquote(pw)
         
     url = "ftp://%s/%s" % (host, remotefile)
     util.log("CDR_ECV", "Transferring file from %s to %s" % (url, localfile))
@@ -879,7 +882,9 @@ def ftp_to_online_cache(username, pw, localfile, host, remotefile):
     #make sure the src_file is absolute, otherwise ftp will choke
     if not remotefile.startswith("/"):
         remotefile = "/" + remotefile
-            
+
+    pw = urllib.unquote(pw)   
+         
     util.log("CDR_ECV", "Transferring file from %s to %s" % \
              (localfile, "ftp://%s/%s" % (host, remotefile)))
     

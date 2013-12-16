@@ -30,6 +30,7 @@ import commands
 import json
 import util
 from datetime import datetime
+import urllib
 
 #set required variables that this script should fail on if they are not defined
 required_vars = ('ESPA_XMLRPC', "ESPA_WORK_DIR", "ANC_PATH", "PATH", "HOME")
@@ -49,7 +50,7 @@ if len(user) == 0:
     util.log("CDR_ECV_CRON", "landsatds.username is not defined... exiting")
     sys.exit(-1)
     
-pw = server.getConfiguration("landsatds.password")
+pw = urllib.quote(server.getConfiguration("landsatds.password"))
 if len(pw) == 0:
     util.log("CDR_ECV_CRON", "landsatds.password is not defined... exiting")
     sys.exit(-1)
