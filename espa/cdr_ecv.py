@@ -508,10 +508,12 @@ def warp_outputs(workdir, projection=None, image_extents=None, pixel_size=None, 
         
         if status >> 8 == 0:
             for line in output.split("\n"):
-                
-                line = str(line).strip().lower() 
-                
-                if line.startswith("subdataset") and line.find("_name") != -1:
+
+                #SUBDATASET_17_NAME=HDF4_EOS:EOS_GRID:"lndsr.LT50710132011274GLC00.hdf":Grid:fmask_band
+                #line = str(line).strip().lower() 
+
+                #Be careful!  The HDF subdataset values are case sensitive. --dvh 12/20/13
+                if line.strip().lower().startswith("subdataset") and line.strip().lower().find("_name") != -1:
                     parts = line.split("=")
                     yield parts[0],parts[1]
     
