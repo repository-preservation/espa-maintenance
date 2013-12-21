@@ -528,7 +528,7 @@ def warp_outputs(workdir, projection=None, image_extents=None, pixel_size=None, 
         
         status,output = commands.getstatusoutput(cmd)
         
-        if status != 0 and status != 256:
+        if status >> 8 != 0:
             util.log("CDR_ECV", "Error detected (status %s) warping output product[%s]:%s" % (status,item,output))
             return (1, item, output)
         
