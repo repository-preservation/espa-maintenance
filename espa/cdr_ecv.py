@@ -844,7 +844,7 @@ def ftp_from_online_cache(username, pw, host, remotefile, localfile):
             def callback(data):
                 loc_file.write(data)
                 
-            ftp = ftplib.FTP(host, timeout=10)
+            ftp = ftplib.FTP(host, timeout=30)
             ftp.login(user=username, passwd=pw)
             ftp.set_debuglevel(0)
             ftp.retrbinary("RETR " + remotefile, callback)
@@ -894,7 +894,7 @@ def ftp_to_online_cache(username, pw, localfile, host, remotefile):
     
     try:
         util.log("CDR_ECV", "Logging into %s with %s:%s" % ( host, username, pw))
-        ftp = ftplib.FTP(host, user=username, passwd=pw, timeout=10)
+        ftp = ftplib.FTP(host, user=username, passwd=pw, timeout=30)
         ftp.storbinary("STOR " + remotefile, open(localfile, "rb"), 1024)
     finally:
         if ftp:
