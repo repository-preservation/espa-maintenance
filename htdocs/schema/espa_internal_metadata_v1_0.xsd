@@ -113,7 +113,8 @@ elementFormDefault="qualified">
 <xs:element name="data_provider" type="xs:string"/>
 <xs:element name="satellite" type="xs:string"/>
 <xs:element name="instrument" type="xs:string"/>
-<xs:element name="acquisition_date" type="xs:dateTime"/>
+<xs:element name="acquisition_date" type="xs:date"/>
+<xs:element name="scene_center_time" type="xs:time"/>
 <xs:element name="level1_production_date" type="xs:dateTime"/>
 <xs:element name="lpgs_metadata_file" type="xs:string"/>
 <xs:element name="east" type="longAngleType"/>
@@ -350,6 +351,7 @@ elementFormDefault="qualified">
             <xs:element ref="satellite"/>
             <xs:element ref="instrument"/>
             <xs:element ref="acquisition_date"/>
+            <xs:element ref="scene_center_time"/>
             <xs:element ref="level1_production_date"/>
             <xs:element ref="solar_angles"/>
             <xs:element ref="wrs"/>
