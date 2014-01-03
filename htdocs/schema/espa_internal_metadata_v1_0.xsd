@@ -231,6 +231,13 @@ elementFormDefault="qualified">
   </xs:complexType>
 </xs:element>
 
+<xs:element name="toa_reflectance">
+  <xs:complexType>
+    <xs:attribute name="gain" type="xs:double" use="required"/>
+    <xs:attribute name="bias" type="xs:double" use="required"/>
+  </xs:complexType>
+</xs:element>
+
 <xs:element name="solar_angles">
   <xs:complexType>
     <xs:attribute name="zenith" type="angleType" use="required"/>
@@ -290,26 +297,6 @@ elementFormDefault="qualified">
   </xs:complexType>
 </xs:element>
 
-<xs:element name="refl_gain">
-  <xs:complexType>
-    <xs:simpleContent>
-      <xs:extension base="xs:double">
-        <xs:attribute name="band" type="xs:int" use="required"/>
-      </xs:extension>
-    </xs:simpleContent>
-  </xs:complexType>
-</xs:element>
-
-<xs:element name="refl_bias">
-  <xs:complexType>
-    <xs:simpleContent>
-      <xs:extension base="xs:double">
-        <xs:attribute name="band" type="xs:int" use="required"/>
-      </xs:extension>
-    </xs:simpleContent>
-  </xs:complexType>
-</xs:element>
-
 <xs:element name="band">
   <xs:complexType>
     <xs:sequence>
@@ -319,6 +306,7 @@ elementFormDefault="qualified">
       <xs:element ref="pixel_size"/>
       <xs:element ref="data_units" minOccurs="0"/>
       <xs:element ref="valid_range" minOccurs="0"/>
+      <xs:element ref="toa_reflectance" minOccurs="0"/>
       <xs:element ref="bitmap_description" minOccurs="0"/>
       <xs:element ref="class_values" minOccurs="0"/>
       <xs:element ref="calibrated_nt" minOccurs="0"/>
@@ -360,8 +348,6 @@ elementFormDefault="qualified">
             <xs:element ref="bounding_coordinates"/>
             <xs:element ref="projection_information"/>
             <xs:element ref="orientation_angle"/>
-            <xs:element ref="refl_gain" minOccurs="0" maxOccurs="unbounded"/>
-            <xs:element ref="refl_bias" minOccurs="0" maxOccurs="unbounded"/>
           </xs:sequence>
         </xs:complexType>
       </xs:element>
