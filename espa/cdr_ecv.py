@@ -1621,6 +1621,14 @@ if __name__ == '__main__':
         for m in metadata.iterkeys():
             util.log("CDR_ECV", "%s : %s" % (m, metadata[m]))
     
+    
+    #########################################################################################
+    # DELETE THE STAGED TARBALL, NO LONGER NEEDED
+    #########################################################################################
+
+    util.log("CDR_ECV", "Deleting staged tarball %s" % os.path.join(stagedir, source_filename))
+
+    os.unlink(os.path.join(stagedir, source_filename))
 
     #########################################################################################
     #MAKE THE PRODUCT
