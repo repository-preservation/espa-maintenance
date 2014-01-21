@@ -955,7 +955,7 @@ def distribute_product(product_file_full_path,
     except Exception, e:
         util.log("CDR_ECV", "Error transferring %s to %s:%s..." \
                  % (product_file_full_path, destination_host, destination_file))
-        util.log(e)
+        util.log("CDR_ECV",e)
         
         return (2,)
     
@@ -975,7 +975,7 @@ def distribute_product(product_file_full_path,
     except Exception,e:
         util.log("CDR_ECV", "Error transferring %s to %s:%s..." \
                  % (cksum_file_full_path, destination_host, destination_file))
-        util.log(e)
+        util.log("CDR_ECV",e)
         return (3,)
     
        
