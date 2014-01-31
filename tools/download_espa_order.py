@@ -2,9 +2,11 @@
 Author: David Hill
 Date: 01/31/2014
 Purpose: A simple python client that will download all available (completed) scenes for
-         a users order(s).
+         a user order(s).
 
 Requires: Python feedparser and standard Python installation.     
+
+Version: 1.0
 '''
 
 import feedparser
@@ -25,7 +27,7 @@ if __name__ == '__main__':
     #print args.target_directory
 
     #make sure we have a target to land the scenes
-    if not os.path.exists(args.target_directory) or not os.path.isdir(args.target_directory):
+    if not os.path.exists(args.target_directory):
         os.makedirs(args.target_directory)
         print ("Created target_directory:%s" % args.target_directory)
 
@@ -42,7 +44,7 @@ if __name__ == '__main__':
         target_links = [entry.link for entry in feed.entries if args.order in entry.description]
         
     #stop if theres nothing to do
-    if len(target_links) <= 0:
+    if len(target_links) == 0:
         print("No scenes available to download for %s" % args.order)
         exit()
     else:
