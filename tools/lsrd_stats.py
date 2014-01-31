@@ -33,7 +33,9 @@
 #						the scripts --- we be tearing that shit OUT.
 #						I will keep logic in pig scripts, but just not
 #						report those in the e-mail output
-#
+# 009		01-30-2014	Adam Dosch	Updating 'resultsondemandledaps' to 'resultsondemand'
+#						as the outdir name has changed in lsrd_ondemand_metrics
+#						pig script
 #########################################################################################
 
 __author__ = "Adam Dosch"
@@ -210,7 +212,7 @@ class PigProcessor:
                   'results2005':' GLS 2005 Collection',
                   'results2010':' GLS 2010 Collection',
                   'resultsall':' All GLS Collections',
-		  'resultsondemandledaps':' On-demand - Download Info'}
+		  'resultsondemand':' On-demand - Download Info'}
         
         global verbose
 
@@ -281,7 +283,7 @@ class PigProcessor:
             #-----------------
             # Ondemand results
             #-----------------
-            if re.match("^resultsondemandledaps", results_name):
+            if re.match("^resultsondemand", results_name):
             
                 if verbose == True: print "Matched", results_name, ", reading metrics and writing header + metrics to outputfile"
             

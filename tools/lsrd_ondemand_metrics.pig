@@ -46,6 +46,18 @@
   #							to store output in csv format
   #  004		02-04-2013	Adam Dosch      Changed LOAD log to dynamically be rotated apache
   #                                                     log for espa.cr.usgs.gov
+  #  005		01-30-2014	Adam Dosch	Renaming everythign and removing 'ledaps' off the
+  #							pipeline names and results directory.
+  #							Re-did apache log format to add "+" or "X" using the
+  #							%X CustomLog variable to track downloads since we are
+  #							not using mod_proxy to FTP and HTTP instead.  So we
+  #							have no custom HTTP return code to invalidate an
+  #							incomplete download.  Using %X, I have created an
+  #							extra field on the end of the Apache Log that I must
+  #							parse.  Had to Update WAFCombinedLogLoader Class to
+  #							have that regex compiler match it as well.
+  #							Added new fields 'referrer', 'userAgent' and the
+  #							'downloadIndicator' to parse on log line
   #
   ##########################################################################################################
 
@@ -53,17 +65,17 @@
 
 REGISTER /home/espa/pig/contrib/piggybank/java/piggybank.jar;
 
-logs = LOAD '/opt/cots/apache/logs/espa.cr.usgs.gov-access_log.1' USING org.apache.pig.piggybank.storage.apachelog.WAFCombinedLogLoader AS (remoteAddr, remoteLogname, user, time, method, uri, proto, status, bytes);
+logs = LOAD '/opt/cots/apache/logs/espa.cr.usgs.gov-access_log.1' USING org.apache.pig.piggybank.storage.apachelog.WAFCombinedLogLoader AS (remoteAddr, remoteLogname, user, time, method, uri, proto, status, bytes, referrer, userAgent, downloadIndicator);
 
 /* LEDAPS ondemand pipeline filtering */
-ondemandledapslogs = FILTER logs BY status == 200 AND uri MATCHES '^/orders/.*.tar.gz$' AND method == 'GET';
+ondemandlogs = FILTER logs BY status == 200 AND uri MATCHES '^/orders/.*.tar.gz$' AND method == 'GET' AND downloadIndicator == '+';
 
-ondemandledapslogset = FOREACH ondemandledapslogs GENERATE uri, bytes;
+ondemandlogset = FOREACH ondemandlogs GENERATE uri, bytes;
 
-grpondemandledapslogs = GROUP ondemandledapslogs all;
+grpondemandlogs = GROUP ondemandlogs all;
 
-resultsondemandledaps = FOREACH grpondemandledapslogs {
-	GENERATE COUNT(ondemandledapslogs) as tc, ((float)SUM(ondemandledapslogs.bytes)/1024/1024/1024) as tb;
+resultsondemand = FOREACH grpondemandlogs {
+	GENERATE COUNT(ondemandlogs) as tc, ((float)SUM(ondemandlogs.bytes)/1024/1024/1024) as tb;
 };
 
-STORE resultsondemandledaps INTO '/tmp/resultsondemandledaps' USING PigStorage(',');
+STORE resultsondemand INTO '/tmp/resultsondemand' USING PigStorage(',');
