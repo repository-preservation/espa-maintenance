@@ -9,15 +9,10 @@ from smtplib import *
 from models import Scene
 from models import Order
 from models import Configuration
-from datetime import timedelta
 from espa.scene_cache import SceneCache
-import time
 import json
 import datetime
 import lta
-import re
-import os
-import sys
 
 ########################################################################################################################
 #load configuration values at the module level... 
@@ -30,25 +25,6 @@ try:
 except Exception, err:
     print ("Could not load configuration values:%s" % err)
     
-########################################################################################################################
-# Tells us if the value in the string is a float or int.
-########################################################################################################################
-def is_number(s):
-    try:
-        float(s)
-        return True
-    except ValueError:
-        return False
-
-########################################################################################################################
-# Email validation method
-########################################################################################################################
-def validate_email(email):
-    '''Compares incoming email address against regular expression to make sure its at
-       least formatted like an email
-    '''
-    pattern = '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,4}$'
-    return re.match(pattern, email.strip())
 
 ########################################################################################################################
 # Default product options

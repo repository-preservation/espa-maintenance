@@ -1,4 +1,4 @@
-import lta, core
+import lta, utils
 
 ####################################################################################################################
 # Validates all the projection params if the user chose to reproject
@@ -16,32 +16,33 @@ def _projection(parms, options, option_errors):
             if parms['target_projection'] == 'aea':
                 options['target_projection'] = parms['target_projection']
                 
-                if parms.has_key('central_meridian') and core.is_number(parms['central_meridian']):
+                if parms.has_key('central_meridian') and utils.is_number(parms['central_meridian']):
                     options['central_meridian'] = float(parms['central_meridian'])
                 else:
-                    option_errors.append("Please provide a valid central meridian value")
+                    option_errors.append(
+                    "Please provide a valid central meridian value")
                 
-                if parms.has_key('false_easting') and core.is_number(parms['false_easting']):
+                if parms.has_key('false_easting') and utils.is_number(parms['false_easting']):
                     options['false_easting'] = float(parms['false_easting'])
                 else:
                     option_errors.append("Please provide a valid false_easting value")
                 
-                if parms.has_key('false_northing')and core.is_number(parms['false_northing']):
+                if parms.has_key('false_northing')and utils.is_number(parms['false_northing']):
                     options['false_northing'] = float(parms['false_northing'])
                 else:
                     option_errors.append("Please provide a valid false_northing value")
                 
-                if parms.has_key('std_parallel_1') and core.is_number(parms['std_parallel_1']):
+                if parms.has_key('std_parallel_1') and utils.is_number(parms['std_parallel_1']):
                     options['std_parallel_1'] = float(parms['std_parallel_1'])
                 else:
                     option_errors.append("Please provide a valid value for the 1st standard parallel")
                 
-                if parms.has_key('std_parallel_2') and core.is_number(parms['std_parallel_2']):
+                if parms.has_key('std_parallel_2') and utils.is_number(parms['std_parallel_2']):
                     options['std_parallel_2'] = float(parms['std_parallel_2'])
                 else:
                     option_errors.append("Please provide a valid value for the 2nd standard parallel")
                     
-                if parms.has_key('origin_lat') and core.is_number(parms['origin_lat']):
+                if parms.has_key('origin_lat') and utils.is_number(parms['origin_lat']):
                     options['origin_lat'] = float(parms['origin_lat'])
                 else:
                     option_errors.append("Please provide a valid latitude of origin")
@@ -58,17 +59,17 @@ def _projection(parms, options, option_errors):
                 
                 options['target_projection'] = parms['target_projection']
                 
-                if parms.has_key('central_meridian') and core.is_number(parms['central_meridian']):
+                if parms.has_key('central_meridian') and utils.is_number(parms['central_meridian']):
                     options['central_meridian'] = float(parms['central_meridian'])
                 else:
                     option_errors.append("Please provide a valid central meridian value")
                 
-                if parms.has_key('false_easting') and core.is_number(parms['false_easting']):
+                if parms.has_key('false_easting') and utils.is_number(parms['false_easting']):
                     options['false_easting'] = float(parms['false_easting'])
                 else:
                     option_errors.append("Please provide a valid false_easting value")
                 
-                if parms.has_key('false_northing')and core.is_number(parms['false_northing']):
+                if parms.has_key('false_northing')and utils.is_number(parms['false_northing']):
                     options['false_northing'] = float(parms['false_northing'])
                 else:
                     option_errors.append("Please provide a valid false_northing value")
@@ -112,22 +113,22 @@ def _boundingbox(parms, options, option_errors):
         options['image_extents'] = True
         
         #make sure we got upper left x,y and lower right x,y vals
-        if parms.has_key('minx') and core.is_number(parms['minx']):
+        if parms.has_key('minx') and utils.is_number(parms['minx']):
             options['minx'] = float(parms['minx'])
         else:
             option_errors.append("Please provide a valid upper left x value")
             
-        if parms.has_key('maxx') and core.is_number(parms['maxx']):
+        if parms.has_key('maxx') and utils.is_number(parms['maxx']):
             options['maxx'] = float(parms['maxx'])
         else:
             option_errors.append("Please provide a valid lower right x value")
             
-        if parms.has_key('miny') and core.is_number(parms['miny']):
+        if parms.has_key('miny') and utils.is_number(parms['miny']):
             options['miny'] = float(parms['miny'])
         else:
             option_errors.append("Please provide a valid lower right y value")
             
-        if parms.has_key('maxy') and core.is_number(parms['maxy']):
+        if parms.has_key('maxy') and utils.is_number(parms['maxy']):
             options['maxy'] = float(parms['maxy'])
         else:
             option_errors.append("Please provide a valid upper left y value")
@@ -171,7 +172,7 @@ def _pixelsize(parms, options, option_errors):
             option_errors.append("Please enter desired pixel size")
         else:
             pixel_size = parms['pixel_size']
-            if not core.is_number(pixel_size):
+            if not utils.is_number(pixel_size):
                 option_errors.append("Please enter a pixel size between 30 and 1000 meters or .0002695 to .0089831 dd")
             else:
                 if options['pixel_size_units'] != None:
@@ -193,7 +194,7 @@ def _pixelsize(parms, options, option_errors):
 ####################################################################################################################
 def product(parms):
     prod_option_errors = list()
-    default_options = core.get_default_options()
+    default_options = utils.get_default_options()
             
     #Collect parmsed products.
     for o in default_options.iterkeys():
@@ -213,9 +214,9 @@ def product(parms):
 #Ensures an email was supplied
 ####################################################################################################################
 def _email(parms, context, errors):
-        
+    
     #start off by making sure we have an email address.
-    if not parms.has_key('email') or not core.email(parms['email']):    
+    if not parms.has_key('email') or not utils.email(parms['email']):    
         errors['email'] = "Please provide a valid email address"
     else:
         context['email'] = parms['email']
@@ -261,7 +262,7 @@ def _files_and_scenes(parms, context, errors, scene_errors):
 def _product_was_selected(parms, errors):
     '''Verifies that at least one product was selected for processing'''
     ok = False
-    for key in core.get_default_product_options().iterkeys():
+    for key in utils.get_default_product_options().iterkeys():
         if parms.has_key(key):
             ok = True
             break

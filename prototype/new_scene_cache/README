@@ -1,0 +1,31 @@
+The previous version of ESPA that relied on contacting the online cache to determine if 
+scenes were available to process relied on making remote ssh calls, and made one call 
+(one ssh connection) for every scene that needed to be checked.  
+
+The current method relies on generating an entire listing of all available scenes 
+and placing this list in memcache on the espa servers.  This list is updated 
+every 2 to 4 hours, depending on the cron job that is set up to execute the checks.
+
+The proposed solution is to revert back to checking the online cache directly, but
+this time supplying all scenes that need to be checked in bulk with a single 
+remote call, either over remote ssh or via xmlrpc.  Benchmarks show that for a 
+list of 20,000 scenes the call will return in 4.6 seconds on files/paths that
+have not been accessed and are not in the disk cache.  For scenes that are in the 
+cache, the calls return in approximately 0.3 seconds.
+
+I strongly recommend we move to this method as it will eliminate a significant
+delay in scene processing (the scene cache refresh time).  It will involve 
+creating an online cache server side script to be called that knows how to parse
+out a directory path from a scene id.  An example of this is scene_cache.py in this
+directory.
+
+55000 scenes on a warmed up cache took 1.98 seconds with only two files actually 
+existing.  This is with the default SimpleXMLRPCServer embedded with the Python
+distribution, available on the installed version (2.4).  No additional 
+software packages are necessary to make this happen, just the script
+that starts the server and exposes the rpc calls over the port.
+
+Might be trouble if its flagged as open and unsecured though, we'll have to chat 
+about that.
+
+--dvh 12/30/2013
