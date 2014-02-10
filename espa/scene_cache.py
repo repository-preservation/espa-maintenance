@@ -213,6 +213,7 @@ if __name__ == '__main__':
     group.add_argument('--listscenes', dest='scenes', metavar='scenename', nargs='*', help='scenes to search for in the cache')
     group.add_argument('--is_nlaps', dest='is_nlaps', metavar='scenename', nargs='*', help='scenes to search the nlaps inventory for')
     group.add_argument('--last_updated', action="store_true", help="returns timestamp (seconds since epoch) cache last populated.  No result if empty")
+    group.add_argument('--last_updated_pretty', action="store_true", help="returns timestamp in human readable form, no result if empty")
     args = parser.parse_args()
     
 
@@ -230,6 +231,8 @@ if __name__ == '__main__':
             print r
     elif args.last_updated:
         print SceneCache().last_updated()
+    elif args.last_updated_pretty:
+        print (datetime.datetime.fromtimestamp(SceneCache().last_updated()))
     else:
         print parser.print_usage()
         
