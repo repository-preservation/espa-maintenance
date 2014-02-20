@@ -4,6 +4,15 @@
 #Had to point direct to this distro because there were no links set and 
 #the default Python instance was 2.4
 
+"""
+License:
+  "NASA Open Source Agreement 1.3"
+
+Description:
+  Provides a way to determine if scenes exist on the online cache disk in bulk.
+"""
+
+
 from SimpleXMLRPCServer import SimpleXMLRPCServer
 from SimpleXMLRPCServer import SimpleXMLRPCRequestHandler
 import os
