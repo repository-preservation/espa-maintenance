@@ -111,8 +111,7 @@ class SceneCache(object):
     def __scenes_exist(self, scenelist, nlaps=False):
         """ internal utility method that should not be called directly via xmlrpc
         scenelist = python list of scene ids
-        sensor = can either be 'nlaps' or left as None.  If None the sensor will
-                 be derived from the sceneid that has been passed in
+        nlaps = whether the scene list is nlaps or not
         Method will return a list of any scenes found on cache.  If empty list then none
         were found
         """        
