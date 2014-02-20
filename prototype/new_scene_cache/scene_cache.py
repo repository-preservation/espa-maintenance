@@ -1,4 +1,6 @@
-#!/usr/local/python-2.7.5/bin/python
+#!/usr/bin/env python
+
+#--!/usr/local/python-2.7.5/bin/python
 #Had to point direct to this distro because there were no links set and 
 #the default Python instance was 2.4
 
