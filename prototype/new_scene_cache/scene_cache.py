@@ -187,7 +187,7 @@ class TestSceneCache(unittest.TestCase):
         
         self.cache = SceneCache(basedir=self.basedir)
         self.utils = Utils()
-                        
+                                
     def tearDown(self):
         #remove temp files    
         shutil.rmtree(self.basedir, ignore_errors=True)
@@ -256,6 +256,5 @@ if __name__ == '__main__':
                                    requestHandler=RequestHandler)
     server.register_introspection_functions()
     server.register_instance(SceneCache())
-    #server.register_function(scenes_exist, 'scenes_exist')
     server.serve_forever()
 
