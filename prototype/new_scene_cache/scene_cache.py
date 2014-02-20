@@ -167,9 +167,7 @@ class TestSceneCache(unittest.TestCase):
 
         with open(full_path, 'wb+') as h:
             h.write('temp file')
-            h.flush()
-            h.close()
-           
+                     
            
     def setUp(self):
         #clean out directory if it exists
