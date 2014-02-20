@@ -1,3 +1,5 @@
+To test this module, install nose and execute: nosetests --with-coverage scene_cache.py
+
 The previous version of ESPA that relied on contacting the online cache to determine if 
 scenes were available to process relied on making remote ssh calls, and made one call 
 (one ssh connection) for every scene that needed to be checked.  
@@ -29,3 +31,4 @@ Might be trouble if its flagged as open and unsecured though, we'll have to chat
 about that.
 
 --dvh 12/30/2013
+
