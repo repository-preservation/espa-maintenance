@@ -12,16 +12,15 @@ Description:
   Provides a way to determine if scenes exist on the online cache disk in bulk.
 """
 
-
 from SimpleXMLRPCServer import SimpleXMLRPCServer
 from SimpleXMLRPCServer import SimpleXMLRPCRequestHandler
 import os
 import SocketServer
-import socket
 import unittest
 import shutil
 import re
 import daemon
+import config
 
 
 class ForkingXMLRPCServer(SocketServer.ForkingMixIn, SimpleXMLRPCServer):
@@ -34,9 +33,19 @@ class ThreadingXMLRPCServer(SocketServer.ThreadingMixIn, SimpleXMLRPCServer):
     pass
 
 
+
 class RequestHandler(SimpleXMLRPCRequestHandler):
     """Class to handle all the XMLRPC requests"""
     rpc_paths = ('/RPC2')
+    
+    def do_POST(self):
+        #send unauthorized if not in list   
+        if self.client_address[0] not in config.authorized_clients:
+            self.send_response(401)
+        else:
+            super(self, RequestHandler).do_POST(self)     
+
+       
 
 
 class Utils(object):
@@ -115,7 +124,7 @@ class SceneCache(object):
     and receive a list in response.  The returned list contains all the supplied scenes
     that were found on disk."""
     
-    def __init__(self, basedir="/data/standard_l1t"):
+    def __init__(self, basedir=config.base_dir):
         self.basedir = basedir
      
     def __scenes_exist(self, scenelist, nlaps=False):
@@ -257,18 +266,33 @@ def run():
     #change this port to be whatever is necessary...  Treat this 
     #file itself as a config file unless you wind up with more values
     #that need to be configured.
-    url = socket.getfqdn()    
-    port = 50000
     
-    server = ThreadingXMLRPCServer((url, port), requestHandler=RequestHandler)
+    url = config.ip_address  
+    port = config.port
+    multi = config.multiprocess_model
+
+    if multi == 'thread':
+        server = ThreadingXMLRPCServer((url, port), requestHandler = RequestHandler)
+    elif multi == 'fork':
+        server = ForkingXMLRPCServer((url, port), requestHandler = RequestHandler)        
+    elif multi == 'single':
+        server = SimpleXMLRPCServer((url, port), requestHandler = RequestHandler)
+    else:
+        server = ThreadingXMLRPCServer((url, port), requestHandler=RequestHandler)
+        
     server.register_introspection_functions()
     server.register_instance(SceneCache())
     server.serve_forever()
     
 if __name__ == '__main__':
+
     print ("Starting AsyncXMLRPCServer")   
+    
     #run the server as a daemon    
-    with daemon.DaemonContext():
+    if config.run_as_daemon:
+        with daemon.DaemonContext():
+            run()
+    else:
         run()
     
     
