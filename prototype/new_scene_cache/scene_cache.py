@@ -20,7 +20,7 @@ import unittest
 import shutil
 import re
 import daemon
-import config
+import settings
 
 
 class ForkingXMLRPCServer(SocketServer.ForkingMixIn, SimpleXMLRPCServer):
@@ -40,7 +40,7 @@ class RequestHandler(SimpleXMLRPCRequestHandler):
     
     def do_POST(self):
         #send unauthorized if not in list   
-        if self.client_address[0] not in config.authorized_clients:
+        if self.client_address[0] not in settings.authorized_clients:
             self.send_response(401)
         else:
             super(self, RequestHandler).do_POST(self)     
@@ -124,7 +124,7 @@ class SceneCache(object):
     and receive a list in response.  The returned list contains all the supplied scenes
     that were found on disk."""
     
-    def __init__(self, basedir=config.base_dir):
+    def __init__(self, basedir=settings.base_dir):
         self.basedir = basedir
      
     def __scenes_exist(self, scenelist, nlaps=False):
@@ -267,9 +267,9 @@ def run():
     #file itself as a config file unless you wind up with more values
     #that need to be configured.
     
-    url = config.ip_address  
-    port = config.port
-    multi = config.multiprocess_model
+    url = settings.ip_address  
+    port = settings.port
+    multi = settings.multiprocess_model
 
     if multi == 'thread':
         server = ThreadingXMLRPCServer((url, port), requestHandler = RequestHandler)
@@ -289,7 +289,7 @@ if __name__ == '__main__':
     print ("Starting AsyncXMLRPCServer")   
     
     #run the server as a daemon    
-    if config.run_as_daemon:
+    if settings.run_as_daemon:
         with daemon.DaemonContext():
             run()
     else:
