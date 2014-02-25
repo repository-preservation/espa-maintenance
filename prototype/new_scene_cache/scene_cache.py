@@ -21,6 +21,7 @@ import socket
 import unittest
 import shutil
 import re
+import daemon
 
 
 class ForkingXMLRPCServer(SocketServer.ForkingMixIn, SimpleXMLRPCServer):
@@ -44,7 +45,7 @@ class Utils(object):
     code is built to run standalone on the online cache servers, which will not get 
     a full up espa deployment"""
     
-        
+                
     def strip_zeros(self, value):
         """Removes all leading zeros from a string"""
 
@@ -251,19 +252,26 @@ class TestSceneCache(unittest.TestCase):
         results = self.cache.is_nlaps(self.good_scenes)
         self.assertEqual(results, [])
             
-        
-if __name__ == '__main__':
-    print ("Starting AsyncXMLRPCServer")
+
+def run():
     #change this port to be whatever is necessary...  Treat this 
     #file itself as a config file unless you wind up with more values
     #that need to be configured.
-    
     url = socket.getfqdn()    
     port = 50000
     
-    server = ThreadingXMLRPCServer((url, port), 
-                                   requestHandler=RequestHandler)
+    server = ThreadingXMLRPCServer((url, port), requestHandler=RequestHandler)
     server.register_introspection_functions()
     server.register_instance(SceneCache())
     server.serve_forever()
+    
+if __name__ == '__main__':
+    print ("Starting AsyncXMLRPCServer")   
+    #run the server as a daemon    
+    with daemon.DaemonContext():
+        run()
+    
+    
+    
+    
 
