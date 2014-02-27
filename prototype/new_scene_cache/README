@@ -1,34 +1,18 @@
+This is an XMLRPC Server meant to reside on the Landsat online cache machines.  
+
+It provides an EROS internal API for clients to determine if scenes are present and available to be downloaded.  
+
+This was built because the previous method of determining online cache contents was to maintain a full copy of filenames client-side (in ESPA) in memcached.  
+
+This could only be run periodically due to the execution time, was placing undue strain on the online cache machines, and introduced unnecessary lag in order production and fulfillment.
+
+This server allows callers to supply a list of scenes as an input parameter and receive a list in return, which contains only the supplied scenes that are on cache, excluding ones not present.
+
+There are no external dependencies for this server other than a standard python installation (version 2.4 through 2.7.x) and the code in the source directory.
+
 To test this module, install nose and execute: nosetests --with-coverage scene_cache.py
 
-The previous version of ESPA that relied on contacting the online cache to determine if 
-scenes were available to process relied on making remote ssh calls, and made one call 
-(one ssh connection) for every scene that needed to be checked.  
+David Hill 2/27/2014
 
-The current method relies on generating an entire listing of all available scenes 
-and placing this list in memcache on the espa servers.  This list is updated 
-every 2 to 4 hours, depending on the cron job that is set up to execute the checks.
 
-The proposed solution is to revert back to checking the online cache directly, but
-this time supplying all scenes that need to be checked in bulk with a single 
-remote call, either over remote ssh or via xmlrpc.  Benchmarks show that for a 
-list of 20,000 scenes the call will return in 4.6 seconds on files/paths that
-have not been accessed and are not in the disk cache.  For scenes that are in the 
-cache, the calls return in approximately 0.3 seconds.
-
-I strongly recommend we move to this method as it will eliminate a significant
-delay in scene processing (the scene cache refresh time).  It will involve 
-creating an online cache server side script to be called that knows how to parse
-out a directory path from a scene id.  An example of this is scene_cache.py in this
-directory.
-
-55000 scenes on a warmed up cache took 1.98 seconds with only two files actually 
-existing.  This is with the default SimpleXMLRPCServer embedded with the Python
-distribution, available on the installed version (2.4).  No additional 
-software packages are necessary to make this happen, just the script
-that starts the server and exposes the rpc calls over the port.
-
-Might be trouble if its flagged as open and unsecured though, we'll have to chat 
-about that.
-
---dvh 12/30/2013
 
