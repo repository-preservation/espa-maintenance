@@ -22,3 +22,9 @@ authorized_clients = [
 #True/False
 run_as_daemon = True
 
+#controls the name of this server per the HTTP spec (will show up in security scans)
+server_name = "Yeah, Magnets! v148, 3-to-the-3-to-the-6-to-the-9"
+
+#log message on server start
+startup_message = 'Starting LSRD Scene Cache RPC Server on %s:%s...' % (ip_address, port)
+

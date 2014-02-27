@@ -38,6 +38,8 @@ class RequestHandler(SimpleXMLRPCRequestHandler):
     """Class to handle all the XMLRPC requests"""
     rpc_paths = ('/RPC2')
     
+    server_version = settings.server_name
+    
     def do_POST(self):
         #send unauthorized if not in list   
         if self.client_address[0] not in settings.authorized_clients:
@@ -286,7 +288,7 @@ def run():
     
 if __name__ == '__main__':
 
-    print ("Starting AsyncXMLRPCServer")   
+    print settings.startup_message
     
     #run the server as a daemon    
     if settings.run_as_daemon:
