@@ -395,7 +395,7 @@ def make_cfmask(workdir):
             raise IOError("Could not find LEDAPS TOA reflectance file in %s" % workdir)
         
         #status,output = commands.getstatusoutput("cd %s;cfmask --verbose --metadata=%s" % (workdir, metafile))
-        status,output = commands.getstatusoutput("cd %s;cfmask --verbose --toarefl=%s" % (workdir, toa_file))
+        status,output = commands.getstatusoutput("cd %s;cfmask --verbose --max_cloud_pixels=5000000 --toarefl=%s" % (workdir, toa_file))
         status = status >> 8
         if status != 0:
             util.log("CDR_ECV", "Error producing cfmask for %s with status %s" % (toa_file, status))
