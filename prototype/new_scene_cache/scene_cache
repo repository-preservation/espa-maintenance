@@ -15,9 +15,9 @@ RETVAL=0
 
 USER=espa
 
-progpath="/home/espa/espa-site/someplace/"
+prog="scene_cache"
 
-prog="scene_cache.py"
+progpath="/usr/local/$prog/"
 
 progargs=""
 
@@ -32,7 +32,7 @@ case "$1" in
 
 	# Start scene_cache daemon
         echo -n "Starting $prog: "
-	su - $USER -c "$progpath/$prog &"
+	su - $USER -c "$progpath/${prog}.py ${progargs} &> /dev/null"
         #daemon --user=$USER $progpath/$prog &
 
 	RETVAL=$?
@@ -43,7 +43,7 @@ case "$1" in
 	# Stop scene_cache daemon.
 	echo -n $"Stopping $prog: "
 	#killproc $prog
-        ps -eaf | grep ^$USER | grep $prog | grep -v grep | awk '{print $2}' | xargs kill -9 &> /dev/null
+        ps -eaf | grep ^$USER | grep ${prog}.py | grep -v grep | awk '{print $2}' | xargs kill -9 &> /dev/null
 
 	RETVAL=$?
 	echo
