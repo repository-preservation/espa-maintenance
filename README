@@ -72,6 +72,10 @@ Dependencies (Processing Nodes)
 		(Will be installed to /usr/local/var/ledaps/anc by default)
 		
 Change Notes
+Version 2.2.5 (March 11, 2014)
+        Made change to support variable cloud pixel threshold for calls
+        to cfmask.
+
 Version 2.2.4 (December 20, 2013)
         Bug fix to parse_hdf_subdatasets() in cdr_ecv.py to correct reprojection 
         failures.
