@@ -40,12 +40,20 @@ class RequestHandler(SimpleXMLRPCRequestHandler):
     
     server_version = settings.server_name
     
+    #def do_POST(self):
     def do_POST(self):
         #send unauthorized if not in list   
         if self.client_address[0] not in settings.authorized_clients:
             self.send_response(401)
         else:
-            super(self, RequestHandler).do_POST(self)     
+            #super(RequestHandler, self).do_POST(self)     
+            #cannot use super() to make calls in python 2.7.5 with the 
+            #SimpleXMLRPCRequestHandler, as its ultimate base class
+            #BaseRequestHandler in SocketServer.py is not a new-style
+            #class (it does not inherit from object).  Resort to manual
+            #call to do_POST() instead.
+            SimpleXMLRPCRequestHandler.do_POST(self)
+            
 
        
 
@@ -59,10 +67,14 @@ class Utils(object):
                 
     def strip_zeros(self, value):
         """Removes all leading zeros from a string"""
-
-        while value.startswith('0'):
+        if value.startswith('0'):
             value = value[1:len(value)]
-            return value
+            return self.strip_zeros(value)
+        return value
+
+#        while value.startswith('0'):
+#            value = value[1:len(value)]
+#            return value
 
 
     def is_valid_scene(self, scene_name):
@@ -149,6 +161,8 @@ class SceneCache(object):
                                                       basedir=self.basedir,
                                                       nlaps=nlaps)
                 real_path = os.path.join(path_tuple[0], path_tuple[1])
+
+
                 if os.path.exists(real_path):
                     results.append(s)
         finally:
@@ -167,8 +181,9 @@ class SceneCache(object):
 class TestSceneCache(unittest.TestCase):
     
     #base diretory to use for testing
-    basedir='/tmp/test_scene_cache'
-    
+    #basedir='/tmp/test_scene_cache'
+    basedir='/data/standard_l1t'
+
     #baloney scenenames that we'll create on disk
     nlaps_scenes = ['LE70100202003111EDC00', 'LT50100202003111EDC01']    
     good_scenes = ['LT50330221999111EDC00', 'LE70010022000234EDC01']    
