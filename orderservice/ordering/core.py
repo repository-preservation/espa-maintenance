@@ -10,7 +10,13 @@ from models import Scene
 from models import Order
 from models import Configuration
 from datetime import timedelta
-from espa.scene_cache import SceneCache
+try:
+    from espa.scene_cache import SceneCache
+except:
+    try:
+        from scene_cache import SceneCache
+    except:
+        print ("Could not import scene_cache... check PYTHONPATH")
 import time
 import json
 import datetime

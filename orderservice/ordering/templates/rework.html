@@ -5,12 +5,6 @@
     
     {% block style %}
     
-    body {
-	font-family: Verdana, Arial, Helvetica, sans-serif;
-	font-size:14px;
-        padding: 10px 6px;
-        letter-spacing: .3px;
-    }
     
     .tooltip { border-bottom: 1px dotted #333; position: relative; cursor: pointer; margin-left:15px; }
     
@@ -189,11 +183,13 @@
     {% block nav %}{% include "bulk_ordering_nav.html" %}{% endblock %}
 
     {% block content %}
+
+
     <form action="/new/" method="post" id="request_form" name="request_form" enctype="multipart/form-data"> {% csrf_token %}
     
     <div id="wrapper">
-    {% if system_message %}
-        <div style="vertical-align:middle;border:4px solid red; margin-top:20px;padding:15px 10px 15px 10px;font-color:red;font-size:18px;">{{system_message}}</div>
+    {% if display_system_message %}
+        {% include "system_message.html" %}
     {% endif %}
     
     <h4>Submitting an order</h4>

@@ -32,6 +32,20 @@ def get_option_style(request):
         user = request.user
         return "display:none" if (user.username != 'espa_admin' and user.username != 'espa_internal') else ""
 
+
+def display_system_message(context):
+    msg = Configuration().getValue('display_system_message')
+    if msg == 'True':
+        context['display_system_message'] = True
+        context['system_message_title'] = Configuration().getValue('system_message_title')
+        context['system_message_1'] = Configuration().getValue('system_message_1')
+        context['system_message_2'] = Configuration().getValue('system_message_2')
+        context['system_message_3'] = Configuration().getValue('system_message_3')
+    else:
+        context['display_system_message'] = False
+
+
+
 ########################################################################################################################
 #default landing page for the ordering application
 #@login_required(login_url='/login/')
@@ -42,7 +56,9 @@ def index(request):
     c = Context({
         'my_message': 'LSDS Science R&D Processing',
     })
-            
+
+    display_system_message(c)    
+        
     return HttpResponse(t.render(c))
                        
 ########################################################################################################################
@@ -54,10 +70,10 @@ def neworder(request):
     ####################################################################################################################
     #Includes the system message in the request context if one is defined
     ####################################################################################################################
-    def include_system_message(request_context):
-        msg = Configuration().getValue('system_message')
-        if len(msg) > 0 and msg != '' and msg != 'nothing':
-            c['system_message'] = msg
+    #def include_system_message(request_context):
+    #    msg = Configuration().getValue('system_message')
+    #    if len(msg) > 0 and msg != '' and msg != 'nothing':
+    #        c['system_message'] = msg
     
     
         
@@ -70,7 +86,9 @@ def neworder(request):
                            )
         #t = loader.get_template('neworder.html')
         t = loader.get_template('rework.html')
-        include_system_message(c)
+        
+        display_system_message(c)
+       
         return HttpResponse(t.render(c))
         
     elif request.method == 'POST':
@@ -96,7 +114,9 @@ def neworder(request):
                                          'optionstyle':get_option_style(request)}
                                )    
             t = loader.get_template('rework.html')
-            include_system_message(c)
+
+            display_system_message(c)
+
             return HttpResponse(t.render(c))
         else:
             print "No errors detected"
@@ -125,6 +145,9 @@ def listorders(request, email=None, output_format=None):
     if email is None or not core.validate_email(email):
         form = ListOrdersForm()
         c = RequestContext(request,{'form': form})
+        
+        display_system_message(c)
+
         t = loader.get_template('listorders.html')
         return HttpResponse(t.render(c))
 
@@ -135,6 +158,9 @@ def listorders(request, email=None, output_format=None):
     c = RequestContext(request)
     c['email'] = email
     c['orders'] = orders
+    
+    display_system_message(c)
+  
     return HttpResponse(t.render(c), mimetype=mimetype)
 
 
@@ -148,6 +174,8 @@ def orderdetails(request, orderid, output_format=None):
     t = loader.get_template('orderdetails.html')
     mimetype = 'text/html'   
     c = RequestContext(request)
+
+    display_system_message(c)
 
     order,scenes = core.get_order_details(orderid)
     c['order'] = order

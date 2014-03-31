@@ -1,0 +1,28 @@
+{% autoescape off %}
+<div style="width:700px;margin: 0 auto;background:#DEDEDE;padding:10px;border:1px solid #CDCDCD;border-top:none">
+
+<br/>
+
+{% if system_message_title %}
+<p style="clear:both;margin:10px;"><strong>{{ system_message_title  }}</strong></p>
+{% endif %}
+
+{% if system_message_1 %}
+<p style="clear:both;margin:10px;">{{ system_message_1 }}</a></p>
+{% endif %}
+
+{% if system_message_2 %}
+<p style="clear:both;margin:10px;">{{ system_message_2 }}</a></p>
+{% endif %}
+
+{% if system_message_3 %}
+<p style="clear:both;margin:10px;">{{ system_message_3 }}</p>
+{% endif %}
+
+<br/>
+</div>
+{% endautoescape %}
+
+
+
+

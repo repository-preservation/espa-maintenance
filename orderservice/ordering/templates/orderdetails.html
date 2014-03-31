@@ -3,8 +3,27 @@
 {% block title %} ESPA - Order Details {% endblock %}
 
 {% block header %}
-
 Details for: {{ order.orderid }}
+{% endblock %}
+
+{% block style %} 
+
+div.boxbody {
+    margin:0 auto;
+    width:600px;
+    border:none;
+}
+
+div.boxbody table {
+    width:450px;
+    padding:10px;
+}
+
+div.boxbody table td {
+
+padding:5px 10px;
+
+}
 
 {% endblock %}
 
@@ -16,24 +35,32 @@ Details for: {{ order.orderid }}
 {% csrf_token %}
 <div id="wrapper">
 
+{% if display_system_message %}
+    {% include "system_message.html" %}
+{% endif %}
+
+
 {% if scenes %}
-<h4>Details for: {{ order.orderid }}</h4>
+<h4>Details for: {{ order.orderid }}  ({{order.get_status_display}})</h4>
 
-<div class="box">
-	<div class="boxhead">
-	    Status: {{order.get_status_display}}
-	</div>
-	<div class="boxbody">
-{% for s in scenes %}
+<div class="boxbody">
+  <table >
+  {% for s in scenes %}
     {% if s.name %}
-    <div class="boxitem">
-    {{s.name}} - {{s.get_status_display}} {% if s.note and s.note != "''" %} ({{s.note}}){% endif %}
-
-    {% if s.status == 'complete'%} - <a href="{{s.product_dload_url}}">Download</a>&nbsp;&nbsp;&nbsp;<a href="{{s.cksum_download_url}}">Checksum</a>{% endif %}
-    </div>
+    <tr><!--<div class="boxitem">-->
+    <td>{{s.name}}</td>
+    <td>{{s.get_status_display}}</td>
+    {% if s.note and s.note != "''" %}
+    <td>{{s.note}}</td>
     {% endif %}
-{% endfor %}
-</div>
+    {% if s.status == 'complete'%} 
+    <td><a href="{{s.product_dload_url}}">Download</a></td>
+    <td><a href="{{s.cksum_download_url}}">Checksum</a></td>
+    {% endif %}
+    </tr>
+    {% endif %}
+  {% endfor %}
+  </table>
 </div>
 {% else %}
 <h4>No scenes found for {{order.orderid}}</h4>

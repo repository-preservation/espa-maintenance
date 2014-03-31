@@ -10,6 +10,34 @@
 {% endif %}
 {% endblock %}
 
+
+{% block style %}
+
+span.status-display {
+   margin-left:10px
+}
+
+
+div.boxbody {
+    margin:0 auto;
+    width:750px;
+    border:none;
+}
+
+div.boxbody table {
+    width:750px;
+    padding:10px;
+}
+
+div.boxbody table td {
+
+padding:5px 10px;
+
+}
+
+
+{% endblock %}
+
 {% block nav %}{% include "bulk_ordering_nav.html" %}{% endblock %}
 
 
@@ -18,21 +46,29 @@
 {% csrf_token %}
 <div id="wrapper">
 
+{% if display_system_message %}
+    {% include "system_message.html" %}
+{% endif %}
+
+
 {% if orders %}
 <h4>
 <a href="/status/{{email}}/rss/"><img border="0" alt="RSS Status Feed" title="Completed Scene RSS Feed" src="http://landsat.usgs.gov/espa/images/feed-icon-28x28.png"></img></a>
 &nbsp;&nbsp;Showing all orders for {{email}}
 </h4>
 
+
+<div class='boxbody' >
+<table>
 {% for order in orders %}
-    <div>
-    <a href='/status/{{order.orderid}}'>{{order.orderid}}</a><span style="margin-left:10px">{{order.get_status_display}}</span>
-    </div>
-    <div style="margin-bottom:10px;margin-top:5px;">
-	{{order.note}}
-    </div>
-    
+    <tr>
+    <td><a href='/status/{{order.orderid}}'>{{order.orderid}}</a></td>
+    <td>{{order.get_status_display}}</td>
+    <td> {{order.note}}</td>
+    </tr> 
 {% endfor %}
+</table>
+</div>
 {% else %}
 <h4>No orders found for {{email}}</h4>
 {% endif %}

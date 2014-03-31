@@ -18,14 +18,6 @@
 		color:red;
 	}
 
-        div {
-           
-        }
-	
-	p {
-	    font-family:Arial, sans-serif;
-	}
-
         div.marketing_box {
            width:29%;
            margin:0 auto;
@@ -120,6 +112,10 @@
 {% block content %}
 
 <div id="wrapper">
+{% if display_system_message %}
+    {% include "system_message.html" %}
+{% endif %}
+
 	<div id="logo_box">
            <img src="/static/img/lsrd_logo_color.png" />
         </div>

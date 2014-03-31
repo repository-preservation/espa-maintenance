@@ -8,6 +8,12 @@
 		color:red;
 	}
 
+    div.boxbody {
+        border:none;
+        width:500px;
+        margin:0 auto;    
+    }
+
 {% endblock %}
 
 {% block nav %}{% include "bulk_ordering_nav.html" %}{% endblock %}
@@ -15,24 +21,28 @@
 {% block content %}
 <!--<form action="/status/" method="post"> {% csrf_token %}-->
 <div id="wrapper">
-    
-    <h4>Show Orders</h4>
-    <p>
-            Please enter the email address used to submit the order.
-   </p>
+
+{% if display_system_message %}
+    {% include "system_message.html" %}
+{% endif %}
+
+    <h4>Please enter the email address used to submit the order</h4>
+
+    <div class='boxbody'>
         
     {% if errors.email %}
     <span class="error">{{errors.email}}</span><br/>
     {% endif %}
-    <p>
+    
     <label for="id_email">Email address:</label>
     {{form.email}}
-    </p>
+    
         
-    <p>
+    
 	<!--<input type="submit" value="Submit"' />-->
 	<input type="button" value="Submit" onclick='switchUrl();' />
-    </p>
+   
+    </div>
 
 </div>
 
