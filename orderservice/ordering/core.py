@@ -10,13 +10,6 @@ from models import Scene
 from models import Order
 from models import Configuration
 from datetime import timedelta
-try:
-    from espa.scene_cache import SceneCache
-except:
-    try:
-        from scene_cache import SceneCache
-    except:
-        print ("Could not import scene_cache... check PYTHONPATH")
 import time
 import json
 import datetime
@@ -24,6 +17,8 @@ import lta
 import re
 import os
 import sys
+import xmlrpclib
+import urllib2
 
 ########################################################################################################################
 #load configuration values at the module level... 
@@ -275,6 +270,59 @@ def generate_ee_order_id(email,eeorder):
 def getSceneInputPath(sceneid):
     scene = Scene.objects.get(name=sceneid)
     return scene.getOnlineCachePath()
+
+
+def scenecache_is_alive(url='http://edclpdsftp.cr.usgs.gov:50000/RPC2'):
+    """Determine if the specified url has an http server that accepts POST calls
+    
+    Keyword args: 
+    url -- The url of the server to check
+    
+    Return:
+    True -- If the contacted server is alive and accepts POST calls
+    False -- If the server does not accept POST calls or the server could not be contacted
+    """
+                 
+    try:
+        return urllib2.urlopen(url, data="").getcode() == 200
+    except Exception, e:
+        print e
+        return False
+
+
+def get_xmlrpc_proxy():
+    """Return an xmlrpc proxy to the caller for the scene cache
+    
+    Returns -- An xmlrpclib ServerProxy object
+    """
+    url = 'http://edclpdsftp.cr.usgs.gov:50000/RPC2'
+    #url = os.environ['ESPA_SCENECACHE_URL']
+    if scenecache_is_alive(url):
+        return xmlrpclib.ServerProxy(url)
+    else:
+        raise RuntimeError("Could not contact a scene_cache  xmlrpc server at %s" % url)
+
+def scenes_on_cache(scenelist):
+    """Proxy method call to determine if the scenes in question are on disk
+
+    Keyword args:
+    scenelist -- A Python list of scene identifiers
+  
+    Returns:
+    A subset of scene identifiers
+    """
+    return get_xmlrpc_proxy().scenes_exist(scenelist)    
+
+def scenes_are_nlaps(scenelist):
+    """Proxy method call to determine if the scenes are nlaps scenes
+
+    Keyword args:
+    scenelist -- A Python list of scene identifiers
+
+    Return:
+    A subset of scene identifiers
+    """
+    return get_xmlrpc_proxy().is_nlaps(scenelist)
     
 ########################################################################################################################
 #  Interrogates the database to determine and return what orders/scenes can be processed
@@ -290,15 +338,10 @@ def getScenesToProcess():
         return []
     
     #is cache online?
-    cache = SceneCache()
-    if cache == None:
-        print("Could not create the scene cache...")
-        raise Exception("Could not create the scene cache...")
+    if not scenecache_is_alive():
+        print("Could not contact the scene cache...")
+        raise Exception("Could not contact the scene cache...")
         
-    if cache.last_updated() == None:
-        #log message about the cache not being loaded
-        return []
-
     #the cache is online and there are scenes to process...
     
     #get all the scenes that are in submitted status (limit to 500 scenes)
@@ -310,7 +353,7 @@ def getScenesToProcess():
         submitted_list = [s.name for s in submitted]
         
          #check to see if they are NLAPS scenes first!!!
-        nlaps_scenes = cache.is_nlaps(submitted_list)
+        nlaps_scenes = scenes_are_nlaps(submitted_list) 
         
         for s in submitted:
             if s.name in nlaps_scenes:
@@ -318,7 +361,7 @@ def getScenesToProcess():
                 s.note = 'TMA data cannot be processed'
                 s.save()
         
-        oncache = cache.has_scenes(submitted_list)
+        oncache = scenes_on_cache(submitted_list)
 
         for s in submitted:
             if s.name in oncache:
