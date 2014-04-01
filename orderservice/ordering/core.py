@@ -392,7 +392,8 @@ def getScenesToProcess():
 
     if ordered:
         ordered_list = [s.name for s in ordered]
-        oncache2 = cache.has_scenes(ordered_list)
+        #oncache2 = cache.has_scenes(ordered_list)
+        oncache2 = scenes_on_cache(ordered_list)
 
         #change status to oncache for the ones that were found
         for s in ordered:
