@@ -344,8 +344,8 @@ def getScenesToProcess():
         
     #the cache is online and there are scenes to process...
     
-    #get all the scenes that are in submitted status (limit to 500 scenes)
-    submitted = Scene.objects.filter(status='submitted')[:500]
+    #get all the scenes that are in submitted status 
+    submitted = Scene.objects.filter(status='submitted')
     
     if submitted:
         
@@ -405,7 +405,7 @@ def getScenesToProcess():
     #now the database should be fully updated with the current status.
     #Pull the current oncache set from the db and include it as the result
     results = []
-    available_scenes = Scene.objects.filter(status='oncache')
+    available_scenes = Scene.objects.filter(status='oncache')[:500]
     if available_scenes:
         for a in available_scenes:
             order = a.order
