@@ -71,9 +71,11 @@ elementFormDefault="qualified">
 
 <xs:simpleType name="projectionType">
   <xs:restriction base="xs:string">
+    <xs:enumeration value="GEO"/>
     <xs:enumeration value="UTM"/>
     <xs:enumeration value="PS"/>
     <xs:enumeration value="ALBERS"/>
+    <xs:enumeration value="SIN"/>
     <!-- Additional projection types can/will be added as needed -->
   </xs:restriction>
 </xs:simpleType>
@@ -149,6 +151,7 @@ elementFormDefault="qualified">
 <xs:element name="standard_parallel2" type="latAngleType"/>
 <xs:element name="central_meridian" type="longAngleType"/>
 <xs:element name="origin_latitude" type="latAngleType"/>
+<xs:element name="sphere_radius" type="xs:double"/>
 <xs:element name="grid_origin" type="gridOriginType"/>
 <xs:element name="orientation_angle" type="angleType"/>
 <xs:element name="short_name" type="xs:string"/>
@@ -192,6 +195,8 @@ elementFormDefault="qualified">
   </xs:complexType>
 </xs:element>
 
+<!-- geographic proj parms are not needed -->
+
 <xs:element name="utm_proj_params">
   <xs:complexType>
     <xs:sequence>
@@ -224,6 +229,17 @@ elementFormDefault="qualified">
   </xs:complexType>
 </xs:element>
 
+<xs:element name="sin_proj_params">
+  <xs:complexType>
+    <xs:sequence>
+      <xs:element ref="sphere_radius"/>
+      <xs:element ref="central_meridian"/>
+      <xs:element ref="false_easting"/>
+      <xs:element ref="false_northing"/>
+    </xs:sequence>
+  </xs:complexType>
+</xs:element>
+
 <xs:element name="projection_information">
   <xs:complexType>
     <xs:sequence>
@@ -231,10 +247,12 @@ elementFormDefault="qualified">
       <xs:element ref="grid_origin"/>
 
       <!-- One of the following need to be identified, depending on the
-           projection type -->
+           projection type. No projection parameters are needed for
+           Geographic. -->
       <xs:element ref="utm_proj_params" minOccurs="0"/>
       <xs:element ref="ps_proj_params" minOccurs="0"/>
       <xs:element ref="albers_proj_params" minOccurs="0"/>
+      <xs:element ref="sin_proj_params" minOccurs="0"/>
     </xs:sequence>
     <xs:attribute name="projection" type="projectionType" use="required"/>
     <xs:attribute name="sphere_code" type="xs:int" use="required"/>
