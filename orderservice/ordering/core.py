@@ -345,7 +345,7 @@ def getScenesToProcess():
     #the cache is online and there are scenes to process...
     
     #get all the scenes that are in submitted status 
-    submitted = Scene.objects.filter(status='submitted')
+    submitted = Scene.objects.filter(status='submitted')[:1000]
     
     if submitted:
         
