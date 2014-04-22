@@ -79,12 +79,7 @@ class LTAService(object):
             elif os.environ['ESPA_ENV'].lower() == "tst":
                 return "tst"
         else:
-            if socket.gethostname().lower().startswith("l8srlscp03"):
-                return "ops"
-            elif socket.gethostname().lower().startswith("l8srlscp12"):
-                return "tst"
-            else:
-                return environment
+            return environment
 
 
     def get_url(self, service_name):
