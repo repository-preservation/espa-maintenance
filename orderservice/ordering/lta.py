@@ -74,10 +74,15 @@ class LTAService(object):
         '''        
         
         if os.environ.has_key("ESPA_ENV"):
-            if os.environ['ESPA_ENV'].lower() == "ops":
-                return "ops"
-            elif os.environ['ESPA_ENV'].lower() == "tst":
-                return "tst"
+            if os.environ['ESPA_ENV'].lower() == 'ops':
+                return 'ops'
+            elif os.environ['ESPA_ENV'].lower() == 'tst':
+                return 'tst'
+            elif os.environ['ESPA_ENV'].lower() == 'dev':
+                return 'dev'
+            else:
+                raise Exception("ESPA_ENV set to unknown value:%s... cannot continue"\
+                % os.environ['ESPA_ENV'])
         else:
             return environment
 
