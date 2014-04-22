@@ -81,8 +81,8 @@ class LTAService(object):
             elif os.environ['ESPA_ENV'].lower() == 'dev':
                 return 'dev'
             else:
-                raise Exception("ESPA_ENV set to unknown value:%s... cannot continue"\
-                % os.environ['ESPA_ENV'])
+                raise Exception("ESPA_ENV set to unknown value:%s... must be one of \
+                'dev', 'tst' or 'ops'... cannot continue" % os.environ['ESPA_ENV'])
         else:
             return environment
 
