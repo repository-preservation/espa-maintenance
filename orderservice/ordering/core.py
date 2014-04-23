@@ -525,7 +525,11 @@ def set_scene_unavailable(name, orderid, processing_loc, error, note):
             #update ee
             lta_service = lta.LtaServices()
             lta_service.update_order(o.ee_order_id, s.ee_unit_id, 'R')
-            
+        
+
+        #if there are no more inprocess scenes, mark the order complete and send email
+        update_order_if_complete(o.orderid,s.name)
+    
         return True
     else:
         #something went wrong, don't clean up other disk.
