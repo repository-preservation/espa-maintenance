@@ -85,7 +85,7 @@ def neworder(request):
                                     'optionstyle':get_option_style(request)}
                            )
         #t = loader.get_template('neworder.html')
-        t = loader.get_template('rework.html')
+        t = loader.get_template('neworder.html')
         
         display_system_message(c)
        
@@ -113,7 +113,7 @@ def neworder(request):
                                          'user':request.user,
                                          'optionstyle':get_option_style(request)}
                                )    
-            t = loader.get_template('rework.html')
+            t = loader.get_template('neworder.html')
 
             display_system_message(c)
 
