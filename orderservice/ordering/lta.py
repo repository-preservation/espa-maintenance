@@ -62,12 +62,8 @@ class LTAService(object):
         Keyword args:
         environment The environment string that is passed in to the LtaService.  This
                     allows the desired environment to be supplied as a fallback from the
-                    normal resolution of looking at the ESPA_ENV shell variable, then
-                    checking the machine name.  l8srlscp03 will always be 'ops' and 
-                    l8srlscp12 will always be 'tst' unless overridden by ESPA_ENV.  The 
-                    environment variable supplied to this method is the default fallback
-                    in case both of these methods do not yield an appropriate value.
-        
+                    normal resolution of looking at the ESPA_ENV shell variable.
+                    
         Returns:
         A string of either 'ops', 'tst', or 'dev', which will correspond to values 
         in the LtaService.urls dictionary
@@ -208,9 +204,10 @@ class OrderWrapperServiceClient(LTAService):
         string 'LANDSAT_TM' for code LT4 & LT5
         string 'LANDSAT_ETM_PLUS' for LE7 with scan line corrector
         string 'LANDSAT_ETM_SLC_OFF' for LE7 with scan line corrector turned on
+        None if the sensor cannot be determined
         '''
         
-        sensor = 'Unknown'
+        sensor = ''
         code = self.get_product_code(sceneid)
         
         if code == "T273":
@@ -219,6 +216,8 @@ class OrderWrapperServiceClient(LTAService):
             sensor = "LANDSAT_ETM_PLUS"
         elif code == "T271":
             sensor = "LANDSAT_ETM_SLC_OFF"
+        else:
+            sensor = None
             
         return sensor
         
@@ -231,13 +230,24 @@ class OrderWrapperServiceClient(LTAService):
         scene_list A list of scenes to be verified
          
         Returns:
+        A dictionary with keys matching the scene list and values are 'true' if valid, 
+        and 'false' if not.
+        
+        Return value example:
+        dictionary = dict()
+        dictionary['LT51490212007234IKR00'] = True
+        dictionary['asdf'] = False
+        ...
+        ...
+        ...
         
         '''
 
+        #build the service + operation url
         url = self.get_url("orderservice")
-        operation = 'verifyScenes'
-        request_url = "%s/%s" % (url, operation)
+        request_url = "%s/%s" % (url, 'verifyScenes')
         
+        #build the request body
         sb = StringIO()
         sb.write(self.xml_header)
         sb.write("<sceneList xmlns='http://earthexplorer.usgs.gov/schema/sceneList' ")
@@ -250,18 +260,17 @@ class OrderWrapperServiceClient(LTAService):
     
         request_body = sb.getvalue()
 
+        #set the required headers
         headers = dict()
         headers['Content-Type'] = 'application/xml'
         headers['Content-Length'] = len(request_body)
         
+        #send the request and check return status        
         request = urllib2.Request(request_url, request_body, headers)
-
         h = urllib2.urlopen(request)
-        
         code = h.getcode()
 
         response = None
-        
         if code == 200:
             response = h.read()
         else:
@@ -275,9 +284,12 @@ class OrderWrapperServiceClient(LTAService):
         root = xml.fromstring(response)
         scenes = root.getchildren()
 
-        for s in scenes:
-            retval[s.text] = s.attrib['valid']
-            
+        for s in scenes:            
+            if s.attrib['valid'] == 'true': status = True
+            else: status = False
+
+            retval[s.text] = status
+                       
         return retval
         
         
@@ -297,10 +309,11 @@ class OrderWrapperServiceClient(LTAService):
         ?        
         '''
         
+        #build service url
         url = self.get_url("orderservice")
-        operation = 'submitOrder'
-        request_url = "%s/%s" % (url, operation)
+        request_url = "%s/%s" % (url, 'submitOrder')
 
+        #build the request body
         sb = StringIO()
         sb.write(self.xml_header)
         sb.write("<orderParameters xmlns='http://earthexplorer.usgs.gov/schema/orderParameters' ")
@@ -325,17 +338,18 @@ class OrderWrapperServiceClient(LTAService):
         sb.write("</orderParameters>")
 
         request_body = sb.getvalue()
-                
+        
+        #set the required headers
         headers = dict()
         headers['Content-Type'] = 'application/xml'
         headers['Content-Length'] = len(request_body)
 
-        #try/catch this stuff
+        
+        #send the request and check response
         request = urllib2.Request(request_url, request_body, headers)
         h = urllib2.urlopen(request)
         
         response = None
-
         if h.getcode() == 200:
             response = h.read()
         else:
