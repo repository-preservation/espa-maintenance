@@ -72,6 +72,21 @@ Dependencies (Processing Nodes)
 		(Will be installed to /usr/local/var/ledaps/anc by default)
 		
 Change Notes
+Version 2.3.0 
+        Added ability to authenticate users against EarthExplorer
+            - reorganized lta.py, added service clients for RegistrationService
+        Reorganized the orderservice directory
+            - now called 'web'
+            - moved contents of 'htdocs' into 'web/static'
+            - populated 'web/static' with Django admin static content, eliminating need for softlinks
+                - regenerate these with ./manage.py collectstatic
+        Modified settings.py to include the static files app and set STATIC_ROOT, STATIC_URL
+        Removed the /media mapping in espa-uwsgi.ini as it is no longer necessary (merged into /static mapping)
+        Pulled out all common configuration items from settings.py and made them environment variables
+            - can be set in espa-uwsgi.ini or in shell environment
+        Removed all hard coded paths from django.wsgi
+        
+           
 Version 2.2.5 (March 11, 2014)
         Made change to support variable cloud pixel threshold for calls
         to cfmask.
