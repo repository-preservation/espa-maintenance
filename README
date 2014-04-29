@@ -85,6 +85,8 @@ Version 2.3.0
         Pulled out all common configuration items from settings.py and made them environment variables
             - can be set in espa-uwsgi.ini or in shell environment
         Removed all hard coded paths from django.wsgi
+        Deleted scene_cache.py from the espa/ codebase
+        Moved the scene cache replacement from trunk/prototype/new_scene_cache to trunk/scenecache.
         
            
 Version 2.2.5 (March 11, 2014)
