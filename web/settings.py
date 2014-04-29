@@ -2,7 +2,16 @@ import os
 
 # Django settings for orderservice project.
 
-DEBUG = True 
+#allow us to override this with env var
+DEBUG = False
+ESPA_DEBUG = os.environ.get('ESPA_DEBUG', False)
+
+#make sure its set to a proper value
+if ESPA_DEBUG  == 'True':
+    DEBUG = True
+
+#need this here and in django.wsgi
+APPLICATION_ROOT = os.path.dirname(__file__)
 
 TEMPLATE_DEBUG = DEBUG
 
@@ -12,14 +21,20 @@ ADMINS = (
 
 MANAGERS = ADMINS
 
+DB_USER = os.environ.get('ESPA_DB_USER', '')
+DB_PW   = os.environ.get('ESPA_DB_PW', '')
+DB_NAME = os.environ.get('ESPA_DB_NAME', '')
+DB_HOST = os.environ.get('ESPA_DB_HOST', '')
+DB_PORT = os.environ.get('ESPA_DB_PORT', '')
+
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql', # Add 'postgresql_psycopg2', 'postgresql', 'mysql', 'sqlite3' or 'oracle'.
-        'NAME': 'espadev',                       # Or path to database file if using sqlite3.
-        'USER': 'espadev',                       # Not used with sqlite3.
-        'PASSWORD': '',                   # Not used with sqlite3.
-        'HOST': '',                  # Set to empty string for localhost. Not used with sqlite3.
-        'PORT': '3306',                       # Set to empty string for default. Not used with sqlite3.
+        'NAME': DB_NAME,                       # Or path to database file if using sqlite3.
+        'USER': DB_USER,                       # Not used with sqlite3.
+        'PASSWORD': DB_PW,                     # Not used with sqlite3.
+        'HOST': DB_HOST,                       # Set to empty string for localhost. Not used with sqlite3.
+        'PORT': DB_PORT,                       # Set to empty string for default. Not used with sqlite3.
     }
 }
 
@@ -86,7 +101,8 @@ TEMPLATE_DIRS = (
     # Put strings here, like "/home/html/django_templates" or "C:/www/django/templates".
     # Always use forward slashes, even on Windows.
     # Don't forget to use absolute paths, not relative paths.
-    "/home/espa/orderservice/ordering/templates",
+    #"/home/espa/web/ordering/templates",
+    os.path.join(APPLICATION_ROOT, "ordering/templates"),
 )
 
 TEMPLATE_CONTEXT_PROCESSORS = (
@@ -98,7 +114,7 @@ TEMPLATE_CONTEXT_PROCESSORS = (
 	'django.contrib.messages.context_processors.messages',
 )
 
-STATIC_ROOT = os.path.join(os.path.dirname(__file__), 'static/')
+STATIC_ROOT = os.path.join(APPLICATION_ROOT, 'static/')
 STATIC_URL = '/static/'
 
 INSTALLED_APPS = (
