@@ -68,24 +68,14 @@ def index(request):
 def neworder(request):
     
     ####################################################################################################################
-    #Includes the system message in the request context if one is defined
-    ####################################################################################################################
-    #def include_system_message(request_context):
-    #    msg = Configuration().getValue('system_message')
-    #    if len(msg) > 0 and msg != '' and msg != 'nothing':
-    #        c['system_message'] = msg
-    
-    
-        
-    ####################################################################################################################
     #request handling
     ####################################################################################################################
     if request.method == 'GET':
         c = RequestContext(request,{'user':request.user,
                                     'optionstyle':get_option_style(request)}
                            )
-        #t = loader.get_template('neworder.html')
-        t = loader.get_template('neworder.html')
+        #t = loader.get_template('new_order.html')
+        t = loader.get_template('new_order.html')
         
         display_system_message(c)
        
@@ -113,7 +103,7 @@ def neworder(request):
                                          'user':request.user,
                                          'optionstyle':get_option_style(request)}
                                )    
-            t = loader.get_template('neworder.html')
+            t = loader.get_template('new_order.html')
 
             display_system_message(c)
 
