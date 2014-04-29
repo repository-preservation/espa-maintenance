@@ -4,10 +4,9 @@ import os
 
 #allow us to override this with env var
 DEBUG = False
-ESPA_DEBUG = os.environ.get('ESPA_DEBUG', False)
 
 #make sure its set to a proper value
-if ESPA_DEBUG  == 'True':
+if os.environ.get('ESPA_DEBUG', '').lower() == 'true':
     DEBUG = True
 
 #need this here and in django.wsgi
