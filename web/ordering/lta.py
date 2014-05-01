@@ -1,18 +1,18 @@
-from django.conf import settings
-from suds.client import Client as SoapClient
 from suds import null
 from cStringIO import StringIO
-import urllib2
+from django.conf import settings
+from suds.client import Client as SoapClient
+
 import re
-import xml.etree.ElementTree as xml
 import os
+import urllib2
 import collections
+import xml.etree.ElementTree as xml
 
 __author__ = "David V. Hill"
 
 
 class LTAService(object):
-    
     ''' Abstract service client for all of LTA services '''
 
     tram_ids = {
@@ -22,13 +22,11 @@ class LTAService(object):
         "ops" : "252380"
     }
     
-    
     def __init__(self, environment="dev"):
         self.environment = self.__get_environment(environment)
         self.tram_id = self.tram_ids[self.environment]
         self.xml_header = "<?xml version ='1.0' encoding='UTF-8' ?>"
         
-
     def __repr__(self):
         return "LTAService:%s" % self.__dict__
 

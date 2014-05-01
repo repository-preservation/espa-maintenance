@@ -39,26 +39,38 @@ class Order(models.Model):
     
     #orderid should be in the format email_MMDDYY_HHMMSS
     orderid = models.CharField(max_length=255, unique=True, db_index=True)
+    
+    #the users email address    
     email = models.EmailField(db_index=True)
-    #scenes = models.ManyToManyField(Scene, through = 'SceneOrder')
-    #display scene count ordered, scene count completed in UI
+    
+    #a chain is a collection of actions needed to process a dataset
     chain = models.CharField(max_length=50,choices=DATASETS,db_index=True)
+    
+    #date the order was placed
     order_date = models.DateTimeField('date ordered', blank=True, db_index=True)
+    
+    #date the order was completed (all scenes either completed or marked unavailable)
     completion_date = models.DateTimeField('date completed', blank=True, null=True, db_index=True)
+    
+    #one of order.STATUS
     status = models.CharField(max_length=20, choices=STATUS,db_index=True)
+    
+    #space for users to add notes to orders
     note = models.CharField(max_length=2048, blank=True, null=True)
+    
     #json for all product options
     product_options = models.TextField(blank=False,null=False)
 
+    #one of Order.ORDER_SOURCE
     order_source = models.CharField(max_length=10, choices=ORDER_SOURCE,db_index=True)
+    
+    #populated when the order is placed through EE vs ESPA
     ee_order_id = models.CharField(max_length=13, blank=True)
 
 class Scene(models.Model):
 
     def __unicode__(self):
-        display = self.name
-        display = display + ' (' + self.status + ')'
-        return ('%s') % (display)
+        return "%s (%s)" % (self.name, self.status)
 
     STATUS = (
         ('submitted', 'Submitted'),
