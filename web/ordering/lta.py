@@ -1,3 +1,4 @@
+from django.conf import settings
 from suds.client import Client as SoapClient
 from suds import null
 from cStringIO import StringIO
@@ -5,7 +6,6 @@ import urllib2
 import re
 import xml.etree.ElementTree as xml
 import os
-import socket
 import collections
 
 __author__ = "David V. Hill"
@@ -14,33 +14,6 @@ __author__ = "David V. Hill"
 class LTAService(object):
     
     ''' Abstract service client for all of LTA services '''
-
-    urls = {
-        "dev" : {
-            "orderservice":"http://edclxs151.cr.usgs.gov/OrderWrapperServicedevsys/resources",
-            "orderdelivery":"http://edclxs151.cr.usgs.gov/OrderDeliverydevsys/OrderDeliveryService?WSDL",
-            "orderupdate":"http://edclxs151.cr.usgs.gov/OrderStatusServicedevsys/OrderStatusService?wsdl",
-            "massloader":"http://edclxs151.cr.usgs.gov/MassLoaderdevsys/MassLoader?wsdl",
-            "registration":"http://edclxs151.cr.usgs.gov/RegistrationServicedevsys/RegistrationService?wsdl"
-        },
-        "tst" : {
-            "orderservice":"http://eedevmast.cr.usgs.gov/OrderWrapperServicedevmast/resources",
-            "orderdelivery":"http://edclxs151.cr.usgs.gov/OrderDeliverydevmast/OrderDeliveryService?WSDL",
-            "orderupdate":"http://edclxs151.cr.usgs.gov/OrderStatusServicedevmast/OrderStatusService?wsdl",
-            #"massloader":"http://edclxs151.cr.usgs.gov/MassLoaderdevmast/MassLoader?wsdl",
-            #The tst env for MassLoader is wired to ops because Landsat doesn't usually
-            #fulfill test orders unless they are specifically asked to.
-            "massloader":"http://edclxs152.cr.usgs.gov/MassLoader/MassLoader?wsdl",
-            "registration":"http://edclxs151.cr.usgs.gov/RegistrationServicedevmast/RegistrationService?wsdl"
-        },
-        "ops" : {
-            "orderservice":"http://edclxs152.cr.usgs.gov/OrderWrapperService/resources",
-            "orderdelivery":"http://edclxs152.cr.usgs.gov/OrderDeliveryService/OrderDeliveryService?WSDL",
-            "orderupdate":"http://edclxs152/OrderStatusService/OrderStatusService?wsdl",
-            "massloader":"http://edclxs152.cr.usgs.gov/MassLoader/MassLoader?wsdl",
-            "registration":"http://edclxs152.cr.usgs.gov/RegistrationService/RegistrationService?wsdl"
-        }
-    }
 
     tram_ids = {
         "dev" : "419190",
@@ -55,6 +28,9 @@ class LTAService(object):
         self.tram_id = self.tram_ids[self.environment]
         self.xml_header = "<?xml version ='1.0' encoding='UTF-8' ?>"
         
+
+    def __repr__(self):
+        return "LTAService:%s" % self.__dict__
 
     def __get_environment(self, environment):
         '''Internal method to build the proper environment string for LtaService
@@ -96,8 +72,8 @@ class LTAService(object):
         Returns:
         A url to contact the desired service            
         '''
-    
-        return self.urls[self.environment][service_name]
+        return settings.SERVICE_URLS[self.environment][service_name]
+        #return self.urls[self.environment][service_name]
 
 
     def sceneid_is_sane(self, sceneid):

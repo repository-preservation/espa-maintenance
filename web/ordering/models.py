@@ -1,8 +1,17 @@
 from django.db import models
-from django.contrib import admin
+from django.contrib.auth.models import User
 
 __author__ = "David V. Hill"
 
+
+class Profile (models.Model):
+    '''Extends the information attached to ESPA users with a one-to-one relationship.
+    The other options were to extend the actual Django User model or create an 
+    entirely new User model
+    '''
+    user = models.OneToOneField(User)
+    contactid = models.CharField(max_length=10)
+    
     
 class Order(models.Model):
 
