@@ -10,12 +10,16 @@ https://docs.djangoproject.com/en/1.6/ref/settings/
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 import os
+
+#this is the location of the main project directory, NOT the directory this file lives in
 BASE_DIR = os.path.dirname(os.path.dirname(__file__))
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/1.6/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
+#TODO: Replace this with an environment variable and keep the real key safe and out of
+#TODO:svn
 SECRET_KEY = '$n4y*3o8&@=ldx!ho-(6pe1fqp4&xh6ftlrnj5k#ef%-)q@yis'
 
 # SECURITY WARNING: don't run with debug turned on in production!
@@ -53,6 +57,7 @@ MIDDLEWARE_CLASSES = (
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 )
 
+#where do we find the initial set of urls?
 ROOT_URLCONF = 'espa_web.urls'
 
 WSGI_APPLICATION = 'espa_web.wsgi.application'
@@ -94,7 +99,7 @@ USE_TZ = True
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/1.6/howto/static-files/
-STATIC_ROOT = os.path.join(BASE_DIR, 'static/')
+STATIC_ROOT = os.path.join(BASE_DIR, 'espa_web', 'static/')
 STATIC_URL = '/static/'
 
 
@@ -124,7 +129,7 @@ TEMPLATE_LOADERS = (
 
 
 #ESPA Service URLS
-
+#TODO: update machine names to cnames... get these from the EE crew
 SERVICE_URLS = {
         "dev" : {
             "orderservice":"http://edclxs151.cr.usgs.gov/OrderWrapperServicedevsys/resources",
@@ -152,3 +157,8 @@ SERVICE_URLS = {
         }
 }
 
+#add the EE Authentication Backend in addition to the ModelBackend
+AUTHENTICATION_BACKENDS = ('django.contrib.auth.backends.ModelBackend', 'ordering.django_plugins.EEAuthBackend')
+
+#this sets the login_url to the named url action ('login') contained in urls.py
+LOGIN_URL = 'login'

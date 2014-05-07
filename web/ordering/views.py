@@ -29,76 +29,78 @@ from django.shortcuts import get_list_or_404
 from django.template import loader
 from django.template import Context
 from django.template import RequestContext
-
 from django.utils.feedgenerator import Rss201rev2Feed
-from django.views.decorators.csrf import csrf_exempt
+from django.views.generic import View
 
+class AbstractView(View):
 
-def __get_option_style(request):
-    '''Utility method to determine which options to display in the templates based on the
-    user.
-    '''
-    if hasattr(request, 'user'):        
-        if request.user.username not in ('espa_admin', 'espa_internal'):
-            return "display:none"
-        else:
-            return ""
+    def _get_option_style(self, request):
+        '''Utility method to determine which options to display in the templates based on the
+        user.
+        '''
+        if hasattr(request, 'user'):        
+            if request.user.username not in ('espa_admin', 'espa_internal'):
+                return "display:none"
+            else:
+                return ""
 
        
-def __display_system_message(context):
-    '''Utility method to populate the context with systems messages if there are any
-    configured for display
-    '''
-    msg = Configuration().getValue('display_system_message')
+    def _display_system_message(self, context):
+        '''Utility method to populate the context with systems messages if there are any
+        configured for display
+        '''
+        msg = Configuration().getValue('display_system_message')
 
-    if msg.lower() == 'true':
+        if msg.lower() == 'true':
 
-        context['display_system_message'] = True
+            context['display_system_message'] = True
         
-        context['system_message_title'] = Configuration().getValue('system_message_title')
+            context['system_message_title'] = Configuration().getValue('system_message_title')
 
-        context['system_message_1'] = Configuration().getValue('system_message_1')
+            context['system_message_1'] = Configuration().getValue('system_message_1')
 
-        context['system_message_2'] = Configuration().getValue('system_message_2')
+            context['system_message_2'] = Configuration().getValue('system_message_2')
 
-        context['system_message_3'] = Configuration().getValue('system_message_3')
-    else:
-        context['display_system_message'] = False
+            context['system_message_3'] = Configuration().getValue('system_message_3')
+        else:
+            context['display_system_message'] = False
 
 
-@login_required(login_url='/login/')
-def index(request):
-    '''Request handler for / and /index'''
-
-    t = loader.get_template('index.html')
+#@login_required(login_url='/login/')
+class Index(AbstractView):
+    template = 'index.html'
     
-    c = Context({
-        'my_message': 'LSDS Science R&D Processing',
-    })
+    def get(self, request):
+        '''Request handler for / and /index'''
 
-    __display_system_message(c)    
+        t = loader.get_template(self.template)
+    
+        c = Context({
+            'my_message': 'LSDS Science R&D Processing',
+        })
         
-    return HttpResponse(t.render(c))
+        self._display_system_message(c)    
+        
+        return HttpResponse(t.render(c))
                        
 
-@login_required(login_url='/login/')
-def neworder(request):
-    '''Request handler for /neworder'''
-    
-    #request handling
-    if request.method == 'GET':
+#@login_required(login_url='/login/')
+class NewOrder(AbstractView):
+    template = 'new_order.html'
+
+    def get(self, request):
+        '''Request handler for /neworder'''
         c = RequestContext(request,{'user':request.user,
-                                    'optionstyle':__get_option_style(request)
-                                    }
-                           )
+                                    'optionstyle':self._get_option_style(request)
+                                   })
     
-        t = loader.get_template('new_order.html')
+        t = loader.get_template(self.template)        
         
-        __display_system_message(c)
+        self._display_system_message(c)    
        
         return HttpResponse(t.render(c))
         
-    elif request.method == 'POST':
+    def post(self, request):
         #request must be a POST and must also be encoded as multipart/form-data 
         #in order for the files to be uploaded
         
@@ -123,13 +125,13 @@ def neworder(request):
 
             c = RequestContext(request, {'errors':errors,
                                          'user':request.user,
-                                         'optionstyle':__get_option_style(request)
+                                         'optionstyle':self._get_option_style(request)
                                          }
                                )    
 
-            t = loader.get_template('new_order.html')
+            t = loader.get_template(self.template)
 
-            __display_system_message(c)
+            self._display_system_message(c)    
 
             return HttpResponse(t.render(c))
         else:
@@ -154,51 +156,55 @@ def neworder(request):
             return HttpResponseRedirect('/status/%s' % request.POST['email'])
 
 
-@login_required(login_url='/login/')
-#@csrf_exempt
-def listorders(request, email=None, output_format=None):
-    '''Request handler for displaying all user orders'''
+#@login_required(login_url='/login/')
+class ListOrders(AbstractView):
     
-    #no email provided, ask user for an email address
-    if email is None or not core.validate_email(email):
+    def get(self, request, email=None, output_format=None):
+        '''Request handler for displaying all user orders'''
+    
+        #no email provided, ask user for an email address
+        if email is None or not core.validate_email(email):
 
-        form = ListOrdersForm()
+            form = ListOrdersForm()
 
-        c = RequestContext(request, {'form': form})
+            c = RequestContext(request, {'form': form})
         
-        __display_system_message(c)
+            self._display_system_message(c)    
 
-        t = loader.get_template('listorders.html')
+            t = loader.get_template('listorders.html')
 
-        return HttpResponse(t.render(c))
-    else:
-        #if we got here display the orders
-        orders = core.list_all_orders(email)
+            return HttpResponse(t.render(c))
+        else:
+            #if we got here display the orders
+            orders = core.list_all_orders(email)
         
-        t = loader.get_template('listorders_results.html')
+            t = loader.get_template('listorders_results.html')
 
+            c = RequestContext(request)
+
+            c['email'], c['orders'] = email, orders
+
+            self._display_system_message(c)    
+  
+            return HttpResponse(t.render(c))
+
+
+#@login_required(login_url='/login/')
+class OrderDetails(AbstractView):
+    template = 'orderdetails.html'
+    
+    def get(self, request, orderid, output_format=None):
+        '''Request handler to get the full listing of all the scenes & statuses for an order'''           
+
+        t = loader.get_template(self.template)
+    
         c = RequestContext(request)
 
-        c['email'], c['orders'] = email, orders
+        self._display_system_message(c)    
 
-        __display_system_message(c)
-  
+        c['order'], c['scenes'] = core.get_order_details(orderid)
+
         return HttpResponse(t.render(c))
-
-@login_required(login_url='/login/')
-#@csrf_exempt
-def orderdetails(request, orderid, output_format=None):
-    '''Request handler to get the full listing of all the scenes & statuses for an order'''           
-
-    t = loader.get_template('orderdetails.html')
-    
-    c = RequestContext(request)
-
-    __display_system_message(c)
-
-    c['order'], c['scenes'] = core.get_order_details(orderid)
-
-    return HttpResponse(t.render(c))
         
         
 class ListOrdersForm(forms.Form):
