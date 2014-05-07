@@ -12,30 +12,32 @@
 #########################################################################################
 # Change    	Date            Author          Description
 #########################################################################################
-#  001      	10-28-2012      Adam Dosch      Initial release
-#  002      	02-04-2013      Adam Dosch      Complete overhaul and added mysql stats
-#                                           	gathering into the mix, e-mail.  There's ALOT
-#                                           	of bitch hacks in this shit.  Needs to be
-#                                           	revisited but probably won't until I get the
-#                                           	data into mongoDB.
-# 003       	03-01-2013      Adam Dosch      Got pig command to successfully run and dump
-#                                           	any errors to STDOUT
-# 004	    	05-06-2013      Adam Dosch      Adding 'resultsondemandledaps' pig store
-#					    	results to output report
-# 005       	05-31-2013      Adam Dosch	    Making order separation by source so we can
-#					    	tell the difference between which interface
-#                                           	someone used to submit order (ee or espa)
-# 006	    	06-03-2013	Adam Dosch      Adding os.environ['JAVA_HOME'] to top-level
-#                                           	to fix environment sourcing issue from cron
-# 007		08-21-2013	Adam Dosch	Adding '__author__' references
-#						Updated email_from to FQDN host
-# 008		11-25-2013	Adam Dosch	Removing GLS collection and UI reporting from
-#						the scripts --- we be tearing that shit OUT.
-#						I will keep logic in pig scripts, but just not
-#						report those in the e-mail output
-# 009		01-30-2014	Adam Dosch	Updating 'resultsondemandledaps' to 'resultsondemand'
-#						as the outdir name has changed in lsrd_ondemand_metrics
-#						pig script
+#  001              10-28-2012      Adam Dosch      Initial release
+#  002              02-04-2013      Adam Dosch      Complete overhaul and added mysql stats
+#                                                   gathering into the mix, e-mail.  There's ALOT
+#                                                   of bitch hacks in this shit.  Needs to be
+#                                                   revisited but probably won't until I get the
+#                                                   data into mongoDB.
+# 003               03-01-2013      Adam Dosch      Got pig command to successfully run and dump
+#                                                   any errors to STDOUT
+# 004               05-06-2013      Adam Dosch      Adding 'resultsondemandledaps' pig store
+#                                                   results to output report
+# 005               05-31-2013      Adam Dosch      Making order separation by source so we can
+#                                                   tell the difference between which interface
+#                                                   someone used to submit order (ee or espa)
+# 006               06-03-2013      Adam Dosch      Adding os.environ['JAVA_HOME'] to top-level
+#                                                   to fix environment sourcing issue from cron
+# 007               08-21-2013      Adam Dosch      Adding '__author__' references
+#                                                   Updated email_from to FQDN host
+# 008               11-25-2013      Adam Dosch      Removing GLS collection and UI reporting from
+#                                                   the scripts --- we be tearing that shit OUT.
+#                                                   I will keep logic in pig scripts, but just not
+#                                                   report those in the e-mail output
+# 009               01-30-2014      Adam Dosch      Updating 'resultsondemandledaps' to 'resultsondemand'
+#                                                   as the outdir name has changed in lsrd_ondemand_metrics
+#                                                   pig script
+# 010               05-01-2014      Adam Dosch      Cleaning up dotfile temp cred mess and db_connect fuction
+#
 #########################################################################################
 
 __author__ = "Adam Dosch"
@@ -354,7 +356,7 @@ def giveLastMonthDate():
     return last_month_date.strftime("%Y-%m")
 
 # Connect to MySQL DB
-def connect_db(host, port, user, password, db):
+def connect_db(host, user, password, db, port=3306):
     try:
         return MySQLdb.connect(host=host, port=port, user=user, passwd=password, db=db)
     except MySQLdb.Error, e:
@@ -432,9 +434,43 @@ def main():
        
     # Close that report file any PigProcessor objects have open
     pig.outputFile.close()
+    
+    # Username
+    username = os.getlogin()
+    
+    # Define creds dict
+    creds = {}
+    
+    # Lets check and see if our dbcreds file exists?
+    # This is where we will know what DB environment to update
+    credfile = "/home/%s/.dbnfo" % username
+    if os.path.isfile(credfile):
+        try:
+            # open and read data from creds file
+            f = open(credfile, "r")
+        
+            data = f.readlines()
+            
+            f.close()
+            
+        except Exception, e:
+            err = "Problems opening up cred file for processing, BAILING!  Password changes for '%s' didn't happen on %s." % (username, platform.node())
+            send_email(email_from, email_to, email_subject + " - Error", err)
+            print err
+            sys.exit(1)
+        
+        # stuff creds in a dict
+        for line in data:
+            (k, v) = line.split("=")
+            creds[k] = v.strip("\n")
+    else:
+        err = "DB creds file doesn't exist, BAILING!  Password changes for '%s' didn't happen on %s." % (username, platform.node())
+        send_email(email_from, email_to, email_subject + " - Error", err)
+        print err
+        sys.exit(1)
 
-    # Lastly lets get our MySQL statistics --- this shit needs to be cleaned up and classified
-    db_conn = connect_db("127.0.0.1",3306,"root","$edc57198","espa")
+    # Lastly lets connect to the database and get our metrics
+    db_conn = connect_db(host=creds["h"], user=creds["u"], password=creds["p"], db=creds["d"])
 
     if not db_conn:
         sys.stderr.write("\nCound not establish connection to the DB!\n")

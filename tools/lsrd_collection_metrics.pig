@@ -36,6 +36,7 @@
   #  001		10-21-2012	Adam Dosch	Initial Release
   #  002		02-04-2013	Adam Dosch	Changed LOAD log to dynamically be rotated apache
   #							log for espa.cr.usgs.gov
+  #  003         05-01-2014 Adam Dosch  Updating logs 'LOAD' path to point to central pull-down area
   #
   ##########################################################################################################
 
@@ -43,7 +44,7 @@
 
 REGISTER /home/espa/pig/contrib/piggybank/java/piggybank.jar;
 
-logs = LOAD '/opt/cots/apache/logs/espa.cr.usgs.gov-access_log.1' USING org.apache.pig.piggybank.storage.apachelog.WAFCombinedLogLoader AS (remoteAddr, remoteLogname, user, time, method, uri, proto, status, bytes, referer, userAgent);
+logs = LOAD '/data/logs/espa.cr.usgs.gov-access_log.1' USING org.apache.pig.piggybank.storage.apachelog.WAFCombinedLogLoader AS (remoteAddr, remoteLogname, user, time, method, uri, proto, status, bytes, referer, userAgent);
 
 /* ESPA UI pipeline filtering */
 espauilogs = FILTER logs BY status == 200 AND uri MATCHES '^/ui/?$' AND method == 'GET' AND NOT userAgent MATCHES '.*(Baiduspider|Twitterbot|YandexBot|msnbot|Googlebot|bingbot|Exabox|bitlybot|PaperLiBot|ShowyouBot|TweetmemeBot).*';
