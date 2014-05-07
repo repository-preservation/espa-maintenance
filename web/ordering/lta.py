@@ -14,17 +14,10 @@ __author__ = "David V. Hill"
 
 class LTAService(object):
     ''' Abstract service client for all of LTA services '''
-
-    tram_ids = {
-        "dev" : "419190",
-        #"tst" : "418668",
-        "tst" : "252380",
-        "ops" : "252380"
-    }
     
     def __init__(self, environment="dev"):
         self.environment = self.__get_environment(environment)
-        self.tram_id = self.tram_ids[self.environment]
+        #self.tram_id = self.tram_ids[self.environment]
         self.xml_header = "<?xml version ='1.0' encoding='UTF-8' ?>"
         
     def __repr__(self):
@@ -270,7 +263,7 @@ class OrderWrapperServiceClient(LTAService):
     ########################################################
     #TODO: Use this once the order wrapper shit gets fixed by EE
     ########################################################
-    def order_scenes(self, scene_list, contactId, priority=5):
+    def order_scenes(self, scene_list, contact_id, priority=5):
         ''' Orders scenes through OrderWrapperService 
         
         Keyword args:
@@ -295,10 +288,8 @@ class OrderWrapperServiceClient(LTAService):
         sb.write("xsi:schemaLocation='http://earthexplorer.usgs.gov/schema/orderParameters \
         http://earthexplorer.usgs.gov/EE/orderParameters.xsd'>")
         
-        #sb.write("<username>%s</username>" % self.username)
-        #sb.write("<password>%s</password>" % self.password)
-        sb.write("<contactId>%s</contactId>" % contactId)
-        sb.write("<requestor>EXTERNAL</requestor>")
+        sb.write("<contactId>%s</contactId>" % contact_id)
+        sb.write("<requestor>ESPA</requestor>")
         
         #1111111 is the value the LTA asked we provide for the external reference number
         sb.write("<externalReferenceNumber>%s</externalReferenceNumber>" % 1111111)
@@ -415,44 +406,43 @@ class OrderUpdateServiceClient(LTAService):
 
 #TODO:Stop using this once the OrderWrapperService is fixed by EE
 #TODO: Don't delete this though, just stop using it.
-class MassLoaderServiceClient(LTAService):
+#class MassLoaderServiceClient(LTAService):
     
-    def order_scenes(self, scene_list):
-        ''' Orders scenes from the TRAM massloader.  
-        Be sure to call verifyscenes before allowing this to happen
-        
-        Keyword args:
-        scene_list A list of scene ids to be ordered
-        
-        Returns:
-        A TRAM orderid
-        Raises exception on error
-        '''
-
-        client = SoapClient(self.get_url("massloader"))
-        tramorder = client.factory.create('order')
-        tramscenes = client.factory.create('scenes')
-        tramorder.scenes = tramscenes
-        for scene in scene_list:
-            tramscene = client.factory.create('scene')
-            tramscene.sceneId = scene.name
-            tramscene.productName = self.get_product_code(scene.name)
-            tramscene.recipeId = null()
-            tramscene.unitComment = null()
-            tramscene.parameters = null()
-            tramorder.scenes.scene.append(tramscene)
-        tramorder.externalRefNumber = '111111'
-        tramorder.orderComment = null()
-        tramorder.priority = 5
-        tramorder.registrationId = self.tram_id
-        tramorder.requestor = 'EE'
-        tramorder.roleId = null()
-    
-        try:
-            response = client.service.submitOrder(tramorder)
-            return response
-        except Exception, e:
-            raise e
+#    def order_scenes(self, scene_list):
+#        ''' Orders scenes from the TRAM massloader.  
+#        Be sure to call verifyscenes before allowing this to happen
+#        
+#        Keyword args:
+#        scene_list A list of scene ids to be ordered
+#        
+#        Returns:
+#        A TRAM orderid
+#        Raises exception on error
+#        '''
+#        client = SoapClient(self.get_url("massloader"))
+#        tramorder = client.factory.create('order')
+#        tramscenes = client.factory.create('scenes')
+#        tramorder.scenes = tramscenes
+#        for scene in scene_list:
+#            tramscene = client.factory.create('scene')
+#            tramscene.sceneId = scene.name
+#            tramscene.productName = self.get_product_code(scene.name)
+#            tramscene.recipeId = null()
+#            tramscene.unitComment = null()
+#            tramscene.parameters = null()
+#            tramorder.scenes.scene.append(tramscene)
+#        tramorder.externalRefNumber = '111111'
+#        tramorder.orderComment = null()
+#        tramorder.priority = 5
+#        tramorder.registrationId = self.tram_id
+#        tramorder.requestor = 'EE'
+#        tramorder.roleId = null()
+#    
+#        try:
+#            response = client.service.submitOrder(tramorder)
+#            return response
+#        except Exception, e:
+#            raise e
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 
@@ -469,9 +459,7 @@ class OrderDeliveryServiceClient(LTAService):
             {'sceneid':orderingId, 'unit_num':unitNbr},
             {...}
         ]    
-        
         '''
-        
         returnVal = dict()          
         client = SoapClient(self.get_url("orderdelivery"))
         resp = client.factory.create("getAvailableOrdersResponse")
