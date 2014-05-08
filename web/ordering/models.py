@@ -45,7 +45,7 @@ class Order(models.Model):
     #This field is in the User object now, but should actually be pulled from 
     #the EarthExplorer profile
     #the users email address    
-    #email = models.EmailField(db_index=True)
+    email = models.EmailField(db_index=True)
         
     #reference the user that placed this order    
     user = models.ForeignKey(User)

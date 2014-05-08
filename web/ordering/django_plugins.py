@@ -2,6 +2,7 @@ from ordering.models import UserProfile
 from lta import RegistrationServiceClient
 from django.contrib.auth.models import User
 
+
 class EEAuthBackend(object):
     ''' 
     Django authentication system plugin to authenticate against the
@@ -14,9 +15,9 @@ class EEAuthBackend(object):
     
     def authenticate(self, username=None, password=None):
 
-        contactid = RegistrationServiceClient().login_user(username, password)
+        try:
+            contactid = RegistrationServiceClient().login_user(username, password)
     
-        if contactid:
             try:
                 user = User.objects.get(username=username)
             except User.DoesNotExist:
@@ -28,11 +29,12 @@ class EEAuthBackend(object):
                 user.is_superuser = False
                 user.save()
                 
-                UserProfile(contactid = contactid, user = user).save()
-                                
+                UserProfile(contactid = contactid, user = user).save()                            
             return user
-        return None
-
+        except Exception, e:            
+            return None
+    
+    
 
     def get_user(self, user_id):
         try:

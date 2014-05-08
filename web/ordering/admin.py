@@ -26,16 +26,19 @@ class SceneAdmin(admin.ModelAdmin):
               'cksum_download_url',
               'processing_location',
               'log_file_contents']
+              
     list_display = ('name',
                     'status',
                     'completion_date',
                     'order',
                    )
+                   
     list_filter = ('status',
                    'completion_date',
                    'processing_location',
                    'order',
                   )
+                  
     search_fields = ['name', 'status', 'processing_location','order__orderid']
     
               
@@ -55,8 +58,8 @@ class ConfigurationAdmin(admin.ModelAdmin):
     search_fields = ['key', 'value']
     
     
-admin.site.register(Scene,SceneAdmin)
-admin.site.register(Order,OrderAdmin)
+admin.site.register(Scene, SceneAdmin)
+admin.site.register(Order, OrderAdmin)
 admin.site.register(Configuration, ConfigurationAdmin)
 
 

@@ -10,6 +10,7 @@ https://docs.djangoproject.com/en/1.6/ref/settings/
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 import os
+import ConfigParser
 
 #this is the location of the main project directory, NOT the directory this file lives in
 BASE_DIR = os.path.dirname(os.path.dirname(__file__))
@@ -17,10 +18,21 @@ BASE_DIR = os.path.dirname(os.path.dirname(__file__))
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/1.6/howto/deployment/checklist/
 
+#load up the site specific config file
+ESPA_CONFIG_FILE = os.environ.get('ESPA_CONFIG_FILE', '')
+if ESPA_CONFIG_FILE == '':
+    ESPA_CONFIG_FILE = os.path.join(os.path.expanduser('~'), '.cfgnfo')
+    
+#stop everything if we don't have the config file
+if not os.path.exists(ESPA_CONFIG_FILE):
+    raise Exception("Cannot locate the espa config file at %s... exiting" % ESPA_CONFIG_FILE)
+
+config = ConfigParser.SafeConfigParser()
+with open(ESPA_CONFIG_FILE) as file_handle:
+    config.readfp(file_handle)
+
 # SECURITY WARNING: keep the secret key used in production secret!
-#TODO: Replace this with an environment variable and keep the real key safe and out of
-#TODO:svn
-SECRET_KEY = '$n4y*3o8&@=ldx!ho-(6pe1fqp4&xh6ftlrnj5k#ef%-)q@yis'
+SECRET_KEY = config.get('config', 'key')
 
 # SECURITY WARNING: don't run with debug turned on in production!
 #allow us to override this with env var
@@ -66,20 +78,14 @@ WSGI_APPLICATION = 'espa_web.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/1.6/ref/settings/#databases
 
-DB_USER = os.environ.get('ESPA_DB_USER', '')
-DB_PW   = os.environ.get('ESPA_DB_PW', '')
-DB_NAME = os.environ.get('ESPA_DB_NAME', '')
-DB_HOST = os.environ.get('ESPA_DB_HOST', '')
-DB_PORT = os.environ.get('ESPA_DB_PORT', '')
-
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.mysql', # Add 'postgresql_psycopg2', 'postgresql', 'mysql', 'sqlite3' or 'oracle'.
-        'NAME': DB_NAME,                       # Or path to database file if using sqlite3.
-        'USER': DB_USER,                       # Not used with sqlite3.
-        'PASSWORD': DB_PW,                     # Not used with sqlite3.
-        'HOST': DB_HOST,                       # Set to empty string for localhost. Not used with sqlite3.
-        'PORT': DB_PORT,                       # Set to empty string for default. Not used with sqlite3.
+        'ENGINE': 'django.db.backends.mysql',         # Add 'postgresql_psycopg2', 'postgresql', 'mysql', 'sqlite3' or 'oracle'.
+        'NAME': config.get('config', 'db'),           # Or path to database file if using sqlite3.
+        'USER': config.get('config', 'dbuser'),       # Not used with sqlite3.
+        'PASSWORD': config.get('config', 'dbpass'),   # Not used with sqlite3.
+        'HOST': config.get('config', 'dbhost'),       # Set to empty string for localhost. Not used with sqlite3.
+        'PORT': config.get('config', 'dbport'),      # Set to empty string for default. Not used with sqlite3.
     }
 }
 
@@ -100,8 +106,8 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/1.6/howto/static-files/
 STATIC_ROOT = os.path.join(BASE_DIR, 'espa_web', 'static/')
-STATIC_URL = '/static/'
 
+STATIC_URL = '/static/'
 
 # Templates
 
@@ -126,7 +132,6 @@ TEMPLATE_LOADERS = (
     'django.template.loaders.filesystem.Loader',
     'django.template.loaders.app_directories.Loader',
 )
-
 
 #ESPA Service URLS
 #TODO: update machine names to cnames... get these from the EE crew

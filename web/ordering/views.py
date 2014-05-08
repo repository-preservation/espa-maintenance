@@ -16,9 +16,8 @@ from ordering.models import UserProfile
 
 from django import forms
 
-from django.contrib.auth import logout
+import django.contrib.auth 
 from django.contrib.auth.models import User
-from django.contrib.auth.decorators import login_required
 from django.contrib.syndication.views import Feed
 
 from django.http import HttpResponse
@@ -27,7 +26,6 @@ from django.http import HttpResponseRedirect
 from django.shortcuts import get_list_or_404
 
 from django.template import loader
-from django.template import Context
 from django.template import RequestContext
 from django.utils.feedgenerator import Rss201rev2Feed
 from django.views.generic import View
@@ -52,52 +50,52 @@ class AbstractView(View):
         msg = Configuration().getValue('display_system_message')
 
         if msg.lower() == 'true':
-
             context['display_system_message'] = True
-        
             context['system_message_title'] = Configuration().getValue('system_message_title')
-
             context['system_message_1'] = Configuration().getValue('system_message_1')
-
             context['system_message_2'] = Configuration().getValue('system_message_2')
-
             context['system_message_3'] = Configuration().getValue('system_message_3')
-        else:
+        else:    
             context['display_system_message'] = False
+            
+            
+    def _get_request_context(self, request, params=dict(), include_system_message=True):
+
+        context = RequestContext(request, params)
+        
+        if include_system_message:
+            self._display_system_message(context)
+        
+        return context        
 
 
-#@login_required(login_url='/login/')
 class Index(AbstractView):
     template = 'index.html'
     
     def get(self, request):
         '''Request handler for / and /index'''
-
-        t = loader.get_template(self.template)
-    
-        c = Context({
-            'my_message': 'LSDS Science R&D Processing',
-        })
+       
+        c = self._get_request_context(request, 
+                                      {'my_message': 'LSDS Science R&D Processing'})
         
-        self._display_system_message(c)    
+        t = loader.get_template(self.template)        
         
         return HttpResponse(t.render(c))
                        
 
-#@login_required(login_url='/login/')
 class NewOrder(AbstractView):
     template = 'new_order.html'
 
     def get(self, request):
         '''Request handler for /neworder'''
-        c = RequestContext(request,{'user':request.user,
-                                    'optionstyle':self._get_option_style(request)
-                                   })
-    
+        
+        c = self._get_request_context(request, 
+                                      {'user':request.user,
+                                       'optionstyle':self._get_option_style(request)
+                                      })
+
         t = loader.get_template(self.template)        
         
-        self._display_system_message(c)    
-       
         return HttpResponse(t.render(c))
         
     def post(self, request):
@@ -123,15 +121,12 @@ class NewOrder(AbstractView):
 
             print "Errors Detected..."
 
-            c = RequestContext(request, {'errors':errors,
+            c = self._get_request_context(request, {'errors':errors,
                                          'user':request.user,
                                          'optionstyle':self._get_option_style(request)
-                                         }
-                               )    
-
+                                         })
+                                         
             t = loader.get_template(self.template)
-
-            self._display_system_message(c)    
 
             return HttpResponse(t.render(c))
         else:
@@ -156,8 +151,9 @@ class NewOrder(AbstractView):
             return HttpResponseRedirect('/status/%s' % request.POST['email'])
 
 
-#@login_required(login_url='/login/')
 class ListOrders(AbstractView):
+    initial_template = "listorders.html"
+    results_template = "listorders_results.html"
     
     def get(self, request, email=None, output_format=None):
         '''Request handler for displaying all user orders'''
@@ -165,31 +161,24 @@ class ListOrders(AbstractView):
         #no email provided, ask user for an email address
         if email is None or not core.validate_email(email):
 
-            form = ListOrdersForm()
-
-            c = RequestContext(request, {'form': form})
+            c = self._get_request_context(request, {'form': ListOrdersForm()})
         
-            self._display_system_message(c)    
-
-            t = loader.get_template('listorders.html')
+            t = loader.get_template(self.initial_template)
 
             return HttpResponse(t.render(c))
         else:
             #if we got here display the orders
             orders = core.list_all_orders(email)
         
-            t = loader.get_template('listorders_results.html')
+            t = loader.get_template(self.results_template)
 
-            c = RequestContext(request)
+            c = self._get_request_context(request, {'email':email,
+                                                    'orders':orders
+                                                    })
 
-            c['email'], c['orders'] = email, orders
-
-            self._display_system_message(c)    
-  
             return HttpResponse(t.render(c))
 
 
-#@login_required(login_url='/login/')
 class OrderDetails(AbstractView):
     template = 'orderdetails.html'
     
@@ -198,15 +187,28 @@ class OrderDetails(AbstractView):
 
         t = loader.get_template(self.template)
     
-        c = RequestContext(request)
-
-        self._display_system_message(c)    
+        c = self._get_request_context(request)
 
         c['order'], c['scenes'] = core.get_order_details(orderid)
 
         return HttpResponse(t.render(c))
+
+
+class LogOut(AbstractView):    
+    template = "loggedout.html"
+    
+    def get(self, request):
+        '''Simple view to log a user out and land them on an exit page'''
+
+        django.contrib.auth.logout(request)        
+
+        t = loader.get_template(self.template)
+
+        c = self._get_request_context(request, include_system_message = False)
+
+        return HttpResponse(t.render(c))
         
-        
+                
 class ListOrdersForm(forms.Form):
     '''Form object for the ListOrders form'''
     email = forms.EmailField()

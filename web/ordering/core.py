@@ -9,14 +9,10 @@ from smtplib import *
 from models import Scene
 from models import Order
 from models import Configuration
-from datetime import timedelta
-import time
 import json
 import datetime
 import lta
 import re
-import os
-import sys
 import xmlrpclib
 import urllib2
 
