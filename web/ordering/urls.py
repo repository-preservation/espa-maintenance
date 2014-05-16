@@ -18,17 +18,17 @@ admin.autodiscover()
 
 urlpatterns = patterns('',
     url(r'^rpc$', rpc.rpc_handler),
-    
+
     url(r'^new', login_required(NewOrder.as_view()), name='new_order'),
-    
+
     url(r'^status/$', login_required(ListOrders.as_view()), name='listorders_form'),
-    
+
     url(r'^status/([A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,4})/$', login_required(ListOrders.as_view()), name='listorders'),
 
     url(r'^status/(?P<email>[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,4})/rss/$', StatusFeed()),
 
     url(r'^status/(?P<orderid>[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,4}-[0-9]{6,8}-[0-9]{3,6})/$', login_required(OrderDetails.as_view()), name='espa_order_detail'),
 
-    url(r'^status/(?P<orderid>[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,4}-[0-9]{13})/$', login_required(OrderDetails.as_view()), name='ee_order_detail'),                     
+    url(r'^status/(?P<orderid>[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,4}-[0-9]{13})/$', login_required(OrderDetails.as_view()), name='ee_order_detail'),
 
 )

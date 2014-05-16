@@ -4,20 +4,21 @@ from django.contrib.auth.models import User
 
 
 class EEAuthBackend(object):
-    ''' 
+    '''
     Django authentication system plugin to authenticate against the
     Earth Explorer Registration Service.
-    
-    Once authenticated, if the user does not exist in Django it will be created.  This is 
-    necessary for Django to enforce authentication & authorization as well as capturing
-    user related info such as the EE contact id.
+
+    Once authenticated, if the user does not exist in Django it will be
+    created.  This is necessary for Django to enforce authentication
+    & authorization as well as capturing user related info such as
+    the EE contact id.
     '''
-    
-    def authenticate(self, username=None, password=None):
+
+    def authenticate(self, username=None, pw=None):
 
         try:
-            contactid = RegistrationServiceClient().login_user(username, password)
-    
+            contactid = RegistrationServiceClient().login_user(username, pw)
+
             try:
                 user = User.objects.get(username=username)
             except User.DoesNotExist:
@@ -28,13 +29,11 @@ class EEAuthBackend(object):
                 user.is_staff = False
                 user.is_superuser = False
                 user.save()
-                
-                UserProfile(contactid = contactid, user = user).save()                            
+
+                UserProfile(contactid=contactid, user=user).save()
             return user
-        except Exception, e:            
+        except Exception, e:
             return None
-    
-    
 
     def get_user(self, user_id):
         try:

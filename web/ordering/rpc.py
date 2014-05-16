@@ -1,6 +1,5 @@
 # Create your views here.
 from django.http import HttpResponse
-from django.template import Context, loader
 from SimpleXMLRPCServer import SimpleXMLRPCDispatcher
 from django.views.decorators.csrf import csrf_exempt
 from ordering.core import *
@@ -29,15 +28,14 @@ def rpc_handler(request):
 	dispatcher = SimpleXMLRPCDispatcher(allow_none=False, encoding=None) # Python 2.5
 
 	if len(request.POST):
-		dispatcher.register_function(_updateStatus, 'updateStatus')
-		dispatcher.register_function(_setSceneError, 'setSceneError')
+		dispatcher.register_function(_update_status, 'updateStatus')
+		dispatcher.register_function(_set_scene_error, 'setSceneError')
 		dispatcher.register_function(_set_scene_unavailable, 'setSceneUnavailable')
-		dispatcher.register_function(_markSceneComplete, 'markSceneComplete')
-		dispatcher.register_function(_getConfiguration, 'getConfiguration')
-		dispatcher.register_function(_getScenesToProcess, 'getScenesToProcess')
-		dispatcher.register_function(_getScenesToPurge, 'getScenesToPurge')
-		dispatcher.register_function(_getSceneInputPath, 'getSceneInputPath')
-		dispatcher.register_function(_getDataSourceCredentials, 'getDataSourceCredentials')
+		dispatcher.register_function(_mark_scene_complete, 'markSceneComplete')
+		dispatcher.register_function(_get_configuration, 'getConfiguration')
+		dispatcher.register_function(_get_scenes_to_process, 'getScenesToProcess')
+		dispatcher.register_function(_get_scenes_to_purge, 'getScenesToPurge')
+		dispatcher.register_function(_get_scene_input_path, 'getSceneInputPath')
 
 		#if our leak isn't fixed, try checking to see if we need to close the response here.
 		response = HttpResponse(mimetype="application/xml")
@@ -66,16 +64,16 @@ def rpc_handler(request):
 	response['Content-length'] = str(len(response.content))
 	return response
 
-def _updateStatus(name, orderid, processing_loc, status):
-        return updateStatus(name, orderid, processing_loc, status)
+def _update_status(name, orderid, processing_loc, status):
+        return update_status(name, orderid, processing_loc, status)
 
-def _setSceneError(name, orderid, processing_loc, error):
-	return setSceneError(name, orderid, processing_loc, error)
+def _set_scene_error(name, orderid, processing_loc, error):
+	return set_scene_error(name, orderid, processing_loc, error)
 
 def _set_scene_unavailable(name, orderid, processing_loc, error, note):
 	return set_scene_unavailable(name, orderid, processing_loc, error, note)
 
-def _markSceneComplete(name,orderid,processing_loc,completed_scene_location,cksum_file_location,log_file_contents_binary):
+def _mark_scene_complete(name,orderid,processing_loc,completed_scene_location,cksum_file_location,log_file_contents_binary):
         
         log_file_contents = None
         if type(log_file_contents_binary) is str:
@@ -83,24 +81,21 @@ def _markSceneComplete(name,orderid,processing_loc,completed_scene_location,cksu
         else:
             log_file_contents = log_file_contents_binary.data
         
-        return markSceneComplete(name,orderid,processing_loc,completed_scene_location,cksum_file_location,log_file_contents)
+        return mark_scene_complete(name,orderid,processing_loc,completed_scene_location,cksum_file_location,log_file_contents)
 
 #method to expose master configuration repository to the system
-def _getConfiguration(key):
+def _get_configuration(key):
         return Configuration().getValue(key)
 
-def _getScenesToProcess():
-     return getScenesToProcess()   
+def _get_scenes_to_process():
+     return get_scenes_to_process()   
 
-def _getScenesToPurge():
-        return getScenesToPurge()
+def _get_scenes_to_purge():
+        return get_scenes_to_purge()
 
-def _getSceneInputPath(sceneid):
-        return getSceneInputPath(sceneid)
+def _get_scene_input_path(sceneid):
+        return get_scene_input_path(sceneid)
 
-def _getDataSourceCredentials(name):
-	ds = DataSource.objects.get(name=name)
-	return ds.username,ds.password,ds.host,ds.port
 	
 	
 

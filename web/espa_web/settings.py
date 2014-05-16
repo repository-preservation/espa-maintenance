@@ -18,14 +18,14 @@ BASE_DIR = os.path.dirname(os.path.dirname(__file__))
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/1.6/howto/deployment/checklist/
 
-#load up the site specific config file
-ESPA_CONFIG_FILE = os.environ.get('ESPA_CONFIG_FILE', '')
-if ESPA_CONFIG_FILE == '':
-    ESPA_CONFIG_FILE = os.path.join(os.path.expanduser('~'), '.cfgnfo')
+#load up the site specific config file.  If one is not specified default to the user
+#home directory, looking for .cfgno
+ESPA_CONFIG_FILE = os.environ.get('ESPA_CONFIG_FILE', 
+                                  os.path.join(os.path.expanduser('~'), '.cfgnfo'))
     
 #stop everything if we don't have the config file
 if not os.path.exists(ESPA_CONFIG_FILE):
-    raise Exception("Cannot locate the espa config file at %s... exiting" % ESPA_CONFIG_FILE)
+    raise Exception("Espa config file not found at %s... exiting" % ESPA_CONFIG_FILE)
 
 config = ConfigParser.SafeConfigParser()
 with open(ESPA_CONFIG_FILE) as file_handle:
@@ -137,33 +137,34 @@ TEMPLATE_LOADERS = (
 #TODO: update machine names to cnames... get these from the EE crew
 SERVICE_URLS = {
         "dev" : {
-            "orderservice":"http://edclxs151.cr.usgs.gov/OrderWrapperServicedevsys/resources",
-            "orderdelivery":"http://edclxs151.cr.usgs.gov/OrderDeliverydevsys/OrderDeliveryService?WSDL",
-            "orderupdate":"http://edclxs151.cr.usgs.gov/OrderStatusServicedevsys/OrderStatusService?wsdl",
-            "massloader":"http://edclxs151.cr.usgs.gov/MassLoaderdevsys/MassLoader?wsdl",
-            "registration":"http://edclxs151.cr.usgs.gov/RegistrationServicedevsys/RegistrationService?wsdl"
+            "orderservice": "http://edclxs151.cr.usgs.gov/OrderWrapperServicedevsys/resources",
+            "orderdelivery": "http://edclxs151.cr.usgs.gov/OrderDeliverydevsys/OrderDeliveryService?WSDL",
+            "orderupdate": "http://edclxs151.cr.usgs.gov/OrderStatusServicedevsys/OrderStatusService?wsdl",
+            "massloader": "http://edclxs151.cr.usgs.gov/MassLoaderdevsys/MassLoader?wsdl",
+            "registration": "http://edclxs151.cr.usgs.gov/RegistrationServicedevsys/RegistrationService?wsdl"
         },
         "tst" : {
-            "orderservice":"http://eedevmast.cr.usgs.gov/OrderWrapperServicedevmast/resources",
-            "orderdelivery":"http://edclxs151.cr.usgs.gov/OrderDeliverydevmast/OrderDeliveryService?WSDL",
-            "orderupdate":"http://edclxs151.cr.usgs.gov/OrderStatusServicedevmast/OrderStatusService?wsdl",
+            "orderservice": "http://eedevmast.cr.usgs.gov/OrderWrapperServicedevmast/resources",
+            "orderdelivery": "http://edclxs151.cr.usgs.gov/OrderDeliverydevmast/OrderDeliveryService?WSDL",
+            "orderupdate": "http://edclxs151.cr.usgs.gov/OrderStatusServicedevmast/OrderStatusService?wsdl",
             #"massloader":"http://edclxs151.cr.usgs.gov/MassLoaderdevmast/MassLoader?wsdl",
             #The tst env for MassLoader is wired to ops because Landsat doesn't usually
             #fulfill test orders unless they are specifically asked to.
-            "massloader":"http://edclxs152.cr.usgs.gov/MassLoader/MassLoader?wsdl",
-            "registration":"http://edclxs151.cr.usgs.gov/RegistrationServicedevmast/RegistrationService?wsdl"
+            "massloader": "http://edclxs152.cr.usgs.gov/MassLoader/MassLoader?wsdl",
+            "registration": "http://edclxs151.cr.usgs.gov/RegistrationServicedevmast/RegistrationService?wsdl"
         },
         "ops" : {
-            "orderservice":"http://edclxs152.cr.usgs.gov/OrderWrapperService/resources",
-            "orderdelivery":"http://edclxs152.cr.usgs.gov/OrderDeliveryService/OrderDeliveryService?WSDL",
-            "orderupdate":"http://edclxs152/OrderStatusService/OrderStatusService?wsdl",
-            "massloader":"http://edclxs152.cr.usgs.gov/MassLoader/MassLoader?wsdl",
-            "registration":"http://edclxs152.cr.usgs.gov/RegistrationService/RegistrationService?wsdl"
+            "orderservice": "http://edclxs152.cr.usgs.gov/OrderWrapperService/resources",
+            "orderdelivery": "http://edclxs152.cr.usgs.gov/OrderDeliveryService/OrderDeliveryService?WSDL",
+            "orderupdate": "http://edclxs152/OrderStatusService/OrderStatusService?wsdl",
+            "massloader": "http://edclxs152.cr.usgs.gov/MassLoader/MassLoader?wsdl",
+            "registration": "http://edclxs152.cr.usgs.gov/RegistrationService/RegistrationService?wsdl"
         }
 }
 
 #add the EE Authentication Backend in addition to the ModelBackend
-AUTHENTICATION_BACKENDS = ('django.contrib.auth.backends.ModelBackend', 'ordering.django_plugins.EEAuthBackend')
+AUTHENTICATION_BACKENDS = ('django.contrib.auth.backends.ModelBackend', 
+                           'ordering.django_plugins.EEAuthBackend')
 
 #this sets the login_url to the named url action ('login') contained in urls.py
 LOGIN_URL = 'login'
