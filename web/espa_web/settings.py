@@ -12,24 +12,44 @@ https://docs.djangoproject.com/en/1.6/ref/settings/
 import os
 import ConfigParser
 
-#this is the location of the main project directory, NOT the directory this file lives in
+#this is the location of the main project directory
+#NOT the directory this file lives in!!!
 BASE_DIR = os.path.dirname(os.path.dirname(__file__))
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/1.6/howto/deployment/checklist/
 
-#load up the site specific config file.  If one is not specified default to the user
-#home directory, looking for .cfgno
+#load up the site specific config file.  
+#If one is not specified default to the user home directory, looking for .cfgno
 ESPA_CONFIG_FILE = os.environ.get('ESPA_CONFIG_FILE', 
-                                  os.path.join(os.path.expanduser('~'), '.cfgnfo'))
+                                  os.path.join(os.path.expanduser('~'),
+                                               '.cfgnfo'))
     
 #stop everything if we don't have the config file
 if not os.path.exists(ESPA_CONFIG_FILE):
-    raise Exception("Espa config file not found at %s... exiting" % ESPA_CONFIG_FILE)
+    raise Exception("Espa config file not found at %s... exiting" \
+                    % ESPA_CONFIG_FILE)
 
 config = ConfigParser.SafeConfigParser()
 with open(ESPA_CONFIG_FILE) as file_handle:
     config.readfp(file_handle)
+
+
+# set the ESPA_ENV variable correctly
+ESPA_ENV = 'dev'
+
+if "ESPA_ENV" in os.environ:
+    if os.environ['ESPA_ENV'].lower() == 'ops':
+        ESPA_ENV = 'ops'
+    elif os.environ['ESPA_ENV'].lower() == 'tst':
+        ESPA_ENV = 'tst'
+    elif os.environ['ESPA_ENV'].lower() == 'dev':
+        ESPA_ENV = 'dev'
+    else:
+        raise Exception("ESPA_ENV set to unknown value:%s... \
+            must be one of 'dev', 'tst' or 'ops'... \
+            cannot continue" % os.environ['ESPA_ENV'])
+            
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = config.get('config', 'key')
@@ -112,7 +132,8 @@ STATIC_URL = '/static/'
 # Templates
 
 TEMPLATE_DIRS = (
-    # Put strings here, like "/home/html/django_templates" or "C:/www/django/templates".
+    # Put strings here, like "/home/html/django_templates" 
+    #or "C:/www/django/templates".
     # Always use forward slashes, even on Windows.
     # Don't forget to use absolute paths, not relative paths.
     os.path.join(BASE_DIR, "ordering/templates"),
@@ -125,6 +146,7 @@ TEMPLATE_CONTEXT_PROCESSORS = (
 	'django.core.context_processors.static',
 	'django.contrib.auth.context_processors.auth',
 	'django.contrib.messages.context_processors.messages',
+     'ordering.context_processors.include_external_urls',
 )
 
 # List of callables that know how to import templates from various sources.
@@ -135,13 +157,15 @@ TEMPLATE_LOADERS = (
 
 #ESPA Service URLS
 #TODO: update machine names to cnames... get these from the EE crew
-SERVICE_URLS = {
+SERVICE_LOCATOR = {
         "dev" : {
             "orderservice": "http://edclxs151.cr.usgs.gov/OrderWrapperServicedevsys/resources",
             "orderdelivery": "http://edclxs151.cr.usgs.gov/OrderDeliverydevsys/OrderDeliveryService?WSDL",
             "orderupdate": "http://edclxs151.cr.usgs.gov/OrderStatusServicedevsys/OrderStatusService?wsdl",
             "massloader": "http://edclxs151.cr.usgs.gov/MassLoaderdevsys/MassLoader?wsdl",
-            "registration": "http://edclxs151.cr.usgs.gov/RegistrationServicedevsys/RegistrationService?wsdl"
+            "registration": "http://edclxs151.cr.usgs.gov/RegistrationServicedevsys/RegistrationService?wsdl",
+            "register_user": "https://eedev.cr.usgs.gov/devsys/register/",
+            "forgot_login": "https://eedev.cr.usgs.gov/devsys/login/username"            
         },
         "tst" : {
             "orderservice": "http://eedevmast.cr.usgs.gov/OrderWrapperServicedevmast/resources",
@@ -151,20 +175,40 @@ SERVICE_URLS = {
             #The tst env for MassLoader is wired to ops because Landsat doesn't usually
             #fulfill test orders unless they are specifically asked to.
             "massloader": "http://edclxs152.cr.usgs.gov/MassLoader/MassLoader?wsdl",
-            "registration": "http://edclxs151.cr.usgs.gov/RegistrationServicedevmast/RegistrationService?wsdl"
+            "registration": "http://edclxs151.cr.usgs.gov/RegistrationServicedevmast/RegistrationService?wsdl",
+            "register_user": "https://eedevmast.cr.usgs.gov/register",
+            "forgot_login": "https://eedevmast.cr.usgs.gov/login/username"
         },
         "ops" : {
             "orderservice": "http://edclxs152.cr.usgs.gov/OrderWrapperService/resources",
             "orderdelivery": "http://edclxs152.cr.usgs.gov/OrderDeliveryService/OrderDeliveryService?WSDL",
             "orderupdate": "http://edclxs152/OrderStatusService/OrderStatusService?wsdl",
             "massloader": "http://edclxs152.cr.usgs.gov/MassLoader/MassLoader?wsdl",
-            "registration": "http://edclxs152.cr.usgs.gov/RegistrationService/RegistrationService?wsdl"
+            "registration": "http://edclxs152.cr.usgs.gov/RegistrationService/RegistrationService?wsdl",
+            "register_user": "https://earthexplorer.usgs.gov/register",
+            "forgot_login":"https://earthexplorer.usgs.gov/login/username"
         }
 }
 
-#add the EE Authentication Backend in addition to the ModelBackend
+# add the EE Authentication Backend in addition to the ModelBackend
+# authentication stops at the first success... so this order does matter
+#leave the standard ModelBackend in first so the builtin admin account
+#never hits EE
 AUTHENTICATION_BACKENDS = ('django.contrib.auth.backends.ModelBackend', 
-                           'ordering.django_plugins.EEAuthBackend')
+                           'ordering.django_plugins.EEAuthBackend',)
 
-#this sets the login_url to the named url action ('login') contained in urls.py
+
+
+# sets the login_url to the named url action ('login') contained in urls.py
 LOGIN_URL = 'login'
+
+# if the user didn't select a ?next parameter (will happen if they are trying
+# to access /) then send them to the homepage
+LOGIN_REDIRECT_URL = 'index'
+
+# This is polluting the settings.py I know, but at the moment this is the
+# best place for this since it is needed in lta.py and in urls.py
+URL_FOR = lambda service_name: SERVICE_LOCATOR[ESPA_ENV][service_name]
+
+
+    

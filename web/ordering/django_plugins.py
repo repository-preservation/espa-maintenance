@@ -1,7 +1,7 @@
+
 from ordering.models import UserProfile
 from lta import RegistrationServiceClient
 from django.contrib.auth.models import User
-
 
 class EEAuthBackend(object):
     '''
@@ -14,10 +14,11 @@ class EEAuthBackend(object):
     the EE contact id.
     '''
 
-    def authenticate(self, username=None, pw=None):
+    def authenticate(self, username=None, password=None):
 
+        registration = RegistrationServiceClient()        
         try:
-            contactid = RegistrationServiceClient().login_user(username, pw)
+            contactid = registration.login_user(username, password)
 
             try:
                 user = User.objects.get(username=username)
@@ -25,12 +26,29 @@ class EEAuthBackend(object):
                 # Create a new user. Note that we can set password
                 # to anything, because it won't be checked; the password
                 # from RegistrationServiceClient will.
-                user = User(username=username, password='this value isnt used')
+                user = User(username=username, password='this isnt used')
                 user.is_staff = False
                 user.is_superuser = False
                 user.save()
 
                 UserProfile(contactid=contactid, user=user).save()
+
+            #check to make sure we have the current user info
+            info = registration.get_user_info(username, password)
+            
+            save_user = False
+            if not user.email or user.email is not info.email:
+                 user.email = info.email
+                 save_user = True
+            if not user.first_name or user.first_name is not info.first_name:
+                user.first_name = info.first_name
+                save_user = True
+            if not user.last_name or user.last_name is not info.last_name:
+                user.last_name = info.last_name
+                save_user = True
+            if save_user:                 
+                user.save()
+                 
             return user
         except Exception, e:
             return None

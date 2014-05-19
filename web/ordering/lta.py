@@ -3,10 +3,10 @@ from django.conf import settings
 from suds.client import Client as SoapClient
 
 import re
-import os
 import urllib2
 import collections
 import xml.etree.ElementTree as xml
+
 
 __author__ = "David V. Hill"
 
@@ -15,57 +15,24 @@ class LTAService(object):
     ''' Abstract service client for all of LTA services '''
 
     def __init__(self, environment="dev"):
-        self.environment = self.__get_environment(environment)
-        #self.tram_id = self.tram_ids[self.environment]
         self.xml_header = "<?xml version ='1.0' encoding='UTF-8' ?>"
 
     def __repr__(self):
         return "LTAService:%s" % self.__dict__
 
-    def __get_environment(self, environment):
-        '''Internal method to build the proper environment string for
-        LtaService
-
-        Keyword args:
-        environment The environment string that is passed in to the
-                    LtaService. This allows the desired environment to be
-                    supplied as a fallback from the normal resolution of
-                    looking at the ESPA_ENV shell variable.
-
-        Returns:
-        A string of either 'ops', 'tst', or 'dev', which will correspond to
-        values in the LtaService.urls dictionary
-        '''
-
-        if "ESPA_ENV" in os.environ:
-            if os.environ['ESPA_ENV'].lower() == 'ops':
-                return 'ops'
-            elif os.environ['ESPA_ENV'].lower() == 'tst':
-                return 'tst'
-            elif os.environ['ESPA_ENV'].lower() == 'dev':
-                return 'dev'
-            else:
-                raise Exception("ESPA_ENV set to unknown value:%s... \
-                must be one of 'dev', 'tst' or 'ops'... \
-                cannot continue" % os.environ['ESPA_ENV'])
-        else:
-            return environment
 
     def get_url(self, service_name):
-        ''' Service locator pattern.  Attempts to identify the environment
-        first by looking for ESPA_ENV.  If that is not set it checks the
-        hostname for known ops or tst servers.  If none of those conditions
-        are met then it uses whatever was passed in on the constructor.
-        This is restrictive on the end user on purpose to minimize the chance
-        of having calls go to the wrong environment.
+        ''' Service locator pattern.  Retrieves proper url from settings.py
+        based on the environment
 
         Keyword args:
-        service_name Name of a service as defined in LtaService.urls dictionary
+        service_name Name of a service as defined in
+        settings.py SERVICE_LOCATOR dictionary
 
         Returns:
         A url to contact the desired service
         '''
-        return settings.SERVICE_URLS[self.environment][service_name]
+        return settings.URL_FOR(service_name)
 
     def sceneid_is_sane(self, sceneid):
         ''' validates against a properly structure L7, L5 or L4 sceneid
@@ -126,7 +93,7 @@ class RegistrationServiceClient(LTAService):
         client = SoapClient(self.get_url("registration"))
         return repr(client.service.loginUser(username, password))
 
-    def get_user_email(self, username, pw):
+    def get_user_info(self, username, pw):
         '''Retrieves the email address on file for the supplied credentials
 
         Keyword args:
@@ -138,8 +105,22 @@ class RegistrationServiceClient(LTAService):
         Exception if the username/password is invalid
         None if there is no email on file.
         '''
+        
+        # build a named tuple for the return value
+        userinfo = collections.namedtuple('UserInfo',
+                                         'email',
+                                         'first_name',
+                                         'last_name')
+        
         r = SoapClient(self.get_url("registration"))
-        return repr(r.service.getUserInfo(username, pw).contactAddress.email)
+
+        contact_info = r.service.getUserInfo(username, pw).contactAddress
+
+        userinfo.email = contact_info.email
+        userinfo.first_name = contact_info.firstName
+        userinfo.last_name = contact_info.lastName        
+        
+        return userinfo
 
 
 #TODO: Fix the error checking around the calls to this service.

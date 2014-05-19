@@ -1,13 +1,15 @@
+{% load static %}
+
 <!DOCTYPE html >
 
 <html>
 
 <head>
     <title>ESPA - {% block title %}Ordering Interface{% endblock %}</title>
-    <link href="/static/css/common.css" rel="stylesheet" type="text/css" />
-    <link href="/static/css/custom.css" rel="stylesheet" type="text/css" />
-    <link href="/static/css/main.css" rel="stylesheet" type="text/css" />
-    <link href="/static/css/espa.css" rel="stylesheet" type="text/css" />
+    <link href="{% static 'css/common.css' %}" rel="stylesheet" type="text/css" />
+    <link href="{% static 'css/custom.css' %}" rel="stylesheet" type="text/css" />
+    <link href="{% static 'css/main.css' %}" rel="stylesheet" type="text/css" />
+    <link href="{% static 'css/espa.css' %}" rel="stylesheet" type="text/css" />
 
     
     <style>
@@ -33,7 +35,7 @@
     
     </script>
     
-    <script src="/static/js/jquery-1.10.2.min.js"></script>
+    <script src="{% static 'js/jquery-1.10.2.min.js' %}"></script>
 
     <script type="text/javascript">
     {% block scripts%}{% endblock %}
@@ -47,15 +49,15 @@
 
         <div id="header">
 	    <div id="usgsidentifier">
-                <a href="http://www.usgs.gov/"><img src="/static/img/header_graphic_usgsIdentifier_white.jpg"
+                <a href="http://www.usgs.gov/"><img src="{% static 'img/header_graphic_usgsIdentifier_white.jpg' %}"
                     alt="USGS - science for a changing world"
                     width="178" height="72" /></a>
             </div>
             <div id="identifierbg">
-                <img src="/static/img/logo_bg.png" alt="" width="240" height="72" />
+                <img src="{% static 'img/logo_bg.png' %}" alt="" width="240" height="72" />
             </div>
             <div id="rot">
-                <img src="/static/img/www-banner.jpg" alt="" width="1600" height="124" />
+                <img src="{% static 'img/www-banner.jpg' %}" alt="" width="1600" height="124" />
             </div>
             <div id="usgsccsabox">
                 <div id="usgsccsa">
@@ -74,7 +76,7 @@
 	<!--End Header -->
 
 	<!-- Start nav -->
-        {% block nav %}<div id="nav"><span class="navitem"><a href="/index">Home</a></span></div>{% endblock %}
+        {% block nav %}<div id="nav"><span class="navitemleft"><a href="{% url 'index' %}">Home</a></span></div>{% endblock %}
        <!-- End nav -->
 
         <div id="content">
@@ -93,10 +95,10 @@
 
                 <p id="usgsfootertext">
                     <a href="http://www.takepride.gov/">
-                        <img height="58" width="60" title="Take Pride in America Home Page" alt="Take Pride in America logo" src="/static/img/footer_graphic_takePride.jpg"/>
+                        <img height="58" width="60" title="Take Pride in America Home Page" alt="Take Pride in America logo" src="{% static 'img/footer_graphic_takePride.jpg' %}"/>
                     </a>
                     <a href="http://usa.gov/">
-                        <img height="26" width="90" title="USAGov: Government Made Easy" alt="USA.gov logo" src="/static/img/footer_graphic_usagov.jpg"/>
+                        <img height="26" width="90" title="USAGov: Government Made Easy" alt="USA.gov logo" src="{% static 'img/footer_graphic_usagov.jpg' %}"/>
                     </a>
                     <a href="http://www.doi.gov/">U.S. Department of the Interior</a>
 

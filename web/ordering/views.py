@@ -6,11 +6,9 @@ import ordering.view_validator as vv
 from ordering.models import Scene
 from ordering.models import Order
 from ordering.models import Configuration as Config
-from ordering.models import UserProfile
 
 from django import forms
 
-from django.contrib.auth.models import User
 from django.contrib.syndication.views import Feed
 
 from django.http import HttpResponse
@@ -29,6 +27,13 @@ class AbstractView(View):
     def _get_option_style(self, request):
         '''Utility method to determine which options to display in the
         templates based on the user.
+        
+        Keyword args:
+        request -- An HTTP request object
+        
+        Return:
+        str('display:none') if the user is not admin or internal
+        str('') otherwise
         '''
         if hasattr(request, 'user'):
             if request.user.username not in ('espa_admin', 'espa_internal'):
@@ -36,22 +41,28 @@ class AbstractView(View):
             else:
                 return ""
 
-    def _display_system_message(self, context):
+    def _display_system_message(self, ctx):
         '''Utility method to populate the context with systems messages if
         there are any configured for display
+        
+        Keyword args:
+        ctx -- A RequestContext object (dictionary)
+        
+        Return:
+        No return.  Dictionary is passed by reference.
         '''
         msg = Config().getValue('display_system_message')
 
         if msg.lower() == 'true':
             c = Config()
-            context['display_system_message'] = True
-            context['system_message_title'] = c.getValue('system_message_title')
-            context['system_message_1'] = c.getValue('system_message_1')
-            context['system_message_2'] = c.getValue('system_message_2')
-            context['system_message_3'] = c.getValue('system_message_3')
+            ctx['display_system_message'] = True
+            ctx['system_message_title'] = c.getValue('system_message_title')
+            ctx['system_message_1'] = c.getValue('system_message_1')
+            ctx['system_message_2'] = c.getValue('system_message_2')
+            ctx['system_message_3'] = c.getValue('system_message_3')
             c = None
         else:
-            context['display_system_message'] = False
+            ctx['display_system_message'] = False
 
     def _get_request_context(self,
                              request,
@@ -70,7 +81,14 @@ class Index(AbstractView):
     template = 'index.html'
 
     def get(self, request):
-        '''Request handler for / and /index'''
+        '''Request handler for / and /index
+
+        Keyword args:
+        request -- HTTP request object
+        
+        Return:
+        HttpResponse        
+        '''
 
         c = self._get_request_context(request)
 
@@ -83,19 +101,39 @@ class NewOrder(AbstractView):
     template = 'new_order.html'
 
     def get(self, request):
-        '''Request handler for /neworder'''
+        '''Request handler for new order initial form
 
+        Keyword args:
+        request -- HTTP request object
+        
+        Return:
+        HttpResponse           
+        '''
+
+        print("foshizzle")  
+  
         c = self._get_request_context(request)
         c['user'] = request.user
-        c['optionstyle'] = self.__get_option_style(request)
+        c['optionstyle'] = self._get_option_style(request)
 
         t = loader.get_template(self.template)
 
         return HttpResponse(t.render(c))
 
     def post(self, request):
+        '''Request handler for new order submission
+        
+        Keyword args:
+        request -- HTTP request object
+        
+        Return:
+        HttpResponseRedirect upon successful submission
+        HttpResponse if there are errors in the submission
+        '''
         #request must be a POST and must also be encoded as multipart/form-data
         #in order for the files to be uploaded
+        
+       
 
         context, errors, scene_errors = vv.validate_input_params(request)
 
@@ -139,7 +177,16 @@ class ListOrders(AbstractView):
     results_template = "listorders_results.html"
 
     def get(self, request, email=None, output_format=None):
-        '''Request handler for displaying all user orders'''
+        '''Request handler for displaying all user orders
+        
+        Keyword args:
+        request -- HTTP request object
+        email -- the user's email
+        output_format -- deprecated
+        
+        Return:
+        HttpResponse           
+        '''
 
         #no email provided, ask user for an email address
         if email is None or not core.validate_email(email):
@@ -158,7 +205,6 @@ class ListOrders(AbstractView):
             c = self._get_request_context(request, {'email': email,
                                                     'orders': orders
                                                     })
-
             return HttpResponse(t.render(c))
 
 
@@ -168,6 +214,14 @@ class OrderDetails(AbstractView):
     def get(self, request, orderid, output_format=None):
         '''Request handler to get the full listing of all the scenes
         & statuses for an order
+        
+        Keyword args:
+        request -- HTTP request object
+        orderid -- the order id for the order
+        output_format -- deprecated
+        
+        Return:
+        HttpResponse   
         '''
 
         t = loader.get_template(self.template)

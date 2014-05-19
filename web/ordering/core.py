@@ -9,6 +9,7 @@ from smtplib import *
 from models import Scene
 from models import Order
 from models import Configuration
+from django.contrib.auth.models import User
 import json
 import datetime
 import lta
@@ -74,11 +75,31 @@ def get_order_details(orderid):
 
 
 # Captures a new order and gets it into the database
-def enter_new_order(email, order_source, scene_list, option_string, note=''):
-    '''Places a new espa order in the database'''
+def enter_new_order(username,
+                    order_source,
+                    scene_list,
+                    option_string,
+                    note=''):
+    '''Places a new espa order in the database
+    
+    Keyword args:
+    username -- Username of user placing this order
+    order_source -- Should always be 'espa'
+    scene_list -- A list containing scene ids
+    option_string -- Dictionary of options for the order
+    note -- Optional user supplied note
+
+    Return:
+    The fully populated Order object    
+    '''
+    
+    # find the user
+    user = User.objects.get(username = username)
+    
+    # create the order
     order = Order()
     order.orderid = generate_order_id(email)
-    order.email = email
+    order.user = user
     order.note = note
     order.status = 'ordered'
     order.order_date = datetime.datetime.now()
@@ -86,6 +107,7 @@ def enter_new_order(email, order_source, scene_list, option_string, note=''):
     order.order_source = order_source
     order.save()
 
+    # save the scenes for the order
     for s in set(scene_list):
         scene = Scene()
         scene.name = s

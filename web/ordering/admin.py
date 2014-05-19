@@ -43,10 +43,16 @@ class SceneAdmin(admin.ModelAdmin):
     
               
 class OrderAdmin(admin.ModelAdmin):
-    fields = ['orderid', 'order_source', 'user','status', 'ee_order_id', 'order_type','order_date','completion_date','note', 'product_options', ]
-    list_display = ('orderid', 'order_source', 'user','status', 'ee_order_id', 'order_type', 'order_date', 'completion_date', 'product_options')
-    list_filter = ('orderid', 'order_source', 'user','status', 'ee_order_id', 'order_type','order_date','completion_date')
-    search_fields = ['orderid', 'order_source', 'user', 'ee_order_id', 'status','order_type']
+    fields = ['user','orderid', 'order_source','status', 'ee_order_id', 
+              'order_type','order_date','completion_date','note',
+              'product_options', ]
+    list_display = ('user','orderid', 'order_source', 'status',
+                    'ee_order_id', 'order_type', 'order_date',
+                    'completion_date', 'product_options')
+    list_filter = ('orderid', 'order_source', 'status','user', 'ee_order_id',
+                   'order_type','order_date','completion_date')
+    search_fields = ['user__username','orderid', 'order_source', 'ee_order_id',
+                     'status','order_type']
     
     inlines = [SceneInline,]
 

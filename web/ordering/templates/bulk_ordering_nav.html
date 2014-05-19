@@ -1,10 +1,16 @@
  
 <div id="nav">
-    <span class="navitem"><a href="{% url 'index' %}">Home</a></span>
-    <span class="navitem">|</span>
-    <span class="navitem"><a href="http://landsat.usgs.gov/CDR_ECV.php">Product Information</a></span>
-    <span class="navitem">|</span>
-    <span class="navitem"><a href="{% url 'new_order' %}">New Order</a></span>
-    <span class="navitem">|</span>
-    <span class="navitem"><a href="{% url 'listorders_form' %}">Show Orders</a></span>		
+    <span class="navitemleft"><a href="{% url 'index' %}">Home</a></span>
+    <span class="navitemleft">|</span>
+    <span class="navitemleft"><a href="http://landsat.usgs.gov/CDR_ECV.php">Product Information</a></span>
+    <span class="navitemleft">|</span>
+    <span class="navitemleft"><a href="{% url 'new_order' %}">New Order</a></span>
+    <span class="navitemleft">|</span>
+    <span class="navitemleft"><a href="{% url 'listorders_form' %}">Show Orders</a></span>
+    
+    <span class="navitemright"><a href="{% url 'logout' %}">Logout</a></span>
+    <span class="navitemright">|</span>
+    <span class="navitemright">{{ user.username}} ({{ user.email }})</span>
+    
+
  </div>		

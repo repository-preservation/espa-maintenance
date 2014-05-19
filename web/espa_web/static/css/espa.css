@@ -16,8 +16,14 @@
     color:#FFFFFF;
 }
 
-span.navitem {
+span.navitemleft {
     padding-left:15px;
+    font-weight:bold;
+}
+
+span.navitemright {
+    float:right;
+    padding-right:15px;
     font-weight:bold;
 }
 
