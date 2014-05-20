@@ -21,6 +21,8 @@ from django.template import RequestContext
 from django.utils.feedgenerator import Rss201rev2Feed
 from django.views.generic import View
 
+from django.contrib.auth.models import User
+
 
 class AbstractView(View):
 
@@ -161,7 +163,7 @@ class NewOrder(AbstractView):
 
             option_string = json.dumps(option_ctx)
 
-            order = core.enter_new_order(context['email'],
+            order = core.enter_new_order(request.user.username,
                                          'espa',
                                          context['scenelist'],
                                          option_string,
@@ -190,8 +192,12 @@ class ListOrders(AbstractView):
 
         #no email provided, ask user for an email address
         if email is None or not core.validate_email(email):
-
-            c = self._get_request_context(request, {'form': ListOrdersForm()})
+            user = User.objects.get(username=request.user.username)
+            
+            #default the email field to the current user email
+            form = ListOrdersForm(initial={'email':user.email})
+            
+            c = self._get_request_context(request, {'form': form})
 
             t = loader.get_template(self.initial_template)
 

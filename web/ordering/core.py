@@ -8,6 +8,7 @@ from email.mime.text import MIMEText
 from smtplib import *
 from models import Scene
 from models import Order
+from models import DoesNotExist
 from models import Configuration
 from django.contrib.auth.models import User
 import json
@@ -152,7 +153,7 @@ Requested scenes:\n""") % (order.orderid, status_url)
         for s in scenes:
             msg = msg + s.name + '\n'
 
-    send_email(recipient=order.email,
+    send_email(recipient=order.user.email,
                subject='Processing Order Received',
                body=msg)
 
@@ -589,47 +590,65 @@ def load_ee_orders():
     #key:(order_num,email) = list({sceneid:, unit_num:})
     orders = ltasvc.get_available_orders()
 
-    #This sets (hard codes) the product options that comes in from EE when
-    #someone is requesting processing via their interface
-    ee_options = {
-        'include_sourcefile': False,
-        'include_source_metadata': False,
-        'include_sr_toa': False,
-        'include_sr_thermal': False,
-        'include_sr': True,
-        'include_sr_browse': False,
-        'include_sr_ndvi': False,
-        'include_sr_ndmi': False,
-        'include_sr_nbr': False,
-        'include_sr_nbr2': False,
-        'include_sr_savi': False,
-        'include_sr_evi': False,
-        'include_solr_index': False,
-        'include_cfmask': False,
-        'reproject': False,
-        'resize': False,
-        'image_extents': False
-    }
-
+    #use this to cache calls to EE Registration Service username lookups
+    local_cache = {}
+    
     #Capture in our db
-    for eeorder, email in orders:
+    for eeorder, email, contactid in orders:
 
         #create the orderid based on the info from the eeorder
-        order_id = generate_ee_order_id(email, eeorder)
-        order = None
+        order_id = Order().generate_ee_order_id(email, eeorder)
 
+        # paranoia... initialize this to None since its used in the loop.
+        order = None
+        
         #go look to see if it already exists in the db
         try:
             order = Order.objects.get(orderid=order_id)
-        except:
+        except DoesNotExist:
+            
+            reg = lta.RegistrationServiceClient()
+
+            # retrieve the username from the EE registration service
+            # cache this call
+            if contactid in local_cache:
+                username = local_cache[contactid]
+            else:
+                username = reg.get_username(contactid)
+                local_cache[contactid] = username
+            
+            #now look the user up in our db.  Create if it doesn't exist
+            # we'll want to put some caching in place here too
+            try:
+                user = User.objects.get(username=username)
+                
+                # make sure the email we have on file is current
+                if not user.email or user.email is not email:
+                 user.email = email
+                 user.save()
+            except User.DoesNotExist:
+                # Create a new user. Note that we can set password
+                # to anything, because it won't be checked; the password
+                # from RegistrationServiceClient will.
+                user = User(username=username, password='this isnt used')
+                user.is_staff = False
+                user.is_superuser = False
+                user.email = email
+                user.save()
+
+                UserProfile(contactid=contactid, user=user).save()
+                
+             
+            # We have a user now.  Now build the new Order since it 
+            # wasn't found.
             #Didn't find it in the db... make the order now
             order = Order()
-            order.orderid = generate_ee_order_id(email, eeorder)
-            order.email = email
-            order.chain = 'sr_ondemand'
+            order.orderid = order_id
+            order.user = user
+            order.order_type = 'level2_ondemand'
             order.status = 'ordered'
             order.note = 'EarthExplorer order id: %s' % eeorder
-            order.product_options = json.dumps(ee_options)
+            order.product_options = json.dumps(Order().get_default_ee_options)
             order.ee_order_id = eeorder
             order.order_source = 'ee'
             order.order_date = datetime.datetime.now()
@@ -680,7 +699,7 @@ def load_ee_orders():
                         status code:%s" % (msg, status)
 
                         helperlogger(log_msg)
-            except:
+            except DoesNotExist:
                 scene = Scene()
                 scene.name = s['sceneid']
                 scene.ee_unit_id = s['unit_num']

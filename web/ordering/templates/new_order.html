@@ -178,6 +178,30 @@
 	#utm_zone_label {
 	    padding-right:10px;
 	}
+
+     h5#scenelist {
+      margin:0 auto;
+      padding:20px;
+     }
+
+     #scenelist_box {
+        width:650px;
+        margin-top:40px;
+        margin-bottom:15px;
+        margin-left:auto;
+        margin-right:auto;
+        border:2px solid #d0d0d0;
+        -moz-border-radius: 5px;
+        -webkit-border-radius: 5px;
+	   overflow:hidden; 
+     }
+
+    input#scenelist {
+       max-width:100%;
+       width:100%;
+    }
+
+   
     {% endblock %}
 
     {% block nav %}{% include "bulk_ordering_nav.html" %}{% endblock %}
@@ -188,59 +212,46 @@
     <form action="/ordering/new/" method="post" id="request_form" name="request_form" enctype="multipart/form-data"> {% csrf_token %}
     
     <div id="wrapper">
+    
     {% if display_system_message %}
         {% include "system_message.html" %}
     {% endif %}
     
-    <h4>Submitting an order</h4>
-    <p>
-            Submitting a new order is as simple as entering your email address 
-            along with a file containing your scene list and pressing the submit button
-            at the bottom of the page. For more information on creating a scene list file, 
-            please refer to the 
-            <a href="http://glovis.usgs.gov/ImgViewerHelp.shtml#SaveLoadSceneLists" target="blank">user guide instructions</a>
-            on saving and loading scene lists for the 
-            <a href="http://glovis.usgs.gov/" target="blank">USGS Global Visualization Viewer</a>.
-   </p>
-    
+
     {% if errors.email or errors.file or errors.scenes or errors.product_options%}
     <div id="errorbox">
     <h3>Errors were found in your request.&nbsp;&nbsp;Please correct them and retry your order.</h3>
     {% endif %}
-    {% if errors.email %}
-    <h4>{{errors.email}}</h4>
-    {% endif %}
     {% if errors.file %}
-    <h4>{{errors.file}}</h4>
+    <h4>{{ errors.file }}</h4>
     {% endif %}
     {% if errors.scenes %}
     {% for err_scene in errors.scenes %}
-    <h4>{{err_scene}}</h4>
+    <h4>{{ err_scene }}</h4>
     {% endfor %}
     {% endif %}
     {% if errors.product_options %}
     {% for err_po in errors.product_options %}
-    <h4>{{err_po}}</h4>
+    <h4>{{ err_po }}</h4>
     {% endfor %}
     {% endif %}
     {% if errors.email or errors.file or errors.scenes or errors.product_options %}
     </div>
     {% endif %}
     
-    <br/>
-    
-	
-	<div class='inputitem'
-	    <label for='email'>Email address:</label>
-	    <input type='email' id='email' name='email' placeholder='user@domain.com'>
-	</div>
-	
-	
-	<div class='inputitem'>
-	    <label for='scenelist'>Scene list:</label>
-	    <input type='file' id='scenelist' name='scenelist'>
-	</div>
-	
+  
+     <h4>Add Scenes To Process</h4>
+     <div class='product_box'>
+	    <div class='product_boxheader'>
+		Scene List
+	    </div>
+         <div class='product_boxbody'> 
+             <div class='inputitem'>
+             <input type='file' id='scenelist' name='scenelist'>
+             </div>
+         </div>
+     </div>
+		
 	<h4>Select Product Contents</h4>
 	
 	<div class='product_box'>
@@ -344,7 +355,6 @@
 		
 	    </div>
 	</div>
-	
 	
 	
 	<div class='product_box'>

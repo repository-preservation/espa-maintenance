@@ -388,7 +388,6 @@ def validate_input_params(request):
 
     context, errors, scene_errors = {}, {}, list()
 
-    validate_email(request, context, errors)
     validate_files_and_scenes(request, context, errors, scene_errors)
     validate_product_selected(request, errors)
 

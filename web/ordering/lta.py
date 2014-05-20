@@ -20,7 +20,6 @@ class LTAService(object):
     def __repr__(self):
         return "LTAService:%s" % self.__dict__
 
-
     def get_url(self, service_name):
         ''' Service locator pattern.  Retrieves proper url from settings.py
         based on the environment
@@ -77,7 +76,10 @@ class LTAService(object):
 
 
 class RegistrationServiceClient(LTAService):
-
+    
+    def __init__(self):
+        client = SoapClient(self.get_url('registration'))
+        
     def login_user(self, username, password):
         '''Authenticates a username/password against the EE Registration
         Service
@@ -90,8 +92,8 @@ class RegistrationServiceClient(LTAService):
         EE contactId if login is successful
         Exception if unsuccessful with reason
         '''
-        client = SoapClient(self.get_url("registration"))
-        return repr(client.service.loginUser(username, password))
+       
+        return repr(self.client.service.loginUser(username, password))
 
     def get_user_info(self, username, pw):
         '''Retrieves the email address on file for the supplied credentials
@@ -112,16 +114,27 @@ class RegistrationServiceClient(LTAService):
                                          'first_name',
                                          'last_name')
         
-        r = SoapClient(self.get_url("registration"))
+        info = self.client.service.getUserInfo(username, pw).contactAddress
 
-        contact_info = r.service.getUserInfo(username, pw).contactAddress
-
-        userinfo.email = contact_info.email
-        userinfo.first_name = contact_info.firstName
-        userinfo.last_name = contact_info.lastName        
+        userinfo.email = info.email
+        userinfo.first_name = info.firstName
+        userinfo.last_name = info.lastName        
         
         return userinfo
-
+        
+        
+    def get_username(self, contactid):
+        '''Retrieves the users EE username given their contactid
+        
+        Keyword args:
+        contactid -- The EE contactid
+        
+        Return:
+        The EE username
+        '''
+        
+        return self.client.service.getUserName(contactid)
+        
 
 #TODO: Fix the error checking around the calls to this service.
 class OrderWrapperServiceClient(LTAService):
@@ -462,6 +475,7 @@ class OrderDeliveryServiceClient(LTAService):
 
             #pp = processing_params
             pp = u.processingParam
+            
             try:
                 email = pp[pp.index("<email>") + 7:pp.index("</email>")]
             except:
@@ -482,15 +496,36 @@ class OrderDeliveryServiceClient(LTAService):
                                        resp.status))
                 else:
                     continue
+                
+            try:
+                contactid = pp[pp.index("<contactid>") + 11:pp.index("</contactid>")]
+            except:
+                print ("Could not find a contactid for \
+                order[%s] unit[%s]: rejecting" % (u.orderNbr, u.unitNbr))
+
+                #we didn't get an email... fail the order
+                resp = OrderUpdateServiceClient().update_order(u.orderNbr,
+                                                               u.unitNbr,
+                                                               "F")
+                #we didn't get a response from the service
+                if not resp.success:
+                    raise Exception("Could not update order[%s] unit[%s] \
+                    to status:'F'. Error message:%s Error status code:%s"
+                                    % (u.orderNbr,
+                                       u.unitNbr,
+                                       resp.message,
+                                       resp.status))
+                else:
+                    continue
 
             #This is a dictionary that contains a list of dictionaries
-            key = (str(u.orderNbr), str(email))
+            key = (str(u.orderNbr), str(email), str(contactid))
 
             if not key in rtn:
                 rtn[key] = list()
 
-            rtn[key].append({"sceneid": str(u.orderingId),
-                             "unit_num": int(u.unitNbr)}
+            rtn[key].append({'sceneid': str(u.orderingId),
+                             'unit_num': int(u.unitNbr)}
                             )
 
         return rtn

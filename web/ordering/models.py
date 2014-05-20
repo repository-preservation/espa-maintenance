@@ -187,6 +187,36 @@ class Order(models.Model):
         o.update(self.get_default_resample_options())
         
         return o
+        
+        
+    def get_default_ee_options(self):
+        '''Factory method to return default espa order options for orders
+        originating in through Earth Explorer
+        
+        Return:
+        Dictionary populated with default espa options for ee
+        '''
+        o = {}
+        o['include_sourcefile'] = False        
+        o['include_source_metadata'] = False
+        o['include_sr_toa'] =  False
+        o['include_sr_thermal'] =  False
+        o['include_sr'] = True
+        o['include_sr_browse'] = False
+        o['include_sr_ndvi'] = False
+        o['include_sr_ndmi'] = False
+        o['include_sr_nbr'] = False
+        o['include_sr_nbr2'] = False
+        o['include_sr_savi'] = False
+        o['include_sr_evi'] = False
+        o['include_solr_index'] = False
+        o['include_cfmask'] = False
+        o['reproject'] = False
+        o['resize'] = False
+        o['image_extents'] = False
+        
+        return o
+    
 
     def generate_order_id(self, email):
         '''Generate espa order id if the order comes from the bulk ordering

@@ -210,5 +210,4 @@ LOGIN_REDIRECT_URL = 'index'
 # best place for this since it is needed in lta.py and in context_processors.py
 URL_FOR = lambda service_name: SERVICE_LOCATOR[ESPA_ENV][service_name]
 
-
-    
+   
