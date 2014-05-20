@@ -1,7 +1,9 @@
 
 from ordering.models import UserProfile
-from lta import RegistrationServiceClient
+from ordering.lta import RegistrationServiceClient
 from django.contrib.auth.models import User
+from django.conf import settings
+import traceback
 
 class EEAuthBackend(object):
     '''
@@ -11,7 +13,7 @@ class EEAuthBackend(object):
     Once authenticated, if the user does not exist in Django it will be
     created.  This is necessary for Django to enforce authentication
     & authorization as well as capturing user related info such as
-    the EE contact id.
+    the EE contact id, email address and user firstname & lastname
     '''
 
     def authenticate(self, username=None, password=None):
@@ -50,7 +52,12 @@ class EEAuthBackend(object):
                 user.save()
                  
             return user
-        except Exception, e:
+        except Exception:
+            if settings.DEBUG:
+                print("Exception retrieving the user from earth explorer \
+                during login:%s" % username)
+                print(traceback.format_exc())
+                
             return None
 
     def get_user(self, user_id):

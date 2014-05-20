@@ -146,7 +146,7 @@ TEMPLATE_CONTEXT_PROCESSORS = (
 	'django.core.context_processors.static',
 	'django.contrib.auth.context_processors.auth',
 	'django.contrib.messages.context_processors.messages',
-     'ordering.context_processors.include_external_urls',
+     'espa_web.context_processors.include_external_urls',
 )
 
 # List of callables that know how to import templates from various sources.
@@ -195,7 +195,7 @@ SERVICE_LOCATOR = {
 #leave the standard ModelBackend in first so the builtin admin account
 #never hits EE
 AUTHENTICATION_BACKENDS = ('django.contrib.auth.backends.ModelBackend', 
-                           'ordering.django_plugins.EEAuthBackend',)
+                           'espa_web.auth_backends.EEAuthBackend',)
 
 
 
@@ -207,7 +207,7 @@ LOGIN_URL = 'login'
 LOGIN_REDIRECT_URL = 'index'
 
 # This is polluting the settings.py I know, but at the moment this is the
-# best place for this since it is needed in lta.py and in urls.py
+# best place for this since it is needed in lta.py and in context_processors.py
 URL_FOR = lambda service_name: SERVICE_LOCATOR[ESPA_ENV][service_name]
 
 
