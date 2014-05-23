@@ -29,10 +29,8 @@ padding:5px 10px;
 
 {% block nav %}{% include "bulk_ordering_nav.html" %}{% endblock %}
 
-
 {% block content %}
-<form action="/list/" method="post">
-{% csrf_token %}
+
 <div id="wrapper">
 
 {% if display_system_message %}

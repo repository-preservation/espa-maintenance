@@ -8,9 +8,9 @@ from email.mime.text import MIMEText
 from smtplib import *
 from models import Scene
 from models import Order
-from models import DoesNotExist
 from models import Configuration
 from django.contrib.auth.models import User
+from django.db.models import Q
 import json
 import datetime
 import lta
@@ -64,7 +64,13 @@ def validate_email(email):
 # Runs a query against the database to list all orders for a given email
 def list_all_orders(email):
     '''lists out all orders for a given user'''
-    return Order.objects.filter(email=email).order_by('-order_date')
+    #TODO: Modify this query to remove reference to Order.email once all
+    # pre-espa-2.3.0 orders (EE Auth) are out of the system
+    o = Order.objects.filter(
+        Q(email=email) | Q(user__email=email)
+        ).order_by('-order_date')
+    #return Order.objects.filter(email=email).order_by('-order_date')
+    return o
 
 
 #  Runs a database query to return all the scenes + status for a given order
@@ -82,7 +88,7 @@ def enter_new_order(username,
                     option_string,
                     note=''):
     '''Places a new espa order in the database
-    
+
     Keyword args:
     username -- Username of user placing this order
     order_source -- Should always be 'espa'
@@ -91,21 +97,22 @@ def enter_new_order(username,
     note -- Optional user supplied note
 
     Return:
-    The fully populated Order object    
+    The fully populated Order object
     '''
-    
+
     # find the user
-    user = User.objects.get(username = username)
-    
+    user = User.objects.get(username=username)
+
     # create the order
     order = Order()
-    order.orderid = generate_order_id(email)
+    order.orderid = Order.generate_order_id(user.email)
     order.user = user
     order.note = note
     order.status = 'ordered'
     order.order_date = datetime.datetime.now()
     order.product_options = option_string
     order.order_source = order_source
+    order.order_type = 'level2_ondemand'
     order.save()
 
     # save the scenes for the order
@@ -321,7 +328,7 @@ def get_scenes_to_process():
 
         #order these scenes from Tram now
         if len(need_to_order) > 0:
-
+            #TODO -- Change this to use the OrderWrapperService
             tram_order_id = lta.LtaServices().order_scenes(need_to_order)
             #something went wrong
             if tram_order_id == -1:
@@ -475,6 +482,7 @@ def set_scene_unavailable(name, orderid, processing_loc, error, note):
     if s:
         s.status = 'unavailable'
         s.processing_location = processing_loc
+        s.completion_date = datetime.datetime.now()
         s.log_file_contents = error
         s.note = note
         s.save()
@@ -592,21 +600,21 @@ def load_ee_orders():
 
     #use this to cache calls to EE Registration Service username lookups
     local_cache = {}
-    
+
     #Capture in our db
     for eeorder, email, contactid in orders:
 
         #create the orderid based on the info from the eeorder
-        order_id = Order().generate_ee_order_id(email, eeorder)
+        order_id = Order.generate_ee_order_id(email, eeorder)
 
         # paranoia... initialize this to None since its used in the loop.
         order = None
-        
+
         #go look to see if it already exists in the db
         try:
             order = Order.objects.get(orderid=order_id)
-        except DoesNotExist:
-            
+        except Order.DoesNotExist:
+
             reg = lta.RegistrationServiceClient()
 
             # retrieve the username from the EE registration service
@@ -616,16 +624,16 @@ def load_ee_orders():
             else:
                 username = reg.get_username(contactid)
                 local_cache[contactid] = username
-            
+
             #now look the user up in our db.  Create if it doesn't exist
             # we'll want to put some caching in place here too
             try:
                 user = User.objects.get(username=username)
-                
+
                 # make sure the email we have on file is current
                 if not user.email or user.email is not email:
-                 user.email = email
-                 user.save()
+                    user.email = email
+                    user.save()
             except User.DoesNotExist:
                 # Create a new user. Note that we can set password
                 # to anything, because it won't be checked; the password
@@ -637,9 +645,8 @@ def load_ee_orders():
                 user.save()
 
                 UserProfile(contactid=contactid, user=user).save()
-                
-             
-            # We have a user now.  Now build the new Order since it 
+
+            # We have a user now.  Now build the new Order since it
             # wasn't found.
             #Didn't find it in the db... make the order now
             order = Order()
@@ -648,7 +655,7 @@ def load_ee_orders():
             order.order_type = 'level2_ondemand'
             order.status = 'ordered'
             order.note = 'EarthExplorer order id: %s' % eeorder
-            order.product_options = json.dumps(Order().get_default_ee_options)
+            order.product_options = json.dumps(Order.get_default_ee_options)
             order.ee_order_id = eeorder
             order.order_source = 'ee'
             order.order_date = datetime.datetime.now()
@@ -699,7 +706,7 @@ def load_ee_orders():
                         status code:%s" % (msg, status)
 
                         helperlogger(log_msg)
-            except DoesNotExist:
+            except Scene.DoesNotExist:
                 scene = Scene()
                 scene.name = s['sceneid']
                 scene.ee_unit_id = s['unit_num']

@@ -19,7 +19,7 @@
 {% block nav %}{% include "bulk_ordering_nav.html" %}{% endblock %}
 
 {% block content %}
-<!--<form action="/status/" method="post"> {% csrf_token %}-->
+
 <div id="wrapper">
 
 {% if display_system_message %}
@@ -35,7 +35,7 @@
     {% endif %}
     
     <label for="id_email">Email address:</label>
-    {{form.email}}
+    {{ form.email }}
     
         
     

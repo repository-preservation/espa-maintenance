@@ -10,11 +10,13 @@ from ordering.models import Configuration as Config
 from django import forms
 
 from django.contrib.syndication.views import Feed
+from django.core.urlresolvers import reverse
+from django.db.models import Q
 
 from django.http import HttpResponse
 from django.http import HttpResponseRedirect
 
-from django.shortcuts import get_list_or_404
+from django.http import Http404
 
 from django.template import loader
 from django.template import RequestContext
@@ -29,10 +31,10 @@ class AbstractView(View):
     def _get_option_style(self, request):
         '''Utility method to determine which options to display in the
         templates based on the user.
-        
+
         Keyword args:
         request -- An HTTP request object
-        
+
         Return:
         str('display:none') if the user is not admin or internal
         str('') otherwise
@@ -46,10 +48,10 @@ class AbstractView(View):
     def _display_system_message(self, ctx):
         '''Utility method to populate the context with systems messages if
         there are any configured for display
-        
+
         Keyword args:
         ctx -- A RequestContext object (dictionary)
-        
+
         Return:
         No return.  Dictionary is passed by reference.
         '''
@@ -87,9 +89,9 @@ class Index(AbstractView):
 
         Keyword args:
         request -- HTTP request object
-        
+
         Return:
-        HttpResponse        
+        HttpResponse
         '''
 
         c = self._get_request_context(request)
@@ -107,13 +109,13 @@ class NewOrder(AbstractView):
 
         Keyword args:
         request -- HTTP request object
-        
+
         Return:
-        HttpResponse           
+        HttpResponse
         '''
 
-        print("foshizzle")  
-  
+        print("foshizzle")
+
         c = self._get_request_context(request)
         c['user'] = request.user
         c['optionstyle'] = self._get_option_style(request)
@@ -124,18 +126,16 @@ class NewOrder(AbstractView):
 
     def post(self, request):
         '''Request handler for new order submission
-        
+
         Keyword args:
         request -- HTTP request object
-        
+
         Return:
         HttpResponseRedirect upon successful submission
         HttpResponse if there are errors in the submission
         '''
         #request must be a POST and must also be encoded as multipart/form-data
         #in order for the files to be uploaded
-        
-       
 
         context, errors, scene_errors = vv.validate_input_params(request)
 
@@ -169,9 +169,19 @@ class NewOrder(AbstractView):
                                          option_string,
                                          note=context['order_description']
                                          )
-            core.sendInitialEmail(order)
+            core.send_initial_email(order)
 
-            return HttpResponseRedirect('/status/%s' % request.POST['email'])
+            #TODO -- Remove this logic once all pre ESPA-2.3.0 orders are out
+            # of the system
+            if order.email:
+                email = order.email
+            else:
+                email = order.user.email
+
+            #TODO -- Fix this
+            url = reverse('list_orders', kwargs={'email': email})
+            #return HttpResponseRedirect('/status/%s' % request.POST['email'])
+            return HttpResponseRedirect(url)
 
 
 class ListOrders(AbstractView):
@@ -180,23 +190,23 @@ class ListOrders(AbstractView):
 
     def get(self, request, email=None, output_format=None):
         '''Request handler for displaying all user orders
-        
+
         Keyword args:
         request -- HTTP request object
         email -- the user's email
         output_format -- deprecated
-        
+
         Return:
-        HttpResponse           
+        HttpResponse
         '''
 
         #no email provided, ask user for an email address
         if email is None or not core.validate_email(email):
             user = User.objects.get(username=request.user.username)
-            
+
             #default the email field to the current user email
-            form = ListOrdersForm(initial={'email':user.email})
-            
+            form = ListOrdersForm(initial={'email': user.email})
+
             c = self._get_request_context(request, {'form': form})
 
             t = loader.get_template(self.initial_template)
@@ -220,14 +230,14 @@ class OrderDetails(AbstractView):
     def get(self, request, orderid, output_format=None):
         '''Request handler to get the full listing of all the scenes
         & statuses for an order
-        
+
         Keyword args:
         request -- HTTP request object
         orderid -- the order id for the order
         output_format -- deprecated
-        
+
         Return:
-        HttpResponse   
+        HttpResponse
         '''
 
         t = loader.get_template(self.template)
@@ -268,15 +278,25 @@ class StatusFeed(Feed):
 
     link = ""
 
+    def _get_email(self, obj):
+        if obj.email:
+            return obj.email
+        else:
+            return obj.user.email
+
     def get_object(self, request, email):
-        return get_list_or_404(Order, email=email)
+        orders = Order.objects.filter(Q(email=email) | Q(user__email=email))
+        if not orders:
+            raise Http404
+        else:
+            return orders
 
     def link(self, obj):
-        return "/status/%s/rss/" % obj[0].email
+        return reverse('status_feed',
+                       kwargs={'email': self._get_email(obj[0])})
 
     def description(self, obj):
-        #return "status:" % obj.status
-        return "ESPA scene status for:%s" % obj[0].email
+        return "ESPA scene status for:%s" % self._get_email(obj[0])
 
     def item_title(self, item):
         return item.name
@@ -292,7 +312,13 @@ class StatusFeed(Feed):
                % (item.status, orderid, orderdate)
 
     def items(self, obj):
-        email = obj[0].email
 
-        return Scene.objects.filter(status='complete',
-                                    order__email=email).order_by('-order__order_date')
+        #email = obj[0].email
+        email = self._get_email(obj[0])
+
+        SO = Scene.objects
+
+        r = SO.filter(Q(order__email=email) | Q(order__user__email=email))\
+              .filter(status='complete')\
+              .order_by('-order__order_date')
+        return r

@@ -257,7 +257,7 @@ def validate_product_options(request):
     P = request.POST
 
     prod_errors = list()
-    default_options = Order().get_default_options()
+    default_options = Order.get_default_options()
 
     #Collect requested products.
     for o in default_options.iterkeys():
@@ -333,8 +333,8 @@ def validate_files_and_scenes(request, context, errors, scene_errors):
 
             # Run the submitted list by LTA so they can make sure
             # the items are in the inventory
-            l = lta.LtaServices()
-            verified_scenes = l.verify_scenes(list(context['scenelist']))
+            c = lta.OrderWrapperServiceClient()
+            verified_scenes = c.verify_scenes(list(context['scenelist']))
             for sc, valid in verified_scenes.iteritems():
                 if valid == 'false':
                     scene_errors.append("%s not found in Landsat inventory"
@@ -363,7 +363,7 @@ def validate_product_selected(request, errors):
 
     ok = False
 
-    for key in Order().get_default_product_options().iterkeys():
+    for key in Order.get_default_product_options().iterkeys():
         if key in P:
             ok = True
             break

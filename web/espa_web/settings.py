@@ -19,15 +19,15 @@ BASE_DIR = os.path.dirname(os.path.dirname(__file__))
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/1.6/howto/deployment/checklist/
 
-#load up the site specific config file.  
+#load up the site specific config file.
 #If one is not specified default to the user home directory, looking for .cfgno
-ESPA_CONFIG_FILE = os.environ.get('ESPA_CONFIG_FILE', 
+ESPA_CONFIG_FILE = os.environ.get('ESPA_CONFIG_FILE',
                                   os.path.join(os.path.expanduser('~'),
                                                '.cfgnfo'))
-    
+
 #stop everything if we don't have the config file
 if not os.path.exists(ESPA_CONFIG_FILE):
-    raise Exception("Espa config file not found at %s... exiting" \
+    raise Exception("Espa config file not found at %s... exiting"
                     % ESPA_CONFIG_FILE)
 
 config = ConfigParser.SafeConfigParser()
@@ -49,7 +49,7 @@ if "ESPA_ENV" in os.environ:
         raise Exception("ESPA_ENV set to unknown value:%s... \
             must be one of 'dev', 'tst' or 'ops'... \
             cannot continue" % os.environ['ESPA_ENV'])
-            
+
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = config.get('config', 'key')
@@ -100,12 +100,12 @@ WSGI_APPLICATION = 'espa_web.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.mysql',         # Add 'postgresql_psycopg2', 'postgresql', 'mysql', 'sqlite3' or 'oracle'.
-        'NAME': config.get('config', 'db'),           # Or path to database file if using sqlite3.
-        'USER': config.get('config', 'dbuser'),       # Not used with sqlite3.
-        'PASSWORD': config.get('config', 'dbpass'),   # Not used with sqlite3.
-        'HOST': config.get('config', 'dbhost'),       # Set to empty string for localhost. Not used with sqlite3.
-        'PORT': config.get('config', 'dbport'),      # Set to empty string for default. Not used with sqlite3.
+        'ENGINE': 'django.db.backends.mysql',       # Add 'postgresql_psycopg2', 'postgresql', 'mysql', 'sqlite3' or 'oracle'.
+        'NAME': config.get('config', 'db'),         # Or path to database file if using sqlite3.
+        'USER': config.get('config', 'dbuser'),     # Not used with sqlite3.
+        'PASSWORD': config.get('config', 'dbpass'), # Not used with sqlite3.
+        'HOST': config.get('config', 'dbhost'),     # Set to empty string for localhost. Not used with sqlite3.
+        'PORT': config.get('config', 'dbport'),     # Set to empty string for default. Not used with sqlite3.
     }
 }
 
@@ -132,7 +132,7 @@ STATIC_URL = '/static/'
 # Templates
 
 TEMPLATE_DIRS = (
-    # Put strings here, like "/home/html/django_templates" 
+    # Put strings here, like "/home/html/django_templates"
     #or "C:/www/django/templates".
     # Always use forward slashes, even on Windows.
     # Don't forget to use absolute paths, not relative paths.
@@ -140,13 +140,13 @@ TEMPLATE_DIRS = (
 )
 
 TEMPLATE_CONTEXT_PROCESSORS = (
-	'django.core.context_processors.debug',
-	'django.core.context_processors.i18n',
-	'django.core.context_processors.media',
-	'django.core.context_processors.static',
-	'django.contrib.auth.context_processors.auth',
-	'django.contrib.messages.context_processors.messages',
-     'espa_web.context_processors.include_external_urls',
+    'django.core.context_processors.debug',
+    'django.core.context_processors.i18n',
+    'django.core.context_processors.media',
+    'django.core.context_processors.static',
+    'django.contrib.auth.context_processors.auth',
+    'django.contrib.messages.context_processors.messages',
+    'espa_web.context_processors.include_external_urls',
 )
 
 # List of callables that know how to import templates from various sources.
@@ -158,46 +158,45 @@ TEMPLATE_LOADERS = (
 #ESPA Service URLS
 #TODO: update machine names to cnames... get these from the EE crew
 SERVICE_LOCATOR = {
-        "dev" : {
-            "orderservice": "http://edclxs151.cr.usgs.gov/OrderWrapperServicedevsys/resources",
-            "orderdelivery": "http://edclxs151.cr.usgs.gov/OrderDeliverydevsys/OrderDeliveryService?WSDL",
-            "orderupdate": "http://edclxs151.cr.usgs.gov/OrderStatusServicedevsys/OrderStatusService?wsdl",
-            "massloader": "http://edclxs151.cr.usgs.gov/MassLoaderdevsys/MassLoader?wsdl",
-            "registration": "http://edclxs151.cr.usgs.gov/RegistrationServicedevsys/RegistrationService?wsdl",
-            "register_user": "https://eedev.cr.usgs.gov/devsys/register/",
-            "forgot_login": "https://eedev.cr.usgs.gov/devsys/login/username"            
-        },
-        "tst" : {
-            "orderservice": "http://eedevmast.cr.usgs.gov/OrderWrapperServicedevmast/resources",
-            "orderdelivery": "http://edclxs151.cr.usgs.gov/OrderDeliverydevmast/OrderDeliveryService?WSDL",
-            "orderupdate": "http://edclxs151.cr.usgs.gov/OrderStatusServicedevmast/OrderStatusService?wsdl",
-            #"massloader":"http://edclxs151.cr.usgs.gov/MassLoaderdevmast/MassLoader?wsdl",
-            #The tst env for MassLoader is wired to ops because Landsat doesn't usually
-            #fulfill test orders unless they are specifically asked to.
-            "massloader": "http://edclxs152.cr.usgs.gov/MassLoader/MassLoader?wsdl",
-            "registration": "http://edclxs151.cr.usgs.gov/RegistrationServicedevmast/RegistrationService?wsdl",
-            "register_user": "https://eedevmast.cr.usgs.gov/register",
-            "forgot_login": "https://eedevmast.cr.usgs.gov/login/username"
-        },
-        "ops" : {
-            "orderservice": "http://edclxs152.cr.usgs.gov/OrderWrapperService/resources",
-            "orderdelivery": "http://edclxs152.cr.usgs.gov/OrderDeliveryService/OrderDeliveryService?WSDL",
-            "orderupdate": "http://edclxs152/OrderStatusService/OrderStatusService?wsdl",
-            "massloader": "http://edclxs152.cr.usgs.gov/MassLoader/MassLoader?wsdl",
-            "registration": "http://edclxs152.cr.usgs.gov/RegistrationService/RegistrationService?wsdl",
-            "register_user": "https://earthexplorer.usgs.gov/register",
-            "forgot_login":"https://earthexplorer.usgs.gov/login/username"
-        }
+    "dev": {
+        "orderservice": "http://edclxs151.cr.usgs.gov/OrderWrapperServicedevsys/resources",
+        "orderdelivery": "http://edclxs151.cr.usgs.gov/OrderDeliverydevsys/OrderDeliveryService?WSDL",
+        "orderupdate": "http://edclxs151.cr.usgs.gov/OrderStatusServicedevsys/OrderStatusService?wsdl",
+        "massloader": "http://edclxs151.cr.usgs.gov/MassLoaderdevsys/MassLoader?wsdl",
+        "registration": "http://edclxs151.cr.usgs.gov/RegistrationServicedevsys/RegistrationService?wsdl",
+        "register_user": "https://eedev.cr.usgs.gov/devsys/register/",
+        "forgot_login": "https://eedev.cr.usgs.gov/devsys/login/username"
+    },
+    "tst": {
+        "orderservice": "http://eedevmast.cr.usgs.gov/OrderWrapperServicedevmast/resources",
+        "orderdelivery": "http://edclxs151.cr.usgs.gov/OrderDeliverydevmast/OrderDeliveryService?WSDL",
+        "orderupdate": "http://edclxs151.cr.usgs.gov/OrderStatusServicedevmast/OrderStatusService?wsdl",
+        #"massloader":"http://edclxs151.cr.usgs.gov/MassLoaderdevmast/MassLoader?wsdl",
+        #The tst env for MassLoader is wired to ops because Landsat
+        #doesn't usually fulfill test orders unless they are specifically
+        #asked to.
+        "massloader": "http://edclxs152.cr.usgs.gov/MassLoader/MassLoader?wsdl",
+        "registration": "http://edclxs151.cr.usgs.gov/RegistrationServicedevmast/RegistrationService?wsdl",
+        "register_user": "https://eedevmast.cr.usgs.gov/register",
+        "forgot_login": "https://eedevmast.cr.usgs.gov/login/username"
+    },
+    "ops": {
+        "orderservice": "http://edclxs152.cr.usgs.gov/OrderWrapperService/resources",
+        "orderdelivery": "http://edclxs152.cr.usgs.gov/OrderDeliveryService/OrderDeliveryService?WSDL",
+        "orderupdate": "http://edclxs152/OrderStatusService/OrderStatusService?wsdl",
+        "massloader": "http://edclxs152.cr.usgs.gov/MassLoader/MassLoader?wsdl",
+        "registration": "http://edclxs152.cr.usgs.gov/RegistrationService/RegistrationService?wsdl",
+        "register_user": "https://earthexplorer.usgs.gov/register",
+        "forgot_login": "https://earthexplorer.usgs.gov/login/username"
+    }
 }
 
 # add the EE Authentication Backend in addition to the ModelBackend
 # authentication stops at the first success... so this order does matter
 #leave the standard ModelBackend in first so the builtin admin account
 #never hits EE
-AUTHENTICATION_BACKENDS = ('django.contrib.auth.backends.ModelBackend', 
+AUTHENTICATION_BACKENDS = ('django.contrib.auth.backends.ModelBackend',
                            'espa_web.auth_backends.EEAuthBackend',)
-
-
 
 # sets the login_url to the named url action ('login') contained in urls.py
 LOGIN_URL = 'login'
@@ -209,5 +208,3 @@ LOGIN_REDIRECT_URL = 'index'
 # This is polluting the settings.py I know, but at the moment this is the
 # best place for this since it is needed in lta.py and in context_processors.py
 URL_FOR = lambda service_name: SERVICE_LOCATOR[ESPA_ENV][service_name]
-
-   

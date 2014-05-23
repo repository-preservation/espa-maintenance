@@ -1,4 +1,5 @@
 import datetime
+import re
 from django.db import models
 from django.contrib.auth.models import User
 
@@ -83,7 +84,8 @@ class Order(models.Model):
     # populated when the order is placed through EE vs ESPA
     ee_order_id = models.CharField(max_length=13, blank=True)
 
-    def get_default_product_options(self):
+    @staticmethod
+    def get_default_product_options():
         '''Factory method to return default product selection options
 
         Return:
@@ -111,7 +113,8 @@ class Order(models.Model):
 
         return o
 
-    def get_default_projection_options(self):
+    @staticmethod
+    def get_default_projection_options():
         '''Factory method to return default reprojection options
 
         Return:
@@ -134,7 +137,8 @@ class Order(models.Model):
 
         return o
 
-    def get_default_subset_options(self):
+    @staticmethod
+    def get_default_subset_options():
         '''Factory method to return default subsetting/framing options
 
         Return:
@@ -148,7 +152,8 @@ class Order(models.Model):
         o['maxy'] = None               #
         return o
 
-    def get_default_resize_options(self):
+    @staticmethod
+    def get_default_resize_options():
         '''Factory method to return default resizing options
 
         Return:
@@ -162,7 +167,8 @@ class Order(models.Model):
 
         return o
 
-    def get_default_resample_options(self):
+    @staticmethod
+    def get_default_resample_options():
         '''Factory method to returns default resampling options
 
         Return:
@@ -173,34 +179,35 @@ class Order(models.Model):
 
         return o
 
-    def get_default_options(self):
+    @classmethod
+    def get_default_options(cls):
         '''Factory method to return default espa order options
 
         Return:
         Dictionary populated with default espa ordering options
         '''
         o = {}
-        o.update(self.get_default_product_options())
-        o.update(self.get_default_projection_options())
-        o.update(self.get_default_subset_options())
-        o.update(self.get_default_resize_options())
-        o.update(self.get_default_resample_options())
-        
+        o.update(cls.get_default_product_options())
+        o.update(cls.get_default_projection_options())
+        o.update(cls.get_default_subset_options())
+        o.update(cls.get_default_resize_options())
+        o.update(cls.get_default_resample_options())
+
         return o
-        
-        
-    def get_default_ee_options(self):
+
+    @staticmethod
+    def get_default_ee_options():
         '''Factory method to return default espa order options for orders
         originating in through Earth Explorer
-        
+
         Return:
         Dictionary populated with default espa options for ee
         '''
         o = {}
-        o['include_sourcefile'] = False        
+        o['include_sourcefile'] = False
         o['include_source_metadata'] = False
-        o['include_sr_toa'] =  False
-        o['include_sr_thermal'] =  False
+        o['include_sr_toa'] = False
+        o['include_sr_thermal'] = False
         o['include_sr'] = True
         o['include_sr_browse'] = False
         o['include_sr_ndvi'] = False
@@ -214,11 +221,11 @@ class Order(models.Model):
         o['reproject'] = False
         o['resize'] = False
         o['image_extents'] = False
-        
-        return o
-    
 
-    def generate_order_id(self, email):
+        return o
+
+    @staticmethod
+    def generate_order_id(email):
         '''Generate espa order id if the order comes from the bulk ordering
         or the api'''
         d = datetime.datetime.now()
@@ -230,7 +237,8 @@ class Order(models.Model):
                                      d.minute,
                                      d.second)
 
-    def generate_ee_order_id(self, email, eeorder):
+    @staticmethod
+    def generate_ee_order_id(email, eeorder):
         '''Generate an order id if the order came from Earth Explorer
 
         Keyword args:
@@ -312,6 +320,24 @@ class Scene(models.Model):
     #Final contents of log file... should be put added when scene is marked
     #complete.
     log_file_contents = models.TextField('log_file', blank=True, null=True)
+
+    @staticmethod
+    def sceneid_is_sane(sceneid):
+        ''' validates against a properly structure L7, L5 or L4 sceneid
+
+        Keyword args:
+        sceneid The scene name to check the structure of
+
+        Returns:
+        True if the value matches a sceneid structure
+        False if the value does not match a sceneid structure
+        '''
+
+        p = re.compile('L(E7|T4|T5)\d{3}\d{3}\d{4}\d{3}\w{3}\d{2}')
+        if p.match(sceneid):
+            return True
+        else:
+            return False
 
 
 class Configuration(models.Model):

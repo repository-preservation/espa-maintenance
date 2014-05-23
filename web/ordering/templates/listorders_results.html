@@ -42,7 +42,7 @@ padding:5px 10px;
 
 
 {% block content %}
-<form action="/list/" method="post">
+
 {% csrf_token %}
 <div id="wrapper">
 
@@ -53,8 +53,8 @@ padding:5px 10px;
 
 {% if orders %}
 <h4>
-<a href="/status/{{email}}/rss/"><img border="0" alt="RSS Status Feed" title="Completed Scene RSS Feed" src="http://landsat.usgs.gov/espa/images/feed-icon-28x28.png"></img></a>
-&nbsp;&nbsp;Showing all orders for {{email}}
+<a href="{% url 'status_feed' email %}"><img border="0" alt="RSS Status Feed" title="Completed Scene RSS Feed" src="http://landsat.usgs.gov/espa/images/feed-icon-28x28.png"></img></a>
+&nbsp;&nbsp;Showing all orders for {{ email }}
 </h4>
 
 
@@ -62,9 +62,9 @@ padding:5px 10px;
 <table>
 {% for order in orders %}
     <tr>
-    <td><a href='/status/{{order.orderid}}'>{{order.orderid}}</a></td>
-    <td>{{order.get_status_display}}</td>
-    <td> {{order.note}}</td>
+    <td><a href="{% url 'generic_order_status_detail' order.orderid %}">{{ order.orderid }}</a></td>
+    <td>{{ order.get_status_display }}</td>
+    <td> {{ order.note }}</td>
     </tr> 
 {% endfor %}
 </table>
