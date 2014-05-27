@@ -1,6 +1,7 @@
 from django.http import HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 from ordering.helper import *
+from ordering.models import Order
 
 __author__ = "David V. Hill"
 __api__version__ = "0.1.0"
@@ -127,7 +128,7 @@ def view_orders(email):
                         status=404)
         return HttpResponse(content=js)
 
-    orders = core.list_all_orders(email)
+    orders = Order.list_all_orders(email)
     if orders is None:
         js = json.dumps({'msg': "No orders found for %s" % email}, status=404)
         return HttpResponse(content=js)

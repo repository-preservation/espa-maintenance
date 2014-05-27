@@ -10,7 +10,6 @@ from models import Scene
 from models import Order
 from models import Configuration
 from django.contrib.auth.models import User
-from django.db.models import Q
 import json
 import datetime
 import lta
@@ -59,72 +58,6 @@ def validate_email(email):
     '''
     pattern = '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,4}$'
     return re.match(pattern, email.strip())
-
-
-# Runs a query against the database to list all orders for a given email
-def list_all_orders(email):
-    '''lists out all orders for a given user'''
-    #TODO: Modify this query to remove reference to Order.email once all
-    # pre-espa-2.3.0 orders (EE Auth) are out of the system
-    o = Order.objects.filter(
-        Q(email=email) | Q(user__email=email)
-        ).order_by('-order_date')
-    #return Order.objects.filter(email=email).order_by('-order_date')
-    return o
-
-
-#  Runs a database query to return all the scenes + status for a given order
-def get_order_details(orderid):
-    '''Returns the full order and all attached scenes'''
-    order = Order.objects.get(orderid=orderid)
-    scenes = Scene.objects.filter(order__orderid=orderid)
-    return order, scenes
-
-
-# Captures a new order and gets it into the database
-def enter_new_order(username,
-                    order_source,
-                    scene_list,
-                    option_string,
-                    note=''):
-    '''Places a new espa order in the database
-
-    Keyword args:
-    username -- Username of user placing this order
-    order_source -- Should always be 'espa'
-    scene_list -- A list containing scene ids
-    option_string -- Dictionary of options for the order
-    note -- Optional user supplied note
-
-    Return:
-    The fully populated Order object
-    '''
-
-    # find the user
-    user = User.objects.get(username=username)
-
-    # create the order
-    order = Order()
-    order.orderid = Order.generate_order_id(user.email)
-    order.user = user
-    order.note = note
-    order.status = 'ordered'
-    order.order_date = datetime.datetime.now()
-    order.product_options = option_string
-    order.order_source = order_source
-    order.order_type = 'level2_ondemand'
-    order.save()
-
-    # save the scenes for the order
-    for s in set(scene_list):
-        scene = Scene()
-        scene.name = s
-        scene.order = order
-        scene.order_date = datetime.datetime.now()
-        scene.status = 'submitted'
-        scene.save()
-
-    return order
 
 
 def send_email(recipient, subject, body):
@@ -206,7 +139,7 @@ Your scenes
     #s.quit()
 
 
-def getSceneInputPath(sceneid):
+def get_scene_input_path(sceneid):
     '''Returns the location on the online cache where a scene
     does/should reside
 
@@ -489,8 +422,9 @@ def set_scene_unavailable(name, orderid, processing_loc, error, note):
 
         if o.order_source == 'ee':
             #update ee
-            ltasvc = lta.LtaServices()
-            ltasvc.update_order(o.ee_order_id, s.ee_unit_id, 'R')
+            client = lta.OrderUpdateServiceClient()
+            
+            client.update_order(o.ee_order_id, s.ee_unit_id, 'R')
 
         #if there are no more inprocess scenes,
         #mark the order complete and send email
@@ -544,8 +478,8 @@ def mark_scene_complete(name,
 
         if o.order_source == 'ee':
             #update ee
-            ltasvc = lta.LtaServices()
-            ltasvc.update_order(o.ee_order_id, s.ee_unit_id, 'C')
+            client = lta.OrderUpdateServiceClient()
+            client.update_order(o.ee_order_id, s.ee_unit_id, 'C')
 
         update_order_if_complete(o.orderid, s)
 
@@ -592,11 +526,16 @@ def load_ee_orders():
     ''' Loads all the available orders from lta into
     our database and updates their status
     '''
-    ltasvc = lta.LtaServices()
+    
+    order_delivery = lta.OrderDeliveryServiceClient()
+    
+    registration = lta.RegistrationServiceClient()
+    
+    order_update = lta.OrderUpdateServiceClient()
 
     #This returns a dict that contains a list of dicts{}
-    #key:(order_num,email) = list({sceneid:, unit_num:})
-    orders = ltasvc.get_available_orders()
+    #key:(order_num, email, contactid) = list({sceneid:, unit_num:})
+    orders = order_delivery.get_available_orders()
 
     #use this to cache calls to EE Registration Service username lookups
     local_cache = {}
@@ -615,14 +554,12 @@ def load_ee_orders():
             order = Order.objects.get(orderid=order_id)
         except Order.DoesNotExist:
 
-            reg = lta.RegistrationServiceClient()
-
             # retrieve the username from the EE registration service
             # cache this call
             if contactid in local_cache:
                 username = local_cache[contactid]
             else:
-                username = reg.get_username(contactid)
+                username = registration.get_username(contactid)
                 local_cache[contactid] = username
 
             #now look the user up in our db.  Create if it doesn't exist
@@ -648,7 +585,6 @@ def load_ee_orders():
 
             # We have a user now.  Now build the new Order since it
             # wasn't found.
-            #Didn't find it in the db... make the order now
             order = Order()
             order.orderid = order_id
             order.user = user
@@ -661,7 +597,7 @@ def load_ee_orders():
             order.order_date = datetime.datetime.now()
             order.save()
 
-        for s in orders[eeorder, email]:
+        for s in orders[eeorder, email, contactid]:
             #go look for the scene by ee_unit_id.  This will stop
             #duplicate key update collisions
 
@@ -671,8 +607,8 @@ def load_ee_orders():
                                           ee_unit_id=s['unit_num'])
 
                 if scene.status == 'complete':
-
-                    success, msg, status = ltasvc.update_order(eeorder,
+                    
+                    success, msg, status = order_update.update_order(eeorder,
                                                                s['unit_num'],
                                                                "C")
                     if not success:
@@ -688,8 +624,9 @@ def load_ee_orders():
                         status code:%s" % (msg, status)
 
                         helperlogger(log_msg)
+                        
                 elif scene.status == 'unavailable':
-                    success, msg, status = ltasvc.update_order(eeorder,
+                    success, msg, status = order_update.update_order(eeorder,
                                                                s['unit_num'],
                                                                "R")
 
@@ -715,8 +652,8 @@ def load_ee_orders():
                 scene.status = 'submitted'
                 scene.save()
 
-            #Update LTA
-            success, msg, status = ltasvc.update_order(eeorder,
+            # Update LTA
+            success, msg, status = order_update.update_order(eeorder,
                                                        s['unit_num'],
                                                        "I")
             if not success:

@@ -31,7 +31,7 @@ def rpc_handler(request):
         d.register_function(_get_configuration, 'getConfiguration')
         d.register_function(_get_scenes_to_process, 'getScenesToProcess')
         d.register_function(_get_scenes_to_purge, 'getScenesToPurge')
-        d.register_function(_get_scene_input_path, 'getSceneInputPath')
+        d.register_function(_get_scene_input_path, 'get_scene_input_path')
 
         response = HttpResponse(mimetype="application/xml")
         response.write(dispatcher._marshaled_dispatch(request.raw_post_data))

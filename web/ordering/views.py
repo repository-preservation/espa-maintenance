@@ -163,7 +163,7 @@ class NewOrder(AbstractView):
 
             option_string = json.dumps(option_ctx)
 
-            order = core.enter_new_order(request.user.username,
+            order = Order.enter_new_order(request.user.username,
                                          'espa',
                                          context['scenelist'],
                                          option_string,
@@ -214,7 +214,7 @@ class ListOrders(AbstractView):
             return HttpResponse(t.render(c))
         else:
             #if we got here display the orders
-            orders = core.list_all_orders(email)
+            orders = Order.list_all_orders(email)
 
             t = loader.get_template(self.results_template)
 
@@ -244,7 +244,7 @@ class OrderDetails(AbstractView):
 
         c = self._get_request_context(request)
 
-        c['order'], c['scenes'] = core.get_order_details(orderid)
+        c['order'], c['scenes'] = Order.get_order_details(orderid)
 
         return HttpResponse(t.render(c))
 
