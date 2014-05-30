@@ -243,10 +243,12 @@ class OrderDetails(AbstractView):
         t = loader.get_template(self.template)
 
         c = self._get_request_context(request)
-
-        c['order'], c['scenes'] = Order.get_order_details(orderid)
-
-        return HttpResponse(t.render(c))
+        try:
+            c['order'], c['scenes'] = Order.get_order_details(orderid)
+            return HttpResponse(t.render(c))
+        except Order.DoesNotExist:
+            raise Http404
+        
 
 
 class LogOut(AbstractView):

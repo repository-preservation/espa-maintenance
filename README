@@ -1,93 +1,82 @@
 Author: David V. Hill, Information Dynamics
 License: NASA Open Source Agreement 1.3
 USGS Designation: EROS Science Processing Architecture (ESPA)
-
- System Overview
-	The ESPA system is comprised of several types of nodes.  
-
-	There is a user interface node, which must house a working Apache HTTPD server 
-	with either mod_python or mod_wsgi installed, and must also have Django 1.3 installed.
-
-	The database node must have a working copy of MySQL 5.x with a user defined 'espa'.
-
-	The Hadoop Namenode and Hadoop TaskTracker nodes must have Apache Hadoop installed, naturally.
-
-	Processing nodes must have Apache Hadoop installed as well as any science processing software,
-	such as LEDAPS.
-
-	The overall system flow is as follows.   
-	A user request is submitted through the user interface whereby the request details 
-	(requested scenes plus email address) are persisted to the database.  Prior to storing the requested
-        scenes the bulk scene list is verified for basic sanity and cross referenced against the Long Term Archive's
-        Inventory for Landsat scenes.  Users are notified via the user interface if there are invalid scene 
-        identifiers in their order.
-	
-	Scenes newly stored in the database are marked with a status of "submitted".  A timed cron job interacts
-        with the UI's xmlrpc service to then request all 'submitted' scenes be checked to see their current
-        disposition: 1 - Not available and needing to be ordered (onorder) 2 - Available on cache and ready to 
-        be processed (oncache) or 3 - Unable to process the scene due to it being a TMA instead of TM scene (unavailable).
-        Scenes may also be marked unavailable if an unrecoverable error is encountered during processing, such as 
-        nighttime scenes being requested or missing auxillary data as examples.
-
-        Once this method completes, it returns to the cronjob via xmlrpc all the scenes that made it into oncache 
-        status.  The cron job creates the Hadoop input file, stores the file in HDFS, updates the scenes' status 
-        to 'queued', and finally starts the Hadoop job.
-
-        Hadoop handles distributing individual requests to available cpu's at this point.  As a request is 
-        pushed to a cpu, the individual job will update the scene status to "processing".  All requested
-        processing is applied to the scene and the resulting output product is stored on the LSRD Online 
-        Cache, which is a Lustre based system that augments the Landsat Online Cache.
-
-        Hadoop handles cleaning up all processing node resources nomatter if the scene processed correctly or 
-        not.  Thus as a part of the overall ESPA job, the processing chain will also store the processing log
-        file to the database via xmlrpc ONLY in the event of a failure of some sort.  In this regard, no log 
-        entry is a good log entry.
-
-        The final step in processing is a completion email is sent out to the user once their order has been
-        completed in totality. 
-
-Dependencies (All nodes)
-	64 bit Linux
-	Python 2.7
-	Java JDK 1.6
-	Apache Hadoop (HDFS + MapReduce)
-	Python Libraries:
-	suds 0.4 (for soap)
-	gsconfig.py (available from https://github.com/dwins/gsconfig.py)
-        gdal 1.9
-        dans-gdal-scripts (available from http://www.gina.alaska.edu/projects/gina-tools/)
-	
-
-Dependencies (NameNode and TaskTracker)
-	Apache 2.x Web Server
-	MySQL 5.x Database
-	Django 1.3
-	mod_python or mod_wsgi
-
-Dependencies (Processing Nodes)
-	LEDAPS executables
-		Must be located at /usr/local/bin/ledaps (will be installed here by default)
-	LEDAPS ancillary data
-		Must be located by system environment variable ANC_PATH 
-		(Will be installed to /usr/local/var/ledaps/anc by default)
 		
 Change Notes
-Version 2.3.0 
+Version 2.3.0 (May 30, 2014)
+
+        *Note -- All changes for this release are for the web tier only.  No modifications were made 
+                 to the back end processing code.
+
+        -----------------
+        major features
+        -----------------
         Added ability to authenticate users against EarthExplorer
             - reorganized lta.py, added service clients for RegistrationService
+
+        L1T order submission changed from LTA Massloader to LTA OrderWrapperService
+
+        Added temporary logic to search for user email addresses in both the Django auth User
+        table and the Order email field to support migration of EE auth.
+            - Order.email field will be removed with the next release.
+
+        -----------------
+        platform
+        -----------------
+        Upgraded to Django 1.6
+
+        -----------------
+        project structure
+        -----------------
+        Upgraded project structure to be Django 1.6 compliant
+
         Reorganized the orderservice directory
             - now called 'web'
             - moved contents of 'htdocs' into 'web/static'
             - populated 'web/static' with Django admin static content, eliminating need for softlinks
                 - regenerate these with ./manage.py collectstatic
+
+        -----------------
+        settings.py
+        -----------------
         Modified settings.py to include the static files app and set STATIC_ROOT, STATIC_URL
+        Added LOGIN_URL, LOGIN_REDIRECT_URL
+        Added URL_FOR() lambda function as service locator function
+            - was previously implemented in lta.py, multiple modules now need this and its a critical dependency 
+        Added ESPA_DEBUG flag to settings.py
+            - looks for ESPA_DEBUG = TRUE in environment variables, enables DEBUG and TEMPLATE_DEBUG
+
+        Moved all configuration items to settings.py
+            - configurable items can be set in espa-uwsgi.ini or as environment variables
+            - private key & database credentials must be provided on the local filesystem in ~/.cfgno
+
+        -----------------
+        espa-uwsgi.ini
+        -----------------
         Removed the /media mapping in espa-uwsgi.ini as it is no longer necessary (merged into /static mapping)
-        Pulled out all common configuration items from settings.py and made them environment variables
-            - can be set in espa-uwsgi.ini or in shell environment
-        Removed all hard coded paths from django.wsgi
+
+        -----------------
+        Misc
+        -----------------
+
+        django.wsgi removed in favor of django generated wsgi.py
+
         Deleted scene_cache.py from the espa/ codebase
-        Moved the scene cache replacement from trunk/prototype/new_scene_cache to trunk/scenecache.
-        
+            - Moved the scene cache replacement from trunk/prototype/new_scene_cache to trunk/scenecache.
+
+        Moved all Order & Scene related operations to the models.Order and models.Scene classes as either class or static methods
+
+        Removed all partially hardcoded urls from template and view code, replaced with named urls, {% url %}, {% static %} and reverse() tags
+
+        Moved all cross-application functionality into espa_web
+
+        Added espa_web/context_processors.py to include needed variables in templates
+            - must include in settings.py TEMPLATE_CONTEXT_PROCESSORS
+
+        Added espa_web/auth_backends.py for EE authentication 
+            - Django auth system plugin
+            - must include in settings.py AUTHENTICATION_BACKENDS
+
            
 Version 2.2.5 (March 11, 2014)
         Made change to support variable cloud pixel threshold for calls

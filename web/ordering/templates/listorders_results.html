@@ -30,9 +30,15 @@ div.boxbody table {
 }
 
 div.boxbody table td {
-
 padding:5px 10px;
+}
 
+tr {
+    line-height:1.4em;
+}
+
+tr.evenrow {
+    background-color:#EFEFEF;
 }
 
 
@@ -61,7 +67,7 @@ padding:5px 10px;
 <div class='boxbody' >
 <table>
 {% for order in orders %}
-    <tr>
+    <tr class="{% cycle 'oddrow' 'evenrow' %}">
     <td><a href="{% url 'generic_order_status_detail' order.orderid %}">{{ order.orderid }}</a></td>
     <td>{{ order.get_status_display }}</td>
     <td> {{ order.note }}</td>
