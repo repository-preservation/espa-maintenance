@@ -343,6 +343,28 @@ def get_scenes_to_process():
                                         name__in=resp_dict['available'])\
                                         .update(status='oncache')
     # This completes handling all the scenes that were in submitted status
+    # TODO -- Create new method handle_submitted_scenes() or something to that 
+    # effect.  get_scenes_to_process down to this comment should be included 
+    # in it.
+      
+    # The rest of this method down should actually be 'get_scenes_to_process()'
+      
+    # TODO -- renamed this module 'actions.py'
+    # TODO -- OO'ize the order handling into OrderHandler()
+    # TODO -- Encapsulate all models.py classes here... don't let them flow
+    # TODO --     up into the callers of this module.
+    # TODO -- OrderHandler().get_scenes_to_process()
+    # TODO -- OrderHandler().determine_disposition()
+    # TODO -- OrderHandler().cancel(Order())
+    # TODO -- OrderHandler().cancel(Order(), Scene())
+    # TODO -- OrderHandler().cleanup(Order())
+    # TODO -- OrderHandler().status(Order())
+    # TODO -- OrderHandler().status(Order(), Scene())
+      
+    # TODO -- Build HadoopHandler() as well.
+    # TODO -- HadoopHandler().cluster_status()
+    # TODO -- HadoopHandler().cancel_job(jobid)
+    
     
     # Now going to go through and check for scenes that were in onorder status
     # and then go ahead and build the actual response for this method
