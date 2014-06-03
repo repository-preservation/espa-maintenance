@@ -219,13 +219,20 @@ class OrderWrapperServiceClient(LTAService):
         if code == 200:
             response = h.read()
         else:
-            #Return the code and reason as an exception.  TODO: fix this.
-            print code
-
+            msg = StringIO()
+            msg.write("Error in lta.OrderWrapperServiceClient.verify_scenes\n")
+            msg.write("Non 200 response code from service\n")
+            msg.write("Response code was:%s" % code)
+            # Return the code and reason as an exception
+            raise Exception(msg.getvalue())            
+            
         h.close()
 
         #parse, transform and return response
         retval = dict()
+        response = response.replace('&', '&amp;')
+        response = response.replace('\n', '')
+        
         root = xml.fromstring(response)
         scenes = root.getchildren()
 
@@ -238,9 +245,6 @@ class OrderWrapperServiceClient(LTAService):
 
         return retval
 
-    ########################################################
-    #TODO: Use this once the order wrapper gets fixed by EE
-    ########################################################
     def order_scenes(self, scene_list, contact_id, priority=5):
         ''' Orders scenes through OrderWrapperService
 
@@ -252,7 +256,32 @@ class OrderWrapperServiceClient(LTAService):
                    orders.
 
         Returns:
-        ?
+        A dictionary containing the lta_order_id and up to three lists of scene
+        ids, organized by their status.  If there are no scenes in the 
+        ordered status, the ordered list and the lta_order_id will not be 
+        present.  If there are no scenes in either the invalid or available
+        status, then those respective lists will not be present.
+        
+        Example 1 (Scenes in each status):
+        {
+            'lta_order_id': 'abc123456',
+            'ordered': ['scene1', 'scene2', 'scene3'],
+            'invalid': ['scene4', 'scene5', 'scene6'],
+            'available': ['scene7', 'scene8', 'scene9']
+         }
+         
+        Example 2 (No scenes ordered):
+        {
+            'invalid': ['scene1', 'scene2', 'scene3'],
+            'available': ['scene4', 'scene5', 'scene6']
+        }
+
+        Example 3 (No scenes available):
+        {
+            'lta_order_id': 'abc123456',
+            'ordered': ['scene1', 'scene2', 'scene3'],
+            'invalid': ['scene4', 'scene5', 'scene6']
+        }
         '''
 
         # build service url
@@ -283,10 +312,11 @@ class OrderWrapperServiceClient(LTAService):
         sb.write("</orderParameters>")
 
         request_body = sb.getvalue()
-
-        print("Request body")
-        print (request_body)
-        print("")
+        
+        if settings.DEBUG:
+            print("Request body")
+            print (request_body)
+            print("")
 
         # set the required headers
         headers = dict()
@@ -301,9 +331,13 @@ class OrderWrapperServiceClient(LTAService):
         if h.getcode() == 200:
             response = h.read()
         else:
-            #need to raise Exception here
-            print("Error ordering scenes from the orderwrapper, code was:%s"
-                  % h.getcode())
+            msg = StringIO()
+            msg.write("Error in lta.OrderWrapperServiceClient.order_scenes\n")
+            msg.write("Non 200 response code from service\n")
+            msg.write("Response code was:%s" % h.getcode())
+            # Return the code and reason as an exception
+            raise Exception(msg.getvalue())            
+            
         h.close()
 
         # parse the response
@@ -339,9 +373,63 @@ class OrderWrapperServiceClient(LTAService):
 
         </orderStatus>
         '''
+    
+        if settings.DEBUG:
+            print(response)
+        
+        # since the xml is namespaced there is a namespace prefix for every
+        # element we are looking for.  Build those values to make the code 
+        # a little more sane
+        response_namespace = 'http://earthexplorer.usgs.gov/schema/orderStatus'
+        ns_prefix = ''.join(['{', response_namespace, '}'])
+        status_elem = ''.join([ns_prefix, 'status'])
+        sceneid_elem = ''.join([ns_prefix, 'sceneId'])
+        order_number_elem = ''.join([ns_prefix, 'orderNumber'])
+        # leave this here for now.  We aren't using it yet but will when EE
+        # straightens out their urls + internal dowloading capability        
+        #dload_url_elem = ''.join([ns_prefix, 'downloadURL'])
+        
+        # escape the ampersands and get rid of newlines if they exist
+        # was having problems with the sax escape() function
+        response = response.replace('&', '&amp;').replace('\n', '')
 
-        print response
-
+        #this will get us the list of <scene></scene> elements
+        scene_elements = xml.fromstring(response).getchildren()
+        
+        # the dictionary we will return as the response
+        # contains the lta_order_id at the top (if anything is ordered)
+        # and possibly three lists of scenes, one for each status
+        # retval['available'] = list()
+        # retval['invalid'] = list()
+        # retval['ordered'] = list()
+        retval = dict()
+                    
+        for scene in scene_elements:
+            
+            name = scene.find(sceneid_elem).text           
+            status = scene.find(status_elem).text
+            
+            if status == 'available':
+                if not 'available' in retval:
+                    retval['available'] = [name]
+                else:
+                    retval['available'].append(name)
+            elif status == 'invalid':
+                if not 'invalid' in retval:
+                    retval['invalid'] = [name]
+                else:
+                    retval['invalid'].append(name)
+            elif status == 'ordered':
+                if not 'ordered' in retval:
+                    retval['ordered'] = [name]
+                else:
+                    retval['ordered'].append(name)
+                    
+                if not 'lta_order_id' in retval:
+                    retval['lta_order_id'] = scene.find(order_number_elem).text
+                                            
+        return retval
+        
 
 class OrderUpdateServiceClient(LTAService):
 
