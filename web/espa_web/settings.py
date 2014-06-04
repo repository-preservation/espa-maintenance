@@ -30,7 +30,7 @@ if not os.path.exists(ESPA_CONFIG_FILE):
     raise Exception("Espa config file not found at %s... exiting"
                     % ESPA_CONFIG_FILE)
 
-config = ConfigParser.SafeConfigParser()
+config = ConfigParser.RawConfigParser()
 with open(ESPA_CONFIG_FILE) as file_handle:
     config.readfp(file_handle)
 
