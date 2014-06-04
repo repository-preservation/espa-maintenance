@@ -78,7 +78,7 @@ def send_initial_email(order):
 
     status_base_url = Configuration().getValue('espa.status.url')
 
-    status_url = ('%s/%s') % (status_base_url, order.email)
+    status_url = ('%s/%s') % (status_base_url, order.user.email)
 
     header = ("""Thank you for your order ( %s ).  Your order has been received and is currently being processed.
 
