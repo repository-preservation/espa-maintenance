@@ -44,7 +44,7 @@ def build_argument_parser():
 
 
 # ============================================================================
-def process_test_order(order_file, env_vars):
+def process_test_order(order_file, env_vars, do_debug):
     '''
     Description:
       Process the test order file.
@@ -97,8 +97,12 @@ def process_test_order(order_file, env_vars):
         print error_msg
         return False
 
-    cmd = "cd ..; cat test-orders/%s | ./cdr_ecv_mapper.py 2>&1" \
-          " | tee test-orders/%s.log" % (tmp_order, order_file)
+    keep_log = ''
+    if do_debug:
+        keep_log = '--keep-log'
+
+    cmd = "cd ..; cat test-orders/%s | ./cdr_ecv_mapper.py %s 2>&1" \
+          " | tee test-orders/%s.log" % (tmp_order, keep_log, order_file)
 
     output = ''
     proc = None
@@ -177,7 +181,7 @@ if __name__ == '__main__':
         print "Order file (%s) does not exist" % args.order_file
         sys.exit(1)
 
-    if not process_test_order(args.order_file, env_vars):
+    if not process_test_order(args.order_file, env_vars, args.debug):
         print "Order file (%s) failed to process" % args.order_file
         sys.exit(1)
 

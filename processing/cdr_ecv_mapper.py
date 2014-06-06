@@ -16,6 +16,7 @@ import sys
 import socket
 import json
 import traceback
+from argparse import ArgumentParser
 
 # espa-common objects and methods
 from espa_constants import *
@@ -38,6 +39,12 @@ if __name__ == '__main__':
       performed on the JSON dictionary to test if valid for this mapper.
       After validation the generation of cdr_ecv products is performed.
     '''
+
+    # Grab our only command lin parameter
+    parser = ArgumentParser(description="Processes a list of scenes from stdin")
+    parser.add_argument('--keep-log', action='store_true', dest='keep_log',
+                        default=False, help="keep the generated log file")
+    args = parser.parse_args()
 
     processing_location = socket.gethostname()
 
@@ -127,7 +134,7 @@ if __name__ == '__main__':
 
             # Cleanup the log file
             close_log_handler()
-            if os.path.exists(log_filename):
+            if not args.keep_log and os.path.exists(log_filename):
                 os.unlink(log_filename)
 
         except ee.ESPAException, e:
@@ -139,11 +146,9 @@ if __name__ == '__main__':
                 close_log_handler()
 
                 # Grab the log file information
-                if log_filename is not None:
-                    if os.path.exists(log_filename):
-                        log_fd = open(log_filename, "r")
+                if log_filename is not None and os.path.exists(log_filename):
+                    with open(log_filename, "r") as log_fd:
                         log_data = log_fd.read()
-                        log_fd.close()
 
             # Add the exception text
             log_data += '\n' + str(e)
@@ -241,11 +246,9 @@ if __name__ == '__main__':
 
                 log_data = ''
                 # Grab the log file information
-                if log_filename is not None:
-                    if os.path.exists(log_filename):
-                        log_fd = open(log_filename, "r")
+                if log_filename is not None and os.path.exists(log_filename):
+                    with open(log_filename, "r") as log_fd:
                         log_data = log_fd.read()
-                        log_fd.close()
 
                 # Add the exception text
                 log_data += '\n' + str(e)
