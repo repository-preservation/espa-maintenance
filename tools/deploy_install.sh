@@ -232,15 +232,18 @@ function deploy_tier
                ${SSHBIN} -t ${server} "sed -i -r -e \"s~/home/[a-zA-Z]+/~/home/${DEPLOYUSER}/~g\" ${SVN_WORKING_DIR}/${APP_FILE}"
 
                # Uncomment ESPA_ENV and set proper environment
-               ${SSHBIN} -t ${server} "sed -i -r -e \"s~^\#*\(env = ESPA_ENV=\).*~env = ESPA_ENV=${MODE}~\" ${SVN_WORKING_DIR}/${APP_FILE}"
+               ${SSHBIN} -t ${server} "sed -i -r -e \"s~^\#*env = ESPA_ENV=.*~env = ESPA_ENV=${MODE}~\" ${SVN_WORKING_DIR}/${APP_FILE}"
 
                # Uncomment ESPA_CONFIG_FILE
-               ${SSHBIN} -t ${server} "sed -i -r -e \"s~^\#*\(env = ESPA_CONFIG_FILE=.*\)~env = ESPA_CONFIG_FILE=/home/${DEPLOYUSER}/.cfgnfo~\" ${SVN_WORKING_DIR}/${APP_FILE}"
+               ${SSHBIN} -t ${server} "sed -i -r -e \"s~^\#*env = ESPA_CONFIG_FILE=.*~env = ESPA_CONFIG_FILE=/home/${DEPLOYUSER}/.cfgnfo~\" ${SVN_WORKING_DIR}/${APP_FILE}"
 
                # Update uid/gid to run as deploy user
                ${SSHBIN} -t ${server} "sed -i -r -e \"s~^gid = .*~gid = ${DEPLOYUSER}~g\" ${SVN_WORKING_DIR}/${APP_FILE}"
                ${SSHBIN} -t ${server} "sed -i -r -e \"s~^uid = .*~uid = ${DEPLOYUSER}~g\" ${SVN_WORKING_DIR}/${APP_FILE}"
-               
+              
+               # Logfile locatoins permissions
+               ${SSHBIN} -t ${server} "chmod 777 ${SVN_WORKING_DIR}/web/espa_web/logs"
+ 
                # Deploy uwsgi .ini
                ${SSHBIN} -t ${server} "\rm -rf /opt/cots/uwsgi/apps/$(basename ${APP_FILE}); ln -s ${SVN_WORKING_DIR}/${APP_FILE} /opt/cots/uwsgi/apps/; touch ${SVN_WORKING_DIR}/${APP_FILE}"
             fi
