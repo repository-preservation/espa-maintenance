@@ -108,8 +108,8 @@ def process_test_order(order_file, env_vars):
                                 stdout=subprocess.PIPE,
                                 stderr=subprocess.STDOUT, shell=True)
         output = proc.communicate()[0]
-
-        print output
+        if len(output) > 0:
+            print output
 
         if proc.returncode < 0:
             print "Application terminated by signal [%s]" % cmd
