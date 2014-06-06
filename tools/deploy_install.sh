@@ -28,6 +28,7 @@
 #							Removing --remotehost flag
 #  006		05-08-2014	Adam Dosch		Adding more deployment logic for uwsgi
 #							Adding CHECKOUT_TYPE to do checkout vs export in SVN for MODE
+#  007		06-06-2014	Adam Dosch		Adding set_user and finishing deployment logic
 #
 #############################################################################################################################
 
@@ -59,7 +60,9 @@ declare TIERS="app maintenance processing"
 
 declare MODE
 
-declare MODES="qa devel prod"
+declare DEPLOYUSER
+
+declare MODES="tst devel prod"
 
 declare VERBOSE=1
 
@@ -68,7 +71,7 @@ declare DELETE_PRIOR_RELEASES=1
 function print_usage
 {
    echo
-   echo " Usage: $0 --mode=[prod|devel] --tier=[app|maintenance|processing|all]  --release=<espa-n.n.n-release> [-v|--verbose] [-d|--delete-prior-releases]"
+   echo " Usage: $0 --mode=[prod|tst|devel] --tier=[app|maintenance|processing|all]  --release=<espa-n.n.n-release> [-v|--verbose] [-d|--delete-prior-releases]"
    echo
 
    exit 1
@@ -130,7 +133,7 @@ function set_checkout
      "prod")
         CHECKOUT_TYPE="export"
         ;;
-     "devel")
+     "tst")
         CHECKOUT_TYPE="co"
         ;;
      *)
@@ -139,8 +142,25 @@ function set_checkout
    esac
 }
 
+function set_user
+{
+   # $1 -> mode
+   case $1 in
+     "prod")
+        DEPLOYUSER="espa"
+        ;;
+     "tst")
+        DEPLOYUSER="espadev"
+        ;;
+     *)
+        DEPLOYUSER="espadev"
+        ;;
+   esac
+}
+
 function deploy_tier
 {
+
    #$1 - tier
    #$2 - mode
 
@@ -148,13 +168,13 @@ function deploy_tier
 
    declare -A tierhosts
 
-   tierhosts[test-app]="l8srlscp16"
-   tierhosts[test-maintenance]="l8srlscp16"
-   tierhosts[test-processing]="l8srlscp16"
+   tierhosts[tst-app]="l8srlscp13"
+   tierhosts[tst-maintenance]="l8srlscp01"
+   tierhosts[tst-processing]="l8srlscp08"
 
-   tierhosts[devel-app]="l8srlscp13"
-   tierhosts[devel-maintenance]="l8srlscp01"
-   tierhosts[devel-processing]="l8srlscp08"
+   tierhosts[devel-app]="l8srlscp16"
+   tierhosts[devel-maintenance]="l8srlscp16"
+   tierhosts[devel-processing]="l8srlscp16"
    
    tierhosts[prod-app]="l8srlscp14"
    tierhosts[prod-maintenance]="l8srlscp01"
@@ -165,14 +185,13 @@ function deploy_tier
    else
       tiers=$1
    fi
- 
+
    for tier in $tiers
    do
       lookup="${mode}-${tier}"
+
       for server in ${tierhosts[${lookup}]}
       do
-         echo $server $tier
-
          [[ $VERBOSE -eq 0 ]] && write_stdout "$MODE" "Starting deployment for: $server"
    
          # Is host up? (Crude input santization might be needed? This should catch malformed FQDN or invalid hosts)
@@ -181,29 +200,55 @@ function deploy_tier
          ${PINGBIN} -q -c2 ${server} &> /dev/null
 
          if [ $? -eq 0 ]; then
-            [[ $VERBOSE -eq 0 ]] && echo "alive, continuing."
+            [[ $VERBOSE -eq 0 ]] && write_stdout "${MODE}" "Server alive, continuing."
    
             # If we've chosen to remove releases, let's do that first, since we auto-backup prior to release below in the deployment
-            [[ $DELETE_PRIOR_RELEASES -eq 0 ]] && echo "Removing all prior code deployments matching: ${SVN_WORKING_DIR}.deploy-*" && ${SSHBIN} -t ${server} "rm -rf ${SVN_WORKING_DIR}.deploy-*" &> /dev/null
+            [[ $DELETE_PRIOR_RELEASES -eq 0 ]] && write_stdout "$MODE" "Removing all prior code deployments matching: ${SVN_WORKING_DIR}.deploy-*" && ${SSHBIN} -t ${server} "rm -rf ${SVN_WORKING_DIR}.deploy-*" &> /dev/null
    
             # Do code deployment on server with SSH
             [[ $VERBOSE -eq 0 ]] && write_stdout "$MODE" "Deploying ESPA release $RELEASE to $SVN_WORKING_DIR on $server"
+
+            # Create espa-site dir if it doesn't exist
+            ${SSHBIN} -t ${server} "mkdir -p ~/espa-site"
  
-            if [ "$tier" == "app" -o "$tier" == "maintenance" ]; then
+            if [ "$tier" == "app" ]; then
+               write_stdout "$MODE" "Performing 'app' tier deployment commands"
                ${SSHBIN} -t ${server} "mv $SVN_WORKING_DIR ${SVN_WORKING_DIR}.deploy-${STAMP}; mkdir -p $SVN_WORKING_DIR; cd $SVN_WORKING_DIR; svn ${CHECKOUT_TYPE} ${SVN_HOST}${SVN_BASE}/tags/${RELEASE} .; find $SVN_WORKING_DIR -type f -name \"*.pyc\" -exec rm -rf '{}' \;" &> /dev/null
             elif [ "$tier" == "maintenance" ]; then
+               write_stdout "$MODE" "Performing 'maintenance' tier deployment commands"
+               ${SSHBIN} -t ${server} "mv $SVN_WORKING_DIR ${SVN_WORKING_DIR}.deploy-${STAMP}; mkdir -p $SVN_WORKING_DIR; cd $SVN_WORKING_DIR; svn ${CHECKOUT_TYPE} ${SVN_HOST}${SVN_BASE}/tags/${RELEASE}/tools .; find $SVN_WORKING_DIR -type f -name \"*.pyc\" -exec rm -rf '{}' \;" &> /dev/null
+            elif [ "$tier" == "processing" ]; then
+               write_stdout "$MODE" "Performing 'processing' tier deployment commands"
                ${SSHBIN} -t ${server} "mv $SVN_WORKING_DIR ${SVN_WORKING_DIR}.deploy-${STAMP}; mkdir -p $SVN_WORKING_DIR; cd $SVN_WORKING_DIR; svn ${CHECKOUT_TYPE} ${SVN_HOST}${SVN_BASE}/tags/${RELEASE}/tools .; find $SVN_WORKING_DIR -type f -name \"*.pyc\" -exec rm -rf '{}' \;" &> /dev/null
             fi
 
+            # Create necessary soft-linkage to deploy directory
+            ${SSHBIN} -t ${server} "cd ~/espa-site; ln -f -s ../tmp/* ."
+
             # If app tier, update soft-link for uwsgi and re-touch file to reload
             if [ "$tier" == "app" ]; then
-               ${SSHBIN} -t ${server} "ln -f -s ~/${SVN_WORKING_DIR}/${APP_FILE} /opt/cots/uwsgi/apps/; touch ~/${SVN_WORKING_DIR}/${APP_FILE}"
+               write_stdout "$MODE" "Performing app tier environment customization and app deployment"
+               # Update uwsgi with correct deploy user home path
+               ${SSHBIN} -t ${server} "sed -i -r -e \"s~/home/[a-zA-Z]+/~/home/${DEPLOYUSER}/~g\" ${SVN_WORKING_DIR}/${APP_FILE}"
+
+               # Uncomment ESPA_ENV and set proper environment
+               ${SSHBIN} -t ${server} "sed -i -r -e \"s~^\#*\(env = ESPA_ENV=\).*~env = ESPA_ENV=${MODE}~\" ${SVN_WORKING_DIR}/${APP_FILE}"
+
+               # Uncomment ESPA_CONFIG_FILE
+               ${SSHBIN} -t ${server} "sed -i -r -e \"s~^\#*\(env = ESPA_CONFIG_FILE=.*\)~env = ESPA_CONFIG_FILE=/home/${DEPLOYUSER}/.cfgnfo~\" ${SVN_WORKING_DIR}/${APP_FILE}"
+
+               # Update uid/gid to run as deploy user
+               ${SSHBIN} -t ${server} "sed -i -r -e \"s~^gid = .*~gid = ${DEPLOYUSER}~g\" ${SVN_WORKING_DIR}/${APP_FILE}"
+               ${SSHBIN} -t ${server} "sed -i -r -e \"s~^uid = .*~uid = ${DEPLOYUSER}~g\" ${SVN_WORKING_DIR}/${APP_FILE}"
+               
+               # Deploy uwsgi .ini
+               ${SSHBIN} -t ${server} "\rm -rf /opt/cots/uwsgi/apps/$(basename ${APP_FILE}); ln -s ${SVN_WORKING_DIR}/${APP_FILE} /opt/cots/uwsgi/apps/; touch ${SVN_WORKING_DIR}/${APP_FILE}"
             fi
    
             [[ $VERBOSE -eq 0 ]] && write_stdout "$MODE" "Deployment complete for $server"
          else
             # Ping failed on host, bail out!
-            [[ $VERBOSE -eq 0 ]] && write_stdout "$MODE" "failed, exiting."
+            [[ $VERBOSE -eq 0 ]] && write_stdout "$MODE" "Ping failed on server.  Not up?  Exiting."
             exit 1
          fi
       done
@@ -211,13 +256,11 @@ function deploy_tier
 
 }
 
-
-
 ##############################################################################################################################
 #                         START OF SCRIPT - DO NOT EDIT BELOW UNLESS YOU KNOW WHAT YOU ARE DOING
 ##############################################################################################################################
 
-if [ $# -ge 2 -a $# -le 4 ]; then
+if [ $# -ge 2 -a $# -le 5 ]; then
 
    for param in $@
    do
@@ -276,6 +319,9 @@ if [ $# -ge 2 -a $# -le 4 ]; then
 
    # Set checkout type
    set_checkout "$MODE"
+
+   # Set user
+   set_user "$MODE"
 
    # Deploy tier
    deploy_tier "$TIER" "$MODE" 
