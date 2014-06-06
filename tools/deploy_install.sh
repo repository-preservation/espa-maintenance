@@ -216,10 +216,10 @@ function deploy_tier
                ${SSHBIN} -t ${server} "mv $SVN_WORKING_DIR ${SVN_WORKING_DIR}.deploy-${STAMP}; mkdir -p $SVN_WORKING_DIR; cd $SVN_WORKING_DIR; svn ${CHECKOUT_TYPE} ${SVN_HOST}${SVN_BASE}/tags/${RELEASE} .; find $SVN_WORKING_DIR -type f -name \"*.pyc\" -exec rm -rf '{}' \;" &> /dev/null
             elif [ "$tier" == "maintenance" ]; then
                write_stdout "$MODE" "Performing 'maintenance' tier deployment commands"
-               ${SSHBIN} -t ${server} "mv $SVN_WORKING_DIR ${SVN_WORKING_DIR}.deploy-${STAMP}; mkdir -p $SVN_WORKING_DIR; cd $SVN_WORKING_DIR; svn ${CHECKOUT_TYPE} ${SVN_HOST}${SVN_BASE}/tags/${RELEASE}/tools .; find $SVN_WORKING_DIR -type f -name \"*.pyc\" -exec rm -rf '{}' \;" &> /dev/null
+               ${SSHBIN} -t ${server} "mv $SVN_WORKING_DIR ${SVN_WORKING_DIR}.deploy-${STAMP}; mkdir -p $SVN_WORKING_DIR; cd $SVN_WORKING_DIR; svn ${CHECKOUT_TYPE} ${SVN_HOST}${SVN_BASE}/tags/${RELEASE} .; find $SVN_WORKING_DIR -type f -name \"*.pyc\" -exec rm -rf '{}' \;" &> /dev/null
             elif [ "$tier" == "processing" ]; then
                write_stdout "$MODE" "Performing 'processing' tier deployment commands"
-               ${SSHBIN} -t ${server} "mv $SVN_WORKING_DIR ${SVN_WORKING_DIR}.deploy-${STAMP}; mkdir -p $SVN_WORKING_DIR; cd $SVN_WORKING_DIR; svn ${CHECKOUT_TYPE} ${SVN_HOST}${SVN_BASE}/tags/${RELEASE}/tools .; find $SVN_WORKING_DIR -type f -name \"*.pyc\" -exec rm -rf '{}' \;" &> /dev/null
+               ${SSHBIN} -t ${server} "mv $SVN_WORKING_DIR ${SVN_WORKING_DIR}.deploy-${STAMP}; mkdir -p $SVN_WORKING_DIR; cd $SVN_WORKING_DIR; svn ${CHECKOUT_TYPE} ${SVN_HOST}${SVN_BASE}/tags/${RELEASE} .; find $SVN_WORKING_DIR -type f -name \"*.pyc\" -exec rm -rf '{}' \;" &> /dev/null
             fi
 
             # Create necessary soft-linkage to deploy directory
