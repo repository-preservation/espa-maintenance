@@ -79,6 +79,35 @@ def add_debug_parameter(parser):
 
 
 # ============================================================================
+def add_include_sourcefile_parameter(parser):
+    '''
+    Description:
+      Adds the include_sourcefile parameter to the command line parameters
+    '''
+
+    parser.add_argument('--include_sourcefile',
+                        action='store_true', dest='include_sourcefile',
+                        default=False,
+                        help="include source data in final product")
+# END - add_include_sourcefile_parameter
+
+
+# ============================================================================
+def add_include_source_metadata_parameter(parser):
+    '''
+    Description:
+      Adds the include_source_metadata parameter to the command line
+      parameters
+    '''
+
+    parser.add_argument('--include_source_metadata',
+                        action='store_true', dest='include_source_metadata',
+                        default=False,
+                        help="include source metadata in final product")
+# END - add_include_source_metadata_parameter
+
+
+# ============================================================================
 def add_science_product_parameters(parser):
     '''
     Description:
@@ -159,16 +188,6 @@ def add_science_product_parameters(parser):
                         action='store_true', dest='include_solr_index',
                         default=False,
                         help="build SOLR index product")
-
-    parser.add_argument('--include_sourcefile',
-                        action='store_true', dest='include_sourcefile',
-                        default=False,
-                        help="include source data in final product")
-
-    parser.add_argument('--include_source_metadata',
-                        action='store_true', dest='include_source_metadata',
-                        default=False,
-                        help="include source metadata in final product")
 # END - add_science_product_parameters
 
 
@@ -244,7 +263,7 @@ def add_source_parameters(parser):
 
     parser.add_argument('--source_directory',
                         action='store', dest='source_directory',
-                        default=os.curdir,
+                        default=None,
                         help="directory on the source host")
 # END - add_source_parameters
 
