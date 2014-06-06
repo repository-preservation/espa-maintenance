@@ -60,6 +60,8 @@ def build_argument_parser():
     parameters.add_output_format_parameter(parser,
                                            parameters.valid_output_formats)
 
+    parameters.add_include_sourcefile_parameter(parser)
+
     parameters.add_source_parameters(parser)
     parameters.add_destination_parameters(parser)
 
@@ -207,6 +209,8 @@ def process(parms):
 
     # Figure out the product name
     product_name = build_product_name(scene)
+
+    print parms
 
     # Stage the modis data
     filename = staging.stage_modis_data(scene,
