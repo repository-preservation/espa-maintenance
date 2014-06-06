@@ -22,6 +22,17 @@ import random
 import settings
 
 
+# ============================================================================
+def get_logfile(orderid, sceneid):
+    '''
+    Description:
+      Returns the full path and name of the log file to use
+    '''
+
+    return '%s/%s-%s-jobdebug.txt' % (settings.logfile_path, orderid, sceneid)
+
+
+# ============================================================================
 def execute_cmd(cmd):
     '''
     Description:
@@ -59,6 +70,7 @@ def execute_cmd(cmd):
     return output
 
 
+# ============================================================================
 def stripZeros(value):
     '''
     Description:
@@ -70,6 +82,7 @@ def stripZeros(value):
     return value
 
 
+# ============================================================================
 def getPath(scene_name):
     '''
     Description:
@@ -78,6 +91,7 @@ def getPath(scene_name):
     return stripZeros(scene_name[3:6])
 
 
+# ============================================================================
 def getRow(scene_name):
     '''
     Description:
@@ -86,6 +100,7 @@ def getRow(scene_name):
     return stripZeros(scene_name[6:9])
 
 
+# ============================================================================
 def getYear(scene_name):
     '''
     Description:
@@ -94,6 +109,7 @@ def getYear(scene_name):
     return scene_name[9:13]
 
 
+# ============================================================================
 def getDoy(scene_name):
     '''
     Description:
@@ -102,6 +118,7 @@ def getDoy(scene_name):
     return scene_name[13:16]
 
 
+# ============================================================================
 def getSensor(scene_name):
     '''
     Description:
@@ -123,6 +140,7 @@ def getSensor(scene_name):
     return ''
 
 
+# ============================================================================
 def getSensorCode(scene_name):
     '''
     Description:
@@ -131,6 +149,7 @@ def getSensorCode(scene_name):
     return scene_name[0:3]
 
 
+# ============================================================================
 def getStation(scene_name):
     '''
     Description:
@@ -139,6 +158,7 @@ def getStation(scene_name):
     return scene_name[16:21]
 
 
+# ============================================================================
 def getModisShortName(scene_name):
     '''
     Description:
@@ -147,6 +167,7 @@ def getModisShortName(scene_name):
     return scene_name.split('.')[0]
 
 
+# ============================================================================
 def getModisVersion(scene_name):
     '''
     Description:
@@ -155,6 +176,7 @@ def getModisVersion(scene_name):
     return scene_name.split('.')[3]
 
 
+# ============================================================================
 def getModisHorizontalVertical(scene_name):
     '''
     Description:
@@ -165,6 +187,7 @@ def getModisHorizontalVertical(scene_name):
     return (element[0:3], element[3:])
 
 
+# ============================================================================
 def getModisSceneDate(scene_name):
     '''
     Description:
@@ -176,6 +199,7 @@ def getModisSceneDate(scene_name):
     return (date_element[1:5], date_element[5:8])
 
 
+# ============================================================================
 def getModisArchiveDate(scene_name):
     '''
     Description:
@@ -200,6 +224,7 @@ def getModisArchiveDate(scene_name):
     raise ValueError("Year %s does not have %s days" % (year, doy))
 
 
+# ============================================================================
 def getCacheHostname():
     '''
     Description:

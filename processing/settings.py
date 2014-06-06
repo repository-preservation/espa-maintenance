@@ -82,3 +82,6 @@ max_distribution_attempts = 5
 # 140 is here twice so the load is 2/3 + 1/3.  machines are mismatched
 espa_cache_host_list = ['edclxs67p', 'edclxs140p', 'edclxs140p']
 # Can override this by setting the environment variable DEV_CACHE_HOSTNAME
+
+# Where to place the temporary scene processing log files
+logfile_path = '/tmp'

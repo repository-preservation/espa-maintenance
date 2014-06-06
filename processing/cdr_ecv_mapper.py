@@ -19,7 +19,7 @@ import traceback
 
 # espa-common objects and methods
 from espa_constants import *
-from espa_logging import log, debug, set_debug
+from espa_logging import open_log_handler, close_log_handler, log, set_debug
 
 # local objects and methods
 import espa_exception as ee
@@ -41,28 +41,26 @@ if __name__ == '__main__':
 
     processing_location = socket.gethostname()
 
-    # make stdin a non-blocking file
-
-    # Have to read stdin all at once because something else is trashing it
-    # later on during one or more of the shell out executions.
-    bytes_read = 0
+    # Process each line from stdin
     for line in sys.stdin:
         # Reset these for each line
         (server, orderid, sceneid) = (None, None, None)
 
-        bytes_read += len(line)
-        debug("#### BYTES READ ####################### %d ####" % bytes_read)
-        debug(line)
-
+        log_filename = None
         try:
             line = line.replace('#', '')
             parms = json.loads(line)
 
             if not parameters.test_for_parameter(parms, 'options'):
-                log("Error missing JSON 'options' record")
-                sys.exit(EXIT_FAILURE)
+                raise ValueError("Error missing JSON 'options' record")
 
             (orderid, sceneid) = (parms['orderid'], parms['scene'])
+
+            # Create the log file
+            log_filename = util.get_logfile(orderid, sceneid)
+            status = open_log_handler(log_filename)
+            if status != SUCCESS:
+                raise Exception("Error failed to create log handler")
 
             if parameters.test_for_parameter(parms['options'], 'debug'):
                 set_debug(parms['options']['debug'])
@@ -122,30 +120,53 @@ if __name__ == '__main__':
                                          destination_product_file,
                                          destination_cksum_file, "")
             else:
-                print ("Delivered product to %s at location %s and cksum"
-                       " location %s" % (processing_location,
-                                         destination_product_file,
-                                         destination_cksum_file))
+                log("Delivered product to %s at location %s and cksum"
+                    " location %s" % (processing_location,
+                                      destination_product_file,
+                                      destination_cksum_file))
+
+            # Cleanup the log file
+            close_log_handler()
+            if os.path.exists(log_filename):
+                os.unlink(log_filename)
 
         except ee.ESPAException, e:
-            # Log the error information
+
+            log_data = ''
+            if server is not None:
+
+                # Only close if we have a server to give the log to
+                close_log_handler()
+
+                # Grab the log file information
+                if log_filename is not None:
+                    if os.path.exists(log_filename):
+                        log_fd = open(log_filename, "r")
+                        log_data = log_fd.read()
+                        log_fd.close()
+
+            # Add the exception text
+            log_data += '\n' + str(e)
+
+            # Log the error information to the server
             # Depending on the error_code do something different
             # TODO - Today we are failing everything, but some things could be
             #        made recovereable in the future.
+            #        So this code seems a bit ridiculous.
             if (e.error_code == ee.ErrorCodes.creating_stage_dir
                     or e.error_code == ee.ErrorCodes.creating_work_dir
                     or e.error_code == ee.ErrorCodes.creating_output_dir):
 
                 if server is not None:
                     server.setSceneError(sceneid, orderid,
-                                         processing_location, e)
+                                         processing_location, log_data)
 
             elif (e.error_code == ee.ErrorCodes.staging_data
                   or e.error_code == ee.ErrorCodes.unpacking):
 
                 if server is not None:
                     server.setSceneError(sceneid, orderid,
-                                         processing_location, e)
+                                         processing_location, log_data)
 
             elif (e.error_code == ee.ErrorCodes.metadata
                   or e.error_code == ee.ErrorCodes.ledaps
@@ -162,25 +183,25 @@ if __name__ == '__main__':
 
                 if server is not None:
                     server.setSceneError(sceneid, orderid,
-                                         processing_location, e)
+                                         processing_location, log_data)
 
             elif e.error_code == ee.ErrorCodes.warping:
 
                 if server is not None:
                     server.setSceneError(sceneid, orderid,
-                                         processing_location, e)
+                                         processing_location, log_data)
 
             elif e.error_code == ee.ErrorCodes.reformat:
 
                 if server is not None:
                     server.setSceneError(sceneid, orderid,
-                                         processing_location, e)
+                                         processing_location, log_data)
 
             elif e.error_code == ee.ErrorCodes.statistics:
 
                 if server is not None:
                     server.setSceneError(sceneid, orderid,
-                                         processing_location, e)
+                                         processing_location, log_data)
 
             elif (e.error_code == ee.ErrorCodes.packaging_product
                   or e.error_code == ee.ErrorCodes.distributing_product
@@ -188,35 +209,63 @@ if __name__ == '__main__':
 
                 if server is not None:
                     server.setSceneError(sceneid, orderid,
-                                         processing_location, e)
+                                         processing_location, log_data)
 
             else:
+                # Catch all remaining errors
                 if server is not None:
                     server.setSceneError(sceneid, orderid,
-                                         processing_location, e)
+                                         processing_location, log_data)
 
-            # Log the error information
-            log("An error occurred processing %s" % sceneid)
-            log("Error: %s" % str(e))
-            if hasattr(e, 'output'):
-                log("Error: Code [%s]" % str(e.error_code))
-            if hasattr(e, 'output'):
-                log("Error: Output [%s]" % e.output)
-            tb = traceback.format_exc()
-            log("Error: Traceback [%s]" % tb)
+            if server is not None:
+                # Cleanup the log file
+                if os.path.exists(log_filename):
+                    os.unlink(log_filename)
+            else:
+                # Log the error information
+                log("An error occurred processing %s" % sceneid)
+                log("Error: %s" % str(e))
+                if hasattr(e, 'output'):
+                    log("Error: Code [%s]" % str(e.error_code))
+                if hasattr(e, 'output'):
+                    log("Error: Output [%s]" % e.output)
+                tb = traceback.format_exc()
+                log("Error: Traceback [%s]" % tb)
+
+                close_log_handler()
 
         except Exception, e:
-            if server is not None:
-                server.setSceneError(sceneid, orderid, processing_location, e)
 
-            # Log the error information
-            log("An error occurred processing %s" % sceneid)
-            log("Error: %s" % str(e))
-            if hasattr(e, 'output'):
-                log("Error: Output [%s]" % e.output)
-            tb = traceback.format_exc()
-            log("Error: Traceback [%s]" % tb)
-            log("Error: Line [%s]" % line)
+            if server is not None:
+                close_log_handler()
+
+                log_data = ''
+                # Grab the log file information
+                if log_filename is not None:
+                    if os.path.exists(log_filename):
+                        log_fd = open(log_filename, "r")
+                        log_data = log_fd.read()
+                        log_fd.close()
+
+                # Add the exception text
+                log_data += '\n' + str(e)
+
+                server.setSceneError(sceneid, orderid,
+                                     processing_location, log_data)
+                # Cleanup the log file
+                if os.path.exists(log_filename):
+                    os.unlink(log_filename)
+            else:
+                # Log the error information
+                log("An error occurred processing %s" % sceneid)
+                log("Error: %s" % str(e))
+                if hasattr(e, 'output'):
+                    log("Error: Output [%s]" % e.output)
+                tb = traceback.format_exc()
+                log("Error: Traceback [%s]" % tb)
+                log("Error: Line [%s]" % line)
+
+                close_log_handler()
 
     # END - for line in STDIN
 
