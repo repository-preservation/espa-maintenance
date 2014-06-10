@@ -309,6 +309,11 @@ def get_scenes_to_process():
             eo = Order.objects.get(id=o.get('order'))
             
             contactid = eo.user.userprofile.contactid
+            
+            if not contactid:
+                print("No contactid associated with order:%s... skipping" 
+                    % o.get('order'))
+                continue
 
             eo_scenes = eo.scene_set.filter(status='submitted').values('name')            
             
@@ -464,14 +469,14 @@ def helper_logger(msg):
 
 def update_status(name, orderid, processing_loc, status):
 
-    helperlogger("Updating scene:%s order:%s from location:%s to %s\n"
+    helper_logger("Updating scene:%s order:%s from location:%s to %s\n"
                  % (name, orderid, processing_loc, status))
 
 
     try:
         s = Scene.objects.get(name=name, order__orderid=orderid)
         if s:
-            helperlogger("Running update query for %s.  Setting status to:%s"
+            helper_logger("Running update query for %s.  Setting status to:%s"
                          % (s.name, status))
 
             s.status = status
@@ -481,12 +486,12 @@ def update_status(name, orderid, processing_loc, status):
             s = None
             return True
         else:
-            helperlogger("Scene[%s] not found in order[%s]"
+            helper_logger("Scene[%s] not found in order[%s]"
                          % (name, orderid))
 
             return False
     except Exception, e:
-        helperlogger("Exception in updateStatus:%s" % e)
+        helper_logger("Exception in updateStatus:%s" % e)
 
 
 #  Marks a scene in error and accepts the log file contents
@@ -716,13 +721,13 @@ def load_ee_orders():
                         scene name:%s order:%s" \
                         % (eeorder, s['unit_num'], scene.name, order.orderid)
 
-                        helperlogger(log_msg)
+                        helper_logger(log_msg)
 
                         log_msg = "Error detail: \
                         lta return message:%s  lta return \
                         status code:%s" % (msg, status)
 
-                        helperlogger(log_msg)
+                        helper_logger(log_msg)
                         
                 elif scene.status == 'unavailable':
                     success, msg, status = order_update.update_order(eeorder,
@@ -735,13 +740,13 @@ def load_ee_orders():
                         scene name:%s order:%s" \
                         % (eeorder, s['unit_num'], scene.name, order.orderid)
 
-                        helperlogger(log_msg)
+                        helper_logger(log_msg)
 
                         log_msg = "Error detail: \
                         lta return message:%s  lta return \
                         status code:%s" % (msg, status)
 
-                        helperlogger(log_msg)
+                        helper_logger(log_msg)
             except Scene.DoesNotExist:
                 scene = Scene()
                 scene.name = s['sceneid']
@@ -762,9 +767,9 @@ def load_ee_orders():
                                      scene.name,
                                      order.orderid)
 
-                helperlogger(log_msg)
+                helper_logger(log_msg)
 
                 log_msg = "Error detail: lta return message:%s  \
                 lta return status code:%s" % (msg, status)
 
-                helperlogger(log_msg)
+                helper_logger(log_msg)
