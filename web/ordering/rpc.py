@@ -23,7 +23,7 @@ def rpc_handler(request):
 
     d = SimpleXMLRPCDispatcher(allow_none=False, encoding=None)
 
-    if len(request.POST):
+    if len(request.body):
         d.register_function(_update_status, 'updateStatus')
         d.register_function(_set_scene_error, 'setSceneError')
         d.register_function(_set_scene_unavailable, 'setSceneUnavailable')
@@ -34,7 +34,7 @@ def rpc_handler(request):
         d.register_function(_get_scene_input_path, 'get_scene_input_path')
 
         response = HttpResponse(mimetype="application/xml")
-        response.write(d._marshaled_dispatch(request.raw_post_data))
+        response.write(d._marshaled_dispatch(request.body))
     else:
         response = HttpResponse()
         response.write("<b>This is an XML-RPC Service.</b><br>")
