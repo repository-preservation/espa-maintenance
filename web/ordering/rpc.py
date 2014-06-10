@@ -34,19 +34,19 @@ def rpc_handler(request):
         d.register_function(_get_scene_input_path, 'get_scene_input_path')
 
         response = HttpResponse(mimetype="application/xml")
-        response.write(dispatcher._marshaled_dispatch(request.raw_post_data))
+        response.write(d._marshaled_dispatch(request.raw_post_data))
     else:
         response = HttpResponse()
         response.write("<b>This is an XML-RPC Service.</b><br>")
         response.write("You need to invoke it using an XML-RPC Client!<br>")
         response.write("The following methods are available:<ul>")
-        methods = dispatcher.system_listMethods()
+        methods = d.system_listMethods()
 
         for method in methods:
-            sig = dispatcher.system_methodSignature(method)
+            sig = d.system_methodSignature(method)
 
             # this just reads your docblock, so fill it in!
-            help_msg = dispatcher.system_methodHelp(method)
+            help_msg = d.system_methodHelp(method)
 
             response.write("<li><b>%s</b>: [%s] %s" % (method, sig, help_msg))
 
