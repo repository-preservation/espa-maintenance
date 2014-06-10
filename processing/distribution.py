@@ -278,17 +278,39 @@ def distribute_product(destination_host, destination_directory,
         if len(output) > 0:
             log(output)
 
-    # Transfer the checksum file
+    # Figure out the destination full paths
     destination_cksum_file = '%s/%s' \
         % (destination_directory, os.path.basename(cksum_filename))
+    destination_product_file = '%s/%s' \
+        % (destination_directory, os.path.basename(product_filename))
+
+    # Remove any pre-existing files
+    # Grab the first part of the filename, which is not unique
+    remote_filename_parts = destination_product_file.split('-')
+    remote_filename_parts[-1] = '*'  # Replace the last element of the list
+    remote_filename = '-'.join(remote_filename_parts)  # Join with '-'
+
+    cmd = ['ssh', '-q', '-o', 'StrictHostKeyChecking=no', destination_host,
+           'rm', '-f', remote_filename]
+    cmd = ' '.join(cmd)
+    output = ''
+    try:
+        debug("rm remote file cmd:" + cmd)
+        output = util.execute_cmd(cmd)
+    except Exception, e:
+        raise ee.ESPAException(ee.ErrorCodes.packaging_product,
+                               str(e)), None, sys.exc_info()[2]
+    finally:
+        if len(output) > 0:
+            log(output)
+
+    # Transfer the checksum file
     transfer.transfer_file('localhost', cksum_filename, destination_host,
                            destination_cksum_file,
                            destination_username=destination_username,
                            destination_pw=destination_pw)
 
     # Transfer the product file
-    destination_product_file = '%s/%s' \
-        % (destination_directory, os.path.basename(product_filename))
     transfer.transfer_file('localhost', product_filename, destination_host,
                            destination_product_file,
                            destination_username=destination_username,
@@ -334,8 +356,10 @@ def distribute_statistics(work_directory,
     os.chdir(work_directory)
 
     try:
-        # Create the stats directory on the destination host
         stats_directory = destination_directory + "/stats"
+        stats_files = 'stats/*'
+
+        # Create the stats directory on the destination host
         log("Creating stats directory %s on %s"
             % (stats_directory, destination_host))
         cmd = ['ssh', '-q', '-o', 'StrictHostKeyChecking=no', destination_host,
@@ -353,7 +377,20 @@ def distribute_statistics(work_directory,
             if len(output) > 0:
                 log(output)
 
-        stats_files = 'stats/*'
+        # Remove any pre-existing stats
+        cmd = ['ssh', '-q', '-o', 'StrictHostKeyChecking=no', destination_host,
+               'rm', '-f', stats_directory + '/*']
+        cmd = ' '.join(cmd)
+        output = ''
+        try:
+            debug("rm remote stats cmd:" + cmd)
+            output = util.execute_cmd(cmd)
+        except Exception, e:
+            raise ee.ESPAException(ee.ErrorCodes.packaging_product,
+                                   str(e)), None, sys.exc_info()[2]
+        finally:
+            if len(output) > 0:
+                log(output)
 
         # Transfer the stats files
         transfer.scp_transfer_file('localhost', stats_files, destination_host,
