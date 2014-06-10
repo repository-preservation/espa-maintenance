@@ -181,6 +181,9 @@ if __name__ == '__main__':
         print "Order file (%s) does not exist" % args.order_file
         sys.exit(1)
 
+    # Avoid the creation of the *.pyc files
+    os.environ['PYTHONDONTWRITEBYTECODE'] = '1'
+
     if not process_test_order(args.order_file, env_vars, args.debug):
         print "Order file (%s) failed to process" % args.order_file
         sys.exit(1)
