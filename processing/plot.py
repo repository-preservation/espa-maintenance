@@ -219,16 +219,11 @@ def read_stats(stat_file):
       Read the file contents and return as a list of key values
     '''
 
-    stat_fd = open(stat_file, 'r')
-
-    try:
+    with open(stat_file, 'r') as stat_fd:
         for line in stat_fd:
             line_lower = line.strip().lower()
             parts = line_lower.split('=')
             yield(parts)
-
-    finally:
-        stat_fd.close()
 
 # END - read_stats
 
@@ -350,10 +345,8 @@ def generate_sensor_stats(stat_name, stat_files):
     buffer.close()
 
     # Create the output file
-    fd = open(out_filename, 'w')
-    fd.write(data)
-    fd.flush()
-    fd.close()
+    with open(out_filename, 'w') as output_fd:
+        output_fd.write(data)
 # END - generate_sensor_stats
 
 
