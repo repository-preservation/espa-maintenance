@@ -1,7 +1,0 @@
-#!/bin/bash
-
-export PYTHONDONTWRITEBYTECODE=1
-#export PYTHONUNBUFFERED=1
-
-cat $1 | ./cdr_ecv_mapper.py 2>&1 | tee $1.log
-
