@@ -109,7 +109,7 @@ def runScenes():
                 entry_length = len(line_entry)
 
                 #have to start at 1 here because the \n will be part of the overall 2048 bytes.
-                for i in range(1, 2048 - entry_length):
+                for i in range(0, 2048 - entry_length):
                     filler = filler + "#"
                 order_line = line_entry + filler + '\n'
                 f.write(order_line)
