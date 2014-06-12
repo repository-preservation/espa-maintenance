@@ -623,7 +623,7 @@ def update_order_if_complete(orderid, scene):
 
         #only send the email if this was an espa order.
         if o.order_source == 'espa':
-            sendCompletionEmail(o.email, o.orderid, readyscenes=scene_names)
+            send_completion_email(o.email, o.orderid, readyscenes=scene_names)
 
 
 def load_ee_orders():
