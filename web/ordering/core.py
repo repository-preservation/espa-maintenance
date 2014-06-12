@@ -9,6 +9,7 @@ from smtplib import *
 from models import Scene
 from models import Order
 from models import Configuration
+from models import UserProfile
 from django.contrib.auth.models import User
 from django.conf import settings
 
