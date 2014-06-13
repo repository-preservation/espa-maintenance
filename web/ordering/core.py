@@ -313,9 +313,9 @@ def get_scenes_to_process():
                 contactid = eo.user.userprofile.contactid
             except UserProfile.DoesNotExist:
                 print("UserProfile for %s not found \
-                in get_scenes_to_process()... creating" % user.username)
+                in get_scenes_to_process()... creating" % eo.user.username)
                 
-                UserProfile(contactid=contactid, user=user).save()
+                UserProfile(contactid=contactid, user=eo.user).save()
                                 
             if not contactid:
                 print("No contactid associated with order:%s... skipping" 
