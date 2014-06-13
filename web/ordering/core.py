@@ -309,8 +309,14 @@ def get_scenes_to_process():
         for o in orders:
             eo = Order.objects.get(id=o.get('order'))
             
-            contactid = eo.user.userprofile.contactid
-            
+            try:
+                contactid = eo.user.userprofile.contactid
+            except UserProfile.DoesNotExist:
+                print("UserProfile for %s not found \
+                in get_scenes_to_process()... creating" % user.username)
+                
+                UserProfile(contactid=contactid, user=user).save()
+                                
             if not contactid:
                 print("No contactid associated with order:%s... skipping" 
                     % o.get('order'))
@@ -679,6 +685,13 @@ def load_ee_orders():
                 if not user.email or user.email is not email:
                     user.email = email
                     user.save()
+                    
+                #try to retrieve the userprofile.  if it doesn't exist create
+                try:
+                    user.userprofile
+                except UserProfile.DoesNotExist:
+                    UserProfile(contactid=contactid, user=user).save()
+                    
             except User.DoesNotExist:
                 # Create a new user. Note that we can set password
                 # to anything, because it won't be checked; the password

@@ -53,6 +53,12 @@ class EEAuthBackend(object):
             if not user.last_name or user.last_name is not info.last_name:
                 user.last_name = info.last_name
                 save_user = True
+                
+            #make sure there is a user profile            
+            try:
+                user.userprofile
+            except UserProfile.DoesNotExist:
+                UserProfile(contactid=contactid, user=user).save()
 
             if save_user:
                 user.save()
