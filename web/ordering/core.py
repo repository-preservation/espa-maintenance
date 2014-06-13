@@ -308,15 +308,15 @@ def get_scenes_to_process():
         # there are any scenes in those statuses
         for o in orders:
             eo = Order.objects.get(id=o.get('order'))
-            
+
             try:
+                contactid = None
                 contactid = eo.user.userprofile.contactid
-            except UserProfile.DoesNotExist:
-                print("UserProfile for %s not found \
-                in get_scenes_to_process()... creating" % eo.user.username)
-                
-                UserProfile(contactid=contactid, user=eo.user).save()
-                                
+            except Exception, e:
+                print("Exception getting contactid for user:%s" \
+                % eo.user.username)
+                print(e)
+
             if not contactid:
                 print("No contactid associated with order:%s... skipping" 
                     % o.get('order'))
