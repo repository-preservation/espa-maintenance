@@ -109,13 +109,10 @@ def runScenes():
                 log(line_entry)
 
                 # Pad the entry so hadoop will properly split the jobs
-                filler = ""
                 filler_count = settings.order_buffer_length - len(line_entry)
+                order_line = line_entry + ('#' * filler_count) + '\n'
 
-                # Have to start at 1 here because the \n will be part of the
-                # overall buffer bytes.
-                filler = ''.join(['#' for count in range(1, filler_count)])
-                order_line = line_entry + filler + '\n'
+                # Write out the order line
                 fd.write(order_line)
             fd.close()
 
