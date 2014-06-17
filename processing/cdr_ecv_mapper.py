@@ -270,6 +270,8 @@ if __name__ == '__main__':
 
                 close_log_handler()
 
+        finally:
+            close_log_handler()
     # END - for line in STDIN
 
     sys.exit(EXIT_SUCCESS)
