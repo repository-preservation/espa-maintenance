@@ -57,8 +57,16 @@ def run_orders():
       and updates the status in the database through the xmlrpc service.
     '''
 
-    rpc_url = os.environ.get('ESPA_XMLRPC')
-    server = xmlrpclib.ServerProxy(rpc_url)
+    rpcurl = os.environ.get('ESPA_XMLRPC')
+    server = None
+
+    # Create a server object if the rpcurl seems valid
+    if (rpcurl is not None and rpcurl.startswith('http://')
+            and len(rpcurl) > 7):
+
+        server = xmlrpclib.ServerProxy(rpcurl)
+    else:
+        log("Missing or invalid environment variable ESPA_XMLRPC")
 
     # Use the DEV_CACHE_HOSTNAME if present
     dev_cache_hostname = 'DEV_CACHE_HOSTNAME'

@@ -48,8 +48,17 @@ def runScenes():
     '''
 
     rpcurl = os.environ.get('ESPA_XMLRPC')
+    server = None
+
+    # Create a server object if the rpcurl seems valid
+    if (rpcurl is not None and rpcurl.startswith('http://')
+            and len(rpcurl) > 7):
+
+        server = xmlrpclib.ServerProxy(rpcurl)
+    else:
+        log("Missing or invalid environment variable ESPA_XMLRPC")
+
     home_dir = os.environ.get('HOME')
-    server = xmlrpclib.ServerProxy(rpcurl)
     hadoop_executable = "%s/bin/hadoop/bin/hadoop" % home_dir
 
     # Verify xmlrpc server
