@@ -229,7 +229,7 @@ def process(parms):
         staging.untar_data(filename, work_directory)
         os.unlink(filename)
     except Exception, e:
-        raise ESPAException(ErrorCodes.unpacking, str(e)), \
+        raise ee.ESPAException(ee.ErrorCodes.unpacking, str(e)), \
             None, sys.exc_info()[2]
 
     # Build the requested science products
@@ -272,7 +272,7 @@ def process(parms):
             # Deliver product will also try each of its parts three times
             # before failing, so we pass our sleep seconds down to them
             (destination_product_file, destination_cksum_file) = \
-                distribution.deliver_product(work_directory,
+                distribution.deliver_product(scene, work_directory,
                                              package_directory, product_name,
                                              options['destination_host'],
                                              options['destination_directory'],

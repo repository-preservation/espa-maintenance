@@ -24,11 +24,12 @@ from espa_constants import *
 from espa_logging import log
 
 # local objects and methods
+import espa_exception as ee
 import util
 
 
 # ============================================================================
-def get_statistics(file):
+def get_statistics(file_name):
     '''
     Description:
       Uses gdalinfo to extract the stats values from the specified file.
@@ -45,7 +46,7 @@ def get_statistics(file):
     mean = 0
     stddev = 0
 
-    cmd = ['gdalinfo', '-stats', file]
+    cmd = ['gdalinfo', '-stats', file_name]
     cmd = ' '.join(cmd)
     output = util.execute_cmd(cmd)
 
@@ -66,8 +67,8 @@ def get_statistics(file):
     # Cleanup the gdal generated xml file should be the only file
     # BUT...... *NOT* GUARANTEED
     # So we may be removing other gdal aux files here
-    for file in glob.glob('*.aux.xml'):
-        os.unlink(file)
+    for file_name in glob.glob('*.aux.xml'):
+        os.unlink(file_name)
 
     return (float(minimum), float(maximum), float(mean), float(stddev))
 # END - get_statistics
@@ -97,16 +98,16 @@ def generate_statistics(work_directory, files_to_search_for):
             if exc.errno == errno.EEXIST and os.path.isdir(stats_output_path):
                 pass
             else:
-                raise ESPAException(ErrorCodes.statistics,
-                                    str(e)), None, sys.exc_info()[2]
+                raise ee.ESPAException(ee.ErrorCodes.statistics,
+                                       str(e)), None, sys.exc_info()[2]
 
         try:
-            files = list()
+            file_names = list()
             for search in files_to_search_for:
-                files.extend(glob.glob(search))
+                file_names.extend(glob.glob(search))
 
             # Generate the requested statistics for each tile
-            for file_name in files:
+            for file_name in file_names:
                 log("Generating statistics for: %s" % file_name)
 
                 (minimum, maximum, mean, stddev) = get_statistics(file_name)
@@ -118,23 +119,20 @@ def generate_statistics(work_directory, files_to_search_for):
                 stats_output_file = '%s/%s.stats' % (stats_output_path, base)
 
                 # Buffer the stats
-                buffer = StringIO()
-                buffer.write("FILENAME=%s\n" % file_name)
-                buffer.write("MINIMUM=%f\n" % minimum)
-                buffer.write("MAXIMUM=%f\n" % maximum)
-                buffer.write("MEAN=%f\n" % mean)
-                buffer.write("STDDEV=%f\n" % stddev)
+                data_io = StringIO()
+                data_io.write("FILENAME=%s\n" % file_name)
+                data_io.write("MINIMUM=%f\n" % minimum)
+                data_io.write("MAXIMUM=%f\n" % maximum)
+                data_io.write("MEAN=%f\n" % mean)
+                data_io.write("STDDEV=%f\n" % stddev)
 
                 # Create the stats file
-                fd = open(stats_output_file, 'w+')
-                data = buffer.getvalue()
-                fd.write(data)
-                fd.flush()
-                fd.close()
+                with open(stats_output_file, 'w+') as stat_fd:
+                    stat_fd.write(data_io.getvalue())
             # END - for tile
         except Exception, e:
-            raise ESPAException(ErrorCodes.statistics,
-                                str(e)), None, sys.exc_info()[2]
+            raise ee.ESPAException(ee.ErrorCodes.statistics,
+                                   str(e)), None, sys.exc_info()[2]
 
     finally:
         # Change back to the previous directory

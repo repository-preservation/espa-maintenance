@@ -222,7 +222,7 @@ def process(parms):
         transfer.copy_file_to_file(filename, work_directory)
         os.unlink(filename)
     except Exception, e:
-        raise ESPAException(ErrorCodes.unpacking, str(e)), \
+        raise ee.ESPAException(ee.ErrorCodes.unpacking, str(e)), \
             None, sys.exc_info()[2]
 
     # Change to the working directory
@@ -292,7 +292,7 @@ def process(parms):
             # Deliver product will also try each of its parts three times
             # before failing, so we pass our sleep seconds down to them
             (destination_product_file, destination_cksum_file) = \
-                distribution.deliver_product(work_directory,
+                distribution.deliver_product(scene, work_directory,
                                              package_directory,
                                              product_name,
                                              options['destination_host'],
@@ -310,7 +310,8 @@ def process(parms):
                 sleep_seconds = int(sleep_seconds * 1.5)  # adjust for next set
                 continue
             else:
-                raise e  # May already be an ESPAException, don't override that
+                # May already be an ESPAException, don't override that
+                raise e
         break
 
     # Let the caller know where we put these on the destination system

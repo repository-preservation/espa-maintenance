@@ -126,7 +126,7 @@ def tar_product(product_full_path, product_files):
 def gzip_product(product_full_path):
     '''
     Description:
-      Create a tar ball of the specified files.
+      Create a gzip ball of the specified files.
     '''
 
     cmd = ['gzip', product_full_path]
@@ -141,7 +141,7 @@ def gzip_product(product_full_path):
     finally:
         if len(output) > 0:
             log(output)
-# END - tar_product
+# END - gzip_product
 
 
 # ============================================================================
@@ -334,7 +334,7 @@ def distribute_product(destination_host, destination_directory,
 
 
 # ============================================================================
-def distribute_statistics(work_directory,
+def distribute_statistics(scene, work_directory,
                           destination_host, destination_directory):
     '''
     Description:
@@ -357,7 +357,7 @@ def distribute_statistics(work_directory,
 
     try:
         stats_directory = destination_directory + "/stats"
-        stats_files = 'stats/*'
+        stats_files = 'stats/%s*' % scene
 
         # Create the stats directory on the destination host
         log("Creating stats directory %s on %s"
@@ -379,7 +379,7 @@ def distribute_statistics(work_directory,
 
         # Remove any pre-existing stats
         cmd = ['ssh', '-q', '-o', 'StrictHostKeyChecking=no', destination_host,
-               'rm', '-f', stats_directory + '/*']
+               'rm', '-f', '%s/%s*' % (stats_directory, scene)]
         cmd = ' '.join(cmd)
         output = ''
         try:
@@ -441,7 +441,7 @@ def distribute_statistics(work_directory,
 
 
 # ============================================================================
-def deliver_product(work_directory, package_directory, product_name,
+def deliver_product(scene, work_directory, package_directory, product_name,
                     destination_host, destination_directory,
                     destination_username, destination_pw,
                     include_statistics=False,
@@ -511,7 +511,7 @@ def deliver_product(work_directory, package_directory, product_name,
         attempt = 0
         while True:
             try:
-                distribute_statistics(work_directory,
+                distribute_statistics(scene, work_directory,
                                       destination_host, destination_directory)
             except Exception, e:
                 log("An error occurred processing %s" % product_name)
