@@ -39,7 +39,7 @@ import settings
 
 
 # ============================================================================
-def runScenes():
+def run_scenes():
     '''
     Description:
       Queries the xmlrpc service to see if there are any scenes that need to
@@ -174,6 +174,7 @@ def runScenes():
 
             # ----------------------------------------------------------------
             log("Storing request file to hdfs...")
+            output = ''
             try:
                 cmd = ' '.join(hadoop_store_command)
                 output = util.execute_cmd(cmd)
@@ -181,7 +182,8 @@ def runScenes():
                 log("Error storing files to HDFS... exiting")
                 sys.exit(EXIT_FAILURE)
             finally:
-                log(output)
+                if len(output) > 0:
+                    log(output)
 
             # ----------------------------------------------------------------
             # Update the scene list as queued so they don't get pulled down
@@ -200,104 +202,72 @@ def runScenes():
 
             # ----------------------------------------------------------------
             log("Running hadoop job...")
+            output = ''
             try:
                 cmd = ' '.join(hadoop_run_command)
                 output = util.execute_cmd(cmd)
             except Exception, e:
                 log("Error running Hadoop job...")
             finally:
-                log(output)
+                if len(output) > 0:
+                    log(output)
 
             # ----------------------------------------------------------------
             log("Deleting hadoop job request file from hdfs....")
+            output = ''
             try:
                 cmd = ' '.join(hadoop_delete_request_command1)
                 output = util.execute_cmd(cmd)
             except Exception, e:
                 log("Error deleting hadoop job request file")
             finally:
-                log(output)
+                if len(output) > 0:
+                    log(output)
 
             # ----------------------------------------------------------------
             log("Deleting hadoop job output...")
+            output = ''
             try:
                 cmd = ' '.join(hadoop_delete_request_command2)
                 output = util.execute_cmd(cmd)
             except Exception, e:
                 log("Error deleting hadoop job output")
             finally:
-                log(output)
+                if len(output) > 0:
+                    log(output)
 
         else:
             log("No scenes to process....")
 
-    except xmlrpclib.ProtocolError, err:
-        log("A protocol error occurred:%s" % err)
+    except xmlrpclib.ProtocolError, e:
+        log("A protocol error occurred: %s" % str(e))
+
+    except Exception, e:
+        log("Error Processing Scenes: %s" % str(e))
+
     finally:
         server = None
-
-
-# ============================================================================
-def cleanDistroCache():
-    '''
-    Description:
-      Removes completed orders from the ordering database older than 15 days
-      (since order completion) and places entries for each order/scene into
-      our data warehouse
-    '''
-
-    rpcurl = os.environ.get('ESPA_XMLRPC')
-    server = xmlrpclib.ServerProxy(rpcurl)
-    scenes_with_paths = server.getScenesToPurge()
-    if scenes_with_paths:
-        for scene in scenes_with_paths:
-            pass
-            # clean it
-            # server.updateStatus(scene, 'Purged')
-    else:
-        log("No scenes to purge...")
-
-
-# ============================================================================
-def usage():
-    '''
-    Description:
-      Display the usage string to the user
-    '''
-
-    print ("Usage:")
-    print ("\tcdr_ecv_cron.py run-scenes | clean-cache")
+# END - run_scenes
 
 
 # ============================================================================
 if __name__ == '__main__':
     '''
     Description:
-      Read the command line and execute accordingly.
+      Execute the core processing routine.
     '''
-
-    if len(sys.argv) != 2:
-        usage()
-        sys.exit(EXIT_FAILURE)
 
     # Check required variables that this script should fail on if they are not
     # defined
-    required_vars = ['ESPA_XMLRPC', "ESPA_WORK_DIR", "ANC_PATH", "PATH",
-                     "HOME"]
+    required_vars = ['ESPA_XMLRPC', 'ESPA_WORK_DIR', 'ANC_PATH', 'PATH',
+                     'HOME']
     for env_var in required_vars:
-        if env_var not in os.environ or os.environ.get(env_var) is None \
-           or len(os.environ.get(env_var)) < 1:
+        if (env_var not in os.environ or os.environ.get(env_var) is None
+                or len(os.environ.get(env_var)) < 1):
+
             log("$%s is not defined... exiting" % env_var)
-            sys.exit(-1)
+            sys.exit(EXIT_FAILURE)
 
-    op = sys.argv[1]
-    if op == 'run-scenes':
-        runScenes()
-
-    elif op == 'clean-cache':
-        cleanDistroCache()
-
-    else:
-        usage()
+    run_scenes()
 
     sys.exit(EXIT_SUCCESS)

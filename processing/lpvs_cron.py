@@ -24,7 +24,6 @@ import time
 import json
 import xmlrpclib
 import subprocess
-import traceback
 from datetime import datetime
 
 # espa-common objects and methods
@@ -34,18 +33,6 @@ from espa_logging import log
 # local objects and methods
 import util
 import settings
-
-
-# ============================================================================
-def usage():
-    '''
-    Description:
-      Display the usage string to the user
-    '''
-
-    print ("Usage:")
-    print ("\tlpvs_cron.py run-orders | clean-cache")
-# END - usage
 
 
 # ============================================================================
@@ -114,14 +101,17 @@ def run_orders():
                     msg = "Error during execution of plot.py: " + str(e)
                     raise Exception(msg)
                 finally:
-                    log(output)
+                    if len(output) > 0:
+                        log(output)
 
                 # TODO TODO TODO - Needs web side implementation
                 server.updateOrderStatus(order, 'LPVS cron driver', 'SUCC')
 
+    except xmlrpclib.ProtocolError, e:
+        log("A protocol error occurred: %s" % str(e))
+
     except Exception, e:
-        msg = "Error Processing Plots: " + str(e)
-        raise Exception(msg)
+        log("Error Processing Plots: %s" % str(e))
 
     finally:
         server = None
@@ -133,12 +123,8 @@ def run_orders():
 if __name__ == '__main__':
     '''
     Description:
-      Read the command line and execute accordingly.
+      Execute the core processing routine.
     '''
-
-    if len(sys.argv) != 2:
-        usage()
-        sys.exit(EXIT_FAILURE)
 
     # Check required variables that this script should fail on if they are not
     # defined
@@ -149,18 +135,8 @@ if __name__ == '__main__':
                 or len(os.environ.get(env_var)) < 1):
 
             log("$%s is not defined... exiting" % env_var)
-            sys.exit(-1)
+            sys.exit(EXIT_FAILURE)
 
-    op = sys.argv[1]
-    if op == 'run-orders':
-        run_orders()
-
-    elif op == 'clean-cache':
-        # TODO TODO TODO
-        # cleanDistroCache()
-        pass
-
-    else:
-        usage()
+    run_orders()
 
     sys.exit(EXIT_SUCCESS)
