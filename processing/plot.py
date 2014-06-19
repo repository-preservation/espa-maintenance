@@ -109,13 +109,13 @@ def scp_transfer_file(source_host, source_file,
     # Build the source portion of the command
     # Single quote the source to allow for wild cards
     if source_host == 'localhost':
-        cmd += [source_file]
+        cmd.append(source_file)
     elif source_host != destination_host:
         # Build the SCP command line
-        cmd += ["'%s:%s'" % (source_host, source_file)]
+        cmd.append("'%s:%s'" % (source_host, source_file))
 
     # Build the destination portion of the command
-    cmd += ['%s:%s' % (destination_host, destination_file)]
+    cmd.append('%s:%s' % (destination_host, destination_file))
 
     cmd = ' '.join(cmd)
 
@@ -326,7 +326,7 @@ def generate_sensor_stats(stat_name, stat_files):
                                    obj['mean'], obj['stddev'])
         debug(line)
 
-        stat_data += [line]
+        stat_data.append(line)
 
     # Create an empty string buffer to hold the output
     buffer = StringIO()
@@ -602,7 +602,7 @@ def process_band_type(sensor_info, band_type):
                 single_sensor_name = sensor_name
                 generate_sensor_stats("%s %s" % (sensor_name, band_type),
                                       single_sensor_files)
-                multi_sensor_files += single_sensor_files
+                multi_sensor_files.extend(single_sensor_files)
 
     # Cleanup the memory for this while we process the multi-sensor list
     del single_sensor_files

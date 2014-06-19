@@ -46,7 +46,7 @@ def getLPVSOrdersToProcess():
 
     results = []
     try:
-        results += ['rdd_test_orderid_06']
+        results.append('LPVS-UTM-2')
         # TODO TODO TODO - ????Do we need to return more than the order ID????
         return results
     finally:

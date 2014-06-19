@@ -167,14 +167,15 @@ def remove_products(xml_filename, products_to_remove=None):
         for band in bands.band:
             if band.product in products_to_remove:
                 file_name = band.file_name.rsplit('.')[0]
-                file_names += glob.glob('%s*' % file_name)
+                file_names.extend(glob.glob('%s*' % file_name))
 
         # Only remove files if we found some
         if len(file_names) > 0:
 
-            cmd = ['rm', '-rf'] + file_names
+            cmd = ['rm', '-rf']
+            cmd.extend(file_names)
             cmd = ' '.join(cmd)
-            log('REMOVING INTERMEDIAT PRODUCTS NOT REQUESTED COMMAND:' + cmd)
+            log('REMOVING INTERMEDIATE PRODUCTS NOT REQUESTED COMMAND:' + cmd)
 
             try:
                 output = util.execute_cmd(cmd)
@@ -191,11 +192,16 @@ def remove_products(xml_filename, products_to_remove=None):
             try:
                 # Export the file with validation
                 xml_fd = open(xml_filename, 'w')
+
                 # Export to the file and specify the namespace/schema
+                xmlns = "http://espa.cr.usgs.gov/v1.0"
+                xmlns_xsi = "http://www.w3.org/2001/XMLSchema-instance"
+                schema_uri = ("http://espa.cr.usgs.gov/static/schema/"
+                              "espa_internal_metadata_v1_0.xsd")
                 metadata_api.export(xml_fd, espa_xml,
-                                    xmlns="http://espa.cr.usgs.gov/v1.0",
-                                    xmlns_xsi="http://www.w3.org/2001/XMLSchema-instance",
-                                    schema_uri="http://espa.cr.usgs.gov/static/schema/espa_internal_metadata_v1_0.xsd")
+                                    xmlns=xmlns,
+                                    xmlns_xsi=xmlns_xsi,
+                                    schema_uri=schema_uri)
                 xml_fd.close()
             except Exception, e:
                 raise ee.ESPAException(ee.ErrorCodes.remove_products,
@@ -253,7 +259,7 @@ def build_landsat_science_products(parms):
                '--mtl', metadata_filename,
                '--xml', xml_filename]
         if not options['include_sourcefile']:
-            cmd += ['--del_src_files']
+            cmd.append('--del_src_files')
 
         cmd = ' '.join(cmd)
         log('CONVERT LPGS TO ESPA COMMAND:' + cmd)
@@ -323,19 +329,19 @@ def build_landsat_science_products(parms):
 
             # Add the specified index options
             if options['include_sr_nbr']:
-                cmd += ['--nbr']
+                cmd.append('--nbr')
             if options['include_sr_nbr2']:
-                cmd += ['--nbr2']
+                cmd.append('--nbr2')
             if options['include_sr_ndvi']:
-                cmd += ['--ndvi']
+                cmd.append('--ndvi')
             if options['include_sr_ndmi']:
-                cmd += ['--ndmi']
+                cmd.append('--ndmi')
             if options['include_sr_savi']:
-                cmd += ['--savi']
+                cmd.append('--savi')
             if options['include_sr_msavi']:
-                cmd += ['--msavi']
+                cmd.append('--msavi')
             if options['include_sr_evi']:
-                cmd += ['--evi']
+                cmd.append('--evi')
 
             cmd = ' '.join(cmd)
             log('SPECTRAL INDICES COMMAND:' + cmd)
@@ -441,17 +447,18 @@ def build_landsat_science_products(parms):
         # Remove the intermediate non-product files
         non_products = []
         for item in non_product_files:
-            non_products += glob.glob(item)
+            non_products.extend(glob.glob(item))
 
         # Add L1T source files if not requested
         if not options['include_sourcefile']:
             for item in l1t_source_files:
-                non_products += glob.glob(item)
+                non_products.extend(glob.glob(item))
         if not options['include_source_metadata']:
             for item in l1t_source_metadata_files:
-                non_products += glob.glob(item)
+                non_products.extend(glob.glob(item))
 
-        cmd = ['rm', '-rf'] + non_products
+        cmd = ['rm', '-rf']
+        cmd.extend(non_products)
         cmd = ' '.join(cmd)
         log('REMOVING INTERMEDIATE DATA COMMAND:' + cmd)
 
@@ -467,22 +474,22 @@ def build_landsat_science_products(parms):
         # Remove generated products that were not requested
         products_to_remove = []
         if not options['include_radiance']:
-            products_to_remove += \
-                [order_to_product_mapping['include_radiance']]
+            products_to_remove.append(
+                order_to_product_mapping['include_radiance'])
         if not options['include_sr']:
-            products_to_remove += \
-                [order_to_product_mapping['include_sr']]
+            products_to_remove.append(
+                order_to_product_mapping['include_sr'])
         if not options['include_sr_toa']:
-            products_to_remove += \
-                [order_to_product_mapping['include_sr_toa']]
+            products_to_remove.append(
+                order_to_product_mapping['include_sr_toa'])
         if not options['include_sr_thermal']:
-            products_to_remove += \
-                [order_to_product_mapping['include_sr_thermal']]
+            products_to_remove.append(
+                order_to_product_mapping['include_sr_thermal'])
         # These both need to be false before we delete the fmask files
         # Because our defined SR product includes the fmask band
         if not options['include_cfmask'] and not options['include_sr']:
-            products_to_remove += \
-                [order_to_product_mapping['include_cfmask']]
+            products_to_remove.append(
+                order_to_product_mapping['include_cfmask'])
 
         try:
             remove_products(xml_filename, products_to_remove)

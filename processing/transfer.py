@@ -198,13 +198,13 @@ def scp_transfer_file(source_host, source_file,
     # Build the source portion of the command
     # Single quote the source to allow for wild cards
     if source_host == 'localhost':
-        cmd += [source_file]
+        cmd.append(source_file)
     elif source_host != destination_host:
         # Build the SCP command line
-        cmd += ["'%s:%s'" % (source_host, source_file)]
+        cmd.append("'%s:%s'" % (source_host, source_file))
 
     # Build the destination portion of the command
-    cmd += ['%s:%s' % (destination_host, destination_file)]
+    cmd.append('%s:%s' % (destination_host, destination_file))
 
     cmd = ' '.join(cmd)
 

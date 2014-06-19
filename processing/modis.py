@@ -242,7 +242,7 @@ def process(parms):
            '--hdf', hdf_filename,
            '--xml', xml_filename]
     if not options['include_sourcefile']:
-        cmd += ['--del_src_files']
+        cmd.append('--del_src_files')
 
     cmd = ' '.join(cmd)
     log('CONVERT MODIS TO ESPA COMMAND:' + cmd)
@@ -268,14 +268,10 @@ def process(parms):
     # Generate the stats for each stat'able' science product
     if options['include_statistics']:
         # Find the files
-        files_to_search_for = ['*.sur_refl_b*.img']
-        files_to_search_for += ['*.LST_Day_1km.img']
-        files_to_search_for += ['*.LST_Night_1km.img']
-        files_to_search_for += ['*.LST_Day_6km.img']
-        files_to_search_for += ['*.LST_Night_6km.img']
-        files_to_search_for += ['*.Emis_*.img']
-        files_to_search_for += ['*NDVI.img']
-        files_to_search_for += ['*EVI.img']
+        files_to_search_for = ['*.sur_refl_b*.img', '*.LST_Day_1km.img',
+                               '*.LST_Night_1km.img', '*.LST_Day_6km.img',
+                               '*.LST_Night_6km.img', '*.Emis_*.img',
+                               '*NDVI.img', '*EVI.img']
         # Generate the stats for each file
         statistics.generate_statistics(options['work_directory'],
                                        files_to_search_for)

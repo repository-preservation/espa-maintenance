@@ -101,9 +101,9 @@ def generate_statistics(work_directory, files_to_search_for):
                                     str(e)), None, sys.exc_info()[2]
 
         try:
-            files = []
+            files = list()
             for search in files_to_search_for:
-                files += glob.glob(search)
+                files.extend(glob.glob(search))
 
             # Generate the requested statistics for each tile
             for file_name in files:
@@ -151,19 +151,13 @@ if __name__ == '__main__':
     '''
 
     # Landsat files
-    files_to_search_for = ['*_sr_band[0-9].img']
-    files_to_search_for += ['*_toa_band[0-9].img']
-    files_to_search_for += ['*_nbr.img']
-    files_to_search_for += ['*_nbr2.img']
-    files_to_search_for += ['*_ndmi.img']
-    files_to_search_for += ['*_ndvi.img']
-    files_to_search_for += ['*_evi.img']
-    files_to_search_for += ['*_savi.img']
-    files_to_search_for += ['*_msavi.img']
+    files_to_search_for = ['*_sr_band[0-9].img', '*_toa_band[0-9].img',
+                           '*_nbr.img', '*_nbr2.img', '*_ndmi.img',
+                           '*_ndvi.img', '*_evi.img', '*_savi.img',
+                           '*_msavi.img']
     # MODIS files
-    files_to_search_for += ['*-sur_refl_b*.tif']
-    files_to_search_for += ['*-LST*.tif']
-    files_to_search_for += ['*-Emis_*.tif']
+    files_to_search_for.extend(['*-sur_refl_b*.tif', '*-LST*.tif',
+                                '*-Emis_*.tif'])
 
     try:
         generate_statistics('.', files_to_search_for)

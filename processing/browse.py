@@ -143,8 +143,9 @@ def do_sr_browse(sr_filename, scene,
     # ------------------------------------------------------------------------
     # Cleanup
     remove_files = ['warped.tif', 'final.tif']
-    remove_files += glob.glob('*tiff*')
-    cmd = ['rm', '-rf'] + remove_files
+    remove_files.extend(glob.glob('*tiff*'))
+    cmd = ['rm', '-rf']
+    cmd.extend(remove_files)
     cmd = ' '.join(cmd)
     log('Running: ' + cmd)
     output = util.execut_cmd(cmd)

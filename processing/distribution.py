@@ -107,7 +107,7 @@ def tar_product(product_full_path, product_files):
     '''
 
     cmd = ['tar', '-cf', '%s.tar' % product_full_path]
-    cmd += product_files
+    cmd.extend(product_files)
     cmd = ' '.join(cmd)
 
     output = ''
