@@ -29,6 +29,14 @@
 #  006		05-08-2014	Adam Dosch		Adding more deployment logic for uwsgi
 #							Adding CHECKOUT_TYPE to do checkout vs export in SVN for MODE
 #  007		06-06-2014	Adam Dosch		Adding set_user and finishing deployment logic
+#  008		06-18-2014	Adam Dosch		Adding logic for SVN repository structure changes where 'tags/' is
+#							is being renamed to 'releases/' and we are adding 'testing/' for the
+#							'dev' and 'tst' environments.  'releases/' will be for production.
+#							Redoing relese_validation() checking outside of parameter case
+#							statement and moving out the parameter setup so we have all parameters
+#							to pick the right svn structure area to look for version
+#							Adding SVN_TAGAREA to set tag area out of repository
+#							Adding SVN_TAGAREA setting in set_checkout() function
 #
 #############################################################################################################################
 
@@ -49,6 +57,8 @@ APP_FILE="/web/espa_web/espa-uwsgi.ini"
 SVN_HOST="http://espa.googlecode.com"
 
 SVN_BASE="/svn"
+
+SVN_TAGAREA=""
 
 CHECKOUT_TYPE="co"
 
@@ -93,9 +103,10 @@ function mode_validation
 function release_validation
 {
    # $1 - release from parameter
-   
+   # $2 - svn tag area based off 'mode'
+
    # Let's make sure it exists in SVN or bail out too
-   for valid_tag in $( ${SVNBIN} list ${SVN_HOST}${SVN_BASE}/tags )
+   for valid_tag in $( ${SVNBIN} list ${SVN_HOST}${SVN_BASE}/$2 )
    do
       if [ "$valid_tag" == "$1/" ]; then
          echo $1
@@ -131,12 +142,15 @@ function set_checkout
    # $1 -> mode
    case $1 in
      "prod")
+        SVN_TAGAREA="/releases"
         CHECKOUT_TYPE="export"
         ;;
      "tst")
+        SVN_TAGAREA="/testing"
         CHECKOUT_TYPE="co"
         ;;
      *)
+        SVN_TAGAREA="/testing"
         CHECKOUT_TYPE="co"
         ;;
    esac
@@ -213,13 +227,13 @@ function deploy_tier
  
             if [ "$tier" == "app" ]; then
                write_stdout "$MODE" "Performing 'app' tier deployment commands"
-               ${SSHBIN} -t ${server} "mv $SVN_WORKING_DIR ${SVN_WORKING_DIR}.deploy-${STAMP}; mkdir -p $SVN_WORKING_DIR; cd $SVN_WORKING_DIR; svn ${CHECKOUT_TYPE} ${SVN_HOST}${SVN_BASE}/tags/${RELEASE} .; find $SVN_WORKING_DIR -type f -name \"*.pyc\" -exec rm -rf '{}' \;" &> /dev/null
+               ${SSHBIN} -t ${server} "mv $SVN_WORKING_DIR ${SVN_WORKING_DIR}.deploy-${STAMP}; mkdir -p $SVN_WORKING_DIR; cd $SVN_WORKING_DIR; svn ${CHECKOUT_TYPE} ${SVN_HOST}${SVN_BASE}/${SVN_TAGAREA}/${RELEASE} .; find $SVN_WORKING_DIR -type f -name \"*.pyc\" -exec rm -rf '{}' \;" &> /dev/null
             elif [ "$tier" == "maintenance" ]; then
                write_stdout "$MODE" "Performing 'maintenance' tier deployment commands"
-               ${SSHBIN} -t ${server} "mv $SVN_WORKING_DIR ${SVN_WORKING_DIR}.deploy-${STAMP}; mkdir -p $SVN_WORKING_DIR; cd $SVN_WORKING_DIR; svn ${CHECKOUT_TYPE} ${SVN_HOST}${SVN_BASE}/tags/${RELEASE} .; find $SVN_WORKING_DIR -type f -name \"*.pyc\" -exec rm -rf '{}' \;" &> /dev/null
+               ${SSHBIN} -t ${server} "mv $SVN_WORKING_DIR ${SVN_WORKING_DIR}.deploy-${STAMP}; mkdir -p $SVN_WORKING_DIR; cd $SVN_WORKING_DIR; svn ${CHECKOUT_TYPE} ${SVN_HOST}${SVN_BASE}/${SVN_TAGAREA}/${RELEASE} .; find $SVN_WORKING_DIR -type f -name \"*.pyc\" -exec rm -rf '{}' \;" &> /dev/null
             elif [ "$tier" == "processing" ]; then
                write_stdout "$MODE" "Performing 'processing' tier deployment commands"
-               ${SSHBIN} -t ${server} "mv $SVN_WORKING_DIR ${SVN_WORKING_DIR}.deploy-${STAMP}; mkdir -p $SVN_WORKING_DIR; cd $SVN_WORKING_DIR; svn ${CHECKOUT_TYPE} ${SVN_HOST}${SVN_BASE}/tags/${RELEASE} .; find $SVN_WORKING_DIR -type f -name \"*.pyc\" -exec rm -rf '{}' \;" &> /dev/null
+               ${SSHBIN} -t ${server} "mv $SVN_WORKING_DIR ${SVN_WORKING_DIR}.deploy-${STAMP}; mkdir -p $SVN_WORKING_DIR; cd $SVN_WORKING_DIR; svn ${CHECKOUT_TYPE} ${SVN_HOST}${SVN_BASE}/${SVN_TAGAREA}/${RELEASE} .; find $SVN_WORKING_DIR -type f -name \"*.pyc\" -exec rm -rf '{}' \;" &> /dev/null
             fi
 
             # Create necessary soft-linkage to deploy directory
@@ -293,13 +307,6 @@ if [ $# -ge 2 -a $# -le 5 ]; then
             ;;
          --release=*)
             RELEASE=$( echo $param | cut -d= -f2 | sed -r -e "s/[\"\']//g" | tr A-Z a-z )
-
-            response=$( release_validation "$RELEASE" )
-
-            if [ -z "$response" ]; then
-               echo -e "\nInvalid release: $RELEASE -- Either invalid format or doesn't exist in SVN repo"
-               print_usage
-            fi
             ;;
          -d|--delete-prior-releases)
             DELETE_PRIOR_RELEASES=0
@@ -320,8 +327,16 @@ if [ $# -ge 2 -a $# -le 5 ]; then
       [[ $VERBOSE -eq 0 ]] && write_stdout "$MODE" "Passed mandatory parameter check.  We have everything to continue deployment."
    fi
 
-   # Set checkout type
+   # Set checkout svh tagarea type
    set_checkout "$MODE"
+
+   # Validate release against SVN repo
+   response=$( release_validation "$RELEASE" "$SVN_TAGAREA" )
+
+   if [ -z "$response" ]; then
+      echo -e "\nInvalid release: $RELEASE -- Either invalid format or doesn't exist in SVN repo"
+      print_usage
+   fi
 
    # Set user
    set_user "$MODE"
