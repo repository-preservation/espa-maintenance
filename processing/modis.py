@@ -210,8 +210,6 @@ def process(parms):
     # Figure out the product name
     product_name = build_product_name(scene)
 
-    print parms
-
     # Stage the modis data
     filename = staging.stage_modis_data(scene,
                                         options['source_host'],
