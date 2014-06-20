@@ -5,7 +5,7 @@ Original Author: David V. Hill
 '''
 
 from email.mime.text import MIMEText
-from smtplib import *
+from smtplib import SMTP
 from models import Scene
 from models import Order
 from models import Configuration
@@ -19,16 +19,6 @@ import lta
 import re
 import xmlrpclib
 import urllib2
-
-
-#load configuration values at the module level...
-try:
-
-    smtp_url = Configuration().getValue('smtp.url')
-    espa_email_address = Configuration().getValue('espa.email.address')
-    order_status_base_url = Configuration().getValue('order.status.base.url')
-except Exception, err:
-    print ("Could not load configuration values:%s" % err)
 
 
 def is_number(s):
@@ -81,33 +71,27 @@ def send_initial_email(order):
 
     status_url = ('%s/%s') % (status_base_url, order.user.email)
 
-    header = ("""Thank you for your order ( %s ).  Your order has been received and is currently being processed.
+    msg = ("""Thank you for your order ( %s ).  Your order has been \
+    received and is currently being processed.  You will receive an email \
+    notification when all units on this order have been completed.  
+    
+    You can check the status of your order and download already completed \
+    scenes directly from %s
 
-You will receive an email notification when all units on this order have been completed.
-
-You can check the status of your order and download already completed scenes directly from %s
-
-Requested scenes:\n""") % (order.orderid, status_url)
+    Requested scenes:
+    """) % (order.orderid, status_url)
 
     scenes = Scene.objects.filter(order__id=order.id)
-    msg = header
+    
+    #if scenes:
+    #    for s in scenes:
+    #        msg = msg + s.name + '\n'
 
-    if scenes:
-        for s in scenes:
-            msg = msg + s.name + '\n'
-
+    email_msg = "%s%s" % (msg, ''.join(["%s\n" % s.name for s in scenes]))
+        
     send_email(recipient=order.user.email,
                subject='Processing Order Received',
-               body=msg)
-
-    #configure all these values
-    #msg = MIMEText(ordered)
-    #msg['Subject'] = 'Processing order received.'
-    #msg['To'] = order.email
-    #msg['From'] = 'espa@usgs.gov'
-    #s = SMTP(host='gssdsflh01.cr.usgs.gov')
-    #s.sendmail('espa@usgs.gov', order.email, msg.as_string())
-    #s.quit()
+               body=email_msg)
 
 
 def send_completion_email(email, ordernum, readyscenes=[]):
@@ -118,28 +102,27 @@ def send_completion_email(email, ordernum, readyscenes=[]):
 
     msg = ("""Your order is now complete and can be downloaded from %s
 
-This order will remain available for 14 days.  Any data not downloaded will need to be reordered after this time.
+    This order will remain available for 14 days.  \
+    
+    Any data not downloaded will need to be reordered after this time.
 
-Please contact Customer Services at 1-800-252-4547 or email custserv@usgs.gov with any questions.
+    Please contact Customer Services at 1-800-252-4547 or \
+    email custserv@usgs.gov with any questions.
 
-Your scenes
--------------------------------------------\n""") % (status_url)
+    Your scenes
+    -------------------------------------------
+    """) % (status_url)
 
-    for r in readyscenes:
-        msg = msg + r + '\n'
+    #build the email message with the scenelist tacked onto it
+    email_msg = "%s%s" % (msg, ''.join(["%s\n" % r for r in readyscenes]))
+    
+    #for r in readyscenes:
+        #msg = msg.join([r, '\n'])
+    #    msg = msg + r + '\n'
 
     send_email(recipient=email,
                subject='Processing for %s Complete' % ordernum,
-               body=msg)
-
-    #configure these values
-    #msg = MIMEText(msg)
-    #msg['Subject'] = 'Processing for %s complete.' % (ordernum)
-    #msg['To'] = email
-    #msg['From'] = 'espa@usgs.gov'
-    #s = SMTP(host='gssdsflh01.cr.usgs.gov')
-    #s.sendmail('espa@usgs.gov', email, msg.as_string())
-    #s.quit()
+               body=email_msg)
 
 
 def get_scene_input_path(sceneid):

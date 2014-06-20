@@ -24,13 +24,13 @@ def rpc_handler(request):
     d = SimpleXMLRPCDispatcher(allow_none=False, encoding=None)
 
     if len(request.body):
-        d.register_function(_update_status, 'updateStatus')
-        d.register_function(_set_scene_error, 'setSceneError')
-        d.register_function(_set_scene_unavailable, 'setSceneUnavailable')
-        d.register_function(_mark_scene_complete, 'markSceneComplete')
-        d.register_function(_get_configuration, 'getConfiguration')
-        d.register_function(_get_scenes_to_process, 'getScenesToProcess')
-        d.register_function(_get_scenes_to_purge, 'getScenesToPurge')
+        d.register_function(_update_status, 'update_status')
+        d.register_function(_set_scene_error, 'set_scene_error')
+        d.register_function(_set_scene_unavailable, 'set_scene_unavailable')
+        d.register_function(_mark_scene_complete, 'mark_scene_complete')
+        d.register_function(_get_configuration, 'get_configuration')
+        d.register_function(_get_scenes_to_process, 'get_scenes_to_process')
+        d.register_function(_get_scenes_to_purge, 'get_scenes_to_purge')
         d.register_function(_get_scene_input_path, 'get_scene_input_path')
 
         response = HttpResponse(mimetype="application/xml")
