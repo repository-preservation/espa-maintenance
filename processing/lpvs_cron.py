@@ -60,7 +60,7 @@ def run_orders():
     if (dev_cache_hostname not in os.environ
             or os.environ.get(dev_cache_hostname) is None
             or len(os.environ.get(dev_cache_hostname)) < 1):
-        cache_host = util.getCacheHostname()
+        cache_host = util.get_cache_hostname()
     else:
         cache_host = os.environ.get('DEV_CACHE_HOSTNAME')
 
@@ -75,7 +75,7 @@ def run_orders():
 
     try:
         log("Checking for orders to process...")
-        orders = server.getLPVSOrdersToProcess()
+        orders = server.get_lpvs_orders_to_process()
 
         if orders:
             log("Found orders to process:")
@@ -96,7 +96,8 @@ def run_orders():
                     output = util.execute_cmd(cmd)
                 except Exception, e:
                     # TODO TODO TODO - Needs web side implementation
-                    server.updateOrderStatus(order, 'LPVS cron driver', 'FAIL')
+                    server.update_order_status(order, 'LPVS cron driver',
+                                               'FAIL')
 
                     msg = "Error during execution of plot.py: " + str(e)
                     raise Exception(msg)
@@ -105,7 +106,7 @@ def run_orders():
                         log(output)
 
                 # TODO TODO TODO - Needs web side implementation
-                server.updateOrderStatus(order, 'LPVS cron driver', 'SUCC')
+                server.update_order_status(order, 'LPVS cron driver', 'SUCC')
 
     except xmlrpclib.ProtocolError, e:
         log("A protocol error occurred: %s" % str(e))

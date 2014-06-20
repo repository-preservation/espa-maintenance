@@ -41,7 +41,8 @@ if __name__ == '__main__':
     '''
 
     # Grab our only command lin parameter
-    parser = ArgumentParser(description="Processes a list of scenes from stdin")
+    parser = ArgumentParser(
+        description="Processes a list of scenes from stdin")
     parser.add_argument('--keep-log', action='store_true', dest='keep_log',
                         default=False, help="keep the generated log file")
     args = parser.parse_args()
@@ -74,14 +75,14 @@ if __name__ == '__main__':
 
             log("Processing %s:%s" % (orderid, sceneid))
 
-            sensor = util.getSensor(parms['scene'])
+            sensor = util.get_sensor(parms['scene'])
 
             # Update the status in the database
             if parameters.test_for_parameter(parms, 'xmlrpcurl'):
                 if parms['xmlrpcurl'] != 'dev':
                     server = xmlrpclib.ServerProxy(parms['xmlrpcurl'])
-                    server.updateStatus(sceneid, orderid, processing_location,
-                                        'processing')
+                    server.update_status(sceneid, orderid, processing_location,
+                                         'processing')
 
             # Make sure we can process the sensor
             if sensor not in parameters.valid_sensors:
@@ -123,9 +124,10 @@ if __name__ == '__main__':
 
             # Everything was successfull so mark the scene complete
             if server is not None:
-                server.markSceneComplete(sceneid, orderid, processing_location,
-                                         destination_product_file,
-                                         destination_cksum_file, "")
+                server.mark_scene_complete(sceneid, orderid,
+                                           processing_location,
+                                           destination_product_file,
+                                           destination_cksum_file, "")
             else:
                 log("Delivered product to %s at location %s and cksum"
                     " location %s" % (processing_location,
@@ -163,15 +165,15 @@ if __name__ == '__main__':
                     or e.error_code == ee.ErrorCodes.creating_output_dir):
 
                 if server is not None:
-                    server.setSceneError(sceneid, orderid,
-                                         processing_location, log_data)
+                    server.set_scene_error(sceneid, orderid,
+                                           processing_location, log_data)
 
             elif (e.error_code == ee.ErrorCodes.staging_data
                   or e.error_code == ee.ErrorCodes.unpacking):
 
                 if server is not None:
-                    server.setSceneError(sceneid, orderid,
-                                         processing_location, log_data)
+                    server.set_scene_error(sceneid, orderid,
+                                           processing_location, log_data)
 
             elif (e.error_code == ee.ErrorCodes.metadata
                   or e.error_code == ee.ErrorCodes.ledaps
@@ -187,40 +189,40 @@ if __name__ == '__main__':
                   or e.error_code == ee.ErrorCodes.remove_products):
 
                 if server is not None:
-                    server.setSceneError(sceneid, orderid,
-                                         processing_location, log_data)
+                    server.set_scene_error(sceneid, orderid,
+                                           processing_location, log_data)
 
             elif e.error_code == ee.ErrorCodes.warping:
 
                 if server is not None:
-                    server.setSceneError(sceneid, orderid,
-                                         processing_location, log_data)
+                    server.set_scene_error(sceneid, orderid,
+                                           processing_location, log_data)
 
             elif e.error_code == ee.ErrorCodes.reformat:
 
                 if server is not None:
-                    server.setSceneError(sceneid, orderid,
-                                         processing_location, log_data)
+                    server.set_scene_error(sceneid, orderid,
+                                           processing_location, log_data)
 
             elif e.error_code == ee.ErrorCodes.statistics:
 
                 if server is not None:
-                    server.setSceneError(sceneid, orderid,
-                                         processing_location, log_data)
+                    server.set_scene_error(sceneid, orderid,
+                                           processing_location, log_data)
 
             elif (e.error_code == ee.ErrorCodes.packaging_product
                   or e.error_code == ee.ErrorCodes.distributing_product
                   or e.error_code == ee.ErrorCodes.verifying_checksum):
 
                 if server is not None:
-                    server.setSceneError(sceneid, orderid,
-                                         processing_location, log_data)
+                    server.set_scene_error(sceneid, orderid,
+                                           processing_location, log_data)
 
             else:
                 # Catch all remaining errors
                 if server is not None:
-                    server.setSceneError(sceneid, orderid,
-                                         processing_location, log_data)
+                    server.set_scene_error(sceneid, orderid,
+                                           processing_location, log_data)
 
             if server is not None:
                 # Cleanup the log file
@@ -253,8 +255,8 @@ if __name__ == '__main__':
                 # Add the exception text
                 log_data += '\n' + str(e)
 
-                server.setSceneError(sceneid, orderid,
-                                     processing_location, log_data)
+                server.set_scene_error(sceneid, orderid,
+                                       processing_location, log_data)
                 # Cleanup the log file
                 if os.path.exists(log_filename):
                     os.unlink(log_filename)

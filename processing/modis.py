@@ -111,7 +111,7 @@ def validate_parameters(parms):
             options[key] = False
 
     # Extract information from the scene string
-    sensor = util.getSensor(parms['scene'])
+    sensor = util.get_sensor(parms['scene'])
 
     if sensor not in parameters.valid_modis_sensors:
         raise NotImplementedError("Data sensor %s is not implemented" % sensor)
@@ -136,9 +136,9 @@ def validate_parameters(parms):
         options['source_pw'] = None
 
     if not parameters.test_for_parameter(options, 'source_directory'):
-        short_name = util.getModisShortName(parms['scene'])
-        version = util.getModisVersion(parms['scene'])
-        archive_date = util.getModisArchiveDate(parms['scene'])
+        short_name = util.get_modis_short_name(parms['scene'])
+        version = util.get_modis_version(parms['scene'])
+        archive_date = util.get_modis_archive_date(parms['scene'])
         options['source_directory'] = '%s/%s.%s/%s' \
             % (base_source_path, short_name, version, archive_date)
 
@@ -169,9 +169,9 @@ def build_product_name(scene):
     ts = datetime.today()
 
     # Extract stuff from the scene
-    short_name = util.getModisShortName(scene)
-    (horizontal, vertical) = util.getModisHorizontalVertical(scene)
-    (year, doy) = util.getModisSceneDate(scene)
+    short_name = util.get_modis_short_name(scene)
+    (horizontal, vertical) = util.get_modis_horizontal_vertical(scene)
+    (year, doy) = util.get_modis_scene_date(scene)
 
     product_name = '%s%s%s%s%s-SC%s%s%s%s%s%s' \
         % (short_name, horizontal.zfill(3), vertical.zfill(3), year.zfill(4),

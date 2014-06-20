@@ -42,7 +42,7 @@ class RequestHandler(SimpleXMLRPCRequestHandler):
 
 
 # ============================================================================
-def getLPVSOrdersToProcess():
+def get_lpvs_orders_to_process():
 
     results = []
     try:
@@ -54,7 +54,7 @@ def getLPVSOrdersToProcess():
 
 
 # ============================================================================
-def updateOrderStatus(orderId, module, status):
+def update_order_status(orderId, module, status):
     print "Order [%s] Received [%s] From [%s]" % (orderId, status, module)
     return 0
 
@@ -99,8 +99,9 @@ if __name__ == '__main__':
     # Add this in to allow shutdown from the service
     # server.register_function(server.shutdown)
 
-    server.register_function(getLPVSOrdersToProcess, 'getLPVSOrdersToProcess')
-    server.register_function(updateOrderStatus, 'updateOrderStatus')
+    server.register_function(get_lpvs_orders_to_process,
+                             'get_lpvs_orders_to_process')
+    server.register_function(update_order_status, 'update_order_status')
 
     server.register_introspection_functions()
 

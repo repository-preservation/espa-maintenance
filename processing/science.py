@@ -535,7 +535,7 @@ if __name__ == '__main__':
 
     json_parms['options'] = options
 
-    sensor = util.getSensor(parms['scene'])
+    sensor = util.get_sensor(parms['scene'])
 
     try:
         # Call the main processing routine

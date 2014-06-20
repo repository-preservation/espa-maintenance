@@ -66,24 +66,24 @@ def run_scenes():
         log("xmlrpc server was None... exiting")
         sys.exit(EXIT_FAILURE)
 
-    user = server.getConfiguration('landsatds.usrname')
+    user = server.get_configuration('landsatds.usrname')
     if len(user) == 0:
         log("landsatds.username is not defined... exiting")
         sys.exit(EXIT_FAILURE)
 
-    pw = urllib.quote(server.getConfiguration('landsatds.password'))
+    pw = urllib.quote(server.get_configuration('landsatds.password'))
     if len(pw) == 0:
         log("landsatds.password is not defined... exiting")
         sys.exit(EXIT_FAILURE)
 
-    host = server.getConfiguration('landsatds.host')
+    host = server.get_configuration('landsatds.host')
     if len(host) == 0:
         log("landsatds.host is not defined... exiting")
         sys.exit(EXIT_FAILURE)
 
     try:
         log("Checking for scenes to process...")
-        scenes = server.getScenesToProcess()
+        scenes = server.get_scenes_to_process()
         if scenes:
             # Figure out the name of the order file
             stamp = datetime.now()
@@ -194,8 +194,8 @@ def run_scenes():
                 sceneid = line['scene']
                 log("Updating scene:%s orderid:%s to queued" % (sceneid,
                                                                 orderid))
-                server.updateStatus(sceneid, orderid,
-                                    'CDR_ECV cron driver', 'queued')
+                server.update_status(sceneid, orderid,
+                                     'CDR_ECV cron driver', 'queued')
 
             log("Deleting local request file copy...")
             os.unlink(espaorderfile)

@@ -71,7 +71,7 @@ def execute_cmd(cmd):
 
 
 # ============================================================================
-def stripZeros(value):
+def strip_zeros(value):
     '''
     Description:
       Removes all leading zeros from a string
@@ -83,25 +83,25 @@ def stripZeros(value):
 
 
 # ============================================================================
-def getPath(scene_name):
+def get_path(scene_name):
     '''
     Description:
       Returns the path of a given scene
     '''
-    return stripZeros(scene_name[3:6])
+    return strip_zeros(scene_name[3:6])
 
 
 # ============================================================================
-def getRow(scene_name):
+def get_row(scene_name):
     '''
     Description:
       Returns the row of a given scene
     '''
-    return stripZeros(scene_name[6:9])
+    return strip_zeros(scene_name[6:9])
 
 
 # ============================================================================
-def getYear(scene_name):
+def get_year(scene_name):
     '''
     Description:
       Returns the year of a given scene
@@ -110,7 +110,7 @@ def getYear(scene_name):
 
 
 # ============================================================================
-def getDoy(scene_name):
+def get_doy(scene_name):
     '''
     Description:
       Returns the day of year for a given scene
@@ -119,7 +119,7 @@ def getDoy(scene_name):
 
 
 # ============================================================================
-def getSensor(scene_name):
+def get_sensor(scene_name):
     '''
     Description:
       Returns the sensor of a given scene
@@ -141,7 +141,7 @@ def getSensor(scene_name):
 
 
 # ============================================================================
-def getSensorCode(scene_name):
+def get_sensor_code(scene_name):
     '''
     Description:
       Returns the raw sensor code of a given scene
@@ -150,7 +150,7 @@ def getSensorCode(scene_name):
 
 
 # ============================================================================
-def getStation(scene_name):
+def get_station(scene_name):
     '''
     Description:
       Returns the ground stations and version for a given scene
@@ -159,7 +159,7 @@ def getStation(scene_name):
 
 
 # ============================================================================
-def getModisShortName(scene_name):
+def get_modis_short_name(scene_name):
     '''
     Description:
       Returns the MODIS short name portion of the scene
@@ -168,7 +168,7 @@ def getModisShortName(scene_name):
 
 
 # ============================================================================
-def getModisVersion(scene_name):
+def get_modis_version(scene_name):
     '''
     Description:
       Returns the MODIS version portion of the scene
@@ -177,7 +177,7 @@ def getModisVersion(scene_name):
 
 
 # ============================================================================
-def getModisHorizontalVertical(scene_name):
+def get_modis_horizontal_vertical(scene_name):
     '''
     Description:
       Returns the MODIS horizontal and vertical specifiers of the scene
@@ -188,7 +188,7 @@ def getModisHorizontalVertical(scene_name):
 
 
 # ============================================================================
-def getModisSceneDate(scene_name):
+def get_modis_scene_date(scene_name):
     '''
     Description:
       Returns the MODIS scene data portion of the scene
@@ -200,7 +200,7 @@ def getModisSceneDate(scene_name):
 
 
 # ============================================================================
-def getModisArchiveDate(scene_name):
+def get_modis_archive_date(scene_name):
     '''
     Description:
       Returns the MODIS archive date portion of the scene
@@ -225,7 +225,7 @@ def getModisArchiveDate(scene_name):
 
 
 # ============================================================================
-def getCacheHostname():
+def get_cache_hostname():
     '''
     Description:
       Poor mans load balancer for accessing the online cache over the private

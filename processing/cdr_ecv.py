@@ -119,7 +119,7 @@ def validate_parameters(parms):
             options[key] = False
 
     # Extract information from the scene string
-    sensor = util.getSensor(parms['scene'])
+    sensor = util.get_sensor(parms['scene'])
 
     if sensor not in parameters.valid_landsat_sensors:
         raise NotImplementedError("Data sensor %s is not implemented"
@@ -130,7 +130,7 @@ def validate_parameters(parms):
 
     # Verify or set the source information
     if not parameters.test_for_parameter(options, 'source_host'):
-        options['source_host'] = util.getCacheHostname()
+        options['source_host'] = util.get_cache_hostname()
 
     if not parameters.test_for_parameter(options, 'source_username'):
         options['source_username'] = None
@@ -139,15 +139,15 @@ def validate_parameters(parms):
         options['source_pw'] = None
 
     if not parameters.test_for_parameter(options, 'source_directory'):
-        path = util.getPath(parms['scene'])
-        row = util.getRow(parms['scene'])
-        year = util.getYear(parms['scene'])
+        path = util.get_path(parms['scene'])
+        row = util.get_row(parms['scene'])
+        year = util.get_year(parms['scene'])
         options['source_directory'] = '%s/%s/%s/%s/%s' \
             % (settings.LANDSAT_BASE_SOURCE_PATH, sensor, path, row, year)
 
     # Verify or set the destination information
     if not parameters.test_for_parameter(options, 'destination_host'):
-        options['destination_host'] = util.getCacheHostname()
+        options['destination_host'] = util.get_cache_hostname()
 
     if not parameters.test_for_parameter(options, 'destination_username'):
         options['destination_username'] = 'localhost'
@@ -172,11 +172,11 @@ def build_product_name(scene):
     ts = datetime.today()
 
     # Extract stuff from the scene
-    sensor_code = util.getSensorCode(scene)
-    path = util.getPath(scene)
-    row = util.getRow(scene)
-    year = util.getYear(scene)
-    doy = util.getDoy(scene)
+    sensor_code = util.get_sensor_code(scene)
+    path = util.get_path(scene)
+    row = util.get_row(scene)
+    year = util.get_year(scene)
+    doy = util.get_doy(scene)
 
     product_name = '%s%s%s%s%s-SC%s%s%s%s%s%s' \
         % (sensor_code, path.zfill(3), row.zfill(3), year.zfill(4),
