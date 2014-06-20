@@ -29,7 +29,7 @@ def get_logfile(orderid, sceneid):
       Returns the full path and name of the log file to use
     '''
 
-    return '%s/%s-%s-jobdebug.txt' % (settings.logfile_path, orderid, sceneid)
+    return '%s/%s-%s-jobdebug.txt' % (settings.LOGFILE_PATH, orderid, sceneid)
 
 
 # ============================================================================
@@ -233,7 +233,7 @@ def getCacheHostname():
     '''
 
     # 140 is here twice so the load is 2/3 + 1/3.  machines are mismatched
-    host_list = settings.espa_cache_host_list
+    host_list = settings.ESPA_CACHE_HOST_LIST
 
     def check_host_status(hostname):
         cmd = "ping -q -c 1 %s" % hostname

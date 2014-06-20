@@ -118,7 +118,7 @@ def run_scenes():
                 log(line_entry)
 
                 # Pad the entry so hadoop will properly split the jobs
-                filler_count = settings.order_buffer_length - len(line_entry)
+                filler_count = settings.ORDER_BUFFER_LENGTH - len(line_entry)
                 order_line = line_entry + ('#' * filler_count) + '\n'
 
                 # Write out the order line
@@ -137,7 +137,7 @@ def run_scenes():
             # Define command line to execute the hadoop job
             hadoop_run_command = \
                 [hadoop_executable, 'jar', jars,
-                 '-D', 'mapred.task.timeout=%s' % settings.hadoop_timeout,
+                 '-D', 'mapred.task.timeout=%s' % settings.HADOOP_TIMEOUT,
                  '-D', 'mapred.reduce.tasks=0',
                  '-D', 'mapred.job.queue.name=ondemand',
                  '-D', 'mapred.job.name="%s"' % ordername,

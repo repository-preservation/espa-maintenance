@@ -139,13 +139,13 @@ def validate_landsat_parameters(parms):
     # a resolution was not specified
     if options['include_sr_browse']:
         if not parameters.test_for_parameter(options, 'browse_resolution'):
-            options['browse_resolution'] = settings.default_browse_resolution
+            options['browse_resolution'] = settings.DEFAULT_BROWSE_RESOLUTION
 
     # Determine if SOLR was requested and specify the default collection name
     # if a collection name was not specified
     if options['include_solr_index']:
         if not parameters.test_for_parameter(options, 'collection_name'):
-            options['collection_name'] = settings.default_solr_collection_name
+            options['collection_name'] = settings.DEFAULT_SOLR_COLLECTION_NAME
 # END - validate_landsat_parameters
 
 
@@ -411,7 +411,7 @@ def build_landsat_science_products(parms):
             del espa_xml  # Not needed anymore
 
             cmd = ['cfmask', '--verbose', '--max_cloud_pixels',
-                   settings.cfmask_max_cloud_pixels, '--xml', xml_filename]
+                   settings.CFMASK_MAX_CLOUD_PIXELS, '--xml', xml_filename]
             cmd = ' '.join(cmd)
 
             log('CREATE CFMASK COMMAND:' + cmd)

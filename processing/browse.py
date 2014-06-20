@@ -40,7 +40,7 @@ import settings
 #        color ramps against indices.
 # ============================================================================
 def do_sr_browse(sr_filename, scene,
-                 resolution=settings.default_browse_resolution):
+                 resolution=settings.DEFAULT_BROWSE_RESOLUTION):
     '''
     Description:
       Creates a browse image from the surface relfectance file

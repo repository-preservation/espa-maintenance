@@ -69,7 +69,7 @@ def run_orders():
     if (dev_cache_directory not in os.environ
             or os.environ.get(dev_cache_directory) is None
             or len(os.environ.get(dev_cache_directory)) < 1):
-        cache_directory = settings.espa_cache_directory
+        cache_directory = settings.ESPA_CACHE_DIRECTORY
     else:
         cache_directory = os.environ.get('DEV_CACHE_DIRECTORY')
 

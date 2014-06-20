@@ -143,7 +143,7 @@ def validate_parameters(parms):
         row = util.getRow(parms['scene'])
         year = util.getYear(parms['scene'])
         options['source_directory'] = '%s/%s/%s/%s/%s' \
-            % (settings.landsat_base_source_path, sensor, path, row, year)
+            % (settings.LANDSAT_BASE_SOURCE_PATH, sensor, path, row, year)
 
     # Verify or set the destination information
     if not parameters.test_for_parameter(options, 'destination_host'):
@@ -157,7 +157,7 @@ def validate_parameters(parms):
 
     if not parameters.test_for_parameter(options, 'destination_directory'):
         options['destination_directory'] = '%s/orders/%s' \
-            % (settings.espa_base_output_path, parms['orderid'])
+            % (settings.ESPA_BASE_OUTPUT_PATH, parms['orderid'])
 # END - validate_parameters
 
 
@@ -262,8 +262,8 @@ def process(parms):
 
     # Deliver the product files
     # Attempt X times sleeping between each attempt
-    sleep_seconds = settings.default_sleep_seconds
-    max_number_of_attempts = settings.max_distribution_attempts
+    sleep_seconds = settings.DEFAULT_SLEEP_SECONDS
+    max_number_of_attempts = settings.MAX_DISTRIBUTION_ATTEMPTS
     attempt = 0
     destination_product_file = 'ERROR'
     destination_cksum_file = 'ERROR'

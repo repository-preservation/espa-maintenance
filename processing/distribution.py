@@ -81,7 +81,7 @@ def build_argument_parser():
 
     parser.add_argument('--sleep_seconds',
                         action='store', dest='sleep_seconds',
-                        default=settings.default_sleep_seconds,
+                        default=settings.DEFAULT_SLEEP_SECONDS,
                         help="number of seconds to sleep after a failure"
                              " before retrying")
 
@@ -445,7 +445,7 @@ def deliver_product(scene, work_directory, package_directory, product_name,
                     destination_host, destination_directory,
                     destination_username, destination_pw,
                     include_statistics=False,
-                    sleep_seconds=settings.default_sleep_seconds):
+                    sleep_seconds=settings.DEFAULT_SLEEP_SECONDS):
     '''
     Description:
       Packages the product and distributes it to the destination.
@@ -466,7 +466,7 @@ def deliver_product(scene, work_directory, package_directory, product_name,
         except Exception, e:
             log("An error occurred processing %s" % product_name)
             log("Error: %s" % str(e))
-            if attempt < settings.max_packaging_attempts:
+            if attempt < settings.MAX_PACKAGING_ATTEMPTS:
                 sleep(sleep_seconds)  # sleep before trying again
                 attempt += 1
                 continue
@@ -488,7 +488,7 @@ def deliver_product(scene, work_directory, package_directory, product_name,
         except Exception, e:
             log("An error occurred processing %s" % product_name)
             log("Error: %s" % str(e))
-            if attempt < settings.max_delivery_attempts:
+            if attempt < settings.MAX_DELIVERY_ATTEMPTS:
                 sleep(sleep_seconds)  # sleep before trying again
                 attempt += 1
                 continue
@@ -516,7 +516,7 @@ def deliver_product(scene, work_directory, package_directory, product_name,
             except Exception, e:
                 log("An error occurred processing %s" % product_name)
                 log("Error: %s" % str(e))
-                if attempt < settings.max_delivery_attempts:
+                if attempt < settings.MAX_DELIVERY_ATTEMPTS:
                     sleep(sleep_seconds)  # sleep before trying again
                     attempt += 1
                     continue

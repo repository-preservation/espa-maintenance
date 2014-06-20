@@ -121,9 +121,9 @@ def validate_parameters(parms):
 
     # Setup the base paths
     if sensor == 'MOD':
-        base_source_path = settings.terra_base_source_path
+        base_source_path = settings.TERRA_BASE_SOURCE_PATH
     else:
-        base_source_path = settings.aqua_base_source_path
+        base_source_path = settings.AQUA_BASE_SOURCE_PATH
 
     # Verify or set the source information
     if not parameters.test_for_parameter(options, 'source_host'):
@@ -154,7 +154,7 @@ def validate_parameters(parms):
 
     if not parameters.test_for_parameter(options, 'destination_directory'):
         options['destination_directory'] = '%s/orders/%s' \
-            % (settings.espa_base_output_path, parms['orderid'])
+            % (settings.ESPA_BASE_OUTPUT_PATH, parms['orderid'])
 # END - validate_parameters
 
 
@@ -282,8 +282,8 @@ def process(parms):
 
     # Deliver the product files
     # Attempt X times sleeping between each attempt
-    sleep_seconds = settings.default_sleep_seconds
-    max_number_of_attempts = settings.max_distribution_attempts
+    sleep_seconds = settings.DEFAULT_SLEEP_SECONDS
+    max_number_of_attempts = settings.MAX_DISTRIBUTION_ATTEMPTS
     attempt = 0
     destination_product_file = 'ERROR'
     destination_cksum_file = 'ERROR'
