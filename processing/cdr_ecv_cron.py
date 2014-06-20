@@ -96,34 +96,36 @@ def run_scenes():
             espaorderfile = '/tmp/' + ordername
 
             # Create the order file full of all the scenes requested
-            fd = open(espaorderfile, 'w+')
-            for scene in scenes:
-                line = json.loads(scene)
+            with open(espaorderfile, 'w+') as espa_fd:
+                for scene in scenes:
+                    line = json.loads(scene)
 
-                (orderid, sceneid, options) = (line['orderid'],
-                                               line['scene'],
-                                               line['options'])
+                    (orderid, sceneid, options) = (line['orderid'],
+                                                   line['scene'],
+                                                   line['options'])
 
-                line['xmlrpcurl'] = rpcurl
+                    line['xmlrpcurl'] = rpcurl
 
-                # Add the usernames and passwords to the options
-                options['source_username'] = user
-                options['destination_username'] = user
-                options['source_pw'] = pw
-                options['destination_pw'] = pw
+                    # Add the usernames and passwords to the options
+                    options['source_username'] = user
+                    options['destination_username'] = user
+                    options['source_pw'] = pw
+                    options['destination_pw'] = pw
 
-                line['options'] = options
+                    line['options'] = options
 
-                line_entry = json.dumps(line)
-                log(line_entry)
+                    line_entry = json.dumps(line)
+                    log(line_entry)
 
-                # Pad the entry so hadoop will properly split the jobs
-                filler_count = settings.ORDER_BUFFER_LENGTH - len(line_entry)
-                order_line = line_entry + ('#' * filler_count) + '\n'
+                    # Pad the entry so hadoop will properly split the jobs
+                    filler_count = (settings.ORDER_BUFFER_LENGTH -
+                                    len(line_entry))
+                    order_line = line_entry + ('#' * filler_count) + '\n'
 
-                # Write out the order line
-                fd.write(order_line)
-            fd.close()
+                    # Write out the order line
+                    espa_fd.write(order_line)
+                # END - for scene
+            # END - with espa_fd
 
             # Specify the location of the order file on the hdfs
             hdfs_target = 'requests/%s' % ordername

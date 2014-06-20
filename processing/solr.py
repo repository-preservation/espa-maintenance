@@ -144,10 +144,8 @@ def do_solr_index(metadata, scene, solr_filename, collection_name,
     solr_buffer.write("</doc></add>")
     solr_buffer.flush()
 
-    output_fd = open(solr_filename, 'w')
-    output_fd.write(solr_buffer.getvalue())
-    output_fd.flush()
-    output_fd.close()
+    with open(solr_filename, 'w') as output_fd:
+        output_fd.write(solr_buffer.getvalue())
 
     solr_buffer.close()
 # END - do_solr_index

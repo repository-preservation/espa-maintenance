@@ -53,24 +53,23 @@ def get_landsat_metadata(work_dir):
         copy_filename = metadata_filename + '.old'
         shutil.copy(metadata_filename, copy_filename)
 
+        file_data = list()
         # Read in the file and write it back out to get rid of binary
         # characters at the end of some of the GLS metadata files
-        file = open(metadata_filename, 'r')
-        file_data = file.readlines()
-        file.close()
+        with open(metadata_filename, 'r') as metadata_fd:
+            file_data = metadata_fd.readlines()
 
-        buffer = StringIO()
+        data_buffer = StringIO()
         for line in file_data:
-            buffer.write(line)
+            data_buffer.write(line)
+        fixed_data = data_buffer.getvalue()
 
         # Fix the stupid error where the filename has a bad extention
         metadata_filename = metadata_filename.replace('.TIF', '.txt')
 
-        file = open(metadata_filename, 'w+')
-        fixed_data = buffer.getvalue()
-        file.write(fixed_data)
-        file.flush()
-        file.close()
+        # Write the newly formatted file out
+        with open(metadata_filename, 'w+') as metadata_fd:
+            metadata_fd.write(fixed_data)
 
     finally:
         # Change back to the original directory

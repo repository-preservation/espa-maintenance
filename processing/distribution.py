@@ -229,10 +229,8 @@ def package_product(source_directory, destination_directory, product_name):
 
         cksum_full_path = os.path.join(destination_directory, cksum_filename)
 
-        cksum_fd = open(cksum_full_path, 'wb+')
-        cksum_fd.write(cksum_value)
-        cksum_fd.flush()
-        cksum_fd.close()
+        with open(cksum_full_path, 'wb+') as cksum_fd:
+            cksum_fd.write(cksum_value)
 
     finally:
         # Change back to the previous directory

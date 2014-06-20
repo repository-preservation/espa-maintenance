@@ -191,18 +191,17 @@ def remove_products(xml_filename, products_to_remove=None):
 
             try:
                 # Export the file with validation
-                xml_fd = open(xml_filename, 'w')
+                with open(xml_filename, 'w') as xml_fd:
+                    # Export to the file and specify the namespace/schema
+                    xmlns = "http://espa.cr.usgs.gov/v1.0"
+                    xmlns_xsi = "http://www.w3.org/2001/XMLSchema-instance"
+                    schema_uri = ("http://espa.cr.usgs.gov/static/schema/"
+                                  "espa_internal_metadata_v1_0.xsd")
+                    metadata_api.export(xml_fd, espa_xml,
+                                        xmlns=xmlns,
+                                        xmlns_xsi=xmlns_xsi,
+                                        schema_uri=schema_uri)
 
-                # Export to the file and specify the namespace/schema
-                xmlns = "http://espa.cr.usgs.gov/v1.0"
-                xmlns_xsi = "http://www.w3.org/2001/XMLSchema-instance"
-                schema_uri = ("http://espa.cr.usgs.gov/static/schema/"
-                              "espa_internal_metadata_v1_0.xsd")
-                metadata_api.export(xml_fd, espa_xml,
-                                    xmlns=xmlns,
-                                    xmlns_xsi=xmlns_xsi,
-                                    schema_uri=schema_uri)
-                xml_fd.close()
             except Exception, e:
                 raise ee.ESPAException(ee.ErrorCodes.remove_products,
                                        str(e)), None, sys.exc_info()[2]

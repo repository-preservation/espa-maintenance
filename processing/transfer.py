@@ -168,7 +168,8 @@ def ftp_to_remote_location(username, pw, localfile, host, remotefile):
     try:
         log("Logging into %s with %s:%s" % (host, username, pw))
         ftp = ftplib.FTP(host, user=username, passwd=pw, timeout=60)
-        ftp.storbinary("STOR " + remotefile, open(localfile, 'rb'), 1024)
+        with open(localfile, 'rb') as tmp_fd:
+            ftp.storbinary("STOR " + remotefile, tmp_fd, 1024)
     finally:
         if ftp:
             ftp.quit()
@@ -239,23 +240,19 @@ def http_transfer_file(source_host, source_file, destination_file):
     log(url_path)
 
     url = urllib2.urlopen(url_path)
-    local_fd = open(destination_file, 'wb')
 
     metadata = url.info()
     file_size = int(metadata.getheaders("Content-Length")[0])
     retrieved_bytes = 0
 
-    try:
+    with open(destination_file, 'wb') as local_fd:
         while True:
-            buffer = url.read(BLOCK_SIZE)
-            if not buffer:
+            data = url.read(BLOCK_SIZE)
+            if not data:
                 break
 
-            retrieved_bytes += len(buffer)
-            local_fd.write(buffer)
-
-    finally:
-        local_fd.close()
+            retrieved_bytes += len(data)
+            local_fd.write(data)
 
     if retrieved_bytes != file_size:
         raise Exception("Transfer Failed - HTTP")
