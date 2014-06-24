@@ -5,7 +5,6 @@ from django.contrib.auth.models import User
 from django.db.models import Q
 
 
-
 class UserProfile (models.Model):
     '''Extends the information attached to ESPA users with a one-to-one
     relationship. The other options were to extend the actual Django User
@@ -108,8 +107,6 @@ class Order(models.Model):
         o['include_sr_savi'] = False          # soil adjusted vegetation
         o['include_sr_msavi'] = False         # modified soil adjusted veg
         o['include_sr_evi'] = False           # enhanced vegetation
-        o['include_swe'] = False              # surface water extent
-        o['include_sca'] = False              # snow covered area
         o['include_solr_index'] = False       # solr search index record
         o['include_cfmask'] = False           # (deprecated)
 
@@ -232,12 +229,12 @@ class Order(models.Model):
         or the api'''
         d = datetime.datetime.now()
         return '%s-%s%s%s-%s%s%s' % (email,
-                                     d.month,
-                                     d.day,
+                                     d.month.zfill(2),
+                                     d.day.zfill(2),
                                      d.year,
-                                     d.hour,
-                                     d.minute,
-                                     d.second)
+                                     d.hour.zfill(2),
+                                     d.minute.zfill(2),
+                                     d.second.zfill(2))
 
     @staticmethod
     def generate_ee_order_id(email, eeorder):
@@ -252,24 +249,24 @@ class Order(models.Model):
         str(email-eeorder)
         '''
         return '%s-%s' % (email, eeorder)
-        
+
     @staticmethod
     def get_order_details(orderid):
         '''Returns the full order and all attached scenes.  This can also
-        be handled by just returning the order object, but this is going to 
+        be handled by just returning the order object, but this is going to
         be used primarily in a template so its simpler to return both sets
         of objects on their own.
-        
+
         Keyword args:
         orderid -- the orderid as held in the Order table
-        
+
         Return:
         A tuple of orders, scenes
         '''
         order = Order.objects.get(orderid=orderid)
         scenes = Scene.objects.filter(order__orderid=orderid)
         return order, scenes
-        
+
     @staticmethod
     def list_all_orders(email):
         '''lists out all orders for a given user
@@ -278,7 +275,7 @@ class Order(models.Model):
         email -- The email address of the user
 
         Return:
-        A queryresult of orders for the given email.        
+        A queryresult of orders for the given email.
         '''
         #TODO: Modify this query to remove reference to Order.email once all
         # pre-espa-2.3.0 orders (EE Auth) are out of the system
@@ -287,7 +284,7 @@ class Order(models.Model):
             ).order_by('-order_date')
         #return Order.objects.filter(email=email).order_by('-order_date')
         return o
-    
+
     @staticmethod
     def enter_new_order(username,
                         order_source,

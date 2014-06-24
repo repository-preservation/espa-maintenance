@@ -251,7 +251,9 @@ def validate_product_options(request):
     request -- HTTP request object
 
     Return:
-    No return. Keyword parameters are passed by reference.
+    Tuple of (default_options, errors) where
+        default_options is dict() 
+        errors is list()
     '''
     # build some aliases to clean the code up
     P = request.POST
@@ -272,56 +274,37 @@ def validate_product_options(request):
     return (default_options, prod_errors)
 
 
-def validate_email(request, context, errors):
-    '''Verifies that an email was supplied in the request and that the
-    address at least appears to be valid
-
-    Keyword args:
-    request -- HTTP request object
-    context -- RequestContext
-    errors -- Dictionary of errors to be returned to the caller
-
-    Return:
-    No return. Keyword parameters are passed by reference.
-    '''
-    # build some aliases to clean the code up
-    P = request.POST
-
-    # start off by making sure we have an email address.
-    if not 'email' in P or not core.validate_email(P['email']):
-        errors['email'] = "Please provide a valid email address"
-    else:
-        context['email'] = P['email']
-
-
-def validate_files_and_scenes(request, context, errors, scene_errors):
+def validate_scenelist(request):
     '''Ensures that a scene list was provided and checks the list
     for errors, bad values
 
     Keyword args:
     request -- HTTP request object
-    context -- RequestContext dictionary
-    errors -- Dictionary of errors that will be returned to the caller
-    scene_errors -- List of messages pertaining to individual scenes
-
+    
     Return:
-    No return.  Keyword parameters are passed by reference.
+    A tuple of (scenelist, errors) where 
+       scene_list = set() or None
+       errors = list() or None
+           
     '''
+   
+    errors = list()
+    scene_list = set()
+    
     # make sure we have an uploaded scenelist file
     if not 'scenelist' in request.FILES:
-        errors['file'] = "Please provide a scene list and \
-                         include at least one scene for processing."
+        errors.append("Please provide a scene list and \
+                         include at least one scene for processing.")
     else:
         # there was a file attached to the request.  make sure its not empty.
         orderfile = request.FILES['scenelist']
+        
         lines = orderfile.read().split('\n')
 
         if len(lines) <= 0:
-            errors['file'] = "No scenes found in your scenelist. \
-            Please include at least one scene for processing."
+            errors.append("Please include at least one scene for processing.")
         else:
             # Simple length and prefix checks for scenelist items
-            context['scenelist'] = set()
             for line in lines:
                 line = line.strip()
                 if line.find('.tar.gz') != -1:
@@ -329,47 +312,47 @@ def validate_files_and_scenes(request, context, errors, scene_errors):
 
                 if len(line) >= 15 \
                         and (line.startswith("LT") or line.startswith("LE")):
-                    context['scenelist'].add(line)
+                    scene_list.add(line)
 
             # Run the submitted list by LTA so they can make sure
             # the items are in the inventory
             c = lta.OrderWrapperServiceClient()
-            verified_scenes = c.verify_scenes(list(context['scenelist']))
+            verified_scenes = c.verify_scenes(list(scene_list))
             for sc, valid in verified_scenes.iteritems():
                 if valid == 'false':
-                    scene_errors.append("%s not found in Landsat inventory"
+                    errors.append("%s not found in Landsat inventory"
                                         % sc)
 
             # after all that validation, make sure there's
             # actually something left to order
-            if len(context['scenelist']) < 1:
-                scene_errors.append("No scenes found in scenelist. \
+            if len(scene_list) < 1:
+                scene_list = None
+                errors.append("No scenes found in order file. \
                 Please provide at least one scene for processing")
 
+    
+    if len(errors) < 1:
+        errors = None
+        
+    return (scene_list, errors)
 
-def validate_product_selected(request, errors):
+
+def product_is_selected(request):
     '''Verifies that at least one product was selected for processing
 
     Keyword args:
     request -- HTTP request object
-    errors -- List of errors to be returned to the caller
 
     Return:
-    No return. Keyword parameters are passed by reference.
+    True if a product is selected, False if not
     '''
-
-    # build some aliases to clean the code up
-    P = request.POST
-
-    ok = False
-
+    
     for key in Order.get_default_product_options().iterkeys():
-        if key in P:
-            ok = True
-            break
+        if key in request.POST:
+            return True
+    
+    return False
 
-    if not ok:
-        errors.append("Please select at least one product for processing")
 
 
 def validate_input_params(request):
@@ -379,20 +362,17 @@ def validate_input_params(request):
     request -- HTTP request object
 
     Return:
-    Tuple(dict1(), dict2(), list()) where dict1 is the context,
+    Tuple(dict1(), list()) where dict1 is the context,
         dict2 are request errors and list are scene errors
     '''
 
-    # build some aliases to clean the code up
-    P = request.POST
+    scene_list, errors = validate_scenelist(request)
+    
+    if not product_is_selected(request):
+        if not errors:
+            errors = list()
+        errors.append("Please select at least one output product.")
 
-    context, errors, scene_errors = {}, {}, list()
-
-    validate_files_and_scenes(request, context, errors, scene_errors)
-    validate_product_selected(request, errors)
-
-    #Look for an order_description and put it into the context if available
-    if 'order_description' in P:
-        context['order_description'] = P['order_description']
-
-    return (context, errors, scene_errors)
+    return (scene_list, errors)
+    
+        

@@ -1,4 +1,6 @@
 {% extends "base.html" %}
+{% load cache %}
+{% cache 60 index_html_1 %}
 
 {% block title %}LSRD{% endblock %}
 {% block header %}Land Science Research and Development (LSRD){% endblock %}
@@ -103,9 +105,11 @@
         }
 
 {% endblock %}
+{% endcache %}
 
 {% block nav %}{% include "bulk_ordering_nav.html" %}{% endblock %}
 
+{% cache 60 index_html_2 %}
 
 {% block content %}
 
@@ -179,3 +183,5 @@
 <div class="spacer"></div>
 
 {% endblock %}
+{% endcache %}
+

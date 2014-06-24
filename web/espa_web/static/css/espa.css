@@ -75,14 +75,14 @@ div.admin {
 #wrapper {
     margin: auto;
     width: 840px;
-    min-height: 500px;
+    min-height: 650px;
+    padding-top:30px;
 }
 
 #wrapper h4 {
     font-size: 14px;
-    padding: 50px 0px 16px 0px;
-    border-bottom: 1px solid #e1e1e1;
-    margin-bottom: 30px;
+    padding: 0px 0px 10px 0px;
+    margin-bottom: 5px;
 }
 
 

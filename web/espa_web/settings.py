@@ -203,3 +203,21 @@ LOGIN_REDIRECT_URL = 'index'
 # This is polluting the settings.py I know, but at the moment this is the
 # best place for this since it is needed in lta.py and in context_processors.py
 URL_FOR = lambda service_name: SERVICE_LOCATOR[ESPA_ENV][service_name]
+
+# Set up caching for Django.  Everything is pointed to our single memcache 
+# cluster but each environment is going to separated out with the environment
+# value as a key prefix.
+CACHES = {
+    'default': {
+        'KEY_PREFIX' : ESPA_ENV,
+        'BACKEND': 'django.core.cache.backends.memcached.MemcachedCache',
+        'LOCATION': [
+            'l8srlscp20.cr.usgs.gov:11211',
+            'l8srlscp21.cr.usgs.gov:11211',
+            'l8srlscp22.cr.usgs.gov:11211',
+        ]
+    }
+}
+
+# cache timeouts by usage (in seconds)
+SYSTEM_MESSAGE_CACHE_TIMEOUT = 60

@@ -1,5 +1,6 @@
 import core
 import json
+
 import django.contrib.auth
 import ordering.view_validator as vv
 
@@ -8,16 +9,14 @@ from ordering.models import Order
 from ordering.models import Configuration as Config
 
 from django import forms
-
+from django.conf import settings
 from django.contrib.syndication.views import Feed
 from django.core.urlresolvers import reverse
+from django.core.cache import cache
 from django.db.models import Q
-
 from django.http import HttpResponse
 from django.http import HttpResponseRedirect
-
 from django.http import Http404
-
 from django.template import loader
 from django.template import RequestContext
 from django.utils.feedgenerator import Rss201rev2Feed
@@ -55,15 +54,51 @@ class AbstractView(View):
         Return:
         No return.  Dictionary is passed by reference.
         '''
-        msg = Config().getValue('display_system_message')
 
+        # calls to the Django cache return none if the key is not present
+        msg = cache.get('display_system_message')
+
+        # look for the trigger flag 'display_system_message' in the cache.
+        # if its not there then look in the Config() model for it then update
+        # the cache
+        if not msg:
+            msg = Config().getValue('display_system_message')
+            cache.set('display_system_message',
+                      msg,
+                      timeout=settings.SYSTEM_MESSAGE_CACHE_TIMEOUT)
+
+        # system message is only going to be displayed if the msg.lower() is 
+        # equal to 'true' (string value)
         if msg.lower() == 'true':
-            c = Config()
+            
             ctx['display_system_message'] = True
-            ctx['system_message_title'] = c.getValue('system_message_title')
-            ctx['system_message_1'] = c.getValue('system_message_1')
-            ctx['system_message_2'] = c.getValue('system_message_2')
-            ctx['system_message_3'] = c.getValue('system_message_3')
+            
+            cache_vals = cache.get_many(['system_message_title',
+                                         'system_message_1',
+                                         'system_message_2',
+                                         'system_message_3'])
+            
+            # flag to determine if any cached values were expired/missing and
+            # need to be updated
+            update_cache = False                                         
+            
+            c = Config()
+
+            #look through the cache_vals and see if any of them are none
+            for key in cache_vals:
+                if not cache_vals[key]:
+                    update_cache = True
+                    cache_vals[key] = c.get_value(key)
+                    
+            if update_cache:
+                cache.set_many(cache_vals, 
+                               timeout=settings.SYSTEM_MESSAGE_CACHE_TIMEOUT)
+                    
+                            
+            ctx['system_message_title'] = cache_vals['system_message_title']
+            ctx['system_message_1'] = cache_vals['system_message_1']
+            ctx['system_message_2'] = cache_vals['system_message_2']
+            ctx['system_message_3'] = cache_vals['system_message_3']
             c = None
         else:
             ctx['display_system_message'] = False
@@ -104,6 +139,14 @@ class Index(AbstractView):
 class NewOrder(AbstractView):
     template = 'new_order.html'
 
+    
+    def _get_order_description(self, parameters):
+        description = None    
+        if 'order_description' in parameters:
+            description = parameters['order_description']
+            
+        return description    
+    
     def get(self, request):
         '''Request handler for new order initial form
 
@@ -113,8 +156,6 @@ class NewOrder(AbstractView):
         Return:
         HttpResponse
         '''
-
-        print("foshizzle")
 
         c = self._get_request_context(request)
         c['user'] = request.user
@@ -137,21 +178,17 @@ class NewOrder(AbstractView):
         #request must be a POST and must also be encoded as multipart/form-data
         #in order for the files to be uploaded
 
-        context, errors, scene_errors = vv.validate_input_params(request)
+        context, errors = vv.validate_input_params(request)
 
-        option_ctx, option_errs = vv.validate_product_options(request)
+        selected_options, option_errors = vv.validate_product_options(request)
 
-        if len(option_errs) > 0:
-            errors['product_options'] = option_errs
-
-        if len(scene_errors) > 0:
-            errors['scenes'] = scene_errors
-
-        if len(errors) > 0:
+        if len(errors) > 0 or len(option_errors) > 0:
 
             c = self._get_request_context(request)
 
-            c['errors'] = errors
+            c['errors'] = list()
+            c['errors'].extend(errors)
+            c['errors'].extend(option_errors)
             c['user'] = request.user
             c['optionstyle'] = self._get_option_style(request)
 
@@ -160,15 +197,16 @@ class NewOrder(AbstractView):
             return HttpResponse(t.render(c))
 
         else:
-
-            option_string = json.dumps(option_ctx)
+            #TODO -- This is where the options are being turned into a string.
+            # Stop doing that and store them as json.
+            option_string = json.dumps(selected_options)
 
             order = Order.enter_new_order(request.user.username,
-                                         'espa',
-                                         context['scenelist'],
-                                         option_string,
-                                         note=context['order_description']
-                                         )
+                                          'espa',
+                                          context['scenelist'],
+                                          option_string,
+                                          note=self._get_order_description(request.POST)
+                                          )
             core.send_initial_email(order)
 
             #TODO -- Remove this logic once all pre ESPA-2.3.0 orders are out
@@ -248,7 +286,6 @@ class OrderDetails(AbstractView):
             return HttpResponse(t.render(c))
         except Order.DoesNotExist:
             raise Http404
-        
 
 
 class LogOut(AbstractView):

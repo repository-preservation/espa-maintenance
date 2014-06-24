@@ -11,7 +11,18 @@
     div.boxbody {
         border:none;
         width:500px;
-        margin:0 auto;    
+        margin:0 auto; 
+        padding-top:30px;   
+        padding-bottom:30px;
+        line-height:35px;
+        text-align:center;
+        border:1px solid #CDCDCD;
+        background-color:#DEDEDE;
+    }
+
+    div.boxbody h4 {
+        
+        margin-bottom:15px;
     }
 
 {% endblock %}
@@ -26,9 +37,11 @@
     {% include "system_message.html" %}
 {% endif %}
 
-    <h4>Please enter the email address used to submit the order</h4>
+    
 
     <div class='boxbody'>
+
+    <h4>Please enter the email address used to submit the order</h4>
         
     {% if errors.email %}
     <span class="error">{{errors.email}}</span><br/>
