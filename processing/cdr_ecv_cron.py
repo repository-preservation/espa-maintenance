@@ -92,8 +92,9 @@ def run_scenes():
                          str(stamp.year), str(stamp.hour),
                          str(stamp.minute), str(stamp.second))
 
-            log("Found scenes to process, generating job number:" + ordername)
-            espaorderfile = '/tmp/' + ordername
+            log(' '.join(["Found scenes to process,",
+                          "generating job number:", ordername]))
+            espaorderfile = os.path.join('/tmp', ordername)
 
             # Create the order file full of all the scenes requested
             with open(espaorderfile, 'w+') as espa_fd:
@@ -120,7 +121,8 @@ def run_scenes():
                     # Pad the entry so hadoop will properly split the jobs
                     filler_count = (settings.ORDER_BUFFER_LENGTH -
                                     len(line_entry))
-                    order_line = line_entry + ('#' * filler_count) + '\n'
+                    order_line = ''.join([line_entry,
+                                          ('#' * filler_count), '\n'])
 
                     # Write out the order line
                     espa_fd.write(order_line)
@@ -134,8 +136,8 @@ def run_scenes():
             hadoop_store_command = [hadoop_executable, 'dfs', '-copyFromLocal',
                                     espaorderfile, hdfs_target]
 
-            jars = home_dir + \
-                '/bin/hadoop/contrib/streaming/hadoop-streaming*.jar'
+            jars = os.path.join(home_dir, 'bin/hadoop/contrib/streaming',
+                                'hadoop-streaming*.jar')
             # Define command line to execute the hadoop job
             hadoop_run_command = \
                 [hadoop_executable, 'jar', jars,

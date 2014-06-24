@@ -157,7 +157,7 @@ def build_argument_parser():
     parser.add_argument('--order_directory',
                         action='store', dest='order_directory',
                         required=True,
-                        help="directory on the source host where the order" +
+                        help="directory on the source host where the order"
                              " resides")
 
     parser.add_argument('--stats_directory',
@@ -192,7 +192,7 @@ def build_argument_parser():
 
     parser.add_argument('--bg_color',
                         action='store', dest='bg_color', default=BG_COLOR,
-                        help="color specification for plot and legend" +
+                        help="color specification for plot and legend"
                              " background")
 
     parser.add_argument('--marker',
@@ -306,7 +306,7 @@ def generate_sensor_stats(stat_name, stat_files):
 
     # Fix the output filename
     out_filename = stat_name.replace(' ', '_').lower()
-    out_filename += '_stats.csv'
+    out_filename = ''.join([out_filename, '_stats.csv'])
 
     # Read each file into a dictionary
     for stat_file in stat_files:
@@ -363,8 +363,8 @@ def generate_plot(plot_name, subjects, stats, plot_type="Value"):
     # Test for a valid plot_type parameter
     # For us 'Range' mean min, max, and mean
     if plot_type not in ('Range', 'Value'):
-        error = "Error plot_type='" + plot_type \
-                + "' must be one of ('Range', 'Value')"
+        error = ("Error plot_type='%s' must be one of ('Range', 'Value')"
+                 % plot_type)
         raise ValueError(error)
 
     # Configuration for the dates
@@ -525,7 +525,7 @@ def generate_plot(plot_name, subjects, stats, plot_type="Value"):
     # mpl_plot.ylabel(' '.join(subjects))
 
     # Plot - Title
-    plot_name += ' - ' + ' '.join(subjects)
+    plot_name = ' '.join([plot_name, '-'] + subjects)
     # mpl_plot.title(plot_name)
     # The Title gets covered up by the legend so use the Y Axis Label
     mpl_plot.ylabel(plot_name)
@@ -543,7 +543,7 @@ def generate_plot(plot_name, subjects, stats, plot_type="Value"):
     # Fix the filename and save the plot
     filename = plot_name.replace('- ', '').lower()
     filename = filename.replace(' ', '_')
-    filename += '_plot'
+    filename = ''.join([filename, '_plot'])
 
     # Adjust the margins to be a little better
     mpl_plot.subplots_adjust(left=0.1, right=0.92, top=0.9, bottom=0.1)
@@ -619,9 +619,9 @@ def process_band_type(sensor_info, band_type):
 
     # Remove the processed files
     if sensor_count > 0:
-        for file in multi_sensor_files:
-            if os.path.exists(file):
-                os.unlink(file)
+        for filename in multi_sensor_files:
+            if os.path.exists(filename):
+                os.unlink(filename)
 
     del multi_sensor_files
 # END - process_band_type
@@ -907,15 +907,15 @@ def process(args):
     MARKER_SIZE = args.marker_size
 
     local_work_directory = 'lpvs_statistics'
-    remote_stats_directory = args.order_directory + '/stats'
-    remote_location = args.source_host + ':' + remote_stats_directory
+    remote_stats_directory = os.path.join(args.order_directory, 'stats')
+    remote_location = ''.join([args.source_host, ':', remote_stats_directory])
 
     # Make sure the directory does not exist
     shutil.rmtree(local_work_directory, ignore_errors=True)
 
-    cmd = ['scp', '-q', '-o', 'StrictHostKeyChecking=no', '-c', 'arcfour',
-           '-C', '-r', remote_location, local_work_directory]
-    cmd = ' '.join(cmd)
+    cmd = ' '.join(['scp', '-q', '-o', 'StrictHostKeyChecking=no',
+                    '-c', 'arcfour', '-C', '-r', remote_location,
+                    local_work_directory])
     try:
         output = execute_cmd(cmd)
     except Exception, e:
@@ -936,9 +936,9 @@ def process(args):
                                            local_work_directory)
         log("Creating lpvs_statistics directory %s on %s"
             % (remote_lpvs_directory, args.source_host))
-        cmd = ['ssh', '-q', '-o', 'StrictHostKeyChecking=no', args.source_host,
-               'mkdir', '-p', remote_lpvs_directory]
-        cmd = ' '.join(cmd)
+        cmd = ' '.join(['ssh', '-q', '-o', 'StrictHostKeyChecking=no',
+                        args.source_host,
+                        'mkdir', '-p', remote_lpvs_directory])
         output = ''
         try:
             output = execute_cmd(cmd)
@@ -953,13 +953,12 @@ def process(args):
         log("Verifying statistics transfers")
         # NOTE - Re-purposing the lpvs_files variable
         lpvs_files = glob.glob(lpvs_files)
-        for file in lpvs_files:
+        for lpvs_file in lpvs_files:
             local_cksum_value = 'a b c'
             remote_cksum_value = 'b c d'
 
             # Generate a local checksum value
-            cmd = ['cksum', file]
-            cmd = ' '.join(cmd)
+            cmd = ' '.join(['cksum', lpvs_file])
             try:
                 local_cksum_value = execute_cmd(cmd)
             except Exception, e:
@@ -967,10 +966,9 @@ def process(args):
                 raise Exception(str(e)), None, sys.exc_info()[2]
 
             # Generate a remote checksum value
-            remote_file = remote_lpvs_directory + '/' + file
-            cmd = ['ssh', '-q', '-o', 'StrictHostKeyChecking=no',
-                   args.source_host, 'cksum', remote_file]
-            cmd = ' '.join(cmd)
+            remote_file = os.path.join(remote_lpvs_directory, lpvs_file)
+            cmd = ' '.join(['ssh', '-q', '-o', 'StrictHostKeyChecking=no',
+                            args.source_host, 'cksum', remote_file])
             try:
                 remote_cksum_value = execute_cmd(cmd)
             except Exception, e:
@@ -981,7 +979,7 @@ def process(args):
             if local_cksum_value.split()[0] != remote_cksum_value.split()[0]:
                 raise Exception(
                     "Failed checksum validation between %s and %s:%s"
-                    % (file, args.source_host, remote_file))
+                    % (lpvs_file, args.source_host, remote_file))
     finally:
         # Change back to the previous directory
         os.chdir(current_directory)

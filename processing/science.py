@@ -76,8 +76,8 @@ def build_argument_parser():
     '''
 
     # Create a command line argument parser
-    desacription = "Build science products from Landsat L4TM, L5TM," \
-        " and L7ETM+ data"
+    desacription = ("Build science products from Landsat L4TM, L5TM,"
+                    " and L7ETM+ data")
     parser = ArgumentParser(description=description)
 
     # Parameters
@@ -172,10 +172,9 @@ def remove_products(xml_filename, products_to_remove=None):
         # Only remove files if we found some
         if len(file_names) > 0:
 
-            cmd = ['rm', '-rf']
-            cmd.extend(file_names)
-            cmd = ' '.join(cmd)
-            log('REMOVING INTERMEDIATE PRODUCTS NOT REQUESTED COMMAND:' + cmd)
+            cmd = ' '.join(['rm', '-rf'] + file_names)
+            log(' '.join(['REMOVING INTERMEDIATE PRODUCTS NOT REQUESTED',
+                          'COMMAND:', cmd]))
 
             try:
                 output = util.execute_cmd(cmd)
@@ -261,7 +260,7 @@ def build_landsat_science_products(parms):
             cmd.append('--del_src_files')
 
         cmd = ' '.join(cmd)
-        log('CONVERT LPGS TO ESPA COMMAND:' + cmd)
+        log(' '.join(['CONVERT LPGS TO ESPA COMMAND:', cmd]))
 
         try:
             output = util.execute_cmd(cmd)
@@ -287,9 +286,8 @@ def build_landsat_science_products(parms):
                 or options['include_sr_evi']
                 or options['include_swe']):
 
-            cmd = ['do_ledaps.py', '--xml', xml_filename]
-            cmd = ' '.join(cmd)
-            log('LEDAPS COMMAND:' + cmd)
+            cmd = ' '.join(['do_ledaps.py', '--xml', xml_filename])
+            log(' '.join(['LEDAPS COMMAND:', cmd]))
 
             try:
                 output = util.execute_cmd(cmd)
@@ -343,7 +341,7 @@ def build_landsat_science_products(parms):
                 cmd.append('--evi')
 
             cmd = ' '.join(cmd)
-            log('SPECTRAL INDICES COMMAND:' + cmd)
+            log(' '.join(['SPECTRAL INDICES COMMAND:', cmd]))
             try:
                 output = util.execute_cmd(cmd)
             except Exception, e:
@@ -363,11 +361,11 @@ def build_landsat_science_products(parms):
             # Also currently only this Landsat product generation uses the DEM
             # so when another sensor is added that needs to generate a DEM we
             # can consider our choices at that time.
-            cmd = ['do_create_dem.py', '--metafile', metadata_filename,
-                   '--demfile', dem_filename]
-            cmd = ' '.join(cmd)
+            cmd = ' '.join(['do_create_dem.py',
+                            '--metafile', metadata_filename,
+                            '--demfile', dem_filename])
 
-            log('CREATE DEM COMMAND:' + cmd)
+            log(' '.join(['CREATE DEM COMMAND:', cmd]))
             try:
                 output = util.execute_cmd(cmd)
             except Exception, e:
@@ -409,11 +407,11 @@ def build_landsat_science_products(parms):
             del bands     # Not needed anymore
             del espa_xml  # Not needed anymore
 
-            cmd = ['cfmask', '--verbose', '--max_cloud_pixels',
-                   settings.CFMASK_MAX_CLOUD_PIXELS, '--xml', xml_filename]
-            cmd = ' '.join(cmd)
+            cmd = ' '.join(['cfmask', '--verbose', '--max_cloud_pixels',
+                            settings.CFMASK_MAX_CLOUD_PIXELS,
+                            '--xml', xml_filename])
 
-            log('CREATE CFMASK COMMAND:' + cmd)
+            log(' '.join(['CREATE CFMASK COMMAND:', cmd]))
             try:
                 output = util.execute_cmd(cmd)
             except Exception, e:
@@ -427,12 +425,12 @@ def build_landsat_science_products(parms):
 #        # Generate Surface Water Extent product
 #        if options['include_swe']:
 #            # TODO - Needs modification for XML
-#            cmd = ['do_surface_water_extent.py', '--metafile',
-#                   metadata_filename, '--reflectance', sr_filename, '--dem',
-#                   dem_filename]
-#            cmd = ' '.join(cmd)
+#            cmd = ' '.join(['do_surface_water_extent.py',
+#                            '--metafile', metadata_filename,
+#                            '--reflectance', sr_filename,
+#                            '--dem', dem_filename])
 #
-#            log('CREATE SWE COMMAND:' + cmd)
+#            log(' '.join(['CREATE SWE COMMAND:', cmd]))
 #            try:
 #                output = util.execute_cmd(cmd)
 #            except Exception, e:
@@ -456,10 +454,8 @@ def build_landsat_science_products(parms):
             for item in l1t_source_metadata_files:
                 non_products.extend(glob.glob(item))
 
-        cmd = ['rm', '-rf']
-        cmd.extend(non_products)
-        cmd = ' '.join(cmd)
-        log('REMOVING INTERMEDIATE DATA COMMAND:' + cmd)
+        cmd = ' '.join(['rm', '-rf'] + non_products)
+        log(' '.join(['REMOVING INTERMEDIATE DATA COMMAND:', cmd]))
 
         try:
             output = util.execute_cmd(cmd)

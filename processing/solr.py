@@ -112,9 +112,10 @@ def do_solr_index(metadata, scene, solr_filename, collection_name,
     # get the acquisition date... account for landsat changes
     acquisition_date = None
     if 'DATE_ACQUIRED' in metadata:
-        acquisition_date = metadata['DATE_ACQUIRED'] + 'T00:00:01Z'
+        acquisition_date = ''.join([metadata['DATE_ACQUIRED'], 'T00:00:01Z'])
     else:
-        acquisition_date = metadata['ACQUISITION_DATE'] + 'T00:00:01Z'
+        acquisition_date = ''.join([metadata['ACQUISITION_DATE'],
+                                    'T00:00:01Z'])
 
     solr_buffer.write("<field name='acquisitionDate'>%s</field>\n"
                       % acquisition_date)

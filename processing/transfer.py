@@ -35,8 +35,7 @@ def copy_file_to_file(source_file, destination_file):
       Use unix 'cp' to copy a file from one place to another on the localhost.
     '''
 
-    cmd = ['cp', source_file, destination_file]
-    cmd = ' '.join(cmd)
+    cmd = ' '.join(['cp', source_file, destination_file])
 
     # Transfer the data and raise any errors
     output = ''
@@ -61,9 +60,8 @@ def remote_copy_file_to_file(source_host, source_file, destination_file):
       machine using ssh.
     '''
 
-    cmd = ['ssh', '-q', '-o', 'StrictHostKeyChecking=no', source_host,
-           'cp', source_file, destination_file]
-    cmd = ' '.join(cmd)
+    cmd = ' '.join(['ssh', '-q', '-o', 'StrictHostKeyChecking=no',
+                    source_host, 'cp', source_file, destination_file])
 
     # Transfer the data and raise any errors
     output = ''
@@ -105,7 +103,7 @@ def ftp_from_remote_location(username, pw, host, remotefile, localfile):
 
     # Make sure the src_file is absolute, otherwise ftp will choke
     if not remotefile.startswith('/'):
-        remotefile = '/' + remotefile
+        remotefile = ''.join(['/', remotefile])
 
     pw = urllib.unquote(pw)
 
@@ -121,7 +119,7 @@ def ftp_from_remote_location(username, pw, host, remotefile, localfile):
             ftp = ftplib.FTP(host, timeout=60)
             ftp.login(user=username, passwd=pw)
             ftp.set_debuglevel(0)
-            ftp.retrbinary("RETR " + remotefile, callback)
+            ftp.retrbinary(' '.join(['RETR', remotefile]), callback)
 
     finally:
         if ftp:
@@ -156,7 +154,7 @@ def ftp_to_remote_location(username, pw, localfile, host, remotefile):
 
     # Make sure the src_file is absolute, otherwise ftp will choke
     if not remotefile.startswith('/'):
-        remotefile = '/' + remotefile
+        remotefile = ''.join(['/', remotefile])
 
     pw = urllib.unquote(pw)
 
@@ -169,7 +167,7 @@ def ftp_to_remote_location(username, pw, localfile, host, remotefile):
         log("Logging into %s with %s:%s" % (host, username, pw))
         ftp = ftplib.FTP(host, user=username, passwd=pw, timeout=60)
         with open(localfile, 'rb') as tmp_fd:
-            ftp.storbinary("STOR " + remotefile, tmp_fd, 1024)
+            ftp.storbinary(' '.join(['STOR', remotefile]), tmp_fd, 1024)
     finally:
         if ftp:
             ftp.quit()

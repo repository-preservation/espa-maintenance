@@ -60,8 +60,8 @@ def untar_data(source_file, destination_directory):
     '''
 
     # If both source and destination are localhost we can just copy the data
-    cmd = ['tar', '--directory', destination_directory, '-xvf', source_file]
-    cmd = ' '.join(cmd)
+    cmd = ' '.join(['tar', '--directory', destination_directory,
+                    '-xvf', source_file])
 
     log("Unpacking [%s] to [%s]" % (source_file, destination_directory))
 
@@ -105,17 +105,17 @@ def initialize_processing_directory(orderid, scene):
         order_directory = os.path.abspath(order_directory)
 
     # Specify a specific directory using the orderid
-    order_directory += '/' + str(orderid)
+    order_directory = os.path.join(order_directory, str(orderid))
 
     # Specify the scene sub-directory
-    scene_directory = order_directory + '/' + scene
+    scene_directory = os.path.join(order_directory, scene)
     # Just incase remove it, and we don't care about errors
     shutil.rmtree(scene_directory, ignore_errors=True)
 
     # Specify the sub-directories of a processing directory
-    stage_directory = scene_directory + '/stage'
-    work_directory = scene_directory + '/work'
-    output_directory = scene_directory + '/output'
+    stage_directory = os.path.join(scene_directory, 'stage')
+    work_directory = os.path.join(scene_directory, 'work')
+    output_directory = os.path.join(scene_directory, 'output')
 
     # Create each of the leaf sub-directories
     try:

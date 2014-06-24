@@ -243,7 +243,7 @@ def process(parms):
         cmd.append('--del_src_files')
 
     cmd = ' '.join(cmd)
-    log('CONVERT MODIS TO ESPA COMMAND:' + cmd)
+    log(' '.join(['CONVERT MODIS TO ESPA COMMAND:', cmd]))
 
     output = ''
     try:

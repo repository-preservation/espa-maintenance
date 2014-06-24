@@ -129,8 +129,7 @@ def gzip_product(product_full_path):
       Create a gzip ball of the specified files.
     '''
 
-    cmd = ['gzip', product_full_path]
-    cmd = ' '.join(cmd)
+    cmd = ' '.join(['gzip', product_full_path])
 
     output = ''
     try:
@@ -193,8 +192,7 @@ def package_product(source_directory, destination_directory, product_name):
         os.chmod(product_full_path, 0644)
 
         # Verify that the archive is good
-        cmd = ['tar', '-tf', product_full_path]
-        cmd = ' '.join(cmd)
+        cmd = ' '.join(['tar', '-tf', product_full_path])
         try:
             output = util.execute_cmd(cmd)
         except Exception, e:
@@ -204,8 +202,7 @@ def package_product(source_directory, destination_directory, product_name):
             log(output)
 
         # If it was good then create a checksum file
-        cmd = ['cksum', product_full_path]
-        cmd = ' '.join(cmd)
+        cmd = ' '.join(['cksum', product_full_path])
         try:
             output = util.execute_cmd(cmd)
         except Exception, e:
@@ -261,13 +258,12 @@ def distribute_product(destination_host, destination_directory,
     # Create the destination directory on the destination host
     log("Creating destination directory %s on %s"
         % (destination_directory, destination_host))
-    cmd = ['ssh', '-q', '-o', 'StrictHostKeyChecking=no', destination_host,
-           'mkdir', '-p', destination_directory]
-    cmd = ' '.join(cmd)
+    cmd = ' '.join(['ssh', '-q', '-o', 'StrictHostKeyChecking=no',
+                    destination_host, 'mkdir', '-p', destination_directory])
 
     output = ''
     try:
-        debug("mkdir cmd:" + cmd)
+        debug(' '.join(["mkdir cmd:", cmd]))
         output = util.execute_cmd(cmd)
     except Exception, e:
         raise ee.ESPAException(ee.ErrorCodes.packaging_product,
@@ -288,12 +284,11 @@ def distribute_product(destination_host, destination_directory,
     remote_filename_parts[-1] = '*'  # Replace the last element of the list
     remote_filename = '-'.join(remote_filename_parts)  # Join with '-'
 
-    cmd = ['ssh', '-q', '-o', 'StrictHostKeyChecking=no', destination_host,
-           'rm', '-f', remote_filename]
-    cmd = ' '.join(cmd)
+    cmd = ' '.join(['ssh', '-q', '-o', 'StrictHostKeyChecking=no',
+                    destination_host, 'rm', '-f', remote_filename])
     output = ''
     try:
-        debug("rm remote file cmd:" + cmd)
+        debug(' '.join(["rm remote file cmd:", cmd]))
         output = util.execute_cmd(cmd)
     except Exception, e:
         raise ee.ESPAException(ee.ErrorCodes.packaging_product,
@@ -316,11 +311,10 @@ def distribute_product(destination_host, destination_directory,
 
     # Get the remote checksum value
     cksum_value = ''
-    cmd = ['ssh', '-q', '-o', 'StrictHostKeyChecking=no', destination_host,
-           'cksum', destination_product_file]
-    cmd = ' '.join(cmd)
+    cmd = ' '.join(['ssh', '-q', '-o', 'StrictHostKeyChecking=no',
+                    destination_host, 'cksum', destination_product_file])
     try:
-        debug("ssh cmd:" + cmd)
+        debug(' '.join(["ssh cmd:", cmd]))
         cksum_value = util.execute_cmd(cmd)
     except Exception, e:
         log(cksum_value)
@@ -354,19 +348,18 @@ def distribute_statistics(scene, work_directory,
     os.chdir(work_directory)
 
     try:
-        stats_directory = destination_directory + "/stats"
-        stats_files = 'stats/%s*' % scene
+        stats_directory = os.path.join(destination_directory, 'stats')
+        stats_files = ''.join(['stats/', scene, '*'])
 
         # Create the stats directory on the destination host
         log("Creating stats directory %s on %s"
             % (stats_directory, destination_host))
-        cmd = ['ssh', '-q', '-o', 'StrictHostKeyChecking=no', destination_host,
-               'mkdir', '-p', stats_directory]
-        cmd = ' '.join(cmd)
+        cmd = ' '.join(['ssh', '-q', '-o', 'StrictHostKeyChecking=no',
+                        destination_host, 'mkdir', '-p', stats_directory])
 
         output = ''
         try:
-            debug("mkdir cmd:" + cmd)
+            debug(' '.join(["mkdir cmd:", cmd]))
             output = util.execute_cmd(cmd)
         except Exception, e:
             raise ee.ESPAException(ee.ErrorCodes.packaging_product,
@@ -376,12 +369,12 @@ def distribute_statistics(scene, work_directory,
                 log(output)
 
         # Remove any pre-existing stats
-        cmd = ['ssh', '-q', '-o', 'StrictHostKeyChecking=no', destination_host,
-               'rm', '-f', '%s/%s*' % (stats_directory, scene)]
-        cmd = ' '.join(cmd)
+        cmd = ' '.join(['ssh', '-q', '-o', 'StrictHostKeyChecking=no',
+                        destination_host, 'rm', '-f',
+                        '%s/%s*' % (stats_directory, scene)])
         output = ''
         try:
-            debug("rm remote stats cmd:" + cmd)
+            debug(' '.join(["rm remote stats cmd:", cmd]))
             output = util.execute_cmd(cmd)
         except Exception, e:
             raise ee.ESPAException(ee.ErrorCodes.packaging_product,
@@ -402,10 +395,9 @@ def distribute_statistics(scene, work_directory,
             remote_cksum_value = 'b c d'
 
             # Generate a local checksum value
-            cmd = ['cksum', file_name]
-            cmd = ' '.join(cmd)
+            cmd = ' '.join(['cksum', file_name])
             try:
-                debug("cksum cmd:" + cmd)
+                debug(' '.join(["cksum cmd:", cmd]))
                 local_cksum_value = util.execute_cmd(cmd)
             except Exception, e:
                 log(local_cksum_value)
@@ -413,10 +405,9 @@ def distribute_statistics(scene, work_directory,
                                        str(e)), None, sys.exc_info()[2]
 
             # Generate a remote checksum value
-            remote_file = destination_directory + '/' + file_name
-            cmd = ['ssh', '-q', '-o', 'StrictHostKeyChecking=no',
-                   destination_host, 'cksum', remote_file]
-            cmd = ' '.join(cmd)
+            remote_file = os.path.join(destination_directory, file_name)
+            cmd = ' '.join(['ssh', '-q', '-o', 'StrictHostKeyChecking=no',
+                            destination_host, 'cksum', remote_file])
             try:
                 remote_cksum_value = util.execute_cmd(cmd)
             except Exception, e:

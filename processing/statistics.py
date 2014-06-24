@@ -46,8 +46,7 @@ def get_statistics(file_name):
     mean = 0
     stddev = 0
 
-    cmd = ['gdalinfo', '-stats', file_name]
-    cmd = ' '.join(cmd)
+    cmd = ' '.join(['gdalinfo', '-stats', file_name])
     output = util.execute_cmd(cmd)
 
     for line in output.split('\n'):

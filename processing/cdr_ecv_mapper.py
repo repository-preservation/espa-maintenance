@@ -153,7 +153,7 @@ if __name__ == '__main__':
                         log_data = log_fd.read()
 
             # Add the exception text
-            log_data += '\n' + str(e)
+            log_data = ''.join([log_data, '\n', str(e)])
 
             # Log the error information to the server
             # Depending on the error_code do something different
@@ -253,7 +253,7 @@ if __name__ == '__main__':
                         log_data = log_fd.read()
 
                 # Add the exception text
-                log_data += '\n' + str(e)
+                log_data = ''.join([log_data, '\n', str(e)])
 
                 server.set_scene_error(sceneid, orderid,
                                        processing_location, log_data)

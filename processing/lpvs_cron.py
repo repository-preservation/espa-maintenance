@@ -85,12 +85,11 @@ def run_orders():
                 log("Processing order [%s]" % order)
 
                 # Build the order directory
-                order_directory = cache_directory + '/' + order
+                order_directory = os.path.join(cache_directory, order)
 
                 # Build the plot command line
-                cmd = ['./plot.py', '--source_host', cache_host,
-                       '--order_directory', order_directory]
-                cmd = ' '.join(cmd)
+                cmd = ' '.join(['./plot.py', '--source_host', cache_host,
+                                '--order_directory', order_directory])
                 output = ''
                 try:
                     output = util.execute_cmd(cmd)
@@ -99,7 +98,8 @@ def run_orders():
                     server.update_order_status(order, 'LPVS cron driver',
                                                'FAIL')
 
-                    msg = "Error during execution of plot.py: " + str(e)
+                    msg = ' '.join(["Error during execution of plot.py:",
+                                    str(e)])
                     raise Exception(msg)
                 finally:
                     if len(output) > 0:

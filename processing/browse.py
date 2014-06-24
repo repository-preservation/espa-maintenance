@@ -58,7 +58,7 @@ def do_sr_browse(sr_filename, scene,
            '-of', 'GTiff',
            '-sds', sr_filename, 'out.tiff']
     cmd = ' '.join(cmd)
-    log('Running: ' + cmd)
+    log(' '.join(['Running:', cmd]))
     output = util.execut_cmd(cmd)
     log(output)
 
@@ -70,25 +70,22 @@ def do_sr_browse(sr_filename, scene,
                           '-of', 'GTIFF']
 # gdal_translate -ot Byte -scale 0 10000 0 255 -of ENVI
 # LT50460282002042EDC01_toa_band5.img browse_5.img
-    cmd = base_translate_cmd + ['out.tiff5', 'browse.tiff5']
-    cmd = ' '.join(cmd)
-    log('Running: ' + cmd)
+    cmd = ' '.join([base_translate_cmd, 'out.tiff5', 'browse.tiff5'])
+    log(' '.join(['Running:', cmd]))
     output = util.execut_cmd(cmd)
     log(output)
 
 # gdal_translate -ot Byte -scale 0 10000 0 255 -of ENVI
 # LT50460282002042EDC01_toa_band4.img browse_4.img
-    cmd = base_translate_cmd + ['out.tiff4', 'browse.tiff4']
-    cmd = ' '.join(cmd)
-    log('Running: ' + cmd)
+    cmd = ' '.join([base_translate_cmd, 'out.tiff4', 'browse.tiff4'])
+    log(' '.join(['Running:', cmd]))
     output = util.execut_cmd(cmd)
     log(output)
 
 # gdal_translate -ot Byte -scale 0 10000 0 255 -of ENVI
 # LT50460282002042EDC01_toa_band3.img browse_3.img
-    cmd = base_translate_cmd + ['out.tiff3', 'browse.tiff3']
-    cmd = ' '.join(cmd)
-    log('Running: ' + cmd)
+    cmd = ' '.join([base_translate_cmd, 'out.tiff3', 'browse.tiff3'])
+    log(' '.join(['Running:', cmd]))
     output = util.execut_cmd(cmd)
     log(output)
 
@@ -96,13 +93,12 @@ def do_sr_browse(sr_filename, scene,
     # Create the 3 band composite
 # gdal_merge_simple -of ENVI -in browse_5.img -in browse_4.img
 # -in browse_3.img -out final.img
-    cmd = ['gdal_merge_simple',
-           '-in', 'browse.tiff5',
-           '-in', 'browse.tiff4',
-           '-in', 'browse.tiff3',
-           '-out', 'final.tif']
-    cmd = ' '.join(cmd)
-    log('Running: ' + cmd)
+    cmd = ' '.join(['gdal_merge_simple',
+                    '-in', 'browse.tiff5',
+                    '-in', 'browse.tiff4',
+                    '-in', 'browse.tiff3',
+                    '-out', 'final.tif'])
+    log(' '.join(['Running:', cmd]))
     output = util.execut_cmd(cmd)
     log(output)
 
@@ -110,13 +106,12 @@ def do_sr_browse(sr_filename, scene,
     # Project to geographic
 # gdalwarp -of ENVI -dstalpha -srcnodata 0 -t_srs EPSG:4326 final.img
 # warped.img
-    cmd = ['gdalwarp',
-           '-dstalpha',
-           '-srcnodata', '0',
-           '-t_srs', 'EPSG:4326',
-           'final.tif', 'warped.tif']
-    cmd = ' '.join(cmd)
-    log('Running: ' + cmd)
+    cmd = ' '.join(['gdalwarp',
+                    '-dstalpha',
+                    '-srcnodata', '0',
+                    '-t_srs', 'EPSG:4326',
+                    'final.tif', 'warped.tif'])
+    log(' '.join(['Running:', cmd]))
     output = util.execut_cmd(cmd)
     log(output)
 
@@ -128,15 +123,14 @@ def do_sr_browse(sr_filename, scene,
 # Should probably use gdalwarp to set the resolution, because outsize in
 # gdal_translate is a percentage.  This step may not even be needed then,
 # because it could be handled in the previous gdalwarp step.
-    cmd = ['gdal_translate',
-           '-co', 'COMPRESS=DEFLATE',
-           '-co', 'PREDICTOR=2',
-           '-outsize', str(resolution), str(resolution),
-           '-a_nodata', '-9999',
-           '-of', 'GTIFF',
-           'warped.tif', browse_filename]
-    cmd = ' '.join(cmd)
-    log('Running: ' + cmd)
+    cmd = ' '.join(['gdal_translate',
+                    '-co', 'COMPRESS=DEFLATE',
+                    '-co', 'PREDICTOR=2',
+                    '-outsize', str(resolution), str(resolution),
+                    '-a_nodata', '-9999',
+                    '-of', 'GTIFF',
+                    'warped.tif', browse_filename])
+    log(' '.join(['Running:', cmd]))
     output = util.execut_cmd(cmd)
     log(output)
 
@@ -144,10 +138,9 @@ def do_sr_browse(sr_filename, scene,
     # Cleanup
     remove_files = ['warped.tif', 'final.tif']
     remove_files.extend(glob.glob('*tiff*'))
-    cmd = ['rm', '-rf']
-    cmd.extend(remove_files)
-    cmd = ' '.join(cmd)
-    log('Running: ' + cmd)
+
+    cmd = ' '.join(['rm', '-rf'] + remove_files)
+    log(' '.join(['Running:', cmd]))
     output = util.execut_cmd(cmd)
     log(output)
 

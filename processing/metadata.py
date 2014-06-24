@@ -50,8 +50,7 @@ def get_landsat_metadata(work_dir):
 
     try:
         # Backup the original file
-        copy_filename = metadata_filename + '.old'
-        shutil.copy(metadata_filename, copy_filename)
+        shutil.copy(metadata_filename, ''.join([metadata_filename, '.old']))
 
         file_data = list()
         # Read in the file and write it back out to get rid of binary
