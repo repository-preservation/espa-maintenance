@@ -25,7 +25,7 @@
     "false_easting": null,
 
     "utm_zone": "15",
-    "north_south": "north",
+    "utm_north_south": "north",
 
     "resize": true,
     "pixel_size": "28.5",

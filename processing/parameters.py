@@ -324,8 +324,8 @@ def add_reprojection_parameters(parser, projection_values, ns_values,
     parser.add_argument('--utm_zone',
                         action='store', dest='utm_zone',
                         help="UTM zone to use")
-    parser.add_argument('--north_south',
-                        action='store', dest='north_south',
+    parser.add_argument('--utm_north_south',
+                        action='store', dest='utm_north_south',
                         choices=ns_values,
                         help="one of (%s)" % ', '.join(ns_values))
 
@@ -507,29 +507,50 @@ def validate_reprojection_parameters(parms, projections, ns_values,
                 else:
                     zone = int(parms['utm_zone'])
                     if zone < 0 or zone > 60:
-                        raise ValueError("Invalid utm_zone [%s]:"
-                                         " Value must be 0-60")
+                        raise ValueError("Invalid utm_zone [%d]:"
+                                         " Value must be 0-60" % zone)
+                if not test_for_parameter(parms, 'utm_north_south'):
+                    raise RuntimeError("Missing utm_north_south parameter")
+                elif parms['utm_north_south'] not in ns_values:
+                    raise ValueError("Invalid utm_north_south [%s]:"
+                                     " Argument must be one of (%s)"
+                                     % (parms['utm_north_south'],
+                                        ', '.join(ns_values)))
 
             # ................................................................
             if target_projection == 'ps':
                 if not test_for_parameter(parms, 'latitude_true_scale'):
+                    # Must be tested before origin_lat
                     raise RuntimeError("Missing latitude_true_scale parameter")
+                else:
+                    value = float(parms['latitude_true_scale'])
+                    if ((value < 60.0 and value > -60.0)
+                            or value > 90.0 or value < -90.0):
+                        raise ValueError("Invalid latitude_true_scale [%f]:"
+                                         " Value must be between"
+                                         " (-60.0 and -90.0) or"
+                                         " (60.0 and 90.0)" % value)
                 if not test_for_parameter(parms, 'longitude_pole'):
                     raise RuntimeError("Missing longitude_pole parameter")
+                if not test_for_parameter(parms, 'origin_lat'):
+                    # If the user did not specify the origin_lat value, then
+                    # set it based on the latitude true scale
+                    lat_ts = float(parms['latitude_true_scale'])
+                    if lat_ts < 0:
+                        parms['origin_lat'] = '-90.0'
+                    else:
+                        parms['origin_lat'] = '90.0'
+                else:
+                    value = float(parms['origin_lat'])
+                    if value != -90.0 and value != 90.0:
+                        raise ValueError("Invalid origin_lat [%f]:"
+                                         " Value must be -90.0 or 90.0"
+                                         % value)
+
                 if not test_for_parameter(parms, 'false_easting'):
                     raise RuntimeError("Missing false_easting parameter")
                 if not test_for_parameter(parms, 'false_northing'):
                     raise RuntimeError("Missing false_northing parameter")
-
-            # ................................................................
-            if target_projection == 'utm' or target_projection == 'ps':
-                if not test_for_parameter(parms, 'north_south'):
-                    raise RuntimeError("Missing north_south parameter")
-                elif parms['north_south'] not in ns_values:
-                    raise ValueError("Invalid north_south [%s]:"
-                                     " Argument must be one of (%s)"
-                                     % (parms['north_south'],
-                                        ', '.join(ns_values)))
 
             # ................................................................
             if target_projection == 'lonlat':

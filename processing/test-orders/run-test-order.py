@@ -101,8 +101,8 @@ def process_test_order(order_file, env_vars, do_debug):
     if do_debug:
         keep_log = '--keep-log'
 
-    cmd = "cd ..; cat test-orders/%s | ./cdr_ecv_mapper.py %s 2>&1" \
-          " | tee test-orders/%s.log" % (tmp_order, keep_log, order_file)
+    cmd = ("cd ..; cat test-orders/%s | ./cdr_ecv_mapper.py %s"
+           % (tmp_order, keep_log))
 
     output = ''
     proc = None
