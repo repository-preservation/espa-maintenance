@@ -30,6 +30,7 @@ from espa_constants import *
 from espa_logging import log, set_debug, debug
 
 # local objects and methods
+import espa_exception as ee
 import parameters
 import util
 import staging
