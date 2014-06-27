@@ -2,7 +2,10 @@ import lta
 import core
 from models import Order
 
-
+#TODO -- Build a class hierarchy that will clean this stuff up...
+# AbstractValidator() class should take the request dictionary in and
+# define the validate() method to be called for each subclass.
+# should also define an errors list()/array 
 def validate_projection_params(request, options, option_errors):
     '''Validates the projection parameters supplied if the user has
     requested reprojection
@@ -92,6 +95,35 @@ def validate_projection_params(request, options, option_errors):
                 else:
                     E.append("Please provide a valid false_northing value")
 
+            elif P['target_projection'] == 'ps':
+
+                O['target_projection'] = P['target_projection']
+
+                if 'longitude_pole' in P and ISNBR(P['longitude_pole']):
+                    O['longitude_pole'] = float(P['longitude_pole'])
+                else:
+                    E.append("Please provide a valid central meridian value")
+
+                if 'latitude_true_scale' in P\
+                    and ISNBR(P['latitude_true_scale']\
+                    and P['latitude_true_scale'] in range(60, 91) or\
+                    P['latitude_true_scale'] in range(-90, -59)):
+                        
+                    O['latitude_true_scale'] = float(P['latitude_true_scale'])
+                else:
+                    E.append("Please provide a valid Latitude True Scale\
+                        value in the ranges of -60.0 to -90.0 or \
+                        60.0 to 90.0")
+                    
+                if 'false_easting' in P and ISNBR(P['false_easting']):
+                    O['false_easting'] = float(P['false_easting'])
+                else:
+                    E.append("Please provide a valid false_easting value")
+
+                if 'false_northing' in P and ISNBR(P['false_northing']):
+                    O['false_northing'] = float(P['false_northing'])
+                else:
+                    E.append("Please provide a valid false_northing value")
             elif P['target_projection'] == 'utm':
                 O['target_projection'] = P['target_projection']
 
