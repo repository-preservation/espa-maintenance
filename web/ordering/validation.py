@@ -75,10 +75,13 @@ class ProjectionValidator(Validator):
     valid_projections = ['aea', 'ps', 'sinu', 'longlat']    
     
     def __init__(self, parameters, child_validators=None, name=None):
+        # delegate the call to superclass since we are overriding the 
+        # __init__ method        
         super(ProjectionValidator, self).__init__(parameters,
                                                   child_validators,
                                                   name)
         
+        # check for projection value and add appropriate child validators
         proj = None
         
         if not 'projection' in parameters:
@@ -86,19 +89,19 @@ class ProjectionValidator(Validator):
         else:
             proj = parameters['projection']
             
-        if proj:        
-            if proj not in self.valid_projections:
-                self.add_error("projection",
-                               ['projection must be one of %s' % self.valid_projections])
-            else:
-                if proj is 'aea':
-                    self.add_child(AlbersValidator(parameters))
-                elif proj is 'ps':
-                    self.add_child(PolarStereographicValidator(parameters))
-                elif proj is 'sinu':
-                    self.add_child(SinusoidalValidator(parameters))
-                elif proj is 'longlat':
-                    self.add_child(GeographicValidator(parameters))
+        if proj and proj not in self.valid_projections:        
+            
+            self.add_error("projection",
+                           ['projection must be one of %s' % self.valid_projections])
+        else:
+            if proj is 'aea':
+                self.add_child(AlbersValidator(parameters))
+            elif proj is 'ps':
+                self.add_child(PolarStereographicValidator(parameters))
+            elif proj is 'sinu':
+                self.add_child(SinusoidalValidator(parameters))
+            elif proj is 'longlat':
+                self.add_child(GeographicValidator(parameters))
         
     def errors(self):
         return super(ProjectionValidator, self).errors()               
@@ -108,11 +111,13 @@ class AlbersValidator(Validator):
         
     def errors(self):           
         return super(AlbersValidator, self).errors()
+
         
 class SinusoidalValidator(Validator):
         
     def errors(self):           
         return super(AlbersValidator, self).errors()
+        
         
 class GeographicValidator(Validator):
         
