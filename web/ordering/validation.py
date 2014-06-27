@@ -26,7 +26,7 @@ class Validator(object):
         if self.name and len(self.name) > 0:
             return self.name
         else:
-            return self.__class__
+            return str(self.__class__)
             
     def add_child(self, child_validator):
 
@@ -67,49 +67,47 @@ class Validator(object):
                                
 class FilesValidator(Validator):
     
-    def errors(self):
-                      
-        if not "x" in self.parameters:
-            self.add_error('x', ['x was not found'])
-        elif self.parameters['x'] == 'x':
-            self.add_error('x', ['x was equal to itself'])
-                        
+    def errors(self):          
         return super(FilesValidator, self).errors()
         
                     
-class Child(Validator):
+class ProjectionValidator(Validator):
                 
     def errors(self):
-                
-        if not "y" in self.parameters:
-            self.add_error('y', ['y was not found'])
-        elif not self.parameters['y'] == 'KABOOM':
-            self.add_error('y', ['y was NOT KaBOOM'])
-        
-        
-        return super(Child, self).errors()               
+        return super(ProjectionValidator, self).errors()               
         
 
-class Child2(Validator):
+class AlbersValidator(Validator):
         
-    def errors(self):
-               
-        if not "z" in self.parameters:
-            self.add_error('z', ['z was not found'])
-        elif not "z" == "your mother":
-            self.add_error('z', ['z was not equal to your mother'])
-            
-        return super(Child2, self).errors()
+    def errors(self):           
+        return super(AlbersValidator, self).errors()
         
     
-class Child2_1(Validator):
+class PolarStereographicValidator(Validator):
+    
+    def errors(self):
+      
+        if not "longitudinal_origin" in self.parameters:
+            msg = "longitudinal origin is required for polar stereographic"
+            self.add_error('longitudinal_origin', [msg])
+        
+        elif self.parameters['longitudinal_origin'] == 'what':
+            self.add_error('longitudinal_origin', 
+                           ['longitudinal_origin was something crazy'])
+        
+        return super(PolarStereographicValidator, self).errors()
+        
+
+class SceneListValidator(Validator):
     
     def errors(self):
               
-        if not "z" in self.parameters or not self.parameters['z'] == 'what':
-            self.add_error('z', ['z was not equal to what'])
+        if not "scenes" in self.parameters:
+            self.add_error('scenes', ['scene list is required'])
+        elif self.parameters['scenes'] is not 'what':
+            self.add_error('scenes', ['scenes was not equal to "what"'])
         
-        return super(Child2_1, self).errors()
+        return super(SceneListValidator, self).errors()
         
         
 class FormValidator(Validator):
@@ -117,24 +115,25 @@ class FormValidator(Validator):
     def __init__(self, parameters, child_validators=None, name=None):
         super(FormValidator, self).__init__(parameters, child_validators, name)
         
-        c2 = Child2(parameters, name="Child2 Validator")
+        albers = AlbersValidator(parameters)
         
-        c2_1 = Child2_1(parameters, name="Child2_1 Validator")
+        polar_stereo = PolarStereographicValidator(parameters)
         
-        c1 = Child(parameters, name="Child Validator")
+        projection = ProjectionValidator(parameters)
+
+        projection.add_child(albers)
+        projection.add_child(polar_stereo)
+
+        scene_list = SceneListValidator(parameters)
         
-        p = FilesValidator(parameters, name="Files Validator")
+        files = FilesValidator(parameters)
         
-        c1.add_child(c2)
-        c1.add_child(c2_1)
-        
-        p.add_child(c1)
-        
-        self.add_child(p)
+        self.add_child(files)
+        self.add_child(scene_list)
+        self.add_child(projection)
         
     def errors(self):
-        errors = super(FormValidator, self).errors()
-        return errors
+        return super(FormValidator, self).errors()
         
         
         
