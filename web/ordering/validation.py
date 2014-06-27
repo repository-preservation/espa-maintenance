@@ -72,12 +72,49 @@ class FilesValidator(Validator):
         
                     
 class ProjectionValidator(Validator):
-                
+    valid_projections = ['aea', 'ps', 'sinu', 'longlat']    
+    
+    def __init__(self, parameters, child_validators=None, name=None):
+        super(ProjectionValidator, self).__init__(parameters,
+                                                  child_validators,
+                                                  name)
+        
+        proj = None
+        
+        if not 'projection' in parameters:
+            self.add_error("projection", ['projection must be specified'])
+        else:
+            proj = parameters['projection']
+            
+        if proj:        
+            if proj not in self.valid_projections:
+                self.add_error("projection",
+                               ['projection must be one of %s' % self.valid_projections])
+            else:
+                if proj is 'aea':
+                    self.add_child(AlbersValidator(parameters))
+                elif proj is 'ps':
+                    self.add_child(PolarStereographicValidator(parameters))
+                elif proj is 'sinu':
+                    self.add_child(SinusoidalValidator(parameters))
+                elif proj is 'longlat':
+                    self.add_child(GeographicValidator(parameters))
+        
     def errors(self):
         return super(ProjectionValidator, self).errors()               
         
 
 class AlbersValidator(Validator):
+        
+    def errors(self):           
+        return super(AlbersValidator, self).errors()
+        
+class SinusoidalValidator(Validator):
+        
+    def errors(self):           
+        return super(AlbersValidator, self).errors()
+        
+class GeographicValidator(Validator):
         
     def errors(self):           
         return super(AlbersValidator, self).errors()
@@ -114,15 +151,8 @@ class FormValidator(Validator):
         
     def __init__(self, parameters, child_validators=None, name=None):
         super(FormValidator, self).__init__(parameters, child_validators, name)
-        
-        albers = AlbersValidator(parameters)
-        
-        polar_stereo = PolarStereographicValidator(parameters)
-        
+                
         projection = ProjectionValidator(parameters)
-
-        projection.add_child(albers)
-        projection.add_child(polar_stereo)
 
         scene_list = SceneListValidator(parameters)
         
