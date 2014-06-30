@@ -38,6 +38,7 @@ class Validator(object):
     An example of a Validator that creates a set of child Validators follows:
 
     class ProjectionValidator(Validator):
+
         valid_projections = ['aea', 'ps', 'sinu', 'longlat']
 
         def __init__(self, parameters, child_validators=None, name=None):
@@ -85,8 +86,8 @@ class Validator(object):
     supplied parameter.
 
     This code construct was created because Django's form validation was
-    too simplistic and did not easily allow the developer to create a rich,
-    conditional tree in a simple manner.
+    too simplistic and did not easily allow the developer to create
+    a rich, conditional tree.
     '''
 
     name = ""
