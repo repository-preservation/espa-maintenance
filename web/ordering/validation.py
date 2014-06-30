@@ -153,14 +153,14 @@ class Validator(object):
         return errs
 
 
-class FilesValidator(Validator):
+class ExampleFilesValidator(Validator):
     '''Example validator to check uploaded files'''
 
     def errors(self):
-        return super(FilesValidator, self).errors()
+        return super(ExampleFilesValidator, self).errors()
 
 
-class ProjectionValidator(Validator):
+class ExampleProjectionValidator(Validator):
     '''Example validator to construct a set of child validators'''
 
     valid_projections = ['aea', 'ps', 'sinu', 'longlat']
@@ -168,9 +168,9 @@ class ProjectionValidator(Validator):
     def __init__(self, parameters, child_validators=None, name=None):
         # delegate the call to superclass since we are overriding the
         # __init__ method
-        super(ProjectionValidator, self).__init__(parameters,
-                                                  child_validators,
-                                                  name)
+        super(ExampleProjectionValidator, self).__init__(parameters,
+                                                         child_validators,
+                                                         name)
 
         # check for projection value and add appropriate child validators
         proj = None
@@ -187,40 +187,40 @@ class ProjectionValidator(Validator):
                                % self.valid_projections])
         else:
             if proj is 'aea':
-                self.add_child(AlbersValidator(parameters))
+                self.add_child(ExampleAlbersValidator(parameters))
             elif proj is 'ps':
-                self.add_child(PolarStereographicValidator(parameters))
+                self.add_child(ExamplePolarStereographicValidator(parameters))
             elif proj is 'sinu':
-                self.add_child(SinusoidalValidator(parameters))
+                self.add_child(ExampleSinusoidalValidator(parameters))
             elif proj is 'longlat':
-                self.add_child(GeographicValidator(parameters))
+                self.add_child(ExampleGeographicValidator(parameters))
 
     def errors(self):
-        return super(ProjectionValidator, self).errors()
+        return super(ExampleProjectionValidator, self).errors()
 
 
-class AlbersValidator(Validator):
+class ExampleAlbersValidator(Validator):
     '''Example conditional child validator'''
 
     def errors(self):
-        return super(AlbersValidator, self).errors()
+        return super(ExampleAlbersValidator, self).errors()
 
 
-class SinusoidalValidator(Validator):
+class ExampleSinusoidalValidator(Validator):
     '''Example conditional child validator'''
 
     def errors(self):
-        return super(AlbersValidator, self).errors()
+        return super(ExampleAlbersValidator, self).errors()
 
 
-class GeographicValidator(Validator):
+class ExampleGeographicValidator(Validator):
     '''Example conditional child validator'''
 
     def errors(self):
-        return super(AlbersValidator, self).errors()
+        return super(ExampleAlbersValidator, self).errors()
 
 
-class PolarStereographicValidator(Validator):
+class ExamplePolarStereographicValidator(Validator):
     '''Example conditional child validator'''
 
     def errors(self):
@@ -233,10 +233,10 @@ class PolarStereographicValidator(Validator):
             self.add_error('longitudinal_origin',
                            ['longitudinal_origin was something crazy'])
 
-        return super(PolarStereographicValidator, self).errors()
+        return super(ExamplePolarStereographicValidator, self).errors()
 
 
-class SceneListValidator(Validator):
+class ExampleSceneListValidator(Validator):
     '''Example validator to check scene lists'''
     def errors(self):
 
@@ -245,43 +245,47 @@ class SceneListValidator(Validator):
         elif self.parameters['scenes'] is not 'what':
             self.add_error('scenes', ['scenes was not equal to "what"'])
 
-        return super(SceneListValidator, self).errors()
+        return super(ExampleSceneListValidator, self).errors()
 
 
-class FormValidator(Validator):
+class ExampleFormValidator(Validator):
     '''Example top-level validator that initiates validation tree construction.
     This Validator would be called as the single top level validator to be
     used from within calling code modules, such as a Django view.'''
 
     def __init__(self, parameters, child_validators=None, name=None):
-        super(FormValidator, self).__init__(parameters, child_validators, name)
+        super(ExampleFormValidator, self).__init__(parameters,
+                                                   child_validators,
+                                                   name)
 
-        self.add_child(FilesValidator(parameters))
+        self.add_child(ExampleFilesValidator(parameters))
 
-        self.add_child(SceneListValidator(parameters))
+        self.add_child(ExampleSceneListValidator(parameters))
 
-        self.add_child(ProjectionValidator(parameters))
+        self.add_child(ExampleProjectionValidator(parameters))
 
     def errors(self):
-        return super(FormValidator, self).errors()
+        return super(ExampleFormValidator, self).errors()
 
 
 if __name__ == '__main__':
     # This will complain due to the value of the 'scenes' parameter...
     # This is intentional to demonstrate the return value of the call to
     # errors()
-    form = FormValidator({'scenes': ['a', 'b'],
-                          'longitudinal_origin': 'abc123',
-                          'projection': 'ps'}, name='InputFormValidator')
+    form = ExampleFormValidator({'scenes': ['a', 'b'],
+                                 'longitudinal_origin': 'abc123',
+                                 'projection': 'ps'})
 
     print("--------------------------------------------")
     print("Example call to validator tree with an error")
     print("--------------------------------------------")
     print(form.errors())
 
-    form = FormValidator({'scenes': 'what',
-                          'longitudinal_origin': 'abc123',
-                          'projection': 'ps'}, name='InputFormValidator')
+    # This will demonstrate a call to validator in which no validation
+    # errors occurred
+    form = ExampleFormValidator({'scenes': 'what',
+                                 'longitudinal_origin': 'abc123',
+                                 'projection': 'ps'})
 
     print("")
     print("---------------------------------------------")
