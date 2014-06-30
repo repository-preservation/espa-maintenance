@@ -158,6 +158,7 @@ class ExampleFilesValidator(Validator):
     '''Example validator to check uploaded files'''
 
     def errors(self):
+        '''This example does nothing'''
         return super(ExampleFilesValidator, self).errors()
 
 
@@ -167,6 +168,7 @@ class ExampleProjectionValidator(Validator):
     valid_projections = ['aea', 'ps', 'sinu', 'longlat']
 
     def __init__(self, parameters, child_validators=None, name=None):
+        '''Conditionally build and attach child validators'''
         # delegate the call to superclass since we are overriding the
         # __init__ method
         super(ExampleProjectionValidator, self).__init__(parameters,
@@ -197,6 +199,7 @@ class ExampleProjectionValidator(Validator):
                 self.add_child(ExampleGeographicValidator(parameters))
 
     def errors(self):
+        '''No actual validation happening in this validator'''
         return super(ExampleProjectionValidator, self).errors()
 
 
@@ -204,6 +207,7 @@ class ExampleAlbersValidator(Validator):
     '''Example conditional child validator'''
 
     def errors(self):
+        '''This validator does nothing'''
         return super(ExampleAlbersValidator, self).errors()
 
 
@@ -211,6 +215,7 @@ class ExampleSinusoidalValidator(Validator):
     '''Example conditional child validator'''
 
     def errors(self):
+        '''This validator does nothing'''
         return super(ExampleAlbersValidator, self).errors()
 
 
@@ -218,6 +223,7 @@ class ExampleGeographicValidator(Validator):
     '''Example conditional child validator'''
 
     def errors(self):
+        '''This validator does nothing'''
         return super(ExampleAlbersValidator, self).errors()
 
 
@@ -225,6 +231,8 @@ class ExamplePolarStereographicValidator(Validator):
     '''Example conditional child validator'''
 
     def errors(self):
+        '''This validator looks for a needed key and examines its value,
+        reporting errors where appropriate'''
 
         if not "longitudinal_origin" in self.parameters:
             msg = "longitudinal origin is required for polar stereographic"
@@ -239,7 +247,10 @@ class ExamplePolarStereographicValidator(Validator):
 
 class ExampleSceneListValidator(Validator):
     '''Example validator to check scene lists'''
+
     def errors(self):
+        '''This validator looks for a needed key and examines its value,
+        reporting errors where appropriate'''
 
         if not "scenes" in self.parameters:
             self.add_error('scenes', ['scene list is required'])
@@ -255,6 +266,9 @@ class ExampleFormValidator(Validator):
     used from within calling code modules, such as a Django view.'''
 
     def __init__(self, parameters, child_validators=None, name=None):
+        '''This validator builds a adds several child validators that would
+        be part of an HTML form submission.'''
+
         super(ExampleFormValidator, self).__init__(parameters,
                                                    child_validators,
                                                    name)
@@ -266,6 +280,9 @@ class ExampleFormValidator(Validator):
         self.add_child(ExampleProjectionValidator(parameters))
 
     def errors(self):
+        '''Trigger the child validators by overriding the error() method
+        and calling the error() method defined in Validator superclass'''
+
         return super(ExampleFormValidator, self).errors()
 
 
