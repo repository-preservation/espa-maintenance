@@ -267,29 +267,29 @@ class FormValidator(Validator):
 
 
 if __name__ == '__main__':
-    # This will complain due to the value of the 'scenes' parameter... 
-    # This is intentional to demonstrate the return value of the call to 
+    # This will complain due to the value of the 'scenes' parameter...
+    # This is intentional to demonstrate the return value of the call to
     # errors()
     form = FormValidator({'scenes': ['a', 'b'],
                           'longitudinal_origin': 'abc123',
                           'projection': 'ps'}, name='InputFormValidator')
 
-    print("---------------------------------------------")
+    print("--------------------------------------------")
     print("Example call to validator tree with an error")
     print("--------------------------------------------")
     print(form.errors())
-    
+
     form = FormValidator({'scenes': 'what',
-                       'longitudinal_origin': 'abc123',
-                       'projection': 'ps'}, name='InputFormValidator')
-    
+                          'longitudinal_origin': 'abc123',
+                          'projection': 'ps'}, name='InputFormValidator')
+
     print("")
     print("---------------------------------------------")
     print("Example call to validator tree with no errors")
     print("---------------------------------------------")
-    # This completes with no validation errors                       
+    # This completes with no validation errors
     print(form.errors())
-    
-    
+
+
 
     #END example call
