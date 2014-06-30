@@ -1,5 +1,6 @@
 import copy
 
+
 class Validator(object):
     '''Superclass to create the logic of the validation framework.  The
     validation framework defines a method to include validation code for
@@ -27,13 +28,13 @@ class Validator(object):
 
     The Validator also allows child Validator instances to be defined and
     attached to a parent Validator, thus allowing rich (and conditional)
-    structures to be created.  The Validator superclass handles calling each 
-    child attached to the tree when the errors() method is called on its 
-    parent.  
-    
+    structures to be created.  The Validator superclass handles calling each
+    child attached to the tree when the errors() method is called on its
+    parent.
+
     All child validators are intended to be constructed
     by overriding the __init__() method in its parent Validator.
-    
+
     An example of a Validator that creates a set of child Validators follows:
 
     class ProjectionValidator(Validator):
@@ -129,7 +130,7 @@ class Validator(object):
 
     def add_error(self, key, errmsg):
         if not self.validation_errors:
-            self.validation_errors = {key: errmsg,}
+            self.validation_errors = {key: errmsg, }
         elif key in self.validation_errors:
             self.validation_errors[key].extend(errmsg)
         else:
@@ -150,6 +151,7 @@ class Validator(object):
         errs = copy.deepcopy(self.validation_errors)
         self.validation_errors = None
         return errs
+
 
 class FilesValidator(Validator):
     '''Example validator to check uploaded files'''
@@ -271,16 +273,10 @@ class FormValidator(Validator):
 
 
 if __name__ == '__main__':
-    form = FormValidator({'scenes':['a', 'b'],
+    form = FormValidator({'scenes': ['a', 'b'],
                           'longitudinal_origin': 'abc123',
-                          'projection':'ps'}, name='InputFormValidator')
+                          'projection': 'ps'}, name='InputFormValidator')
 
     print(form.errors())
 
     #END example call
-
-
-
-
-
-
