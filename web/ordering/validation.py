@@ -256,17 +256,11 @@ class FormValidator(Validator):
     def __init__(self, parameters, child_validators=None, name=None):
         super(FormValidator, self).__init__(parameters, child_validators, name)
 
-        projection = ProjectionValidator(parameters)
+        self.add_child(FilesValidator(parameters))
 
-        scene_list = SceneListValidator(parameters)
+        self.add_child(SceneListValidator(parameters))
 
-        files = FilesValidator(parameters)
-
-        self.add_child(files)
-
-        self.add_child(scene_list)
-
-        self.add_child(projection)
+        self.add_child(ProjectionValidator(parameters))
 
     def errors(self):
         return super(FormValidator, self).errors()
