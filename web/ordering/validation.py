@@ -294,6 +294,4 @@ if __name__ == '__main__':
     # This completes with no validation errors
     print(form.errors())
 
-
-
     #END example call
