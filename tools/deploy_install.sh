@@ -37,6 +37,8 @@
 #							to pick the right svn structure area to look for version
 #							Adding SVN_TAGAREA to set tag area out of repository
 #							Adding SVN_TAGAREA setting in set_checkout() function
+#  009		06-30-2014	Adam Dosch		Adding '--force' flag to svn command + SVN_FLAGS variable to control it
+#  							Adding set_appmode() to set application mode for deployments
 #
 #############################################################################################################################
 
@@ -47,6 +49,8 @@ declare -r SSHBIN="/usr/bin/ssh -q"
 declare -r SCPBIN="/usr/bin/scp -q"
 
 declare -r SVNBIN="/usr/bin/svn"
+
+declare -r SVNFLAGS="--force"
 
 STAMP=$( date +'%m%d%y-%H%M%S' )
 
@@ -69,6 +73,8 @@ declare TIER="all"
 declare TIERS="app maintenance processing"
 
 declare MODE
+
+declare APPMODE
 
 declare DEPLOYUSER
 
@@ -172,6 +178,22 @@ function set_user
    esac
 }
 
+function set_appmode
+{
+   # $1 -> mode
+   case $1 in
+      "prod")
+         APPMODE="ops"
+         ;;
+      "tst")
+         APPMODE="tst"
+         ;;
+      *)
+         APPMODE="dev"
+         ;;
+   esac
+}
+
 function deploy_tier
 {
 
@@ -227,13 +249,13 @@ function deploy_tier
  
             if [ "$tier" == "app" ]; then
                write_stdout "$MODE" "Performing 'app' tier deployment commands"
-               ${SSHBIN} -t ${server} "mv $SVN_WORKING_DIR ${SVN_WORKING_DIR}.deploy-${STAMP}; mkdir -p $SVN_WORKING_DIR; cd $SVN_WORKING_DIR; svn ${CHECKOUT_TYPE} ${SVN_HOST}${SVN_BASE}/${SVN_TAGAREA}/${RELEASE} .; find $SVN_WORKING_DIR -type f -name \"*.pyc\" -exec rm -rf '{}' \;" &> /dev/null
+               ${SSHBIN} -t ${server} "mv $SVN_WORKING_DIR ${SVN_WORKING_DIR}.deploy-${STAMP}; mkdir -p $SVN_WORKING_DIR; cd $SVN_WORKING_DIR; ${SVNBIN} ${SVNFLAGS} ${CHECKOUT_TYPE} ${SVN_HOST}${SVN_BASE}/${SVN_TAGAREA}/${RELEASE} .; find $SVN_WORKING_DIR -type f -name \"*.pyc\" -exec rm -rf '{}' \;" &> /dev/null
             elif [ "$tier" == "maintenance" ]; then
                write_stdout "$MODE" "Performing 'maintenance' tier deployment commands"
-               ${SSHBIN} -t ${server} "mv $SVN_WORKING_DIR ${SVN_WORKING_DIR}.deploy-${STAMP}; mkdir -p $SVN_WORKING_DIR; cd $SVN_WORKING_DIR; svn ${CHECKOUT_TYPE} ${SVN_HOST}${SVN_BASE}/${SVN_TAGAREA}/${RELEASE} .; find $SVN_WORKING_DIR -type f -name \"*.pyc\" -exec rm -rf '{}' \;" &> /dev/null
+               ${SSHBIN} -t ${server} "mv $SVN_WORKING_DIR ${SVN_WORKING_DIR}.deploy-${STAMP}; mkdir -p $SVN_WORKING_DIR; cd $SVN_WORKING_DIR; ${SVNBIN} ${SVNFLAGS} ${CHECKOUT_TYPE} ${SVN_HOST}${SVN_BASE}/${SVN_TAGAREA}/${RELEASE} .; find $SVN_WORKING_DIR -type f -name \"*.pyc\" -exec rm -rf '{}' \;" &> /dev/null
             elif [ "$tier" == "processing" ]; then
                write_stdout "$MODE" "Performing 'processing' tier deployment commands"
-               ${SSHBIN} -t ${server} "mv $SVN_WORKING_DIR ${SVN_WORKING_DIR}.deploy-${STAMP}; mkdir -p $SVN_WORKING_DIR; cd $SVN_WORKING_DIR; svn ${CHECKOUT_TYPE} ${SVN_HOST}${SVN_BASE}/${SVN_TAGAREA}/${RELEASE} .; find $SVN_WORKING_DIR -type f -name \"*.pyc\" -exec rm -rf '{}' \;" &> /dev/null
+               ${SSHBIN} -t ${server} "mv $SVN_WORKING_DIR ${SVN_WORKING_DIR}.deploy-${STAMP}; mkdir -p $SVN_WORKING_DIR; cd $SVN_WORKING_DIR; ${SVNBIN} ${SVNFLAGS} ${CHECKOUT_TYPE} ${SVN_HOST}${SVN_BASE}/${SVN_TAGAREA}/${RELEASE} .; find $SVN_WORKING_DIR -type f -name \"*.pyc\" -exec rm -rf '{}' \;" &> /dev/null
             fi
 
             # Create necessary soft-linkage to deploy directory
@@ -246,7 +268,7 @@ function deploy_tier
                ${SSHBIN} -t ${server} "sed -i -r -e \"s~/home/[a-zA-Z]+/~/home/${DEPLOYUSER}/~g\" ${SVN_WORKING_DIR}/${APP_FILE}"
 
                # Uncomment ESPA_ENV and set proper environment
-               ${SSHBIN} -t ${server} "sed -i -r -e \"s~^\#*env = ESPA_ENV=.*~env = ESPA_ENV=${MODE}~\" ${SVN_WORKING_DIR}/${APP_FILE}"
+               ${SSHBIN} -t ${server} "sed -i -r -e \"s~^\#*env = ESPA_ENV=.*~env = ESPA_ENV=${APPMODE}~\" ${SVN_WORKING_DIR}/${APP_FILE}"
 
                # Uncomment ESPA_CONFIG_FILE
                ${SSHBIN} -t ${server} "sed -i -r -e \"s~^\#*env = ESPA_CONFIG_FILE=.*~env = ESPA_CONFIG_FILE=/home/${DEPLOYUSER}/.cfgnfo~\" ${SVN_WORKING_DIR}/${APP_FILE}"
@@ -340,6 +362,9 @@ if [ $# -ge 2 -a $# -le 5 ]; then
 
    # Set user
    set_user "$MODE"
+
+   # Set appmode
+   set_appmode "${MODE}"
 
    # Deploy tier
    deploy_tier "$TIER" "$MODE" 
