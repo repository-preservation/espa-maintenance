@@ -27,45 +27,50 @@ class Validator(object):
 
     The Validator also allows child Validator instances to be defined and
     attached to a parent Validator, thus allowing rich (and conditional)
-    structures to be created.  All child validators are intended to be created
-    by overriding the __init__() method.  An example of a Validator that
-    creates a set of child Validators is as follows:
+    structures to be created.  The Validator superclass handles calling each 
+    child attached to the tree when the errors() method is called on its 
+    parent.  
+    
+    All child validators are intended to be constructed
+    by overriding the __init__() method in its parent Validator.
+    
+    An example of a Validator that creates a set of child Validators follows:
 
     class ProjectionValidator(Validator):
-    valid_projections = ['aea', 'ps', 'sinu', 'longlat']
+        valid_projections = ['aea', 'ps', 'sinu', 'longlat']
 
-    def __init__(self, parameters, child_validators=None, name=None):
-        # delegate the call to superclass since we are overriding the
-        # __init__ method
-        super(ProjectionValidator, self).__init__(parameters,
-                                                  child_validators,
-                                                  name)
+        def __init__(self, parameters, child_validators=None, name=None):
+            # delegate the call to superclass since we are overriding the
+            # __init__ method
+            super(ProjectionValidator, self).__init__(parameters,
+                                                      child_validators,
+                                                      name)
 
-        # check for projection value and add appropriate child validators
-        proj = None
+            # check for projection value and add appropriate child validators
+            proj = None
 
-        if not 'projection' in parameters:
-            self.add_error("projection", ['projection must be specified'])
-        else:
-            proj = parameters['projection']
+            if not 'projection' in parameters:
+                self.add_error("projection", ['projection must be specified'])
+            else:
+                proj = parameters['projection']
 
-        if proj and proj not in self.valid_projections:
+            if proj and proj not in self.valid_projections:
 
-            self.add_error("projection",
-                           ['projection must be one of %s'
-                               % self.valid_projections])
-        else:
-            if proj is 'aea':
-                self.add_child(AlbersValidator(parameters))
-            elif proj is 'ps':
-                self.add_child(PolarStereographicValidator(parameters))
-            elif proj is 'sinu':
-                self.add_child(SinusoidalValidator(parameters))
-            elif proj is 'longlat':
-                self.add_child(GeographicValidator(parameters))
+                self.add_error("projection",
+                               ['projection must be one of %s'
+                                   % self.valid_projections])
+            else:
+                if proj is 'aea':
+                    self.add_child(AlbersValidator(parameters))
+                elif proj is 'ps':
+                    self.add_child(PolarStereographicValidator(parameters))
+                elif proj is 'sinu':
+                    self.add_child(SinusoidalValidator(parameters))
+                elif proj is 'longlat':
+                    self.add_child(GeographicValidator(parameters))
 
-     def errors(self):
-        return super(ProjectionValidator, self).errors()
+         def errors(self):
+            return super(ProjectionValidator, self).errors()
 
     This Validator performs no validation of its own, it simply constructs
     the correct set of child validators depending on the supplied parameters.
