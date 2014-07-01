@@ -291,7 +291,7 @@ if __name__ == '__main__':
     # This is intentional to demonstrate the return value of the call to
     # errors()
     form = ExampleFormValidator({'scenes': ['a', 'b'],
-                                 'longitudinal_origin': 'abc123',
+                                 'longitudinal_pole': 'abc123',
                                  'projection': 'ps'})
 
     print("--------------------------------------------")
@@ -302,7 +302,7 @@ if __name__ == '__main__':
     # This will demonstrate a call to validator in which no validation
     # errors occurred
     form = ExampleFormValidator({'scenes': 'what',
-                                 'longitudinal_origin': 'abc123',
+                                 'longitudinal_pole': 'abc123',
                                  'projection': 'ps'})
 
     print("")
