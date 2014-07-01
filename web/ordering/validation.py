@@ -16,20 +16,20 @@ class Validator(object):
 
         def errors(self):
 
-            if not "longitudinal_origin" in self.parameters:
-                msg = "longitudinal origin is required for polar stereographic"
-                self.add_error('longitudinal_origin', [msg])
+            if not "longitudinal_pole" in self.parameters:
+                msg = "longitudinal pole is required for polar stereographic"
+                self.add_error('longitudinal_pole', [msg])
 
-            elif self.parameters['longitudinal_origin'] == 'what':
-                self.add_error('longitudinal_origin',
-                               ['longitudinal_origin was something crazy'])
+            elif self.parameters['longitudinal_pole'] == 'what':
+                self.add_error('longitudinal_pole',
+                               ['longitudinal_pole was something crazy'])
 
             return super(PolarStereographicValidator, self).errors()
 
     The Validator also allows child Validator instances to be defined and
-    attached to a parent Validator, thus allowing rich (and conditional)
+    attached to a parent Validator, thus enabling rich (and conditional)
     structures to be created.  The Validator superclass handles calling each
-    child attached to the tree when the errors() method is called on its
+    child attached to the tree when the errors() method is invoked on its
     parent.
 
     All child validators are intended to be constructed
@@ -81,13 +81,13 @@ class Validator(object):
     be called to find validators errors, which is the errors() method.
 
     Once the Validation tree is instantiated, users call errors() which will
-    return a dictionary of {parameter: ['error 1', 'error2, ... ]} allowing
+    return a dictionary of {parameter: ['error 1', 'error2', ... ]} allowing
     the calling code to obtain all validation errors for each originally
     supplied parameter.
 
     This code construct was created because Django's form validation was
     too simplistic and did not easily allow the developer to create
-    a rich, conditional tree.
+    a conditional, cascading tree.
     '''
 
     name = ""
