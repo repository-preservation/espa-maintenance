@@ -234,13 +234,13 @@ class ExamplePolarStereographicValidator(Validator):
         '''This validator looks for a needed key and examines its value,
         reporting errors where appropriate'''
 
-        if not "longitudinal_origin" in self.parameters:
-            msg = "longitudinal origin is required for polar stereographic"
-            self.add_error('longitudinal_origin', [msg])
+        if not "longitudinal_pole" in self.parameters:
+            msg = "longitudinal pole is required for polar stereographic"
+            self.add_error('longitudinal_pole', [msg])
 
-        elif self.parameters['longitudinal_origin'] == 'what':
-            self.add_error('longitudinal_origin',
-                           ['longitudinal_origin was something crazy'])
+        elif self.parameters['longitudinal_pole'] == 'what':
+            self.add_error('longitudinal_pole',
+                           ['longitudinal_pole was something crazy'])
 
         return super(ExamplePolarStereographicValidator, self).errors()
 

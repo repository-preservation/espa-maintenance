@@ -5,7 +5,8 @@ from models import Order
 
 
 class SceneListValidator(Validator):
-    '''Validator to check scene lists'''
+    '''Validates that a scene list has been provided and it contains at 
+    least one scene to process'''
 
     def _get_scenelist(self, orderfile):
 
@@ -58,7 +59,8 @@ class SceneListValidator(Validator):
 
 
 class ProductIsSelectedValidator(Validator):
-
+    '''Validates that at least one product has been selected'''
+    
     def errors(self):
 
         product_is_selected = None
@@ -75,7 +77,8 @@ class ProductIsSelectedValidator(Validator):
 
 
 class FalseEastingValidator(Validator):
-
+    '''Validates the false_easting parameter'''
+    
     def errors(self):
 
         if not 'false_easting' in self.parameters\
@@ -87,7 +90,8 @@ class FalseEastingValidator(Validator):
 
 
 class FalseNorthingValidator(Validator):
-
+    '''Validates the false_northing parameter'''
+    
     def errors(self):
 
         if not 'false_northing' in self.parameters\
@@ -99,7 +103,8 @@ class FalseNorthingValidator(Validator):
 
 
 class CentralMeridianValidator(Validator):
-
+    '''Validates the central_meridian parameter'''
+    
     def errors(self):
 
         if not 'central_meridian' in self.parameters\
@@ -111,7 +116,7 @@ class CentralMeridianValidator(Validator):
 
 
 class LatitudeTrueScaleValidator(Validator):
-
+    '''Validates the latitude_true_scale parameter'''
     def errors(self):
         msg = "Please provide a valid Latitude True Scale\
                value in the ranges of -60.0 to -90.0 or 60.0 to 90.0"
@@ -131,7 +136,8 @@ class LatitudeTrueScaleValidator(Validator):
 
 
 class LongitudinalPoleValidator(Validator):
-
+    '''Validates the longitudinal_pole parameter'''
+    
     def errors(self):
 
         if not 'longitude_pole' in self.parameters\
@@ -143,7 +149,8 @@ class LongitudinalPoleValidator(Validator):
 
 
 class StandardParallel1Validator(Validator):
-
+    '''Validates the std_parallel_1 parameter'''
+    
     def errors(self):
 
         if not 'std_parallel_1' in self.parameters\
@@ -155,7 +162,8 @@ class StandardParallel1Validator(Validator):
 
 
 class StandardParallel2Validator(Validator):
-
+    '''Validates the std_parallel_2 parameter'''
+    
     def errors(self):
 
         if not 'std_parallel_2' in self.parameters\
@@ -167,7 +175,8 @@ class StandardParallel2Validator(Validator):
 
 
 class OriginLatitudeValidator(Validator):
-
+    '''Validates origin_lat'''
+    
     def errors(self):
 
         if not 'origin_lat' in self.parameters\
@@ -179,7 +188,7 @@ class OriginLatitudeValidator(Validator):
 
 
 class DatumValidator(Validator):
-
+    '''Validates datum for albers projection'''
     valid_datum = ['nad27', 'nad83', 'wgs84']
 
     def errors(self):
@@ -193,7 +202,8 @@ class DatumValidator(Validator):
 
 
 class UTMZoneValidator(Validator):
-
+    '''Validates utm_zone for utm projection'''
+    
     def errors(self):
 
         if not 'utm_zone' in self.parameters\
@@ -206,7 +216,7 @@ class UTMZoneValidator(Validator):
 
 
 class UTMNorthSouthValidator(Validator):
-
+    '''Validates utm_north_south for utm projection'''
     def errors(self):
 
         if not 'utm_north_south' in self.parameters\
@@ -218,7 +228,7 @@ class UTMNorthSouthValidator(Validator):
 
 
 class ProjectionValidator(Validator):
-    '''Validator to construct a set of child validators'''
+    '''Validates parameters for reprojection'''
 
     valid_projections = ['aea', 'ps', 'sinu', 'longlat', 'utm']
 
@@ -261,7 +271,8 @@ class ProjectionValidator(Validator):
 
 
 class UTMValidator(Validator):
-    '''Example conditional child validator'''
+    '''Validates parameters for utm projection'''
+    
     def __init__(self, parameters, child_validators=None, name=None):
         super(UTMValidator, self).__init__(parameters,
                                            child_validators,
@@ -276,7 +287,7 @@ class UTMValidator(Validator):
 
 
 class AlbersValidator(Validator):
-    '''Example conditional child validator'''
+    '''Validates parameters for albers projection'''
 
     def __init__(self, parameters, child_validators=None, name=None):
         super(AlbersValidator, self).__init__(parameters,
@@ -297,7 +308,7 @@ class AlbersValidator(Validator):
 
 
 class SinusoidalValidator(Validator):
-    '''Example conditional child validator'''
+    '''Validates parameters for sinusoidal projection'''
 
     def __init__(self, parameters, child_validators=None, name=None):
         super(SinusoidalValidator, self).__init__(parameters,
@@ -314,7 +325,7 @@ class SinusoidalValidator(Validator):
 
 
 class GeographicValidator(Validator):
-    '''Conditional child validator'''
+    '''Validates parameters for geographic projection'''
 
     def errors(self):
         '''This validator does nothing'''
@@ -322,7 +333,7 @@ class GeographicValidator(Validator):
 
 
 class PolarStereographicValidator(Validator):
-    '''Conditional child validator'''
+    '''Validates parameters for polar stereographic projection'''
 
     def __init__(self, parameters, child_validators=None, name=None):
         super(PolarStereographicValidator, self).__init__(parameters,
@@ -340,7 +351,7 @@ class PolarStereographicValidator(Validator):
 
 
 class MeterPixelSizeValidator(Validator):
-
+    '''Validates pixel sizes specified in meters'''
     def errors(self):
 
         msg = "Please enter a pixel size between 30 and 1000 meters"
@@ -360,7 +371,8 @@ class MeterPixelSizeValidator(Validator):
 
 
 class DecimalDegreePixelSizeValidator(Validator):
-
+    '''Validates pixel sizes specified in decimal degrees'''
+    
     def errors(self):
 
         msg = ''.join(["Please enter a pixel size between",
@@ -383,7 +395,7 @@ class DecimalDegreePixelSizeValidator(Validator):
 
 
 class PixelSizeValidator(Validator):
-    '''Conditional child validator'''
+    '''Validates pixel sizes'''
 
     def __init__(self, parameters, child_validators=None, name=None):
         super(PixelSizeValidator, self).__init__(parameters,
@@ -411,7 +423,7 @@ class PixelSizeValidator(Validator):
 
 
 class ImageExtentsValidator(Validator):
-    '''Conditional child validator'''
+    '''Validates image extents'''
 
     def errors(self):
 
@@ -483,7 +495,6 @@ class NewOrderFilesValidator(Validator):
                  ' one scene for processing'])
         
         if not 'scenelist' in self.parameters:
-            
             self.add_error('files', [msg, ])
 
         return super(NewOrderFilesValidator, self).errors()
