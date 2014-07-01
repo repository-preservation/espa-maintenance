@@ -430,7 +430,7 @@ class Configuration(models.Model):
 
     def getValue(self, key):
 
-        c = Configuration.objects.filter(key=key)
+        c = Configuration.objects.get(key=key)
 
         if len(c) > 0:
             return str(c[0].value)

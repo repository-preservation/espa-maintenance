@@ -21,6 +21,10 @@ import xmlrpclib
 import urllib2
 
 
+def frange(start,end,step):
+    '''Provides Python range functions over floating point values'''       
+    return [x*step for x in range(int(start * 1./step), int(end * 1./step))]
+
 def is_number(s):
     '''Determines if a string value is a float or int.
 
@@ -96,7 +100,11 @@ def send_initial_email(order):
 
 def send_completion_email(email, ordernum, readyscenes=[]):
 
-    status_base_url = Configuration().getValue('espa.status.url')
+    config = Configuration()
+    
+    status_base_url = config.getValue('espa.status.url')
+    
+    config = None
 
     status_url = ('%s/%s') % (status_base_url, email)
 
