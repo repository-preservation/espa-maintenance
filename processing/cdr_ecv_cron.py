@@ -80,6 +80,12 @@ def run_scenes():
     if len(host) == 0:
         log("landsatds.host is not defined... exiting")
         sys.exit(EXIT_FAILURE)
+    
+    # adding this so we can disable on-demand processing via the admin console
+    ondemand_enabled = server.get_configuration('ondemand_enabled')
+    if not ondemand_enabled.lower() == True:
+        log("on demand disabled...")
+        sys.exit(EXIT_SUCCESS)
 
     try:
         log("Checking for scenes to process...")

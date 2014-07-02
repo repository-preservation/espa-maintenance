@@ -429,10 +429,11 @@ class Configuration(models.Model):
         return ('%s : %s') % (self.key, self.value)
 
     def getValue(self, key):
-
-        c = Configuration.objects.get(key=key)
-
-        if len(c) > 0:
-            return str(c[0].value)
-        else:
+        try:
+            return str(Configuration.objects.get(key=key))
+        except:
             return ''
+        #if len(c) > 0:
+        #    return str(c[0].value)
+        #else:
+        #    return ''

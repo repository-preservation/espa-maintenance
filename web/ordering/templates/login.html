@@ -1,9 +1,10 @@
 {% extends "base.html" %}
 {% load url from future %}
 
-
 {% block title %}Ordering Interface{% endblock %}
 {% block header %} ESPA Ordering Interface {% endblock %}
+
+{% block nav %}{% include "login_nav.html" %}{% endblock %}
 
 {% block content %}
 
@@ -44,9 +45,14 @@
 
 	</form>
 
-	<h5 style="padding-top:55px">
+    
+     <p style="padding-top:25px">A USGS username and password are required to access this interface.</p>
+     <p>You may enter the same credentials used to access <a href="{{ earthexplorer }}">EarthExplorer</a>.</p>
+     
+
+	<h5 style="padding-top:30px">
         <a href="{{ register_user }}">Register for an account</a>
-        <span style="padding-left:10px;padding-right:10px" />
+        <span style="padding-left:15px;padding-right:15px" />
         <a href="{{ forgot_login }}">Forgot your password?</a>
      </h5>
 

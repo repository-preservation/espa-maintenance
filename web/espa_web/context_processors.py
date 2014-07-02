@@ -15,4 +15,5 @@ def include_external_urls(request):
     context = {}
     context['register_user'] = settings.URL_FOR('register_user')
     context['forgot_login'] = settings.URL_FOR('forgot_login')
+    context['earthexplorer'] = settings.URL_FOR('earthexplorer')
     return context

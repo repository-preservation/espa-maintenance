@@ -532,3 +532,20 @@ class NewOrderPostValidator(Validator):
         and calling the error() method defined in Validator superclass'''
 
         return super(NewOrderPostValidator, self).errors()
+        
+        
+class NewOrderValidator(Validator):
+    
+    def __init__(self, parameters, child_validators=None, name=None):
+        super(NewOrderValidator, self).__init__(parameters,
+                                                child_validators,
+                                                name)
+                                                
+        self.add_child(NewOrderPostValidator(parameters['post']))
+        self.add_child(NewOrderFilesValidator(parameters('files')))
+        
+    def errors(self):
+        '''Trigger the child validators by overriding the error() method
+        and calling the error() method defined in Validator superclass'''
+
+        return super(NewOrderValidator, self).errors()

@@ -372,12 +372,12 @@
                <label class='tooltip' title='Output format for ESPA products'>Output Format</label>
                <input type='radio' id='output_format' name='output_format' value='gtiff' checked="checked">GeoTiff</input>
                <input type='radio' id='output_format' name='output_format' value='envi'>ENVI</input>
-               <input type='radio' id='output_format' name='output_format' value='hdf'>HDF</input>   		
+               <input type='radio' id='output_format' name='output_format' value='hdf-eos2'>HDF-EOS2</input>   		
            </div>
 
 				
 		<div class='inputitem'>
-		    <input type='checkbox' id='reproject' name='reproject' onclick=handle_inputitem_click('reprojection');handle_projection_selection()>
+		    <input type='checkbox' id='reproject' name='reproject' onchange=handle_inputitem_click('reprojection');handle_projection_selection()>
 		    <label class='tooltip' title='Specify custom image projection for output products' for="reproject">Reproject Products</label>
 		    <div id='reprojection'>
    		        <label for='projection'>Projection:</label>
@@ -396,7 +396,7 @@
 		</div><!-- End inputitem -->
 		
 		<div class='inputitem'>
-		    <input type='checkbox' id='image_extents' name='image_extents' onclick=handle_inputitem_click('scene_extents');>
+		    <input type='checkbox' id='image_extents' name='image_extents' onchange=handle_inputitem_click('scene_extents');>
 		    <label class='tooltip' title='Enter user defined extents for output products    (minimum X,Y maximum X,Y in meters or decimal degrees)' for="include_solr_index">Modify Image Extents</label>
 		
 		    <div id='scene_extents'>
@@ -476,34 +476,34 @@
         Simple function to show an element
       */
       function show_item(element_id) {
-	var elem = document.getElementById(element_id);
+	    var elem = document.getElementById(element_id);
 	
-	if (elem.nodeName == 'SPAN') {
-		elem.style.display = 'inline';
-	}
-	else {
-		elem.style.display = 'block';
-	}
+	    if (elem.nodeName == 'SPAN') {
+	        elem.style.display = 'inline';
+	    }
+	    else {
+		  elem.style.display = 'block';
+	    }
 	    
-	elem.style.visibility = 'visible';
-	return elem;
+	    elem.style.visibility = 'visible';
+	    return elem;
       }
       
       /*
         Simple function to hide an element
       */
       function hide_item(element_id) {
-	var elem = document.getElementById(element_id);
-	elem.style.display = 'none';
-	elem.style.visibility= 'hidden';
-	return elem;
+	    var elem = document.getElementById(element_id);
+	    elem.style.display = 'none';
+	    elem.style.visibility= 'hidden';
+	    return elem;
       }
     
       /*
         Returns true if an element is visible, false if not
       */
       function isVisible(element_id) {
-	return document.getElementById(element_id).style.visibility == 'visible';
+	    return document.getElementById(element_id).style.visibility == 'visible';
       }
       
       /*
@@ -511,15 +511,15 @@
       */
       
       function show_hide(element_id) {
-	var elem = document.getElementById(element_id);    
+	    var elem = document.getElementById(element_id);    
 	
-	if (isVisible(element_id)) {
-	    hide_item(element_id);
-	}
-	else {
-	    show_item(element_id);
-	}
-	return elem;
+	    if (isVisible(element_id)) {
+	        hide_item(element_id);
+	    }
+	    else {
+	        show_item(element_id);
+	    }
+	    return elem;
       }
       
             
@@ -530,61 +530,61 @@
       */
       
       function handle_inputitem_click(element_id) {
-	show_hide(element_id);
+	    show_hide(element_id);
 	
-	//see if we need to select the resample options
-	if (isVisible(element_id) && (element_id == 'resize_options' || element_id == 'reprojection')) {
-	    //look to see if 'resample' is already selected.  If not, display it
-	    if (! isVisible('resample_options')) {
-	        show_item('resample_options');	
-	    }
+	    //see if we need to select the resample options
+	    if (isVisible(element_id) && (element_id == 'resize_options' || element_id == 'reprojection')) {
+	        //look to see if 'resample' is already selected.  If not, display it
+	        if (! isVisible('resample_options')) {
+	            show_item('resample_options');	
+	        }
 	   
-	}
+	    }
 	
-	//since this item was deselected, check to see if there is anything
-	//else that needs the 'resample_options' displayed.  If not, hide it.
-	if (! isVisible(element_id)
-	    && (element_id == 'resize_options' || element_id == 'reprojection')
-	    && ((! isVisible('resize_options') && (! isVisible('reprojection'))))) {
+	    //since this item was deselected, check to see if there is anything
+	    //else that needs the 'resample_options' displayed.  If not, hide it.
+	    if (! isVisible(element_id)
+	        && (element_id == 'resize_options' || element_id == 'reprojection')
+	        && ((! isVisible('resize_options') && (! isVisible('reprojection'))))) {
 	    
-	    hide_item('resample_options');
-	}
+	        hide_item('resample_options');
+	    }
 	
-	if (element_id == 'reprojection' && isVisible('reprojection')) {
-	    handle_projection_selection();
-	}
+	    if (element_id == 'reprojection' && isVisible('reprojection')) {
+	        handle_projection_selection();
+	    }
       }
       
       /* Constructs html to be displayed when albers is selected as a projection */
       function build_albers_options() {
 	  var html = "";
 	  html += "<div class='inputitem'>";
-	  html += "<input value='40.0' placeholder='40.0' class='projection_params_txt' type='text' id='origin_lat' name='origin_lat'>";
+	  html += "<input placeholder='40.0' class='projection_params_txt' type='text' id='origin_lat' name='origin_lat'>";
 	  html += "<label for='origin_lat'>Latitude of Origin</label>";
 	  html += "</div>";
 	 
 	  html += "<div class='inputitem'>";
-	  html += "<input value='-96.0' placeholder='-96.0' class='projection_params_txt' type='text' id='central_meridian' name='central_meridian'>";
+	  html += "<input placeholder='-96.0' class='projection_params_txt' type='text' id='central_meridian' name='central_meridian'>";
 	  html += "<label for='central_meridian'>Central Meridian</label>";
 	  html += "</div>";
 	  
 	  html += "<div class='inputitem'>";
-	  html += "<input class='projection_params_txt' type='text' id='std_parallel_1' name='std_parallel_1' placeholder='20.0' value='20.0'>";
+	  html += "<input class='projection_params_txt' type='text' id='std_parallel_1' name='std_parallel_1' placeholder='20.0'>";
 	  html += "<label for='std_parallel_1'>1st Standard Parallel</label>";
 	  html += "</div>";
 	  
 	  html += "<div class='inputitem'>";
-	  html += "<input class='projection_params_txt' type='text' id='std_parallel_2' name='std_parallel_2' placeholder='60.0' value='60.0'>";
+	  html += "<input class='projection_params_txt' type='text' id='std_parallel_2' name='std_parallel_2' placeholder='60.0'>";
 	  html += "<label for='std_parallel_2'>2nd Standard Parallel</label>";
 	  html += "</div>";
 	  
 	  html += "<div class='inputitem'>";
-	  html += "<input class='projection_params_txt' type='text' id='false_easting' name='false_easting' placeholder='0.0' value='0.0'>";
+	  html += "<input class='projection_params_txt' type='text' id='false_easting' name='false_easting' placeholder='0.0'>";
 	  html += "<label for='false_easting'>False Easting</label>";
 	  html += "</div>";
 	  	  
 	  html += "<div class='inputitem'>";
-	  html += "<input class='projection_params_txt' type='text' id='false_northing' name='false_northing' placeholder='0.0' value='0.0'>";
+	  html += "<input class='projection_params_txt' type='text' id='false_northing' name='false_northing' placeholder='0.0'>";
 	  html += "<label for='false_northing'>False Northing</label>";
 	  html += "</div>";
 	  
@@ -606,17 +606,17 @@
       function build_sinusoidal_options() {
           var html = "";
 	  html += "<div class='inputitem'>";
-	  html += "<input class='projection_params_txt' type='text' id='central_meridian' name='central_meridian' value='0.0' placeholder='0.0'>";
+	  html += "<input class='projection_params_txt' type='text' id='central_meridian' name='central_meridian' placeholder='0.0'>";
 	  html += "<label for='central_meridian'>Central Meridian</label>";
 	  html += "</div>";
 	  
 	  html += "<div class='inputitem'>";
-	  html += "<input class='projection_params_txt' type='text' id='false_easting' name='false_easting' value='0.0' placeholder='0.0'>";
+	  html += "<input class='projection_params_txt' type='text' id='false_easting' name='false_easting' placeholder='0.0'>";
 	  html += "<label for='false_easting'>False Easting</label>";
 	  html += "</div>";
 	  	  
 	  html += "<div class='inputitem'>";
-	  html += "<input class='projection_params_txt' type='text' id='false_northing' name='false_northing' value='0.0' placeholder='0.0'>";
+	  html += "<input class='projection_params_txt' type='text' id='false_northing' name='false_northing' placeholder='0.0'>";
 	  html += "<label for='false_northing'>False Northing</label>";
 	  html += "</div>";
 	  
@@ -643,23 +643,23 @@
       function build_ps_options() {
           var html = "";
 	  html += "<div class='inputitem'>";
-	  html += "<input class='projection_params_txt' type='text' id='longitude_pole' name='longitude_pole' value='0.0' placeholder='0.0'>";
+	  html += "<input class='projection_params_txt' type='text' id='longitude_pole' name='longitude_pole' placeholder='0.0'>";
 	  html += "<label for='longitude_pole'>Longitudinal Pole</label>";
 	  html += "</div>";
 
        html += "<div class='inputitem'>";
-	  html += "<input class='projection_params_txt' type='text' id='latitude_true_scale' name='latitude_true_scale' value='0.0' placeholder='0.0'>";
+	  html += "<input class='projection_params_txt' type='text' id='latitude_true_scale' name='latitude_true_scale' placeholder='0.0'>";
 	  html += "<label for='latitude_true_scale'>Latitude True Scale</label>";
 	  html += "</div>";
 
       	  
 	  html += "<div class='inputitem'>";
-	  html += "<input class='projection_params_txt' type='text' id='false_easting' name='false_easting' value='0.0' placeholder='0.0'>";
+	  html += "<input class='projection_params_txt' type='text' id='false_easting' name='false_easting' placeholder='0.0'>";
 	  html += "<label for='false_easting'>False Easting</label>";
 	  html += "</div>";
 	  	  
 	  html += "<div class='inputitem'>";
-	  html += "<input class='projection_params_txt' type='text' id='false_northing' name='false_northing' value='0.0' placeholder='0.0'>";
+	  html += "<input class='projection_params_txt' type='text' id='false_northing' name='false_northing' placeholder='0.0'>";
 	  html += "<label for='false_northing'>False Northing</label>";
 	  html += "</div>";
 	  

@@ -164,6 +164,7 @@ SERVICE_LOCATOR = {
         "massloader": "http://eedev.cr.usgs.gov/MassLoaderdevsys/MassLoader?wsdl",
         "registration": "http://eedev.cr.usgs.gov/RegistrationServicedevsys/RegistrationService?wsdl",
         "register_user": "https://eedev.cr.usgs.gov/devsys/register/",
+        "earthexplorer": "https://eedev.cr.usgs.gov/devsys",
         "forgot_login": "https://eedev.cr.usgs.gov/devsys/login/username"
     },
     "tst": {
@@ -173,6 +174,7 @@ SERVICE_LOCATOR = {
         "massloader": "http://eedevmast.cr.usgs.gov/MassLoaderdevmast/MassLoader?wsdl",
         "registration": "http://eedevmast.cr.usgs.gov/RegistrationServicedevmast/RegistrationService?wsdl",
         "register_user": "https://eedevmast.cr.usgs.gov/register",
+        "earthexplorer": "https://eedevmast.cr.usgs.gov",
         "forgot_login": "https://eedevmast.cr.usgs.gov/login/username"
     },
     "ops": {
@@ -182,6 +184,7 @@ SERVICE_LOCATOR = {
         "massloader": "http://edclxs152.cr.usgs.gov/MassLoader/MassLoader?wsdl",
         "registration": "http://edclxs152.cr.usgs.gov/RegistrationService/RegistrationService?wsdl",
         "register_user": "https://earthexplorer.usgs.gov/register",
+        "earthexplorer": "https://earthexplorer.usgs.gov",
         "forgot_login": "https://earthexplorer.usgs.gov/login/username"
     }
 }
@@ -207,17 +210,28 @@ URL_FOR = lambda service_name: SERVICE_LOCATOR[ESPA_ENV][service_name]
 # Set up caching for Django.  Everything is pointed to our single memcache 
 # cluster but each environment is going to separated out with the environment
 # value as a key prefix.
-CACHES = {
+if ESPA_ENV is 'dev':
+    CACHES = {
     'default': {
         'KEY_PREFIX' : ESPA_ENV,
         'BACKEND': 'django.core.cache.backends.memcached.MemcachedCache',
         'LOCATION': [
-            'l8srlscp20.cr.usgs.gov:11211',
-            'l8srlscp21.cr.usgs.gov:11211',
-            'l8srlscp22.cr.usgs.gov:11211',
+            'localhost:11211',
         ]
     }
 }
+else:    
+    CACHES = {
+        'default': {
+            'KEY_PREFIX' : ESPA_ENV,
+            'BACKEND': 'django.core.cache.backends.memcached.MemcachedCache',
+            'LOCATION': [
+                'l8srlscp20.cr.usgs.gov:11211',
+                'l8srlscp21.cr.usgs.gov:11211',
+                'l8srlscp22.cr.usgs.gov:11211',
+            ]
+        }
+    }
 
 # cache timeouts by usage (in seconds)
 SYSTEM_MESSAGE_CACHE_TIMEOUT = 60
