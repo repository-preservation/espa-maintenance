@@ -39,6 +39,9 @@
 #							Adding SVN_TAGAREA setting in set_checkout() function
 #  009		06-30-2014	Adam Dosch		Adding '--force' flag to svn command + SVN_FLAGS variable to control it
 #  							Adding set_appmode() to set application mode for deployments
+#  010		07-02-2014	Adam Dosch		Redoing deployment to check for symlink of espa-site vs making a dir
+#							then doing soft-links.  A better approach to combat broken links or
+#							massive change for webroot.
 #
 #############################################################################################################################
 
@@ -244,9 +247,24 @@ function deploy_tier
             # Do code deployment on server with SSH
             [[ $VERBOSE -eq 0 ]] && write_stdout "$MODE" "Deploying ESPA release $RELEASE to $SVN_WORKING_DIR on $server"
 
-            # Create espa-site dir if it doesn't exist
-            ${SSHBIN} -t ${server} "mkdir -p ~/espa-site"
- 
+            # Create espa-site symlink if it doesn't exist
+            [[ $VERBOSE -eq 0 ]] && write_stdout "$MODE" "Checking if espa-site soft-link exists on $server"
+
+            retval=$( ${SSHBIN} -t ${server} "ln -s ~/tmp ~/espa-site 2> /dev/null && echo success || echo exists" )
+
+            retval=$( echo $retval | sed -r -e "s/^([a-z]+).*/\1/" )
+
+            if [ "${retval}" == "exists" ]; then
+               [[ $VERBOSE -eq 0 ]] && write_stdout "$MODE" "soft-link already exists, continuing on..."
+            elif [ "${retval}" == "success" ]; then
+               [[ $VERBOSE -eq 0 ]] && write_stdout "$MODE" "Created new soft-link for espa-site, continuing on..."
+            else
+               [[ $VERBOSE -eq 0 ]] && write_stdout "$MODE" "Unknown status reported back from ${server} below.  Interrogate manually.  QUITTING deployment."
+               [[ $VERBOSE -eq 0 ]] && write_stdout "$MODE" "${retval}"
+               exit 2
+            fi
+         
+            # Deploying code for tier
             if [ "$tier" == "app" ]; then
                write_stdout "$MODE" "Performing 'app' tier deployment commands"
                ${SSHBIN} -t ${server} "mv $SVN_WORKING_DIR ${SVN_WORKING_DIR}.deploy-${STAMP}; mkdir -p $SVN_WORKING_DIR; cd $SVN_WORKING_DIR; ${SVNBIN} ${SVNFLAGS} ${CHECKOUT_TYPE} ${SVN_HOST}${SVN_BASE}/${SVN_TAGAREA}/${RELEASE} .; find $SVN_WORKING_DIR -type f -name \"*.pyc\" -exec rm -rf '{}' \;" &> /dev/null
@@ -257,9 +275,6 @@ function deploy_tier
                write_stdout "$MODE" "Performing 'processing' tier deployment commands"
                ${SSHBIN} -t ${server} "mv $SVN_WORKING_DIR ${SVN_WORKING_DIR}.deploy-${STAMP}; mkdir -p $SVN_WORKING_DIR; cd $SVN_WORKING_DIR; ${SVNBIN} ${SVNFLAGS} ${CHECKOUT_TYPE} ${SVN_HOST}${SVN_BASE}/${SVN_TAGAREA}/${RELEASE} .; find $SVN_WORKING_DIR -type f -name \"*.pyc\" -exec rm -rf '{}' \;" &> /dev/null
             fi
-
-            # Create necessary soft-linkage to deploy directory
-            ${SSHBIN} -t ${server} "cd ~/espa-site; ln -f -s ../tmp/* ."
 
             # If app tier, update soft-link for uwsgi and re-touch file to reload
             if [ "$tier" == "app" ]; then
