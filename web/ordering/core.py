@@ -340,6 +340,7 @@ def get_scenes_to_process():
                     eo.scene_set.filter(status='submitted',
                                         name__in=resp_dict['invalid'])\
                         .update(status='unavailable',
+                                completion_date = datetime.datetime.now(),
                                 note='Not found in landsat archive')
 
                 if 'available' in resp_dict:
