@@ -36,7 +36,7 @@ ESPA_BASE_OUTPUT_PATH = '/data2/LSRD'
 
 
 ##############################################################################
-# Used in lpvs_cron.py
+# Used in lpcs_cron.py
 
 # Path to the completed orders
 ESPA_CACHE_DIRECTORY = '/data2/LSRD'
@@ -85,3 +85,34 @@ ESPA_CACHE_HOST_LIST = ['edclxs67p', 'edclxs140p', 'edclxs140p']
 
 # Where to place the temporary scene processing log files
 LOGFILE_PATH = '/tmp'
+
+
+##############################################################################
+# Used by statistics.py
+
+# Band type data ranges.  They are intended to be used for removing outliers
+# from the data before statistics generation
+# Must match DATA_MAX_Y and DATA_MIN_Y values in plot.py
+# The types must match the types in cdr_ecv.py and modis.py
+BAND_TYPE_STAT_RANGES = {
+    'SR': {
+        'UPPER_BOUND': 10000,
+        'LOWER_BOUND': 0
+    },
+    'TOA': {
+        'UPPER_BOUND': 10000,
+        'LOWER_BOUND': 0
+    },
+    'INDEX': {
+        'UPPER_BOUND': 10000,
+        'LOWER_BOUND': -1000
+    },
+    'LST': {
+        'UPPER_BOUND': 65535,
+        'LOWER_BOUND': 7500
+    },
+    'EMIS': {
+        'UPPER_BOUND': 255,
+        'LOWER_BOUND': 1
+    }
+}
