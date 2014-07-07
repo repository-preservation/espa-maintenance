@@ -18,6 +18,7 @@ import glob
 import errno
 import traceback
 from cStringIO import StringIO
+import numpy as np
 
 # espa-common objects and methods
 from espa_constants import *
@@ -25,14 +26,16 @@ from espa_logging import log
 
 # local objects and methods
 import espa_exception as ee
-import util
+import settings
 
 
 # ============================================================================
-def get_statistics(file_name):
+def get_statistics(file_name, band_type):
     '''
     Description:
-      Uses gdalinfo to extract the stats values from the specified file.
+      Uses numpy to determine the stats values from the specified file.
+      The data is cleaned before stats are generated.  This cleaning is
+      intended to remove fill and outliers from the statistics.
 
     Returns:
       Minimum(float)
@@ -41,33 +44,29 @@ def get_statistics(file_name):
       Standard Deviation(float)
     '''
 
-    minimum = 0
-    maximum = 0
-    mean = 0
-    stddev = 0
+    # Figure out the data type based on the band type
+    data_type = np.int16
+    if band_type == 'LST':
+        data_type = np.uint16
+    elif band_type == 'EMIS':
+        data_type = np.uint8
 
-    cmd = ' '.join(['gdalinfo', '-stats', file_name])
-    output = util.execute_cmd(cmd)
+    # Load the image data into memory
+    input_data = np.fromfile(file_name, dtype=data_type)
 
-    for line in output.split('\n'):
-        line_lower = line.strip().lower()
+    # Get the data bounds
+    upper_bound = settings.BAND_TYPE_STAT_RANGES[band_type]['UPPER_BOUND']
+    lower_bound = settings.BAND_TYPE_STAT_RANGES[band_type]['LOWER_BOUND']
 
-        if line_lower.startswith('statistics_minimum'):
-            minimum = line_lower.split('=')[1]  # take the second element
-        if line_lower.startswith('statistics_maximum'):
-            maximum = line_lower.split('=')[1]  # take the second element
-        if line_lower.startswith('statistics_mean'):
-            mean = line_lower.split('=')[1]     # take the second element
-        if line_lower.startswith('statistics_stddev'):
-            stddev = line_lower.split('=')[1]   # take the second element
-        if 'no valid pixels found' in line_lower:
-            log("Warning: No valid pixels found: Continuing with zeroed stats")
+    # Clean the data
+    input_data = input_data[((input_data >= lower_bound)
+                             & (input_data <= upper_bound))]
 
-    # Cleanup the gdal generated xml file should be the only file
-    # BUT...... *NOT* GUARANTEED
-    # So we may be removing other gdal aux files here
-    for file_name in glob.glob('*.aux.xml'):
-        os.unlink(file_name)
+    # Calculate the stats
+    minimum = np.min(input_data)
+    maximum = np.max(input_data)
+    mean = np.mean(input_data)
+    stddev = np.std(input_data)
 
     return (float(minimum), float(maximum), float(mean), float(stddev))
 # END - get_statistics
@@ -101,33 +100,41 @@ def generate_statistics(work_directory, files_to_search_for):
                                        str(e)), None, sys.exc_info()[2]
 
         try:
-            file_names = list()
-            for search in files_to_search_for:
-                file_names.extend(glob.glob(search))
+            # Build the list of files to process
+            file_names = dict()
+            for band_type in files_to_search_for:
+                file_names[band_type] = list()
+                for search in files_to_search_for[band_type]:
+                    file_names[band_type].extend(glob.glob(search))
 
             # Generate the requested statistics for each tile
-            for file_name in file_names:
-                log("Generating statistics for: %s" % file_name)
+            for band_type in file_names:
+                for file_name in file_names[band_type]:
 
-                (minimum, maximum, mean, stddev) = get_statistics(file_name)
+                    log("Generating statistics for: %s" % file_name)
 
-                # Drop the filename extention so we can replace it with 'stats'
-                base = os.path.splitext(file_name)[0]
+                    (minimum, maximum,
+                     mean, stddev) = get_statistics(file_name, band_type)
 
-                # Figure out the filename
-                stats_output_file = '%s/%s.stats' % (stats_output_path, base)
+                    # Drop the filename extention so we can replace it with
+                    # 'stats'
+                    base = os.path.splitext(file_name)[0]
 
-                # Buffer the stats
-                data_io = StringIO()
-                data_io.write("FILENAME=%s\n" % file_name)
-                data_io.write("MINIMUM=%f\n" % minimum)
-                data_io.write("MAXIMUM=%f\n" % maximum)
-                data_io.write("MEAN=%f\n" % mean)
-                data_io.write("STDDEV=%f\n" % stddev)
+                    # Figure out the filename
+                    stats_output_file = ('%s/%s.stats'
+                                         % (stats_output_path, base))
 
-                # Create the stats file
-                with open(stats_output_file, 'w+') as stat_fd:
-                    stat_fd.write(data_io.getvalue())
+                    # Buffer the stats
+                    data_io = StringIO()
+                    data_io.write("FILENAME=%s\n" % file_name)
+                    data_io.write("MINIMUM=%f\n" % minimum)
+                    data_io.write("MAXIMUM=%f\n" % maximum)
+                    data_io.write("MEAN=%f\n" % mean)
+                    data_io.write("STDDEV=%f\n" % stddev)
+
+                    # Create the stats file
+                    with open(stats_output_file, 'w+') as stat_fd:
+                        stat_fd.write(data_io.getvalue())
             # END - for tile
         except Exception, e:
             raise ee.ESPAException(ee.ErrorCodes.statistics,
@@ -144,17 +151,25 @@ if __name__ == '__main__':
     '''
     Description:
       This is test code only used during proto-typing.
-      It only provides stats for landsat data.
+      It only provides stats for landsat and modis data.
     '''
 
+    # Hold the wild card strings in a type based dictionary
+    files_to_search_for = dict()
+
     # Landsat files
-    files_to_search_for = ['*_sr_band[0-9].img', '*_toa_band[0-9].img',
-                           '*_nbr.img', '*_nbr2.img', '*_ndmi.img',
-                           '*_ndvi.img', '*_evi.img', '*_savi.img',
-                           '*_msavi.img']
+    files_to_search_for['SR'] = ['*_sr_band[0-9].img']
+    files_to_search_for['TOA'] = ['*_toa_band[0-9].img']
+    files_to_search_for['INDEX'] = ['*_nbr.img', '*_nbr2.img', '*_ndmi.img',
+                                    '*_ndvi.img', '*_evi.img', '*_savi.img',
+                                    '*_msavi.img']
+
     # MODIS files
-    files_to_search_for.extend(['*-sur_refl_b*.tif', '*-LST*.tif',
-                                '*-Emis_*.tif'])
+    files_to_search_for['SR'].extend(['*sur_refl_b*.img'])
+    files_to_search_for['INDEX'].extend(['*NDVI.img', '*EVI.img'])
+    files_to_search_for['LST'] = ['*LST_Day_1km.img', '*LST_Night_1km.img',
+                                  '*LST_Day_6km.img', '*LST_Night_6km.img']
+    files_to_search_for['EMIS'] = ['*Emis_*.img']
 
     try:
         generate_statistics('.', files_to_search_for)
