@@ -23,6 +23,8 @@ from argparse import ArgumentParser
 from collections import defaultdict
 from matplotlib import pyplot as mpl_plot
 from matplotlib import dates as mpl_dates
+from matplotlib.ticker import MaxNLocator, AutoMinorLocator
+import numpy as np
 
 # espa-common objects and methods
 from espa_constants import *
@@ -47,6 +49,127 @@ MARKER_SIZE = 5.0   # A good size for the circle or diamond
 # Specify a base number of days to expand the plot date range
 # This helps keep data points from being placed on the plot border lines
 TIME_DELTA_5_DAYS = datetime.timedelta(days=5)
+
+# Define the data ranges and output ranges for the plotting
+# Must match the UPPER_BOUND and LOWER_BOUND in settings.py
+# The toplevel keys are used as search strings into the band_type displayed
+# names, so they need to match unique(enough) portions of those strings
+# ----------------------------------------------------------------------------
+#          DATA_MAX: The maximum value represented in the data.
+#          DATA_MIN: The minimum value represented in the data.
+#         SCALE_MAX: The DATA_MAX is scaled to this value.
+#         SCALE_MIN: The DATA_MIN is scaled to this value.
+#       DISPLAY_MAX: The maximum value to display on the plot.
+#       DISPLAY_MIN: The minimum value to display on the plot.
+#    MAX_N_LOCATORS: The maximum number of spaces between Y-axis tick marks.
+#                    This should be adjusted so that the tick marks fall on
+#                    values that display nicely.  Due to having some buffer
+#                    added to the display minimum and maximum values, the
+#                    value chosen for this parameter should include the space
+#                    between the top and the top tick mark as well as the
+#                    bottom and bottom tick mark. (i.e. Add two)
+# ----------------------------------------------------------------------------
+BAND_TYPE_DATA_RANGES = {
+    'SR': {
+        'DATA_MAX': 10000.0,
+        'DATA_MIN': 0.0,
+        'SCALE_MAX': 1.0,
+        'SCALE_MIN': 0.0,
+        'DISPLAY_MAX': 1.0,
+        'DISPLAY_MIN': 0.0,
+        'MAX_N_LOCATORS': 12
+    },
+    'TOA': {
+        'DATA_MAX': 10000.0,
+        'DATA_MIN': 0.0,
+        'SCALE_MAX': 1.0,
+        'SCALE_MIN': 0.0,
+        'DISPLAY_MAX': 1.0,
+        'DISPLAY_MIN': 0.0,
+        'MAX_N_LOCATORS': 12
+    },
+    'NDVI': {
+        'DATA_MAX': 10000.0,
+        'DATA_MIN': -1000.0,
+        'SCALE_MAX': 1.0,
+        'SCALE_MIN': -0.1,
+        'DISPLAY_MAX': 1.0,
+        'DISPLAY_MIN': -0.1,
+        'MAX_N_LOCATORS': 13
+    },
+    'EVI': {
+        'DATA_MAX': 10000.0,
+        'DATA_MIN': -1000.0,
+        'SCALE_MAX': 1.0,
+        'SCALE_MIN': -0.1,
+        'DISPLAY_MAX': 1.0,
+        'DISPLAY_MIN': -0.1,
+        'MAX_N_LOCATORS': 13
+    },
+    'SAVI': {
+        'DATA_MAX': 10000.0,
+        'DATA_MIN': -1000.0,
+        'SCALE_MAX': 1.0,
+        'SCALE_MIN': -0.1,
+        'DISPLAY_MAX': 1.0,
+        'DISPLAY_MIN': -0.1,
+        'MAX_N_LOCATORS': 13
+    },
+    'MSAVI': {
+        'DATA_MAX': 10000.0,
+        'DATA_MIN': -1000.0,
+        'SCALE_MAX': 1.0,
+        'SCALE_MIN': -0.1,
+        'DISPLAY_MAX': 1.0,
+        'DISPLAY_MIN': -0.1,
+        'MAX_N_LOCATORS': 13
+    },
+    'NBR': {
+        'DATA_MAX': 10000.0,
+        'DATA_MIN': -1000.0,
+        'SCALE_MAX': 1.0,
+        'SCALE_MIN': -0.1,
+        'DISPLAY_MAX': 1.0,
+        'DISPLAY_MIN': -0.1,
+        'MAX_N_LOCATORS': 13
+    },
+    'NBR2': {
+        'DATA_MAX': 10000.0,
+        'DATA_MIN': -1000.0,
+        'SCALE_MAX': 1.0,
+        'SCALE_MIN': -0.1,
+        'DISPLAY_MAX': 1.0,
+        'DISPLAY_MIN': -0.1,
+        'MAX_N_LOCATORS': 13
+    },
+    'NDMI': {
+        'DATA_MAX': 10000.0,
+        'DATA_MIN': -1000.0,
+        'SCALE_MAX': 1.0,
+        'SCALE_MIN': -0.1,
+        'DISPLAY_MAX': 1.0,
+        'DISPLAY_MIN': -0.1,
+        'MAX_N_LOCATORS': 13
+    },
+    'LST': {
+        'DATA_MAX': 65535.0,
+        'DATA_MIN': 7500.0,
+        'SCALE_MAX': 1.0,
+        'SCALE_MIN': 0.0,
+        'DISPLAY_MAX': 1.0,
+        'DISPLAY_MIN': 0.0,
+        'MAX_N_LOCATORS': 12
+    },
+    'Emis': {
+        'DATA_MAX': 255.0,
+        'DATA_MIN': 1.0,
+        'SCALE_MAX': 1.0,
+        'SCALE_MIN': 0.0,
+        'DISPLAY_MAX': 1.0,
+        'DISPLAY_MIN': 0.0,
+        'MAX_N_LOCATORS': 12
+    }
+}
 
 
 # ============================================================================
@@ -138,8 +261,6 @@ def build_argument_parser():
     Description:
       Build the command line argument parser
     '''
-
-    global SENSOR_COLORS, BG_COLOR, MARKER, MARKER_SIZE
 
     # Create a command line argument parser
     description = "Generate plots of the statistics"
@@ -329,20 +450,20 @@ def generate_sensor_stats(stat_name, stat_files):
         stat_data.append(line)
 
     # Create an empty string buffer to hold the output
-    buffer = StringIO()
+    temp_buffer = StringIO()
 
     # Write the file header
-    buffer.write('DATE,MINIMUM,MAXIMUM,MEAN,STDDEV')
+    temp_buffer.write('DATE,MINIMUM,MAXIMUM,MEAN,STDDEV')
 
     # Sort the stats into the buffer
     for line in sorted(stat_data):
-        buffer.write('\n')
-        buffer.write(line)
+        temp_buffer.write('\n')
+        temp_buffer.write(line)
 
     # Flush and save the buffer as a string
-    buffer.flush()
-    data = buffer.getvalue()
-    buffer.close()
+    temp_buffer.flush()
+    data = temp_buffer.getvalue()
+    temp_buffer.close()
 
     # Create the output file
     with open(out_filename, 'w') as output_fd:
@@ -351,14 +472,26 @@ def generate_sensor_stats(stat_name, stat_files):
 
 
 # ============================================================================
-def generate_plot(plot_name, subjects, stats, plot_type="Value"):
+def scale_data_to_range(in_high, in_low, out_high, out_low, data):
+    '''
+    Description:
+      Scale the values in the data array to the specified output range.
+    '''
+
+    # Figure out the ranges
+    in_range = in_high - in_low
+    out_range = out_high - out_low
+
+    return (out_high - ((out_range * (in_high - data)) / in_range))
+# END - scale_data_to_range
+
+
+# ============================================================================
+def generate_plot(plot_name, subjects, band_type, stats, plot_type="Value"):
     '''
     Description:
       Builds a plot and then generates a png formatted image of the plot.
     '''
-
-    global SENSOR_COLORS, BG_COLOR, MARKER, MARKER_SIZE
-    global TIME_DELTA_5_DAYS
 
     # Test for a valid plot_type parameter
     # For us 'Range' mean min, max, and mean
@@ -369,7 +502,7 @@ def generate_plot(plot_name, subjects, stats, plot_type="Value"):
 
     # Configuration for the dates
     auto_date_locator = mpl_dates.AutoDateLocator()
-    aut_date_formatter = mpl_dates.AutoDateFormatter(auto_date_locator)
+    auto_date_formatter = mpl_dates.AutoDateFormatter(auto_date_locator)
 
     # Create the subplot objects
     fig = mpl_plot.figure()
@@ -379,11 +512,28 @@ def generate_plot(plot_name, subjects, stats, plot_type="Value"):
 
     min_plot = mpl_plot.subplot(111, axisbg=BG_COLOR)
 
+    # Determine which ranges to use for scaling the data before plotting
+    use_data_range = ''
+    for range_type in BAND_TYPE_DATA_RANGES:
+        if band_type.startswith(range_type):
+            use_data_range = range_type
+            break
+    # Make sure the band_type has been coded (help the developer)
+    if use_data_range == '':
+        raise ValueError("Error unable to determine 'use_data_range'")
+
+    data_max = BAND_TYPE_DATA_RANGES[use_data_range]['DATA_MAX']
+    data_min = BAND_TYPE_DATA_RANGES[use_data_range]['DATA_MIN']
+    scale_max = BAND_TYPE_DATA_RANGES[use_data_range]['SCALE_MAX']
+    scale_min = BAND_TYPE_DATA_RANGES[use_data_range]['SCALE_MIN']
+    display_max = BAND_TYPE_DATA_RANGES[use_data_range]['DISPLAY_MAX']
+    display_min = BAND_TYPE_DATA_RANGES[use_data_range]['DISPLAY_MIN']
+    max_n_locators = BAND_TYPE_DATA_RANGES[use_data_range]['MAX_N_LOCATORS']
+
     # ------------------------------------------------------------------------
     # Build a dictionary of sensors which contains lists of the values, while
     # determining the minimum and maximum values to be displayed
-    plot_y_min = 99999   # Our data is 16bit so this should be good enough
-    plot_y_max = -99999  # Our data is 16bit so this should be good enough
+
     # I won't be here to resolve this
     plot_date_min = datetime.date(9998, 12, 31)
     # Doubt if we have any this old
@@ -406,29 +556,16 @@ def generate_plot(plot_name, subjects, stats, plot_type="Value"):
             get_ymds_from_filename(filename)
 
         date = datetime.date(year, month, day_of_month)
-        min = float(obj['minimum'])
-        max = float(obj['maximum'])
+        min_value = float(obj['minimum'])
+        max_value = float(obj['maximum'])
         mean = float(obj['mean'])
         stddev = float(obj['stddev'])
 
         # Date must be first in the list for later sorting to work
-        sensor_dict[sensor].append((date, min, max, mean, stddev))
+        sensor_dict[sensor].append((date, min_value, max_value, mean, stddev))
 
-        # While we are here figure out the following...
-        # Figure out the min and max range for the Y-Axis value
-        if plot_type == "Range":
-            if min < plot_y_min:
-                plot_y_min = min
-            if max > plot_y_max:
-                plot_y_max = max
-        else:
-            value = float(obj[lower_subject])
-            if value < plot_y_min:
-                plot_y_min = value
-            if value > plot_y_max:
-                plot_y_max = value
-
-        # Figure out the min and max range for the X-Axis value
+        # While we are here figure out...
+        # The min and max range for the X-Axis value
         if date < plot_date_min:
             plot_date_min = date
         if date > plot_date_max:
@@ -438,10 +575,10 @@ def generate_plot(plot_name, subjects, stats, plot_type="Value"):
     # Process through the sensor organized dictionary
     for sensor in sensor_dict.keys():
         dates = list()
-        min_values = list()
-        max_values = list()
-        mean_values = list()
-        stddev_values = list()
+        min_values = np.empty(0, dtype=np.float)
+        max_values = np.empty(0, dtype=np.float)
+        mean_values = np.empty(0, dtype=np.float)
+        stddev_values = np.empty(0, dtype=np.float)
 
         # Gather the unique sensors for the legend
         if sensor not in sensors:
@@ -449,18 +586,30 @@ def generate_plot(plot_name, subjects, stats, plot_type="Value"):
 
         # Collect all for a specific sensor
         # Sorted only works because we have date first in the list
-        for date, min, max, mean, stddev in sorted(sensor_dict[sensor]):
+        for (date, min_value, max_value, mean,
+             stddev) in sorted(sensor_dict[sensor]):
             dates.append(date)
-            mean_values.append(mean)
-            min_values.append(min)
-            max_values.append(max)
-            stddev_values.append(stddev)
+            min_values = np.append(min_values, min_value)
+            max_values = np.append(max_values, max_value)
+            mean_values = np.append(mean_values, mean)
+            stddev_values = np.append(stddev_values, stddev)
+
+        # These operate on and come out as numpy arrays
+        min_values = scale_data_to_range(data_max, data_min,
+                                         scale_max, scale_min, min_values)
+        max_values = scale_data_to_range(data_max, data_min,
+                                         scale_max, scale_min, max_values)
+        mean_values = scale_data_to_range(data_max, data_min,
+                                          scale_max, scale_min, mean_values)
+        stddev_values = scale_data_to_range(data_max, data_min,
+                                            scale_max, scale_min,
+                                            stddev_values)
 
         # Draw the min to max line for these dates
         if plot_type == "Range":
             min_plot.vlines(dates, min_values, max_values,
-                            colors=SENSOR_COLORS[sensor], linestyles='solid',
-                            linewidths=1)
+                            colors=SENSOR_COLORS[sensor],
+                            linestyles='solid', linewidths=1)
 
         # Plot the lists of dates and values for the subject
         values = list()
@@ -473,27 +622,16 @@ def generate_plot(plot_name, subjects, stats, plot_type="Value"):
         if lower_subject == 'stddev':
             values = stddev_values
 
-        # Draw thw marker for these dates
+        # Draw the marker for these dates
         min_plot.plot(dates, values, marker=MARKER,
-                      color=SENSOR_COLORS[sensor], linestyle='None',
+                      color=SENSOR_COLORS[sensor], linestyle='-',
                       markersize=float(MARKER_SIZE), label=sensor)
     # END - for sensor
 
     # ------------------------------------------------------------------------
     # Adjust the y range to help move them from the edge of the plot
-    y_diff = plot_y_max - plot_y_min
-    if y_diff < 2:
-        # If our range is really small, then 5 is too big
-        delta = 1
-    else:
-        delta = 5
-    for increment in range(0, int(y_diff/200) + 1):
-        # Add delta to each end of the range for every 200
-        # With a minimum of delta added to each end of the range
-        plot_y_min -= delta
-        plot_y_max += delta
-    debug(plot_y_min)
-    debug(plot_y_max)
+    plot_y_min = display_min - 0.025
+    plot_y_max = display_max + 0.025
 
     # Adjust the day range to help move them from the edge of the plot
     date_diff = plot_date_max - plot_date_min
@@ -508,7 +646,7 @@ def generate_plot(plot_name, subjects, stats, plot_type="Value"):
 
     # X Axis details
     min_plot.xaxis.set_major_locator(auto_date_locator)
-    min_plot.xaxis.set_major_formatter(aut_date_formatter)
+    min_plot.xaxis.set_major_formatter(auto_date_formatter)
     min_plot.xaxis.set_minor_locator(auto_date_locator)
 
     # X Axis - Limits - Determine the date range of the to-be-displayed data
@@ -516,6 +654,10 @@ def generate_plot(plot_name, subjects, stats, plot_type="Value"):
 
     # X Axis - Label - Will always be 'Date'
     mpl_plot.xlabel('Date')
+
+    # Y Axis details
+    major_locator = MaxNLocator(max_n_locators)
+    min_plot.yaxis.set_major_locator(major_locator)
 
     # Y Axis - Limits
     min_plot.set_ylim(plot_y_min, plot_y_max)
@@ -548,6 +690,8 @@ def generate_plot(plot_name, subjects, stats, plot_type="Value"):
     # Adjust the margins to be a little better
     mpl_plot.subplots_adjust(left=0.1, right=0.92, top=0.9, bottom=0.1)
 
+    mpl_plot.grid(which='both', axis='y', linestyle='-')
+
     # Save the plot to a file
     mpl_plot.savefig('%s.png' % filename, dpi=100)
 
@@ -557,7 +701,7 @@ def generate_plot(plot_name, subjects, stats, plot_type="Value"):
 
 
 # ============================================================================
-def generate_plots(plot_name, stat_files):
+def generate_plots(plot_name, stat_files, band_type):
     '''
     Description:
       Gather all the information needed for plotting from the files and
@@ -573,10 +717,19 @@ def generate_plots(plot_name, stat_files):
             dict((key, value) for(key, value) in read_stats(stat_file))
 
     plot_subjects = ['Minimum', 'Maximum', 'Mean']
-    generate_plot(plot_name, plot_subjects, stats, "Range")
+    generate_plot(plot_name, plot_subjects, band_type, stats, "Range")
+
+    plot_subjects = ['Minimum']
+    generate_plot(plot_name, plot_subjects, band_type, stats)
+
+    plot_subjects = ['Maximum']
+    generate_plot(plot_name, plot_subjects, band_type, stats)
+
+    plot_subjects = ['Mean']
+    generate_plot(plot_name, plot_subjects, band_type, stats)
 
     plot_subjects = ['StdDev']
-    generate_plot(plot_name, plot_subjects, stats)
+    generate_plot(plot_name, plot_subjects, band_type, stats)
 # END - generate_plots
 
 
@@ -611,10 +764,10 @@ def process_band_type(sensor_info, band_type):
     # the single sensor in it, if that is the case
     if sensor_count > 1:
         generate_plots("Multi Sensor %s" % band_type,
-                       multi_sensor_files)
+                       multi_sensor_files, band_type)
     elif sensor_count == 1:
         generate_plots("%s %s" % (single_sensor_name, band_type),
-                       multi_sensor_files)
+                       multi_sensor_files, band_type)
     # Else do not plot
 
     # Remove the processed files
@@ -814,18 +967,6 @@ def process_stats():
       plots will not be generated for them.
     '''
 
-    global SR_BLUE_SENSOR_INFO, SR_GREEN_SENSOR_INFO, SR_RED_SENSOR_INFO
-    global SR_NIR_SENSOR_INFO, SR_SWIR1_SENSOR_INFO, SR_SWIR2_SENSOR_INFO
-    global SR_SWIR_MODIS_B5_SENSOR_INFO, TOA_THERMAL_SENSOR_INFO
-    global TOA_BLUE_SENSOR_INFO, TOA_GREEN_SENSOR_INFO, TOA_RED_SENSOR_INFO
-    global TOA_NIR_SENSOR_INFO, TOA_SWIR1_SENSOR_INFO, TOA_SWIR2_SENSOR_INFO
-    global EMIS_20_SENSOR_INFO, EMIS_22_SENSOR_INFO, EMIS_23_SENSOR_INFO
-    global EMIS_29_SENSOR_INFO, EMIS_31_SENSOR_INFO, EMIS_32_SENSOR_INFO
-    global LST_DAY_SENSOR_INFO, LST_NIGHT_SENSOR_INFO
-    global NDVI_SENSOR_INFO, EVI_SENSOR_INFO, SAVI_SENSOR_INFO
-    global MSAVI_SENSOR_INFO, NBR_SENSOR_INFO, NBR2_SENSOR_INFO
-    global NDMI_SENSOR_INFO
-
     # --------------------------------------------------------------------
     process_band_type(SR_BLUE_SENSOR_INFO, "SR Blue")
     process_band_type(SR_GREEN_SENSOR_INFO, "SR Green")
@@ -906,7 +1047,7 @@ def process(args):
     MARKER = args.marker
     MARKER_SIZE = args.marker_size
 
-    local_work_directory = 'lpvs_statistics'
+    local_work_directory = 'lpcs_statistics'
     remote_stats_directory = os.path.join(args.order_directory, 'stats')
     remote_location = ''.join([args.source_host, ':', remote_stats_directory])
 
@@ -931,14 +1072,14 @@ def process(args):
         process_stats()
 
         # Distribute back to the online cache
-        lpvs_files = '*'
-        remote_lpvs_directory = '%s/%s' % (args.order_directory,
+        lpcs_files = '*'
+        remote_lpcs_directory = '%s/%s' % (args.order_directory,
                                            local_work_directory)
-        log("Creating lpvs_statistics directory %s on %s"
-            % (remote_lpvs_directory, args.source_host))
+        log("Creating lpcs_statistics directory %s on %s"
+            % (remote_lpcs_directory, args.source_host))
         cmd = ' '.join(['ssh', '-q', '-o', 'StrictHostKeyChecking=no',
                         args.source_host,
-                        'mkdir', '-p', remote_lpvs_directory])
+                        'mkdir', '-p', remote_lpcs_directory])
         output = ''
         try:
             output = execute_cmd(cmd)
@@ -946,19 +1087,19 @@ def process(args):
             log(output)
             raise Exception(str(e)), None, sys.exc_info()[2]
 
-        # Transfer the lpvs plot and statistic files
-        scp_transfer_file('localhost', lpvs_files, args.source_host,
-                          remote_lpvs_directory)
+        # Transfer the lpcs plot and statistic files
+        scp_transfer_file('localhost', lpcs_files, args.source_host,
+                          remote_lpcs_directory)
 
         log("Verifying statistics transfers")
-        # NOTE - Re-purposing the lpvs_files variable
-        lpvs_files = glob.glob(lpvs_files)
-        for lpvs_file in lpvs_files:
+        # NOTE - Re-purposing the lpcs_files variable
+        lpcs_files = glob.glob(lpcs_files)
+        for lpcs_file in lpcs_files:
             local_cksum_value = 'a b c'
             remote_cksum_value = 'b c d'
 
             # Generate a local checksum value
-            cmd = ' '.join(['cksum', lpvs_file])
+            cmd = ' '.join(['cksum', lpcs_file])
             try:
                 local_cksum_value = execute_cmd(cmd)
             except Exception, e:
@@ -966,7 +1107,7 @@ def process(args):
                 raise Exception(str(e)), None, sys.exc_info()[2]
 
             # Generate a remote checksum value
-            remote_file = os.path.join(remote_lpvs_directory, lpvs_file)
+            remote_file = os.path.join(remote_lpcs_directory, lpcs_file)
             cmd = ' '.join(['ssh', '-q', '-o', 'StrictHostKeyChecking=no',
                             args.source_host, 'cksum', remote_file])
             try:
@@ -979,7 +1120,7 @@ def process(args):
             if local_cksum_value.split()[0] != remote_cksum_value.split()[0]:
                 raise Exception(
                     "Failed checksum validation between %s and %s:%s"
-                    % (lpvs_file, args.source_host, remote_file))
+                    % (lpcs_file, args.source_host, remote_file))
     finally:
         # Change back to the previous directory
         os.chdir(current_directory)
