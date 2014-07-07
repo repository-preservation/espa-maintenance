@@ -246,11 +246,18 @@ def process(parms):
 
     # Generate the stats for each stat'able' science product
     if options['include_statistics']:
-        # Find the files
-        files_to_search_for = ['*_sr_band[0-9].img', '*_toa_band[0-9].img',
-                               '*_nbr.img', '*_nbr2.img', '*_ndmi.img',
-                               '*_ndvi.img', '*_evi.img', '*_savi.img',
-                               '*_msavi.img']
+        # Hold the wild card strings in a type based dictionary
+        files_to_search_for = dict()
+
+        # Landsat files
+        # The types must match the types in settings.py
+        files_to_search_for['SR'] = ['*_sr_band[0-9].img']
+        files_to_search_for['TOA'] = ['*_toa_band[0-9].img']
+        files_to_search_for['INDEX'] = ['*_nbr.img', '*_nbr2.img',
+                                        '*_ndmi.img', '*_ndvi.img',
+                                        '*_evi.img', '*_savi.img',
+                                        '*_msavi.img']
+
         # Generate the stats for each file
         statistics.generate_statistics(options['work_directory'],
                                        files_to_search_for)

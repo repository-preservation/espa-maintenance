@@ -265,11 +265,19 @@ def process(parms):
 
     # Generate the stats for each stat'able' science product
     if options['include_statistics']:
-        # Find the files
-        files_to_search_for = ['*.sur_refl_b*.img', '*.LST_Day_1km.img',
-                               '*.LST_Night_1km.img', '*.LST_Day_6km.img',
-                               '*.LST_Night_6km.img', '*.Emis_*.img',
-                               '*NDVI.img', '*EVI.img']
+        # Hold the wild card strings in a type based dictionary
+        files_to_search_for = dict()
+
+        # MODIS files
+        # The types must match the types in settings.py
+        files_to_search_for['SR'] = ['*sur_refl_b*.img']
+        files_to_search_for['INDEX'] = ['*NDVI.img', '*EVI.img']
+        files_to_search_for['LST'] = ['*LST_Day_1km.img',
+                                      '*LST_Night_1km.img',
+                                      '*LST_Day_6km.img',
+                                      '*LST_Night_6km.img']
+        files_to_search_for['EMIS'] = ['*Emis_*.img']
+
         # Generate the stats for each file
         statistics.generate_statistics(options['work_directory'],
                                        files_to_search_for)
