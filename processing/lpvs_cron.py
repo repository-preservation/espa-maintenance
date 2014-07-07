@@ -1,7 +1,7 @@
 #! /usr/bin/env python
 
 '''
-    FILE: lpvs_cron.py
+    FILE: lpcs_cron.py
 
     PURPOSE: Queries the xmlrpc service to find orders that need to be
              processed and builds/executes a plot.py job to process them.
@@ -75,7 +75,7 @@ def run_orders():
 
     try:
         log("Checking for orders to process...")
-        orders = server.get_lpvs_orders_to_process()
+        orders = server.get_lpcs_orders_to_process()
 
         if orders:
             log("Found orders to process:")
@@ -95,7 +95,7 @@ def run_orders():
                     output = util.execute_cmd(cmd)
                 except Exception, e:
                     # TODO TODO TODO - Needs web side implementation
-                    server.update_order_status(order, 'LPVS cron driver',
+                    server.update_order_status(order, 'LPCS cron driver',
                                                'FAIL')
 
                     msg = ' '.join(["Error during execution of plot.py:",
@@ -106,7 +106,7 @@ def run_orders():
                         log(output)
 
                 # TODO TODO TODO - Needs web side implementation
-                server.update_order_status(order, 'LPVS cron driver', 'SUCC')
+                server.update_order_status(order, 'LPCS cron driver', 'SUCC')
 
     except xmlrpclib.ProtocolError, e:
         log("A protocol error occurred: %s" % str(e))

@@ -9,7 +9,7 @@ from SimpleXMLRPCServer import SimpleXMLRPCServer
 from SimpleXMLRPCServer import SimpleXMLRPCRequestHandler
 
 
-class LPVS_XMLRPCServer(SimpleXMLRPCServer):
+class LPCS_XMLRPCServer(SimpleXMLRPCServer):
     '''
     Description:
       TODO TODO TODO
@@ -34,7 +34,7 @@ class LPVS_XMLRPCServer(SimpleXMLRPCServer):
                 self.handle_request()
             except Exception, e:
                 pass
-# END - LPVS_XMLRPCServer
+# END - LPCS_XMLRPCServer
 
 
 class RequestHandler(SimpleXMLRPCRequestHandler):
@@ -42,11 +42,11 @@ class RequestHandler(SimpleXMLRPCRequestHandler):
 
 
 # ============================================================================
-def get_lpvs_orders_to_process():
+def get_lpcs_orders_to_process():
 
     results = []
     try:
-        results.append('LPVS-UTM-2')
+        results.append('LPCS-UTM-2')
         # TODO TODO TODO - ????Do we need to return more than the order ID????
         return results
     finally:
@@ -91,16 +91,16 @@ if __name__ == '__main__':
     # Parse the command line arguments
     args = parser.parse_args()
 
-    print "Starting LPVS_XMLRPCServer"
+    print "Starting LPCS_XMLRPCServer"
 
-    server = LPVS_XMLRPCServer((args.hostname, int(args.port)),
+    server = LPCS_XMLRPCServer((args.hostname, int(args.port)),
                                requestHandler=RequestHandler)
 
     # Add this in to allow shutdown from the service
     # server.register_function(server.shutdown)
 
-    server.register_function(get_lpvs_orders_to_process,
-                             'get_lpvs_orders_to_process')
+    server.register_function(get_lpcs_orders_to_process,
+                             'get_lpcs_orders_to_process')
     server.register_function(update_order_status, 'update_order_status')
 
     server.register_introspection_functions()
@@ -110,4 +110,4 @@ if __name__ == '__main__':
 
     server.serve_forever()
 
-    print "Stopped LPVS_XMLRPCServer"
+    print "Stopped LPCS_XMLRPCServer"
