@@ -24,11 +24,11 @@
     "false_northing": null,
     "false_easting": null,
 
-    "utm_zone": "15",
+    "utm_zone": 15,
     "utm_north_south": "north",
 
     "resize": true,
-    "pixel_size": "28.5",
+    "pixel_size": 28.5,
     "pixel_size_units": "meters",
 
     "image_extents": false,
@@ -52,8 +52,9 @@
     "include_sr_ndmi": true,
     "include_sr_evi": false,
     "include_sr_savi": false,
-    "include_swe": true,
+    "include_sr_mavi": false,
+    "include_dswe": true,
     "include_solr_index": false,
-    "include_statistics": true,
+    "include_statistics": true
   }
 }
