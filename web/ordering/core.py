@@ -12,6 +12,8 @@ from models import Configuration
 from models import UserProfile
 from django.contrib.auth.models import User
 from django.conf import settings
+from django.db import transaction
+
 
 import json
 import datetime
@@ -207,6 +209,7 @@ def scenes_are_nlaps(scenelist):
     return get_xmlrpc_proxy().is_nlaps(scenelist)
 
 
+@transaction.atomic
 def get_scenes_to_process():
     # sanity checks
 
@@ -468,6 +471,7 @@ def helper_logger(msg):
     #pass
 
 
+@transaction.atomic
 def update_status(name, orderid, processing_loc, status):
 
     helper_logger("Updating scene:%s order:%s from location:%s to %s\n"
@@ -494,6 +498,7 @@ def update_status(name, orderid, processing_loc, status):
         helper_logger("Exception in updateStatus:%s" % e)
 
 
+@transaction.atomic
 #  Marks a scene in error and accepts the log file contents
 def set_scene_error(name, orderid, processing_loc, error):
     o = Order.objects.get(orderid=orderid)
@@ -512,6 +517,7 @@ def set_scene_error(name, orderid, processing_loc, error):
         return False
 
 
+@transaction.atomic
 #  Marks a scene unavailable and stores a reason
 def set_scene_unavailable(name, orderid, processing_loc, error, note):
     o = Order.objects.get(orderid=orderid)
@@ -545,6 +551,7 @@ def set_scene_unavailable(name, orderid, processing_loc, error, note):
         return False
 
 
+@transaction.atomic
 #  Marks a scene complete in the database for a given order
 def mark_scene_complete(name,
                         orderid,
@@ -593,15 +600,15 @@ def mark_scene_complete(name,
         return False
 
 
-def update_order_if_complete(orderid, scene):
+@transaction.atomic
+def update_order_if_complete(orderid):
     '''Method to send out the order completion email
     for orders if the completion of a scene
     completes the order
 
     Keyword args:
     orderid -- id of the order
-    scene -- scene name
-
+    
     '''
     o = Order.objects.get(orderid=orderid)
     scenes = Scene.objects.filter(order__id=o.id)
@@ -631,6 +638,7 @@ def update_order_if_complete(orderid, scene):
                                   readyscenes=scene_names)
 
 
+@transaction.atomic
 def load_ee_orders():
     ''' Loads all the available orders from lta into
     our database and updates their status

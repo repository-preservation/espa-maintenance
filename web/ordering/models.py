@@ -1,6 +1,7 @@
 import datetime
 import re
 from django.db import models
+from django.db import transaction
 from django.contrib.auth.models import User
 from django.db.models import Q
 
@@ -286,6 +287,7 @@ class Order(models.Model):
         return o
 
     @staticmethod
+    @transaction.atomic
     def enter_new_order(username,
                         order_source,
                         scene_list,
@@ -433,7 +435,3 @@ class Configuration(models.Model):
             return str(Configuration.objects.get(key=key))
         except:
             return ''
-        #if len(c) > 0:
-        #    return str(c[0].value)
-        #else:
-        #    return ''

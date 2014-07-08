@@ -7,6 +7,7 @@ import ordering.view_validator as vv
 from ordering.models import Scene
 from ordering.models import Order
 from ordering.models import Configuration as Config
+from ordering import validators
 
 from django import forms
 from django.conf import settings
@@ -67,21 +68,21 @@ class AbstractView(View):
                       msg,
                       timeout=settings.SYSTEM_MESSAGE_CACHE_TIMEOUT)
 
-        # system message is only going to be displayed if the msg.lower() is 
+        # system message is only going to be displayed if the msg.lower() is
         # equal to 'true' (string value)
         if msg.lower() == 'true':
-            
+
             ctx['display_system_message'] = True
-            
+
             cache_vals = cache.get_many(['system_message_title',
                                          'system_message_1',
                                          'system_message_2',
                                          'system_message_3'])
-            
+
             # flag to determine if any cached values were expired/missing and
             # need to be updated
-            update_cache = False                                         
-            
+            update_cache = False
+
             c = Config()
 
             #look through the cache_vals and see if any of them are none
@@ -89,12 +90,12 @@ class AbstractView(View):
                 if not cache_vals[key]:
                     update_cache = True
                     cache_vals[key] = c.get_value(key)
-                    
+
             if update_cache:
-                cache.set_many(cache_vals, 
+                cache.set_many(cache_vals,
                                timeout=settings.SYSTEM_MESSAGE_CACHE_TIMEOUT)
-                    
-                            
+
+
             ctx['system_message_title'] = cache_vals['system_message_title']
             ctx['system_message_1'] = cache_vals['system_message_1']
             ctx['system_message_2'] = cache_vals['system_message_2']
@@ -139,14 +140,29 @@ class Index(AbstractView):
 class NewOrder(AbstractView):
     template = 'new_order.html'
 
-    
+
     def _get_order_description(self, parameters):
-        description = None    
+        description = None
         if 'order_description' in parameters:
             description = parameters['order_description']
-            
-        return description    
-    
+        return description
+
+    def _get_order_options(self, request):
+
+        defaults = Order.get_default_options()
+        
+        # This will make sure no additional options past the ones we are 
+        # expecting will make it into the database        
+        for key in request.POST.iterkeys():
+            if key in defaults:
+                defaults[key] = request.POST[key]
+        
+        return defaults
+        
+    def _get_scenelist(self, request):
+        return request.FILES['scenelist']
+        
+        
     def get(self, request):
         '''Request handler for new order initial form
 
@@ -178,17 +194,26 @@ class NewOrder(AbstractView):
         #request must be a POST and must also be encoded as multipart/form-data
         #in order for the files to be uploaded
 
-        context, errors = vv.validate_input_params(request)
+        #TODO -- make use of new validation framework
+        #context, errors = vv.validate_input_params(request)
+        #selected_options, option_errors = vv.validate_product_options(request)
 
-        selected_options, option_errors = vv.validate_product_options(request)
-
-        if len(errors) > 0 or len(option_errors) > 0:
+        validator_parameters = {}
+        validator_parameters['post'] = request.POST
+        validator_parameters['files'] = request.FILES
+        validator = validators.NewOrderValidator(validator_parameters)
+        
+        if validator.errors():
+            
+        #if len(errors) > 0 or len(option_errors) > 0:
 
             c = self._get_request_context(request)
 
             c['errors'] = list()
-            c['errors'].extend(errors)
-            c['errors'].extend(option_errors)
+            c['errors'] = validator.errors().values()
+            
+            #c['errors'].extend(errors)
+            #c['errors'].extend(option_errors)
             c['user'] = request.user
             c['optionstyle'] = self._get_option_style(request)
 
@@ -197,13 +222,12 @@ class NewOrder(AbstractView):
             return HttpResponse(t.render(c))
 
         else:
-            #TODO -- This is where the options are being turned into a string.
-            # Stop doing that and store them as json.
-            option_string = json.dumps(selected_options)
+            #option_string = json.dumps(selected_options)
+            option_string = json.dumps(self._get_order_options(request))
 
             order = Order.enter_new_order(request.user.username,
                                           'espa',
-                                          context['scenelist'],
+                                          self._get_scenelist(request),
                                           option_string,
                                           note=self._get_order_description(request.POST)
                                           )
@@ -216,9 +240,7 @@ class NewOrder(AbstractView):
             else:
                 email = order.user.email
 
-            #TODO -- Fix this
             url = reverse('list_orders', kwargs={'email': email})
-            #return HttpResponseRedirect('/status/%s' % request.POST['email'])
             return HttpResponseRedirect(url)
 
 
