@@ -60,7 +60,7 @@ def build_argument_parser():
     parameters.add_output_format_parameter(parser,
                                            parameters.valid_output_formats)
 
-    parameters.add_include_sourcefile_parameter(parser)
+    parameters.add_include_source_data_parameter(parser)
 
     parameters.add_source_parameters(parser)
     parameters.add_destination_parameters(parser)
@@ -239,7 +239,7 @@ def process(parms):
     cmd = ['convert_modis_to_espa',
            '--hdf', hdf_filename,
            '--xml', xml_filename]
-    if not options['include_sourcefile']:
+    if not options['include_source_data']:
         cmd.append('--del_src_files')
 
     cmd = ' '.join(cmd)

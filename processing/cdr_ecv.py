@@ -67,7 +67,7 @@ def build_argument_parser():
     parameters.add_source_parameters(parser)
     parameters.add_destination_parameters(parser)
 
-    parameters.add_include_sourcefile_parameter(parser)
+    parameters.add_include_source_data_parameter(parser)
     parameters.add_include_source_metadata_parameter(parser)
 
     parameters.add_reprojection_parameters(parser, warp.valid_projections,

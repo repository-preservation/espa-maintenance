@@ -60,7 +60,7 @@ l1t_source_metadata_files = [
 ]
 
 order_to_product_mapping = {
-    'include_radiance': 'L1T',
+    'include_customized_source_data': 'L1T',
     'include_sr': 'sr_refl',
     'include_sr_toa': 'toa_refl',
     'include_sr_thermal': 'toa_bt',
@@ -256,7 +256,7 @@ def build_landsat_science_products(parms):
         cmd = ['convert_lpgs_to_espa',
                '--mtl', metadata_filename,
                '--xml', xml_filename]
-        if not options['include_sourcefile']:
+        if not options['include_source_data']:
             cmd.append('--del_src_files')
 
         cmd = ' '.join(cmd)
@@ -447,7 +447,7 @@ def build_landsat_science_products(parms):
             non_products.extend(glob.glob(item))
 
         # Add L1T source files if not requested
-        if not options['include_sourcefile']:
+        if not options['include_source_data']:
             for item in l1t_source_files:
                 non_products.extend(glob.glob(item))
         if not options['include_source_metadata']:
@@ -468,9 +468,9 @@ def build_landsat_science_products(parms):
 
         # Remove generated products that were not requested
         products_to_remove = []
-        if not options['include_radiance']:
+        if not options['include_customized_source_data']:
             products_to_remove.append(
-                order_to_product_mapping['include_radiance'])
+                order_to_product_mapping['include_customized_source_data'])
         if not options['include_sr']:
             products_to_remove.append(
                 order_to_product_mapping['include_sr'])

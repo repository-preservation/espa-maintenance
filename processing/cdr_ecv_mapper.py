@@ -92,7 +92,8 @@ if __name__ == '__main__':
             if (parms['options']['output_format']
                     not in parameters.valid_output_formats):
 
-                raise ValueError("Invalid Sensor %s" % sensor)
+                raise ValueError("Invalid Output format %s"
+                                 % parms['options']['output_format'])
 
             # -----------------------------------------------------------------
             # NOTE:

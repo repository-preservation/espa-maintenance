@@ -22,7 +22,7 @@ valid_landsat_sensors = ['LT', 'LE']
 valid_modis_sensors = ['MOD', 'MYD']
 valid_sensors = valid_landsat_sensors + valid_modis_sensors
 valid_data_types = ['level1', 'sr', 'toa', 'th']
-valid_output_formats = ['envi', 'gtiff', 'hdf']
+valid_output_formats = ['envi', 'gtiff', 'hdf-eos']
 
 
 # ============================================================================
@@ -79,17 +79,17 @@ def add_debug_parameter(parser):
 
 
 # ============================================================================
-def add_include_sourcefile_parameter(parser):
+def add_include_source_data_parameter(parser):
     '''
     Description:
-      Adds the include_sourcefile parameter to the command line parameters
+      Adds the include_source_data parameter to the command line parameters
     '''
 
-    parser.add_argument('--include_sourcefile',
-                        action='store_true', dest='include_sourcefile',
+    parser.add_argument('--include_source_data',
+                        action='store_true', dest='include_source_data',
                         default=False,
                         help="include source data in final product")
-# END - add_include_sourcefile_parameter
+# END - add_include_source_data_parameter
 
 
 # ============================================================================
@@ -114,8 +114,9 @@ def add_science_product_parameters(parser):
       Adds the science product parameters to the command line parameters
     '''
 
-    parser.add_argument('--include_radiance',
-                        action='store_true', dest='include_radiance',
+    parser.add_argument('--include_customized_source_data',
+                        action='store_true',
+                        dest='include_customized_source_data',
                         default=False,
                         help="include radiance product")
 
