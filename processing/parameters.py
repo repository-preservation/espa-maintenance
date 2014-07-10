@@ -22,7 +22,7 @@ valid_landsat_sensors = ['LT', 'LE']
 valid_modis_sensors = ['MOD', 'MYD']
 valid_sensors = valid_landsat_sensors + valid_modis_sensors
 valid_data_types = ['level1', 'sr', 'toa', 'th']
-valid_output_formats = ['envi', 'gtiff', 'hdf-eos']
+valid_output_formats = ['envi', 'gtiff', 'hdf-eos2']
 
 
 # ============================================================================
