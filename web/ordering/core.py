@@ -406,7 +406,6 @@ def get_scenes_to_process():
         for a in available_scenes:
             order = a.order
             options = json.loads(order.product_options)
-            options = options.replace("\\", "")
             oid = order.orderid
 
             orderline = json.dumps(
