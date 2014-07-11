@@ -454,17 +454,18 @@ def build_landsat_science_products(parms):
             for item in l1t_source_metadata_files:
                 non_products.extend(glob.glob(item))
 
-        cmd = ' '.join(['rm', '-rf'] + non_products)
-        log(' '.join(['REMOVING INTERMEDIATE DATA COMMAND:', cmd]))
+        if len(non_products) > 0:
+            cmd = ' '.join(['rm', '-rf'] + non_products)
+            log(' '.join(['REMOVING INTERMEDIATE DATA COMMAND:', cmd]))
 
-        try:
-            output = util.execute_cmd(cmd)
-        except Exception, e:
-            raise ee.ESPAException(ee.ErrorCodes.cleanup_work_dir,
-                                   str(e)), None, sys.exc_info()[2]
-        finally:
-            if len(output) > 0:
-                log(output)
+            try:
+                output = util.execute_cmd(cmd)
+            except Exception, e:
+                raise ee.ESPAException(ee.ErrorCodes.cleanup_work_dir,
+                                       str(e)), None, sys.exc_info()[2]
+            finally:
+                if len(output) > 0:
+                    log(output)
 
         # Remove generated products that were not requested
         products_to_remove = []
