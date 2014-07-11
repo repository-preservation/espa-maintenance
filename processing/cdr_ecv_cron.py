@@ -66,7 +66,7 @@ def run_scenes():
         log("xmlrpc server was None... exiting")
         sys.exit(EXIT_FAILURE)
 
-    user = server.get_configuration('landsatds.usrname')
+    user = server.get_configuration('landsatds.username')
     if len(user) == 0:
         log("landsatds.username is not defined... exiting")
         sys.exit(EXIT_FAILURE)
