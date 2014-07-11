@@ -156,42 +156,44 @@ def run_scenes():
                  '-D', 'mapred.reduce.tasks=0',
                  '-D', 'mapred.job.queue.name=ondemand',
                  '-D', 'mapred.job.name="%s"' % ordername,
-                 '-file', '%s/espa-site/espa/cdr_ecv.py' % home_dir,
-                 '-file', '%s/espa-site/espa/cdr_ecv_mapper.py' % home_dir,
-                 '-file', '%s/espa-site/espa/modis.py' % home_dir,
-                 '-file', '%s/espa-site/espa/browse.py' % home_dir,
-                 '-file', '%s/espa-site/espa/distribution.py' % home_dir,
-                 '-file', '%s/espa-site/espa/espa_exception.py' % home_dir,
-                 '-file', '%s/espa-site/espa/metadata.py' % home_dir,
-                 '-file', '%s/espa-site/espa/parameters.py' % home_dir,
-                 '-file', '%s/espa-site/espa/science.py' % home_dir,
-                 '-file', '%s/espa-site/espa/solr.py' % home_dir,
-                 '-file', '%s/espa-site/espa/staging.py' % home_dir,
-                 '-file', '%s/espa-site/espa/statistics.py' % home_dir,
-                 '-file', '%s/espa-site/espa/transfer.py' % home_dir,
-                 '-file', '%s/espa-site/espa/util.py' % home_dir,
-                 '-file', '%s/espa-site/espa/warp.py' % home_dir,
-                 '-file', '%s/espa-site/espa/settings.py' % home_dir,
-                 '-mapper', '%s/espa-site/espa/cdr_ecv_mapper.py' % home_dir,
+                 '-file', '%s/espa-site/processing/cdr_ecv.py' % home_dir,
+                 '-file', '%s/espa-site/processing/cdr_ecv_mapper.py' % home_dir,
+                 '-file', '%s/espa-site/processing/modis.py' % home_dir,
+                 '-file', '%s/espa-site/processing/browse.py' % home_dir,
+                 '-file', '%s/espa-site/processing/distribution.py' % home_dir,
+                 '-file', '%s/espa-site/processing/espa_exception.py' % home_dir,
+                 '-file', '%s/espa-site/processing/metadata.py' % home_dir,
+                 '-file', '%s/espa-site/processing/parameters.py' % home_dir,
+                 '-file', '%s/espa-site/processing/science.py' % home_dir,
+                 '-file', '%s/espa-site/processing/solr.py' % home_dir,
+                 '-file', '%s/espa-site/processing/staging.py' % home_dir,
+                 '-file', '%s/espa-site/processing/statistics.py' % home_dir,
+                 '-file', '%s/espa-site/processing/transfer.py' % home_dir,
+                 '-file', '%s/espa-site/processing/util.py' % home_dir,
+                 '-file', '%s/espa-site/processing/warp.py' % home_dir,
+                 '-file', '%s/espa-site/processing/settings.py' % home_dir,
+                 '-mapper', '%s/espa-site/processing/cdr_ecv_mapper.py' % home_dir,
                  '-cmdenv', 'ESPA_WORK_DIR=$ESPA_WORK_DIR',
                  '-cmdenv', 'HOME=$HOME',
                  '-cmdenv', 'USER=$USER',
                  '-cmdenv', 'ANC_PATH=$ANC_PATH',
                  '-cmdenv', 'ESUN=$ESUN',
                  '-input', hdfs_target,
-                 '-output', hdfs_target, '-out']
+                 '-output', hdfs_target + '-out']
 
             # Define the executables to clean up hdfs
             hadoop_delete_request_command1 = [hadoop_executable, 'dfs',
                                               '-rmr', hdfs_target]
             hadoop_delete_request_command2 = [hadoop_executable, 'dfs',
-                                              '-rmr', hdfs_target, '-out']
+                                              '-rmr', hdfs_target + '-out']
 
             # ----------------------------------------------------------------
             log("Storing request file to hdfs...")
             output = ''
             try:
                 cmd = ' '.join(hadoop_store_command)
+                print("Store cmd:%s" % cmd)
+
                 output = util.execute_cmd(cmd)
             except Exception, e:
                 log("Error storing files to HDFS... exiting")
@@ -220,6 +222,7 @@ def run_scenes():
             output = ''
             try:
                 cmd = ' '.join(hadoop_run_command)
+                print("Run cmd:%s" % cmd)
                 output = util.execute_cmd(cmd)
             except Exception, e:
                 log("Error running Hadoop job...")

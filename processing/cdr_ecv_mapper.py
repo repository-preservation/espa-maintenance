@@ -51,6 +51,10 @@ if __name__ == '__main__':
 
     # Process each line from stdin
     for line in sys.stdin:
+        if not line or len(line) < 1 or not line.strip().startswith('{'):
+            continue        
+
+
         # Reset these for each line
         (server, orderid, sceneid) = (None, None, None)
 
