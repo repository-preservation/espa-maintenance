@@ -52,6 +52,7 @@
             border:none;
             padding:0px;
             margin:0px;
+            line-height:1.2em;
         }
 	
 	
@@ -270,13 +271,18 @@
 	    <div class='product_boxbody'>
 		
 		<div class='inputitem'>
-		    <input type='checkbox' name='include_sourcefile'>
-		    <label class='tooltip' title='Level 1 (T/G) Product' for="source_products">Source Products</label>
+		    <input type='checkbox' name='include_source_data'>
+		    <label class='tooltip' title="Deliver Unmodified Input Products" for="source_products">Original Input Products</label>
 		</div>
 		
 		<div class='inputitem'>
 		    <input type='checkbox' name='include_source_metadata'>
-		    <label class='tooltip' title="Level 1 (T/G) Product Metadata">Source Metadata</label>
+		    <label class='tooltip' title="Deliver Unmodified Input Product Metadata">Original Input Metadata</label>
+		</div>
+
+           <div class='inputitem'>
+		    <input type='checkbox' name='include_customized_source_data'>
+		    <label class='tooltip' title="Apply ESPA Customizations to Input Products">Customized Input Products</label>
 		</div>
 		
 	    </div>
@@ -423,7 +429,7 @@
 		    <input type='checkbox' id='resize' name='resize' onclick=handle_inputitem_click('resize_options');display_pixelsize_placeholder()>
 		    <label class='tooltip inline' title='Specify desired pixel size' for="resize">Pixel Resizing</label>
 		    <div id='resize_options'>
-			<input placeholder="30 to 1000" type="text" name="pixel_size" id="pixel_size" />
+			 <input placeholder="30 to 1000" type="text" name="pixel_size" id="pixel_size" />
                  <input type='hidden' id='pixel_size_units' name='pixel_size_units' />
   		      <select id="select_pixel_size_units" form='request_form' onchange="display_pixelsize_placeholder();">
                      <option value="meters">Meters</option>
@@ -750,7 +756,7 @@
         
         $('#pixel_size_units').val($('#select_pixel_size_units option:selected').val())
 	
-	$('#pixel_size').attr('placeholder', psval);
+	  $('#pixel_size').attr('placeholder', psval);
        }
        
        

@@ -77,23 +77,22 @@ def send_initial_email(order):
 
     status_url = ('%s/%s') % (status_base_url, order.user.email)
 
-    msg = ("""Thank you for your order ( %s ).  Your order has been \
-    received and is currently being processed.  You will receive an email \
-    notification when all units on this order have been completed.
-
-    You can check the status of your order and download already completed \
-    scenes directly from %s
-
-    Requested scenes:
-    """) % (order.orderid, status_url)
-
+    m = list()
+    m.append("Thank you for your order (%s).  " % order.orderid)
+    m.append("Your order has been received and is currently ")
+    m.append("being processed.  ")
+    m.append("You will receive an email notification when all units on this ")
+    m.append("order have been completed.\n\n")
+    m.append("You can check the status of your order and download already ")
+    m.append("completed scenes directly from %s\n\n" % status_url)
+    m.append("Requested scenes:\n")
+    
     scenes = Scene.objects.filter(order__id=order.id)
-
-    #if scenes:
-    #    for s in scenes:
-    #        msg = msg + s.name + '\n'
-
-    email_msg = "%s%s" % (msg, ''.join(["%s\n" % s.name for s in scenes]))
+    
+    for s in scenes:
+        m.append("%s\n" % s.name)
+        
+    email_msg = ''.join(m)
 
     send_email(recipient=order.user.email,
                subject='Processing Order Received',

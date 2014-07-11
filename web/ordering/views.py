@@ -2,12 +2,11 @@ import core
 import json
 
 import django.contrib.auth
-import ordering.view_validator as vv
 
+from ordering import validators
 from ordering.models import Scene
 from ordering.models import Order
 from ordering.models import Configuration as Config
-from ordering import validators
 
 from django import forms
 from django.conf import settings
@@ -153,14 +152,30 @@ class NewOrder(AbstractView):
         
         # This will make sure no additional options past the ones we are 
         # expecting will make it into the database        
-        for key in request.POST.iterkeys():
-            if key in defaults:
-                defaults[key] = request.POST[key]
-        
+        #for key in request.POST.iterkeys():
+        for key in defaults:
+            if key in request.POST.iterkeys():
+                val = request.POST[key]
+                if val is True or str(val).lower() == 'on':
+                    defaults[key] = True            
+                elif core.is_number(val):
+                    if str(val).find('.') != -1:
+                        defaults[key] = float(val)
+                    else:
+                        defaults[key] = int(val)
+                else:
+                    defaults[key] = val
+               
         return defaults
         
     def _get_scenelist(self, request):
-        return request.FILES['scenelist']
+        sl = None
+        
+        if 'scenelist' in request.FILES:
+            data = request.FILES['scenelist'].read()
+            sl = [s.strip() for s in data.split('\n')]
+            
+        return sl
         
         
     def get(self, request):
@@ -199,21 +214,29 @@ class NewOrder(AbstractView):
         #selected_options, option_errors = vv.validate_product_options(request)
 
         validator_parameters = {}
-        validator_parameters['post'] = request.POST
-        validator_parameters['files'] = request.FILES
+        validator_parameters = dict(request.POST)
+        validator_parameters['scenelist'] = self._get_scenelist(request)
         validator = validators.NewOrderValidator(validator_parameters)
         
         if validator.errors():
             
-        #if len(errors) > 0 or len(option_errors) > 0:
-
             c = self._get_request_context(request)
 
-            c['errors'] = list()
-            c['errors'] = validator.errors().values()
+            #unwind the validator errors.  It comes out as a dict with a key
+            #for the input field name and a value of a list of error messages.
+            # At this point we are only displaying the error messages in one
+            # block but going forward will be able to put the error message
+            # right next to the field where the error occurred once the 
+            # template is properly modified. 
+            errors = validator.errors().values()
+
+            error_list = list()
             
-            #c['errors'].extend(errors)
-            #c['errors'].extend(option_errors)
+            for e in errors:
+                for m in e:
+                    error_list.append(m)
+
+            c['errors'] = error_list
             c['user'] = request.user
             c['optionstyle'] = self._get_option_style(request)
 
@@ -227,7 +250,7 @@ class NewOrder(AbstractView):
 
             order = Order.enter_new_order(request.user.username,
                                           'espa',
-                                          self._get_scenelist(request),
+                                          validator_parameters['scenelist'],
                                           option_string,
                                           note=self._get_order_description(request.POST)
                                           )

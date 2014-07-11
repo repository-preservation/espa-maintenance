@@ -102,6 +102,9 @@ class Validator(object):
 
         if type(parameters) is dict:
             self.parameters = parameters
+        else:
+            raise Exception("parameters was of type %s, dict required" 
+                % type(parameters))
 
         if child_validators:
             self.child_validators = child_validators

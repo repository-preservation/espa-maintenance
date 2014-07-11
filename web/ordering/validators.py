@@ -8,14 +8,11 @@ class SceneListValidator(Validator):
     '''Validates that a scene list has been provided and it contains at 
     least one scene to process'''
 
-    def _get_scenelist(self, orderfile):
-
-        if orderfile:
-           scenelist = orderfile.read().split('\n')
-
-           for line in scenelist:
-               line = line.strip()
-
+    def _get_scenelist(self, scenelist):
+        
+        if scenelist:
+            for line in scenelist:
+    
                if line.find('.tar.gz') != -1:
                    line = line[0:line.index('.tar.gz')]
 
@@ -28,7 +25,7 @@ class SceneListValidator(Validator):
     def errors(self):
         '''Looks through the scenelist if present and determines if there
         are valid scenes to process'''
-
+      
         if not 'scenelist' in self.parameters:
             return super(SceneListValidator, self).errors()
         else:
@@ -37,12 +34,10 @@ class SceneListValidator(Validator):
             scene_list = list()
 
             for line in scenelist:
+                print(line)
                 if self._line_header_ok(line):
-                    scene_list.add(line)
-            else:
-                msg = "No scenes found in order file."
-                self.add_error('scenelist', [msg,] )
-
+                    scene_list.append(line)
+                                
             if len(scene_list) > 0:
                 # Run the submitted list by LTA so they can make sure
                 # the items are in the inventory
@@ -54,6 +49,9 @@ class SceneListValidator(Validator):
                     if valid == 'false':
                         msg = "%s not found in Landsat inventory" % scene
                         self.add_error('scenelist', [msg])
+            else:
+                msg = "No scenes found in order file."
+                self.add_error('scenelist', [msg,] )
 
         return super(SceneListValidator, self).errors()
 
@@ -74,7 +72,22 @@ class ProductIsSelectedValidator(Validator):
                            ['Please select at least one output product.', ])
 
         return super(ProductIsSelectedValidator, self).errors()
-
+        
+        
+class OutputFormatValidator(Validator):
+    '''Validates the requested output format'''
+    
+    def errors(self):
+        valid_formats = ['gtiff', 'envi', 'hdf-eos2']
+        
+        if not 'output_format' in self.parameters \
+            and self.parameters['output_format']:
+                self.add_error('output_format', 
+                               ['Please select an output format', ])
+        elif self.parameters['output_format'] not in valid_formats:
+            self.add_error('output_format', 
+                           ['Output format must be one of:%s' % valid_formats])
+            
 
 class FalseEastingValidator(Validator):
     '''Validates the false_easting parameter'''
@@ -360,11 +373,11 @@ class MeterPixelSizeValidator(Validator):
          
         if 'pixel_size' in self.parameters\
             and core.is_number(self.parameters['pixel_size']):
-            ps = self.parameters['pixel_size']
+            ps = float(self.parameters['pixel_size'])
         else:
             self.add_error('pixel_size', [msg, ])
 
-        if ps and (not float(ps) in range(30.0, 1001.0)):
+        if ps and not ps in range(30.0, 1001.0):
             self.add_error('pixel_size', [msg, ])
 
         return super(MeterPixelSizeValidator, self).errors()
@@ -510,8 +523,9 @@ class NewOrderPostValidator(Validator):
         super(NewOrderPostValidator, self).__init__(parameters,
                                                     child_validators,
                                                     name)
-
+                                                    
         self.add_child(ProductIsSelectedValidator(parameters))
+        self.add_child(OutputFormatValidator(parameters))
 
         if 'reproject' in self.parameters \
             and self.parameters['reproject'] == 'on':
@@ -540,9 +554,9 @@ class NewOrderValidator(Validator):
         super(NewOrderValidator, self).__init__(parameters,
                                                 child_validators,
                                                 name)
-                                                
-        self.add_child(NewOrderPostValidator(parameters['post']))
-        self.add_child(NewOrderFilesValidator(parameters('files')))
+        
+        self.add_child(NewOrderPostValidator(self.parameters))
+        self.add_child(NewOrderFilesValidator(self.parameters))
         
     def errors(self):
         '''Trigger the child validators by overriding the error() method

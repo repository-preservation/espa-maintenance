@@ -95,8 +95,9 @@ class Order(models.Model):
         '''
         o = {}
         # standard product selection options
-        o['include_sourcefile'] = False       # underlying raster
-        o['include_source_metadata'] = False  # source metadata
+        o['include_source_data'] = False            # underlying raster
+        o['include_source_metadata'] = False        # source metadata
+        o['include_customized_source_data'] = False
         o['include_sr_toa'] = False           # LEDAPS top of atmosphere
         o['include_sr_thermal'] = False       # LEDAPS band 6
         o['include_sr'] = False               # LEDAPS surface reflectance
@@ -129,7 +130,9 @@ class Order(models.Model):
         o['origin_lat'] = None             #
         o['std_parallel_1'] = None         #
         o['std_parallel_2'] = None         #
-        o['datum'] = 'wgs84'               #
+        o['datum'] = 'wgs84'
+        o['longitude_pole'] = None         #
+        o['latitude_true_scale'] = None
 
         #utm only options
         o['utm_zone'] = None               # 1 to 60
@@ -178,6 +181,12 @@ class Order(models.Model):
         o['resample_method'] = 'near'  # how would user like to resample?
 
         return o
+        
+    @staticmethod
+    def get_default_output_format():
+        o = {}
+        o['output_format'] = 'gtiff'
+        return o
 
     @classmethod
     def get_default_options(cls):
@@ -192,6 +201,7 @@ class Order(models.Model):
         o.update(cls.get_default_subset_options())
         o.update(cls.get_default_resize_options())
         o.update(cls.get_default_resample_options())
+        o.update(cls.get_default_output_format())
 
         return o
 
@@ -203,25 +213,9 @@ class Order(models.Model):
         Return:
         Dictionary populated with default espa options for ee
         '''
-        o = {}
-        o['include_sourcefile'] = False
-        o['include_source_metadata'] = False
-        o['include_sr_toa'] = False
-        o['include_sr_thermal'] = False
+        o = Order.get_default_options()
         o['include_sr'] = True
-        o['include_sr_browse'] = False
-        o['include_sr_ndvi'] = False
-        o['include_sr_ndmi'] = False
-        o['include_sr_nbr'] = False
-        o['include_sr_nbr2'] = False
-        o['include_sr_savi'] = False
-        o['include_sr_evi'] = False
-        o['include_solr_index'] = False
-        o['include_cfmask'] = False
-        o['reproject'] = False
-        o['resize'] = False
-        o['image_extents'] = False
-
+       
         return o
 
     @staticmethod
@@ -230,12 +224,12 @@ class Order(models.Model):
         or the api'''
         d = datetime.datetime.now()
         return '%s-%s%s%s-%s%s%s' % (email,
-                                     d.month.zfill(2),
-                                     d.day.zfill(2),
+                                     str(d.month).zfill(2),
+                                     str(d.day).zfill(2),
                                      d.year,
-                                     d.hour.zfill(2),
-                                     d.minute.zfill(2),
-                                     d.second.zfill(2))
+                                     str(d.hour).zfill(2),
+                                     str(d.minute).zfill(2),
+                                     str(d.second).zfill(2))
 
     @staticmethod
     def generate_ee_order_id(email, eeorder):
