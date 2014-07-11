@@ -28,6 +28,7 @@ import json
 import xmlrpclib
 from datetime import datetime
 import urllib
+import traceback
 
 # espa-common objects and methods
 from espa_constants import *
@@ -36,6 +37,7 @@ from espa_logging import log
 # local objects and methods
 import util
 import settings
+
 
 
 # ============================================================================
@@ -83,6 +85,9 @@ def run_scenes():
     
     # adding this so we can disable on-demand processing via the admin console
     ondemand_enabled = server.get_configuration('ondemand_enabled')
+   
+    print("---%s---" % ondemand_enabled.lower())
+ 
     if not ondemand_enabled.lower() == 'true':
         log("on demand disabled...")
         sys.exit(EXIT_SUCCESS)
@@ -251,9 +256,13 @@ def run_scenes():
 
     except xmlrpclib.ProtocolError, e:
         log("A protocol error occurred: %s" % str(e))
+        tb = traceback.format_exc()
+        log(tb)
 
     except Exception, e:
         log("Error Processing Scenes: %s" % str(e))
+        tb = traceback.format_exc()
+        log(tb)
 
     finally:
         server = None
