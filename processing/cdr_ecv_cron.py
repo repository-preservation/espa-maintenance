@@ -83,7 +83,7 @@ def run_scenes():
     
     # adding this so we can disable on-demand processing via the admin console
     ondemand_enabled = server.get_configuration('ondemand_enabled')
-    if not ondemand_enabled.lower() == True:
+    if not ondemand_enabled.lower() == 'true':
         log("on demand disabled...")
         sys.exit(EXIT_SUCCESS)
 
