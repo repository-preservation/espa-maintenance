@@ -450,6 +450,10 @@ def validate_reprojection_parameters(parms, projections, ns_values,
     '''
     Description:
       Perform a check on the possible reprojection parameters
+
+    Note:
+      We blindly convert values to float or int without checking them.  It is
+      assumed that the web tier has validated them.
     '''
 
     # Create this and set to None
@@ -474,25 +478,45 @@ def validate_reprojection_parameters(parms, projections, ns_values,
             if target_projection == "sinu":
                 if not test_for_parameter(parms, 'central_meridian'):
                     raise RuntimeError("Missing central_meridian parameter")
+                else:
+                    parms['central_meridian'] = \
+                        float(parms['central_meridian'])
                 if not test_for_parameter(parms, 'false_easting'):
                     raise RuntimeError("Missing false_easting parameter")
+                else:
+                    parms['false_easting'] = float(parms['false_easting'])
                 if not test_for_parameter(parms, 'false_northing'):
                     raise RuntimeError("Missing false_northing parameter")
+                else:
+                    parms['false_northing'] = float(parms['false_northing'])
 
             # ................................................................
             if target_projection == 'aea':
                 if not test_for_parameter(parms, 'std_parallel_1'):
                     raise RuntimeError("Missing std_parallel_1 parameter")
+                else:
+                    parms['std_parallel_1'] = float(parms['std_parallel_1'])
                 if not test_for_parameter(parms, 'std_parallel_2'):
                     raise RuntimeError("Missing std_parallel_2 parameter")
+                else:
+                    parms['std_parallel_2'] = float(parms['std_parallel_2'])
                 if not test_for_parameter(parms, 'origin_lat'):
                     raise RuntimeError("Missing origin_lat parameter")
+                else:
+                    parms['origin_lat'] = float(parms['origin_lat'])
                 if not test_for_parameter(parms, 'central_meridian'):
                     raise RuntimeError("Missing central_meridian parameter")
+                else:
+                    parms['central_meridian'] = \
+                        float(parms['central_meridian'])
                 if not test_for_parameter(parms, 'false_easting'):
                     raise RuntimeError("Missing false_easting parameter")
+                else:
+                    parms['false_easting'] = float(parms['false_easting'])
                 if not test_for_parameter(parms, 'false_northing'):
                     raise RuntimeError("Missing false_northing parameter")
+                else:
+                    parms['false_northing'] = float(parms['false_northing'])
                 if not test_for_parameter(parms, 'datum'):
                     raise RuntimeError("Missing datum parameter")
                 elif parms['datum'] not in datum_values:
@@ -510,6 +534,7 @@ def validate_reprojection_parameters(parms, projections, ns_values,
                     if zone < 0 or zone > 60:
                         raise ValueError("Invalid utm_zone [%d]:"
                                          " Value must be 0-60" % zone)
+                    parms['utm_zone'] = zone
                 if not test_for_parameter(parms, 'utm_north_south'):
                     raise RuntimeError("Missing utm_north_south parameter")
                 elif parms['utm_north_south'] not in ns_values:
@@ -531,27 +556,35 @@ def validate_reprojection_parameters(parms, projections, ns_values,
                                          " Value must be between"
                                          " (-60.0 and -90.0) or"
                                          " (60.0 and 90.0)" % value)
+                    parms['latitude_true_scale'] = value
                 if not test_for_parameter(parms, 'longitude_pole'):
                     raise RuntimeError("Missing longitude_pole parameter")
+                else:
+                    parms['longitude_pole'] = float(parms['longitude_pole'])
                 if not test_for_parameter(parms, 'origin_lat'):
                     # If the user did not specify the origin_lat value, then
                     # set it based on the latitude true scale
                     lat_ts = float(parms['latitude_true_scale'])
                     if lat_ts < 0:
-                        parms['origin_lat'] = '-90.0'
+                        parms['origin_lat'] = -90.0
                     else:
-                        parms['origin_lat'] = '90.0'
+                        parms['origin_lat'] = 90.0
                 else:
                     value = float(parms['origin_lat'])
                     if value != -90.0 and value != 90.0:
                         raise ValueError("Invalid origin_lat [%f]:"
                                          " Value must be -90.0 or 90.0"
                                          % value)
+                    parms['origin_lat'] = value
 
                 if not test_for_parameter(parms, 'false_easting'):
                     raise RuntimeError("Missing false_easting parameter")
+                else:
+                    parms['false_easting'] = float(parms['false_easting'])
                 if not test_for_parameter(parms, 'false_northing'):
                     raise RuntimeError("Missing false_northing parameter")
+                else:
+                    parms['false_northing'] = float(parms['false_northing'])
 
             # ................................................................
             if target_projection == 'lonlat':
@@ -568,12 +601,20 @@ def validate_reprojection_parameters(parms, projections, ns_values,
     if parms['image_extents']:
         if not test_for_parameter(parms, 'minx'):
             raise RuntimeError("Missing minx parameter")
+        else:
+            parms['minx'] = float(parms['minx'])
         if not test_for_parameter(parms, 'miny'):
             raise RuntimeError("Missing miny parameter")
+        else:
+            parms['miny'] = float(parms['miny'])
         if not test_for_parameter(parms, 'maxx'):
             raise RuntimeError("Missing maxx parameter")
+        else:
+            parms['maxx'] = float(parms['maxx'])
         if not test_for_parameter(parms, 'maxy'):
             raise RuntimeError("Missing maxy parameter")
+        else:
+            parms['maxy'] = float(parms['maxy'])
     else:
         # Default these
         parms['minx'] = None
@@ -585,6 +626,8 @@ def validate_reprojection_parameters(parms, projections, ns_values,
     if parms['resize']:
         if not test_for_parameter(parms, 'pixel_size'):
             raise RuntimeError("Missing pixel_size parameter")
+        else:
+            parms['pixel_size'] = float(parms['pixel_size'])
         if not test_for_parameter(parms, 'pixel_size_units'):
             raise RuntimeError("Missing pixel_size_units parameter")
         else:
@@ -605,10 +648,10 @@ def validate_reprojection_parameters(parms, projections, ns_values,
         # Default to 30 meters of dd equivalent
         # Everything will default to 30 meters except if they chose geographic
         # projection, which will default to dd equivalent
-        parms['pixel_size'] = '30.0'
+        parms['pixel_size'] = 30.0
         parms['pixel_size_units'] = 'meters'
         if test_for_parameter(parms, 'target_projection'):
             if str(parms['target_projection']).lower() == 'lonlat':
-                parms['pixel_size'] = '0.0002695'
+                parms['pixel_size'] = 0.0002695
                 parms['pixel_size_units'] = 'dd'
 # END - validate_reprojection_parameters
