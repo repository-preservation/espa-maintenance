@@ -54,9 +54,19 @@ def get_lpcs_orders_to_process():
 
 
 # ============================================================================
-def update_order_status(orderId, module, status):
-    print "Order [%s] Received [%s] From [%s]" % (orderId, status, module)
-    return 0
+def update_status(sceneid, orderid, module, status):
+    with open("xmlrpc_server.log", "a") as fd:
+        fd.write("Scene [%s] Order [%s] Received [%s] From [%s]"
+                 % (sceneid, orderid, status, module))
+    return True
+
+
+# ============================================================================
+def set_scene_error(sceneid, orderid, module, status):
+    with open("xmlrpc_server.log", "a") as fd:
+        fd.write("Scene [%s] Order [%s] Received [%s] From [%s]"
+                 % (sceneid, orderid, status, module))
+    return True
 
 
 # ============================================================================
@@ -75,7 +85,7 @@ def build_argument_parser():
                         help="specify the hostname")
 
     parser.add_argument('--port',
-                        action='store', dest='port', default=55801,
+                        action='store', dest='port', default=8100,
                         help="specify the port to listen on")
 
     return parser
@@ -91,7 +101,7 @@ if __name__ == '__main__':
     # Parse the command line arguments
     args = parser.parse_args()
 
-    print "Starting LPCS_XMLRPCServer"
+    print "Starting LPCS_XMLRPCServer on PID [%d]" % os.getpid()
 
     server = LPCS_XMLRPCServer((args.hostname, int(args.port)),
                                requestHandler=RequestHandler)
@@ -101,7 +111,8 @@ if __name__ == '__main__':
 
     server.register_function(get_lpcs_orders_to_process,
                              'get_lpcs_orders_to_process')
-    server.register_function(update_order_status, 'update_order_status')
+    server.register_function(update_status, 'update_status')
+    server.register_function(set_scene_error, 'set_scene_error')
 
     server.register_introspection_functions()
 

@@ -15,6 +15,7 @@ import os
 import sys
 import socket
 import json
+import xmlrpclib
 import traceback
 from argparse import ArgumentParser
 
@@ -52,8 +53,7 @@ if __name__ == '__main__':
     # Process each line from stdin
     for line in sys.stdin:
         if not line or len(line) < 1 or not line.strip().startswith('{'):
-            continue        
-
+            continue
 
         # Reset these for each line
         (server, orderid, sceneid) = (None, None, None)
@@ -85,8 +85,13 @@ if __name__ == '__main__':
             if parameters.test_for_parameter(parms, 'xmlrpcurl'):
                 if parms['xmlrpcurl'] != 'dev':
                     server = xmlrpclib.ServerProxy(parms['xmlrpcurl'])
-                    server.update_status(sceneid, orderid, processing_location,
-                                         'processing')
+                    if server is not None:
+                        status = server.update_status(sceneid, orderid,
+                                                      processing_location,
+                                                      'processing')
+                        if not status:
+                            log("Failed processing xmlrpc call"
+                                " to update_status to processing")
 
             # Make sure we can process the sensor
             if sensor not in parameters.valid_sensors:
@@ -129,15 +134,17 @@ if __name__ == '__main__':
 
             # Everything was successfull so mark the scene complete
             if server is not None:
-                server.mark_scene_complete(sceneid, orderid,
-                                           processing_location,
-                                           destination_product_file,
-                                           destination_cksum_file, "")
-            else:
-                log("Delivered product to %s at location %s and cksum"
-                    " location %s" % (processing_location,
-                                      destination_product_file,
-                                      destination_cksum_file))
+                status = server.mark_scene_complete(sceneid, orderid,
+                                                    processing_location,
+                                                    destination_product_file,
+                                                    destination_cksum_file, "")
+                if not status:
+                    log("Failed processing xmlrpc call to mark_scene_complete")
+
+            # Always log where we placed the files
+            log("Delivered product to %s at location %s and cksum location %s"
+                % (processing_location, destination_product_file,
+                   destination_cksum_file))
 
             # Cleanup the log file
             close_log_handler()
@@ -165,20 +172,23 @@ if __name__ == '__main__':
             # TODO - Today we are failing everything, but some things could be
             #        made recovereable in the future.
             #        So this code seems a bit ridiculous.
+            status = False
             if (e.error_code == ee.ErrorCodes.creating_stage_dir
                     or e.error_code == ee.ErrorCodes.creating_work_dir
                     or e.error_code == ee.ErrorCodes.creating_output_dir):
 
                 if server is not None:
-                    server.set_scene_error(sceneid, orderid,
-                                           processing_location, log_data)
+                    status = server.set_scene_error(sceneid, orderid,
+                                                    processing_location,
+                                                    log_data)
 
             elif (e.error_code == ee.ErrorCodes.staging_data
                   or e.error_code == ee.ErrorCodes.unpacking):
 
                 if server is not None:
-                    server.set_scene_error(sceneid, orderid,
-                                           processing_location, log_data)
+                    status = server.set_scene_error(sceneid, orderid,
+                                                    processing_location,
+                                                    log_data)
 
             elif (e.error_code == ee.ErrorCodes.metadata
                   or e.error_code == ee.ErrorCodes.ledaps
@@ -194,45 +204,56 @@ if __name__ == '__main__':
                   or e.error_code == ee.ErrorCodes.remove_products):
 
                 if server is not None:
-                    server.set_scene_error(sceneid, orderid,
-                                           processing_location, log_data)
+                    status = server.set_scene_error(sceneid, orderid,
+                                                    processing_location,
+                                                    log_data)
 
             elif e.error_code == ee.ErrorCodes.warping:
 
                 if server is not None:
-                    server.set_scene_error(sceneid, orderid,
-                                           processing_location, log_data)
+                    status = server.set_scene_error(sceneid, orderid,
+                                                    processing_location,
+                                                    log_data)
 
             elif e.error_code == ee.ErrorCodes.reformat:
 
                 if server is not None:
-                    server.set_scene_error(sceneid, orderid,
-                                           processing_location, log_data)
+                    status = server.set_scene_error(sceneid, orderid,
+                                                    processing_location,
+                                                    log_data)
 
             elif e.error_code == ee.ErrorCodes.statistics:
 
                 if server is not None:
-                    server.set_scene_error(sceneid, orderid,
-                                           processing_location, log_data)
+                    status = server.set_scene_error(sceneid, orderid,
+                                                    processing_location,
+                                                    log_data)
 
             elif (e.error_code == ee.ErrorCodes.packaging_product
                   or e.error_code == ee.ErrorCodes.distributing_product
                   or e.error_code == ee.ErrorCodes.verifying_checksum):
 
                 if server is not None:
-                    server.set_scene_error(sceneid, orderid,
-                                           processing_location, log_data)
+                    status = server.set_scene_error(sceneid, orderid,
+                                                    processing_location,
+                                                    log_data)
 
             else:
                 # Catch all remaining errors
                 if server is not None:
-                    server.set_scene_error(sceneid, orderid,
-                                           processing_location, log_data)
+                    status = server.set_scene_error(sceneid, orderid,
+                                                    processing_location,
+                                                    log_data)
 
             if server is not None:
-                # Cleanup the log file
-                if os.path.exists(log_filename):
-                    os.unlink(log_filename)
+                if not status:
+                    status = open_log_handler(log_filename)
+                    if status == SUCCESS:
+                        log("Failed processing xmlrpc call to set_scene_error")
+                else:
+                    # Cleanup the log file
+                    if not args.keep_log and os.path.exists(log_filename):
+                        os.unlink(log_filename)
             else:
                 # Log the error information
                 log("An error occurred processing %s" % sceneid)
@@ -243,8 +264,6 @@ if __name__ == '__main__':
                     log("Error: Output [%s]" % e.output)
                 tb = traceback.format_exc()
                 log("Error: Traceback [%s]" % tb)
-
-                close_log_handler()
 
         except Exception, e:
 
@@ -260,11 +279,17 @@ if __name__ == '__main__':
                 # Add the exception text
                 log_data = ''.join([log_data, '\n', str(e)])
 
-                server.set_scene_error(sceneid, orderid,
-                                       processing_location, log_data)
-                # Cleanup the log file
-                if os.path.exists(log_filename):
-                    os.unlink(log_filename)
+                status = server.set_scene_error(sceneid, orderid,
+                                                processing_location, log_data)
+
+                if not status:
+                    status = open_log_handler(log_filename)
+                    if status == SUCCESS:
+                        log("Failed processing xmlrpc call to set_scene_error")
+                else:
+                    # Cleanup the log file
+                    if not args.keep_log and os.path.exists(log_filename):
+                        os.unlink(log_filename)
             else:
                 # Log the error information
                 log("An error occurred processing %s" % sceneid)
@@ -274,8 +299,6 @@ if __name__ == '__main__':
                 tb = traceback.format_exc()
                 log("Error: Traceback [%s]" % tb)
                 log("Error: Line [%s]" % line)
-
-                close_log_handler()
 
         finally:
             close_log_handler()
