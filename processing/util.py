@@ -127,16 +127,16 @@ def get_sensor(scene_name):
 
     if scene_name[0:3].lower() == 'lt5' or scene_name[0:3].lower() == 'lt4':
         # Landsat TM
-        return 'LT'
+        return 'tm'
     elif scene_name[0:3].lower() == 'le7':
         # Landsat ETM+
-        return 'LE'
+        return 'etm'
     elif scene_name[0:3].lower() == 'mod':
         # MODIS Terra
-        return 'MOD'
+        return 'terra'
     elif scene_name[0:3].lower() == 'myd':
         # MODIS Aqua
-        return 'MYD'
+        return 'aqua'
     return ''
 
 

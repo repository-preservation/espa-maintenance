@@ -208,7 +208,6 @@ def process(parms):
 
     # Keep a local options for those apps that only need a few things
     options = parms['options']
-    sensor = options['sensor']
 
     # Add the work directory to the parameters
     options['work_directory'] = work_directory

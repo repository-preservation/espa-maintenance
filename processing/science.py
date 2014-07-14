@@ -525,13 +525,13 @@ if __name__ == '__main__':
 
     # Build the JSON parameters dictionary
     json_parms['scene'] = scene
+
+    sensor = util.get_sensor(scene)
     if sensor not in parameters.valid_sensors:
         log("Error: Data sensor %s is not implemented" % sensor)
         sys.exit(EXIT_FAILURE)
 
     json_parms['options'] = options
-
-    sensor = util.get_sensor(parms['scene'])
 
     try:
         # Call the main processing routine

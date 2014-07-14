@@ -120,7 +120,7 @@ def validate_parameters(parms):
     options['sensor'] = sensor
 
     # Setup the base paths
-    if sensor == 'MOD':
+    if sensor == 'terra':
         base_source_path = settings.TERRA_BASE_SOURCE_PATH
     else:
         base_source_path = settings.AQUA_BASE_SOURCE_PATH
@@ -202,7 +202,6 @@ def process(parms):
 
     # Keep a local options for those apps that only need a few things
     options = parms['options']
-    sensor = options['sensor']
 
     # Add the work directory to the parameters
     options['work_directory'] = work_directory
