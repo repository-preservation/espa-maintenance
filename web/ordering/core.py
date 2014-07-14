@@ -536,7 +536,7 @@ def set_scene_unavailable(name, orderid, processing_loc, error, note):
 
         #if there are no more inprocess scenes,
         #mark the order complete and send email
-        update_order_if_complete(o.orderid, s.name)
+        update_order_if_complete(o.orderid)
 
         return True
     else:
@@ -590,7 +590,7 @@ def mark_scene_complete(name,
             client = lta.OrderUpdateServiceClient()
             client.update_order(o.ee_order_id, s.ee_unit_id, 'C')
 
-        update_order_if_complete(o.orderid, s)
+        update_order_if_complete(o.orderid)
 
         return True
     else:
