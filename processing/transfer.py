@@ -191,6 +191,11 @@ def scp_transfer_file(source_host, source_file,
         file must be a directory.  ***No checking is performed in this code***
     '''
 
+    if source_host == destination_host:
+        msg = "Error: source and destination host match unable to scp"
+        log(msg)
+        raise Exception(msg)
+
     cmd = ['scp', '-q', '-o', 'StrictHostKeyChecking=no', '-c', 'arcfour',
            '-C']
 
@@ -198,12 +203,14 @@ def scp_transfer_file(source_host, source_file,
     # Single quote the source to allow for wild cards
     if source_host == 'localhost':
         cmd.append(source_file)
-    elif source_host != destination_host:
-        # Build the SCP command line
+    else:
         cmd.append("'%s:%s'" % (source_host, source_file))
 
     # Build the destination portion of the command
-    cmd.append('%s:%s' % (destination_host, destination_file))
+    if destination_host == 'localhost':
+        cmd.append(destination_file)
+    else:
+        cmd.append('%s:%s' % (destination_host, destination_file))
 
     cmd = ' '.join(cmd)
 
