@@ -87,8 +87,6 @@ def build_argument_parser():
 
     parameters.add_work_directory_parameter(parser)
 
-    parameters.add_data_type_parameter(parser, parameters.valid_data_types)
-
     parameters.add_science_product_parameters(parser)
 
     return parser
@@ -107,22 +105,11 @@ def validate_landsat_parameters(parms):
     keys = ['scene', 'options']
     for key in keys:
         if not parameters.test_for_parameter(parms, key):
+            log("Error: Missing parameter %s" % key)
             return ERROR
 
     # Access to the options parameters
     options = parms['options']
-
-    # Test for presence of required option-level parameters
-    keys = ['data_type']
-
-    for key in keys:
-        if not parameters.test_for_parameter(options, key):
-            return ERROR
-
-    # Test specific parameters for acceptable values if needed
-    if options['data_type'] not in parameters.valid_data_types:
-        raise NotImplementedError("Unsupported data_type [%s]"
-                                  % options['data_type'])
 
     # Force these parameters to false if not provided
     keys = ['include_sr', 'include_sr_toa', 'include_sr_thermal',

@@ -59,8 +59,6 @@ def build_argument_parser():
 
     parameters.add_scene_parameter(parser)
 
-    parameters.add_data_type_parameter(parser, parameters.valid_data_types)
-
     parameters.add_output_format_parameter(parser,
                                            parameters.valid_output_formats)
 
@@ -99,7 +97,8 @@ def validate_parameters(parms):
             raise RuntimeError("Missing required input parameter [%s]" % key)
 
     # Validate the science product parameters
-    science.validate_landsat_parameters(parms)
+    if science.validate_landsat_parameters(parms) == ERROR:
+        raise RuntimeError("Missing required input parameter")
 
     # Get a local pointer to the options
     options = parms['options']
