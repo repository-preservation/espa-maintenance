@@ -426,6 +426,8 @@ class Configuration(models.Model):
 
     def getValue(self, key):
         try:
-            return str(Configuration.objects.get(key=key))
+            value = Configuration.objects.get(key=key).value
+            
+            return str(value)
         except:
             return ''
