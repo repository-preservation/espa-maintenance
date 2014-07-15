@@ -33,7 +33,8 @@ class SceneListValidator(Validator):
             for line in scenelist:
                if line.find('.tar.gz') != -1:
                    line = line[0:line.index('.tar.gz')]
-               sl.append(line)
+               if len(line) > 0:
+                   sl.append(line)
         return sl
 
     def _line_header_ok(self, line):
@@ -159,7 +160,9 @@ class LatitudeTrueScaleValidator(Validator):
         else:
             self.add_error('latitude_true_scale', [msg, ])
 
-        if ts and not (ts in range(60.0, 91.0) or ts in range(-90.0, -59.0)):
+        # make sure ts is either in the range of 60 to 90 or -90 to -60
+        if ts and not \
+            ((ts >= 60.0 and ts <= 90.0) or (ts >= -90.0 and ts <= -60.0)):
             self.add_error('latitude_true_scale', [msg, ])
 
         return super(LatitudeTrueScaleValidator, self).errors()
@@ -260,7 +263,7 @@ class UTMNorthSouthValidator(Validator):
 class ProjectionValidator(Validator):
     '''Validates parameters for reprojection'''
 
-    valid_projections = ['aea', 'ps', 'sinu', 'longlat', 'utm']
+    valid_projections = ['aea', 'ps', 'sinu', 'lonlat', 'utm']
 
     def __init__(self, parameters, child_validators=None, name=None):
         '''Conditionally build and attach child validators'''
@@ -286,15 +289,15 @@ class ProjectionValidator(Validator):
         else:
 
             if proj == 'aea':
-                self.add_child(AlbersValidator(self.parameters))
+                self.add_child(AlbersValidator(parameters))
             elif proj == 'ps':
-                self.add_child(PolarStereographicValidator(self.parameters))
+                self.add_child(PolarStereographicValidator(parameters))
             elif proj == 'sinu':
-                self.add_child(SinusoidalValidator(self.parameters))
-            elif proj == 'longlat':
-                self.add_child(GeographicValidator(self.parameters))
+                self.add_child(SinusoidalValidator(parameters))
+            elif proj == 'lonlat':
+                self.add_child(GeographicValidator(parameters))
             elif proj == 'utm':
-                self.add_child(UTMValidator(self.parameters))
+                self.add_child(UTMValidator(parameters))
 
     def errors(self):
         '''No actual validation happening in this validator'''
@@ -360,7 +363,7 @@ class GeographicValidator(Validator):
 
     def errors(self):
         '''This validator does nothing'''
-        return super(AlbersValidator, self).errors()
+        return super(GeographicValidator, self).errors()
 
 
 class PolarStereographicValidator(Validator):
@@ -433,12 +436,12 @@ class PixelSizeValidator(Validator):
                                                  child_validators,
                                                  name)
 
-        if not 'pixel_size_units' in self.parameters \
-            or not self.parameters['pixel_size_units']:
+        if not 'pixel_size_units' in parameters \
+            or not parameters['pixel_size_units']:
             msg = "Target pixel size units not recognized"
             self.add_error('pixel_size_units', [msg, ])
         else:
-            units = self.parameters['pixel_size_units'].strip()
+            units = parameters['pixel_size_units'].strip()
 
             if not units in ['dd', 'meters']:
                 msg = "Unknown pixel size units provided:%s" % units
@@ -542,23 +545,23 @@ class NewOrderPostValidator(Validator):
                                                     child_validators,
                                                     name)
 
-        self.add_child(ProductIsSelectedValidator(self.parameters))
-        self.add_child(OutputFormatValidator(self.parameters))
+        self.add_child(ProductIsSelectedValidator(parameters))
+        self.add_child(OutputFormatValidator(parameters))
 
-        if 'reproject' in self.parameters \
-            and self.parameters['reproject'] == 'on':
+        if 'reproject' in parameters \
+            and parameters['reproject'] == 'on':
 
-            self.add_child(ProjectionValidator(self.parameters))
+            self.add_child(ProjectionValidator(parameters))
 
-        if 'resize' in self.parameters \
-            and self.parameters['resize'] == 'on':
+        if 'resize' in parameters \
+            and parameters['resize'] == 'on':
 
-            self.add_child(PixelSizeValidator(self.parameters))
+            self.add_child(PixelSizeValidator(parameters))
 
-        if 'image_extents' in self.parameters \
-            and self.parameters['image_extents'] == 'on':
+        if 'image_extents' in parameters \
+            and parameters['image_extents'] == 'on':
 
-            self.add_child(ImageExtentsValidator(self.parameters))
+            self.add_child(ImageExtentsValidator(parameters))
 
     def errors(self):
         '''Trigger the child validators by overriding the error() method
@@ -570,19 +573,20 @@ class NewOrderPostValidator(Validator):
 class NewOrderValidator(Validator):
 
     def __init__(self, parameters, child_validators=None, name=None):
-        super(NewOrderValidator, self).__init__(parameters,
-                                                child_validators,
-                                                name)
 
         # need this to coerce Django's QueryDict into a normal dict.
         # QueryDict provides every value as a list.
         # The only item that should be a list is the scene list
-        for key,item in self.parameters.iteritems():
+        for key,item in parameters.iteritems():
             if type(item) is list and key is not 'scenelist':
-                self.parameters[key] = item[0]
+                parameters[key] = item[0]
 
-        self.add_child(NewOrderPostValidator(self.parameters))
-        self.add_child(NewOrderFilesValidator(self.parameters))
+        super(NewOrderValidator, self).__init__(parameters,
+                                                child_validators,
+                                                name)
+
+        self.add_child(NewOrderPostValidator(parameters))
+        self.add_child(NewOrderFilesValidator(parameters))
 
     def errors(self):
         '''Trigger the child validators by overriding the error() method

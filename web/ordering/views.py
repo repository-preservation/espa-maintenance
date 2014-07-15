@@ -217,8 +217,11 @@ class NewOrder(AbstractView):
         validator_parameters = dict(request.POST)
         validator_parameters['scenelist'] = self._get_scenelist(request)
         validator = validators.NewOrderValidator(validator_parameters)
-
+                
         if validator.errors():
+            
+            print("VALIDATOR ERRORS")
+            print(type(validator.errors()))
 
             c = self._get_request_context(request)
 

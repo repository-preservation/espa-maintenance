@@ -137,6 +137,9 @@ class Validator(object):
             self.validation_errors = {key: errmsg, }
         elif key in self.validation_errors:
             self.validation_errors[key].extend(errmsg)
+            # do this to prevent the list from continuing to grow            
+            errs = set(self.validation_errors[key])
+            self.validation_errors[key] = list(errs)
         else:
             self.validation_errors[key] = errmsg
 
@@ -152,9 +155,10 @@ class Validator(object):
         # then wipe out the original object
         # otherwise we just keep adding more and more
         # values to the dict every time errors() is run
-        errs = copy.deepcopy(self.validation_errors)
-        self.validation_errors = None
-        return errs
+        #errs = copy.deepcopy(self.validation_errors)
+        #self.validation_errors = None
+        #return errs
+        return self.validation_errors
 
 
 class ExampleFilesValidator(Validator):
