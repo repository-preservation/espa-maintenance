@@ -231,40 +231,61 @@ def process(parms):
         raise ee.ESPAException(ee.ErrorCodes.unpacking, str(e)), \
             None, sys.exc_info()[2]
 
-    # Build the requested science products
-    xml_filename = science.build_landsat_science_products(parms)
+    # BEGIN - Science Product Building
+    # Only build, warp, and generate stats if some science products are chosen
+    if (options['include_customized_source_data']
+            or options['include_sr']
+            or options['include_sr_toa']
+            or options['include_sr_thermal']
+            or options['include_sr_browse']
+            or options['include_cfmask']
+            or options['include_sr_nbr']
+            or options['include_sr_nbr2']
+            or options['include_sr_ndvi']
+            or options['include_sr_ndmi']
+            or options['include_sr_savi']
+            or options['include_sr_msavi']
+            or options['include_sr_evi']
+            or options['include_swe']
+            or options['include_solr_index']):
 
-    # Reproject the data for each science product, but only if necessary
-    if (options['reproject']
-            or options['resize']
-            or options['image_extents']
-            or options['projection'] is not None):
+        # Build the requested science products
+        xml_filename = science.build_landsat_science_products(parms)
 
-        warp.warp_espa_data(options, xml_filename)
+        # Reproject the data for each science product, but only if necessary
+        if (options['reproject']
+                or options['resize']
+                or options['image_extents']
+                or options['projection'] is not None):
 
-    # Generate the stats for each stat'able' science product
-    if options['include_statistics']:
-        # Hold the wild card strings in a type based dictionary
-        files_to_search_for = dict()
+            warp.warp_espa_data(options, xml_filename)
 
-        # Landsat files
-        # The types must match the types in settings.py
-        files_to_search_for['SR'] = ['*_sr_band[0-9].img']
-        files_to_search_for['TOA'] = ['*_toa_band[0-9].img']
-        files_to_search_for['INDEX'] = ['*_nbr.img', '*_nbr2.img',
-                                        '*_ndmi.img', '*_ndvi.img',
-                                        '*_evi.img', '*_savi.img',
-                                        '*_msavi.img']
+        # Generate the stats for each stat'able' science product
+        if options['include_statistics']:
+            # Hold the wild card strings in a type based dictionary
+            files_to_search_for = dict()
 
-        # Generate the stats for each file
-        statistics.generate_statistics(options['work_directory'],
-                                       files_to_search_for)
+            # Landsat files
+            # The types must match the types in settings.py
+            files_to_search_for['SR'] = ['*_sr_band[0-9].img']
+            files_to_search_for['TOA'] = ['*_toa_band[0-9].img']
+            files_to_search_for['INDEX'] = ['*_nbr.img', '*_nbr2.img',
+                                            '*_ndmi.img', '*_ndvi.img',
+                                            '*_evi.img', '*_savi.img',
+                                            '*_msavi.img']
 
-    # Convert to the user requested output format or leave it in ESPA ENVI
-    # We do all of our processing using ESPA ENVI format so it can be
-    # hard-coded here
-    warp.reformat(xml_filename, work_directory, 'envi',
-                  options['output_format'])
+            # Generate the stats for each file
+            statistics.generate_statistics(options['work_directory'],
+                                           files_to_search_for)
+
+        # Convert to the user requested output format or leave it in ESPA ENVI
+        # We do all of our processing using ESPA ENVI format so it can be
+        # hard-coded here
+        warp.reformat(xml_filename, work_directory, 'envi',
+                      options['output_format'])
+    # END - Science Product Building
+    else:
+        log("***NO SCIENCE PRODUCTS CHOSEN***")
 
     # Deliver the product files
     # Attempt X times sleeping between each attempt
