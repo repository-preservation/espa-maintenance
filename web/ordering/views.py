@@ -173,7 +173,7 @@ class NewOrder(AbstractView):
         
         if 'scenelist' in request.FILES:
             data = request.FILES['scenelist'].read()
-            sl = [s.strip() for s in data.split('\n')]
+            sl = [s.strip() for s in data.split('\n') if len(s) > 0]
             
         return sl
         
