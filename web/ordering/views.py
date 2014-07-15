@@ -138,6 +138,7 @@ class Index(AbstractView):
 
 class NewOrder(AbstractView):
     template = 'new_order.html'
+    scenelist = None
 
 
     def _get_order_description(self, parameters):
@@ -169,18 +170,25 @@ class NewOrder(AbstractView):
         return defaults
 
     def _get_scenelist(self, request):
-        data = list()
-
-        if 'scenelist' in request.FILES:
-            data = request.FILES['scenelist'].read().split('\n')
-
-        return [d.strip() for d in data]
+               
+        if not self.scenelist:    
+            if 'scenelist' in request.FILES:
+                self.scenelist = request.FILES['scenelist'].read().split('\n')
+        
+        if self.scenelist:
+            return [d.strip() for d in self.scenelist]
+        else:
+            return None
 
     def _get_verified_scenelist(self, request):
         sl = self._get_scenelist(request)
-        payload = {'scenelist': self._get_scenelist(request)}
-        slv = validators.SceneListValidator(payload)
-        return list(slv.get_verified_scene_set(sl))
+        
+        if sl:
+            payload = {'scenelist': sl}
+            slv = validators.SceneListValidator(payload)
+            return list(slv.get_verified_scene_set(sl))
+        else:
+            return None
 
     def get(self, request):
         '''Request handler for new order initial form
@@ -219,10 +227,7 @@ class NewOrder(AbstractView):
         validator = validators.NewOrderValidator(validator_parameters)
                 
         if validator.errors():
-            
-            print("VALIDATOR ERRORS")
-            print(type(validator.errors()))
-
+         
             c = self._get_request_context(request)
 
             #unwind the validator errors.  It comes out as a dict with a key

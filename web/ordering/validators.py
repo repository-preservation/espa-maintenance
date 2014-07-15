@@ -31,10 +31,12 @@ class SceneListValidator(Validator):
         sl = list()
         if scenelist:
             for line in scenelist:
-               if line.find('.tar.gz') != -1:
-                   line = line[0:line.index('.tar.gz')]
-               if len(line) > 0:
-                   sl.append(line)
+                line = line.strip()
+            
+                if line.find('.tar.gz') != -1:
+                    line = line[0:line.index('.tar.gz')]
+                if len(line) > 0:
+                    sl.append(line)
         return sl
 
     def _line_header_ok(self, line):
@@ -50,7 +52,7 @@ class SceneListValidator(Validator):
         else:
             scenes = self._get_scenes_from_list(self.parameters['scenelist'])
 
-            if len(scenes) is 0:
+            if len(scenes) == 0:
                 self.add_error('scenelist', ['No scenes found in order file',])
             else:
                 prev_error = False
@@ -63,13 +65,19 @@ class SceneListValidator(Validator):
 
                 if not prev_error:
                     valid = self.get_verified_scene_set(scenes)
+                                        
+                    if len(valid) == 0:
+                        msg = "No scenes found in Landsat inventory"
+                        self.add_error('scenelist', [msg,])
+                    else:
+                        
+                        difference = set(scenes) - set(valid)
 
-                    difference = set(scenes) - set(valid)
-
-                    if len(difference) > 0:
-                        for diff in difference:
-                            msg = "%s not found in Landsat inventory" % diff
-                            self.add_error('scenelist', [msg,])
+                        if len(difference) > 0:
+                            for diff in difference:
+                                msg = ("%s not found in Landsat inventory" 
+                                        % diff)
+                                self.add_error('scenelist', [msg,])
 
         return super(SceneListValidator, self).errors()
 
@@ -578,7 +586,7 @@ class NewOrderValidator(Validator):
         # QueryDict provides every value as a list.
         # The only item that should be a list is the scene list
         for key,item in parameters.iteritems():
-            if type(item) is list and key is not 'scenelist':
+            if type(item) is list and key is not 'scenelist' and len(item) > 0:
                 parameters[key] = item[0]
 
         super(NewOrderValidator, self).__init__(parameters,
