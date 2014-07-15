@@ -149,15 +149,15 @@ class NewOrder(AbstractView):
     def _get_order_options(self, request):
 
         defaults = Order.get_default_options()
-        
-        # This will make sure no additional options past the ones we are 
-        # expecting will make it into the database        
+
+        # This will make sure no additional options past the ones we are
+        # expecting will make it into the database
         #for key in request.POST.iterkeys():
         for key in defaults:
             if key in request.POST.iterkeys():
                 val = request.POST[key]
                 if val is True or str(val).lower() == 'on':
-                    defaults[key] = True            
+                    defaults[key] = True
                 elif core.is_number(val):
                     if str(val).find('.') != -1:
                         defaults[key] = float(val)
@@ -165,19 +165,23 @@ class NewOrder(AbstractView):
                         defaults[key] = int(val)
                 else:
                     defaults[key] = val
-               
+
         return defaults
-        
+
     def _get_scenelist(self, request):
-        sl = None
-        
+        data = list()
+
         if 'scenelist' in request.FILES:
-            data = request.FILES['scenelist'].read()
-            sl = [s.strip() for s in data.split('\n') if len(s) > 0]
-            
-        return sl
-        
-        
+            data = request.FILES['scenelist'].read().split('\n')
+
+        return [d.strip() for d in data]
+
+    def _get_verified_scenelist(self, request):
+        sl = self._get_scenelist(request)
+        payload = {'scenelist': self._get_scenelist(request)}
+        slv = validators.SceneListValidator(payload)
+        return list(slv.get_verified_scene_set(sl))
+
     def get(self, request):
         '''Request handler for new order initial form
 
@@ -209,29 +213,25 @@ class NewOrder(AbstractView):
         #request must be a POST and must also be encoded as multipart/form-data
         #in order for the files to be uploaded
 
-        #TODO -- make use of new validation framework
-        #context, errors = vv.validate_input_params(request)
-        #selected_options, option_errors = vv.validate_product_options(request)
-
         validator_parameters = {}
         validator_parameters = dict(request.POST)
         validator_parameters['scenelist'] = self._get_scenelist(request)
         validator = validators.NewOrderValidator(validator_parameters)
-        
+
         if validator.errors():
-            
+
             c = self._get_request_context(request)
 
             #unwind the validator errors.  It comes out as a dict with a key
             #for the input field name and a value of a list of error messages.
             # At this point we are only displaying the error messages in one
             # block but going forward will be able to put the error message
-            # right next to the field where the error occurred once the 
-            # template is properly modified. 
+            # right next to the field where the error occurred once the
+            # template is properly modified.
             errors = validator.errors().values()
 
             error_list = list()
-            
+
             for e in errors:
                 for m in e:
                     error_list.append(m)
@@ -253,7 +253,7 @@ class NewOrder(AbstractView):
 
             order = Order.enter_new_order(request.user.username,
                                           'espa',
-                                          validator_parameters['scenelist'],
+                                          self._get_verified_scenelist(request),
                                           option_string,
                                           note=self._get_order_description(request.POST)
                                           )

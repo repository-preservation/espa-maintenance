@@ -5,60 +5,77 @@ from models import Order
 
 
 class SceneListValidator(Validator):
-    '''Validates that a scene list has been provided and it contains at 
+    '''Validates that a scene list has been provided and it contains at
     least one scene to process'''
 
-    def _get_scenelist(self, scenelist):
-        
+    def get_verified_scene_set(self, scenelist):
+        __scenelist = list()
+
+        for line in self._get_scenes_from_list(scenelist):
+            if self._line_header_ok(line):
+                __scenelist.append(line)
+
+        valid_scenes = list()
+        if len(__scenelist) > 0:
+            client = lta.OrderWrapperServiceClient()
+            verified = client.verify_scenes(list(__scenelist))
+
+            for scene, valid in verified.iteritems():
+                if valid:
+                    valid_scenes.append(scene)
+
+        return set(valid_scenes)
+
+
+    def _get_scenes_from_list(self, scenelist):
+        sl = list()
         if scenelist:
             for line in scenelist:
-    
                if line.find('.tar.gz') != -1:
                    line = line[0:line.index('.tar.gz')]
-
-               yield line
+               sl.append(line)
+        return sl
 
     def _line_header_ok(self, line):
-        return len(line) >= 15 and \
+        return len(line) == 21 and \
             (line.startswith("LT") or line.startswith("LE"))
 
     def errors(self):
         '''Looks through the scenelist if present and determines if there
         are valid scenes to process'''
-      
+
         if not 'scenelist' in self.parameters:
             return super(SceneListValidator, self).errors()
         else:
-            scenelist = self._get_scenelist(self.parameters['scenelist'])
+            scenes = self._get_scenes_from_list(self.parameters['scenelist'])
 
-            scene_list = list()
-
-            for line in scenelist:
-                print(line)
-                if self._line_header_ok(line):
-                    scene_list.append(line)
-                                
-            if len(scene_list) > 0:
-                # Run the submitted list by LTA so they can make sure
-                # the items are in the inventory
-                client = lta.OrderWrapperServiceClient()
-
-                verified = client.verify_scenes(list(scene_list))
-
-                for scene, valid in verified.iteritems():
-                    if valid == 'false':
-                        msg = "%s not found in Landsat inventory" % scene
-                        self.add_error('scenelist', [msg])
+            if len(scenes) is 0:
+                self.add_error('scenelist', ['No scenes found in order file',])
             else:
-                msg = "No scenes found in order file."
-                self.add_error('scenelist', [msg,] )
+                prev_error = False
+
+                for line in scenes:
+                    if not self._line_header_ok(line):
+                        prev_error = True
+                        msg = "%s is an invalid TM or ETM scene id" % line
+                        self.add_error('scenelist', [msg,])
+
+                if not prev_error:
+                    valid = self.get_verified_scene_set(scenes)
+
+                    difference = set(scenes) - set(valid)
+
+                    if len(difference) > 0:
+                        for diff in difference:
+                            msg = "%s not found in Landsat inventory" % diff
+                            self.add_error('scenelist', [msg,])
 
         return super(SceneListValidator, self).errors()
 
 
 class ProductIsSelectedValidator(Validator):
     '''Validates that at least one product has been selected'''
-    
+
     def errors(self):
 
         product_is_selected = None
@@ -72,26 +89,26 @@ class ProductIsSelectedValidator(Validator):
                            ['Please select at least one output product.', ])
 
         return super(ProductIsSelectedValidator, self).errors()
-        
-        
+
+
 class OutputFormatValidator(Validator):
     '''Validates the requested output format'''
-    
+
     def errors(self):
         valid_formats = ['gtiff', 'envi', 'hdf-eos2']
-        
+
         if not 'output_format' in self.parameters \
             and self.parameters['output_format']:
-                self.add_error('output_format', 
+                self.add_error('output_format',
                                ['Please select an output format', ])
         elif self.parameters['output_format'] not in valid_formats:
-            self.add_error('output_format', 
+            self.add_error('output_format',
                            ['Output format must be one of:%s' % valid_formats])
-            
+
 
 class FalseEastingValidator(Validator):
     '''Validates the false_easting parameter'''
-    
+
     def errors(self):
 
         if not 'false_easting' in self.parameters\
@@ -104,7 +121,7 @@ class FalseEastingValidator(Validator):
 
 class FalseNorthingValidator(Validator):
     '''Validates the false_northing parameter'''
-    
+
     def errors(self):
 
         if not 'false_northing' in self.parameters\
@@ -117,7 +134,7 @@ class FalseNorthingValidator(Validator):
 
 class CentralMeridianValidator(Validator):
     '''Validates the central_meridian parameter'''
-    
+
     def errors(self):
 
         if not 'central_meridian' in self.parameters\
@@ -150,7 +167,7 @@ class LatitudeTrueScaleValidator(Validator):
 
 class LongitudinalPoleValidator(Validator):
     '''Validates the longitudinal_pole parameter'''
-    
+
     def errors(self):
 
         if not 'longitude_pole' in self.parameters\
@@ -163,7 +180,7 @@ class LongitudinalPoleValidator(Validator):
 
 class StandardParallel1Validator(Validator):
     '''Validates the std_parallel_1 parameter'''
-    
+
     def errors(self):
 
         if not 'std_parallel_1' in self.parameters\
@@ -176,7 +193,7 @@ class StandardParallel1Validator(Validator):
 
 class StandardParallel2Validator(Validator):
     '''Validates the std_parallel_2 parameter'''
-    
+
     def errors(self):
 
         if not 'std_parallel_2' in self.parameters\
@@ -189,7 +206,7 @@ class StandardParallel2Validator(Validator):
 
 class OriginLatitudeValidator(Validator):
     '''Validates origin_lat'''
-    
+
     def errors(self):
 
         if not 'origin_lat' in self.parameters\
@@ -216,7 +233,7 @@ class DatumValidator(Validator):
 
 class UTMZoneValidator(Validator):
     '''Validates utm_zone for utm projection'''
-    
+
     def errors(self):
 
         if not 'utm_zone' in self.parameters\
@@ -256,10 +273,10 @@ class ProjectionValidator(Validator):
         # check for projection value and add appropriate child validators
         proj = None
 
-        if not 'target_projection' in parameters:
+        if not 'target_projection' in self.parameters:
             self.add_error("projection", ['projection must be specified'])
         else:
-            proj = parameters['projection']
+            proj = self.parameters['target_projection']
 
         if proj and proj not in self.valid_projections:
 
@@ -267,16 +284,17 @@ class ProjectionValidator(Validator):
                            ['projection must be one of %s'
                                % self.valid_projections])
         else:
-            if proj is 'aea':
-                self.add_child(AlbersValidator(parameters))
-            elif proj is 'ps':
-                self.add_child(PolarStereographicValidator(parameters))
-            elif proj is 'sinu':
-                self.add_child(SinusoidalValidator(parameters))
-            elif proj is 'longlat':
-                self.add_child(GeographicValidator(parameters))
-            elif proj is 'utm':
-                self.add_child(UTMValidator(parameters))
+
+            if proj == 'aea':
+                self.add_child(AlbersValidator(self.parameters))
+            elif proj == 'ps':
+                self.add_child(PolarStereographicValidator(self.parameters))
+            elif proj == 'sinu':
+                self.add_child(SinusoidalValidator(self.parameters))
+            elif proj == 'longlat':
+                self.add_child(GeographicValidator(self.parameters))
+            elif proj == 'utm':
+                self.add_child(UTMValidator(self.parameters))
 
     def errors(self):
         '''No actual validation happening in this validator'''
@@ -285,7 +303,7 @@ class ProjectionValidator(Validator):
 
 class UTMValidator(Validator):
     '''Validates parameters for utm projection'''
-    
+
     def __init__(self, parameters, child_validators=None, name=None):
         super(UTMValidator, self).__init__(parameters,
                                            child_validators,
@@ -368,9 +386,9 @@ class MeterPixelSizeValidator(Validator):
     def errors(self):
 
         msg = "Please enter a pixel size between 30 and 1000 meters"
-         
+
         ps = None
-         
+
         if 'pixel_size' in self.parameters\
             and core.is_number(self.parameters['pixel_size']):
             ps = float(self.parameters['pixel_size'])
@@ -385,25 +403,25 @@ class MeterPixelSizeValidator(Validator):
 
 class DecimalDegreePixelSizeValidator(Validator):
     '''Validates pixel sizes specified in decimal degrees'''
-    
+
     def errors(self):
 
         msg = ''.join(["Please enter a pixel size between",
                        " 0.0002695 to 0.0089831 decimal degrees"])
-                       
+
         msg1 = "Valid pixel size is 0.0002695 to 0.0089831 decimal degrees"
-        
+
         ps = None
-         
+
         if 'pixel_size' in self.parameters\
             and core.is_number(self.parameters['pixel_size']):
             ps = float(self.parameters['pixel_size'])
         else:
             self.add_error('pixel_size', [msg, ])
-            
+
         if ps and (ps > 0.0089831 or ps < 0.0002695):
             self.add_error('pixel_size', [msg1, ])
-        
+
         return super(DecimalDegreePixelSizeValidator, self).errors()
 
 
@@ -441,12 +459,12 @@ class ImageExtentsValidator(Validator):
     def errors(self):
 
         P = self.parameters
-        
+
         minx = None
         miny = None
         maxx = None
         maxy = None
-        
+
         # make sure we got upper left x,y and lower right x,y vals
         if not 'minx' in P or not core.is_number(P['minx']):
             msg = "Please provide a valid upper left x value"
@@ -473,7 +491,7 @@ class ImageExtentsValidator(Validator):
             maxy = float(P['maxy'])
 
         if minx and miny and maxx and maxy:
-                
+
         # make sure values make some sort of sense
         # once we go to decimal degree bounding boxes only (no meter values)
         # then we can validate the values in the bounding box
@@ -483,10 +501,10 @@ class ImageExtentsValidator(Validator):
                 self.add_error('maxx', [m, ])
 
             if miny >= maxy:
-                m = "Lower right y value must be less than upper left y value"     
+                m = "Lower right y value must be less than upper left y value"
                 self.add_error('miny', [m, ])
                 self.add_error('maxy', [m, ])
-        
+
         return super(ImageExtentsValidator, self).errors()
 
 
@@ -503,10 +521,10 @@ class NewOrderFilesValidator(Validator):
     def errors(self):
         '''Validates a file was provided on upload and delegates calls to
         its child, SceneListValidator'''
-        
+
         msg = ''.join(['Please provide a scene list file with at least',
                  ' one scene for processing'])
-        
+
         if not 'scenelist' in self.parameters:
             self.add_error('files', [msg, ])
 
@@ -523,41 +541,49 @@ class NewOrderPostValidator(Validator):
         super(NewOrderPostValidator, self).__init__(parameters,
                                                     child_validators,
                                                     name)
-                                                    
-        self.add_child(ProductIsSelectedValidator(parameters))
-        self.add_child(OutputFormatValidator(parameters))
+
+        self.add_child(ProductIsSelectedValidator(self.parameters))
+        self.add_child(OutputFormatValidator(self.parameters))
 
         if 'reproject' in self.parameters \
             and self.parameters['reproject'] == 'on':
 
-            self.add_child(ProjectionValidator(parameters))
+            self.add_child(ProjectionValidator(self.parameters))
 
-        if 'resize' in self.parameters and self.parameters['resize'] == 'on':
+        if 'resize' in self.parameters \
+            and self.parameters['resize'] == 'on':
 
-            self.add_child(PixelSizeValidator(parameters))
+            self.add_child(PixelSizeValidator(self.parameters))
 
         if 'image_extents' in self.parameters \
             and self.parameters['image_extents'] == 'on':
 
-            self.add_child(ImageExtentsValidator(parameters))
+            self.add_child(ImageExtentsValidator(self.parameters))
 
     def errors(self):
         '''Trigger the child validators by overriding the error() method
         and calling the error() method defined in Validator superclass'''
 
         return super(NewOrderPostValidator, self).errors()
-        
-        
+
+
 class NewOrderValidator(Validator):
-    
+
     def __init__(self, parameters, child_validators=None, name=None):
         super(NewOrderValidator, self).__init__(parameters,
                                                 child_validators,
                                                 name)
-        
+
+        # need this to coerce Django's QueryDict into a normal dict.
+        # QueryDict provides every value as a list.
+        # The only item that should be a list is the scene list
+        for key,item in self.parameters.iteritems():
+            if type(item) is list and key is not 'scenelist':
+                self.parameters[key] = item[0]
+
         self.add_child(NewOrderPostValidator(self.parameters))
         self.add_child(NewOrderFilesValidator(self.parameters))
-        
+
     def errors(self):
         '''Trigger the child validators by overriding the error() method
         and calling the error() method defined in Validator superclass'''

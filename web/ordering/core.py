@@ -24,7 +24,7 @@ import urllib2
 
 
 def frange(start,end,step):
-    '''Provides Python range functions over floating point values'''       
+    '''Provides Python range functions over floating point values'''
     return [x*step for x in range(int(start * 1./step), int(end * 1./step))]
 
 def is_number(s):
@@ -86,12 +86,12 @@ def send_initial_email(order):
     m.append("You can check the status of your order and download already ")
     m.append("completed scenes directly from %s\n\n" % status_url)
     m.append("Requested scenes:\n")
-    
+
     scenes = Scene.objects.filter(order__id=order.id)
-    
+
     for s in scenes:
         m.append("%s\n" % s.name)
-        
+
     email_msg = ''.join(m)
 
     send_email(recipient=order.user.email,
@@ -102,9 +102,9 @@ def send_initial_email(order):
 def send_completion_email(email, ordernum, readyscenes=[]):
 
     config = Configuration()
-    
+
     status_base_url = config.getValue('espa.status.url')
-    
+
     config = None
 
     status_url = ('%s/%s') % (status_base_url, email)
@@ -606,7 +606,7 @@ def update_order_if_complete(orderid):
 
     Keyword args:
     orderid -- id of the order
-    
+
     '''
     o = Order.objects.get(orderid=orderid)
     scenes = Scene.objects.filter(order__id=o.id)

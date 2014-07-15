@@ -5,7 +5,7 @@ from models import Order
 #TODO -- Build a class hierarchy that will clean this stuff up...
 # AbstractValidator() class should take the request dictionary in and
 # define the validate() method to be called for each subclass.
-# should also define an errors list()/array 
+# should also define an errors list()/array
 def validate_projection_params(request, options, option_errors):
     '''Validates the projection parameters supplied if the user has
     requested reprojection
@@ -108,13 +108,13 @@ def validate_projection_params(request, options, option_errors):
                     and ISNBR(P['latitude_true_scale']\
                     and P['latitude_true_scale'] in range(60, 91) or\
                     P['latitude_true_scale'] in range(-90, -59)):
-                        
+
                     O['latitude_true_scale'] = float(P['latitude_true_scale'])
                 else:
                     E.append("Please provide a valid Latitude True Scale\
                         value in the ranges of -60.0 to -90.0 or \
                         60.0 to 90.0")
-                    
+
                 if 'false_easting' in P and ISNBR(P['false_easting']):
                     O['false_easting'] = float(P['false_easting'])
                 else:
@@ -284,7 +284,7 @@ def validate_product_options(request):
 
     Return:
     Tuple of (default_options, errors) where
-        default_options is dict() 
+        default_options is dict()
         errors is list()
     '''
     # build some aliases to clean the code up
@@ -312,17 +312,17 @@ def validate_scenelist(request):
 
     Keyword args:
     request -- HTTP request object
-    
+
     Return:
-    A tuple of (scenelist, errors) where 
+    A tuple of (scenelist, errors) where
        scene_list = set() or None
        errors = list() or None
-           
+
     '''
-   
+
     errors = list()
     scene_list = set()
-    
+
     # make sure we have an uploaded scenelist file
     if not 'scenelist' in request.FILES:
         errors.append("Please provide a scene list and \
@@ -330,7 +330,7 @@ def validate_scenelist(request):
     else:
         # there was a file attached to the request.  make sure its not empty.
         orderfile = request.FILES['scenelist']
-        
+
         lines = orderfile.read().split('\n')
 
         if len(lines) <= 0:
@@ -362,10 +362,10 @@ def validate_scenelist(request):
                 errors.append("No scenes found in order file. \
                 Please provide at least one scene for processing")
 
-    
+
     if len(errors) < 1:
         errors = None
-        
+
     return (scene_list, errors)
 
 
@@ -378,11 +378,11 @@ def product_is_selected(request):
     Return:
     True if a product is selected, False if not
     '''
-    
+
     for key in Order.get_default_product_options().iterkeys():
         if key in request.POST:
             return True
-    
+
     return False
 
 
@@ -399,12 +399,12 @@ def validate_input_params(request):
     '''
 
     scene_list, errors = validate_scenelist(request)
-    
+
     if not product_is_selected(request):
         if not errors:
             errors = list()
         errors.append("Please select at least one output product.")
 
     return (scene_list, errors)
-    
-        
+
+

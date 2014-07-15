@@ -181,7 +181,7 @@ class Order(models.Model):
         o['resample_method'] = 'near'  # how would user like to resample?
 
         return o
-        
+
     @staticmethod
     def get_default_output_format():
         o = {}
@@ -215,7 +215,7 @@ class Order(models.Model):
         '''
         o = Order.get_default_options()
         o['include_sr'] = True
-       
+
         return o
 
     @staticmethod
@@ -427,7 +427,7 @@ class Configuration(models.Model):
     def getValue(self, key):
         try:
             value = Configuration.objects.get(key=key).value
-            
+
             return str(value)
         except:
             return ''
