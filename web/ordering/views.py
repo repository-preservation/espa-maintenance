@@ -246,7 +246,10 @@ class NewOrder(AbstractView):
 
         else:
             #option_string = json.dumps(selected_options)
-            option_string = json.dumps(self._get_order_options(request))
+            #option_string = json.dumps(self._get_order_options(request))
+            option_string = json.dumps(self._get_order_options(request),
+                                       sort_keys=True,
+                                       indent=4)
 
             order = Order.enter_new_order(request.user.username,
                                           'espa',
