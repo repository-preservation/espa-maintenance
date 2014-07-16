@@ -500,9 +500,14 @@ def validate_reprojection_parameters(parms, projections, ns_values,
                     raise RuntimeError("Missing false_northing parameter")
                 else:
                     parms['false_northing'] = float(parms['false_northing'])
+
+                # The datum must be in uppercase for the processing code to
+                # work so if it is present here, we force it
                 if not test_for_parameter(parms, 'datum'):
                     raise RuntimeError("Missing datum parameter")
-                elif parms['datum'] not in datum_values:
+                else:
+                    parms['datum'] = parms['datum'].upper()
+                if parms['datum'] not in datum_values:
                     raise ValueError("Invalid datum [%s]:"
                                      " Argument must be one of (%s)"
                                      % (parms['datum'],
