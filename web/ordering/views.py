@@ -242,9 +242,12 @@ class NewOrder(AbstractView):
 
             for e in errors:
                 for m in e:
+                    m = m.replace("\n", "<br/>")
+                    m = m.replace("\t", "    &#149; " )
+                    m = m.replace(" ", "&nbsp;")
                     error_list.append(m)
 
-            c['errors'] = error_list
+            c['errors'] = sorted(error_list)
             c['user'] = request.user
             c['optionstyle'] = self._get_option_style(request)
 

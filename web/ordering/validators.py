@@ -67,7 +67,12 @@ class SceneListValidator(Validator):
                     valid = self.get_verified_scene_set(scenes)
                                         
                     if len(valid) == 0:
-                        msg = "No scenes found in Landsat inventory"
+                        msg_parts = []
+                        msg_parts.append("The following scenes were not found")
+                        msg_parts.append(" in the Landsat inventory:\n")
+                        for s in scenes:
+                            msg_parts.append("\t%s\n" % s)
+                        msg = ''.join(msg_parts)
                         self.add_error('scenelist', [msg,])
                     else:
                         
@@ -145,11 +150,22 @@ class CentralMeridianValidator(Validator):
     '''Validates the central_meridian parameter'''
 
     def errors(self):
+        
+        msg_parts = []
+        msg_parts.append("Please provide a central meridian value ")
+        msg_parts.append("between -180.0 to 180.0")
+        msg = ''.join(msg_parts)
 
-        if not 'central_meridian' in self.parameters\
-            or not core.is_number(self.parameters['central_meridian']):
-                msg = "Please provide a valid central meridian value"
-                self.add_error('central_meridian', [msg, ])
+        cm = None
+        
+        if 'central_meridian' in self.parameters\
+            and core.is_number(self.parameters['central_meridian']):
+                cm = float(self.parameters['central_meridian'])
+        else:
+             self.add_error('central_meridian', [msg, ])
+             
+        if cm and (cm < -180.0 or cm > 180.0):
+            self.add_error('central_meridian', [msg, ])            
 
         return super(CentralMeridianValidator, self).errors()
 
@@ -157,8 +173,10 @@ class CentralMeridianValidator(Validator):
 class LatitudeTrueScaleValidator(Validator):
     '''Validates the latitude_true_scale parameter'''
     def errors(self):
-        msg = "Please provide a valid Latitude True Scale\
-               value in the ranges of -60.0 to -90.0 or 60.0 to 90.0"
+        msg_parts = []
+        msg_parts.append("Please provide a latitude true scale value ")
+        msg_parts.append("between -60.0 to -90.0 or 60.0 to 90.0")
+        msg = ''.join(msg_parts)
 
         ts = None
 
@@ -169,8 +187,8 @@ class LatitudeTrueScaleValidator(Validator):
             self.add_error('latitude_true_scale', [msg, ])
 
         # make sure ts is either in the range of 60 to 90 or -90 to -60
-        if ts and not \
-            ((ts >= 60.0 and ts <= 90.0) or (ts >= -90.0 and ts <= -60.0)):
+        if ts and  \
+            ((ts < 60.0 and ts > 90.0) or (ts < -90.0 and ts > -60.0)):
             self.add_error('latitude_true_scale', [msg, ])
 
         return super(LatitudeTrueScaleValidator, self).errors()
@@ -180,12 +198,22 @@ class LongitudinalPoleValidator(Validator):
     '''Validates the longitudinal_pole parameter'''
 
     def errors(self):
+        msg_parts = []
+        msg_parts.append("Please provide a longitudinal pole value ")
+        msg_parts.append("between -180.0 to 180.0")
+        msg = ''.join(msg_parts)
+        
+        lp = None
+        
+        if 'longitude_pole' in self.parameters\
+            and core.is_number(self.parameters['longitude_pole']):
+                lp = float(self.parameters['longitude_pole'])
+        else:
+           self.add_error('longitude_pole', [msg, ])
 
-        if not 'longitude_pole' in self.parameters\
-            or not core.is_number(self.parameters['longitude_pole']):
-                msg = "Please provide a valid longitudinal pole value"
-                self.add_error('longitude_pole', [msg, ])
-
+        if lp and (lp > 180.0 or lp < -180.0):
+            self.add_error('longitude_pole', [msg, ])
+            
         return super(LongitudinalPoleValidator, self).errors()
 
 
@@ -193,11 +221,20 @@ class StandardParallel1Validator(Validator):
     '''Validates the std_parallel_1 parameter'''
 
     def errors(self):
-
-        if not 'std_parallel_1' in self.parameters\
-            or not core.is_number(self.parameters['std_parallel_1']):
-                msg = "Please provide a valid 1st standard parallel value"
-                self.add_error('std_parallel_1', [msg, ])
+        msg_parts = []
+        msg_parts.append("Please provide a 1st standard parallel value ")
+        msg_parts.append("between -90.0 to 90.0")
+        msg = ''.join(msg_parts)
+        
+        sp = None
+        if 'std_parallel_1' in self.parameters\
+            and core.is_number(self.parameters['std_parallel_1']):
+                sp = float(self.parameters['std_parallel_1'])
+        else:
+            self.add_error('std_parallel_1', [msg, ])
+            
+        if sp and (sp < -90.0 or sp > 90.0):
+            self.add_error('std_parallel_1', [msg, ])
 
         return super(StandardParallel1Validator, self).errors()
 
@@ -206,11 +243,20 @@ class StandardParallel2Validator(Validator):
     '''Validates the std_parallel_2 parameter'''
 
     def errors(self):
+        msg_parts = []
+        msg_parts.append("Please provide a 2nd standard parallel value ")
+        msg_parts.append("between -90.0 to 90.0")
+        msg = ''.join(msg_parts)
 
-        if not 'std_parallel_2' in self.parameters\
-            or not core.is_number(self.parameters['std_parallel_2']):
-                msg = "Please provide a valid 2nd standard parallel value"
-                self.add_error('std_parallel_1', [msg, ])
+        sp = None
+        if 'std_parallel_2' in self.parameters\
+            and core.is_number(self.parameters['std_parallel_2']):
+                sp = float(self.parameters['std_parallel_2'])
+        else:
+            self.add_error('std_parallel_2', [msg, ])
+            
+        if sp and (sp < -90.0 or sp > 90.0):
+            self.add_error('std_parallel_2', [msg, ])
 
         return super(StandardParallel2Validator, self).errors()
 
@@ -219,11 +265,20 @@ class OriginLatitudeValidator(Validator):
     '''Validates origin_lat'''
 
     def errors(self):
-
-        if not 'origin_lat' in self.parameters\
-            or not core.is_number(self.parameters['origin_lat']):
-                msg = "Please provide a valid latitude of origin value"
-                self.add_error('origin_lat', [msg, ])
+        msg_parts = []
+        msg_parts.append("Please provide a latitude of origin ")
+        msg_parts.append("between -90.0 to 90.0")
+        msg = ''.join(msg_parts)
+        
+        lo = None
+        if 'origin_lat' in self.parameters\
+            and core.is_number(self.parameters['origin_lat']):
+                lo = float(self.parameters['origin_lat'])
+        else:
+            self.add_error('origin_lat', [msg, ])
+            
+        if lo and (lo < -90.0 or lo > 90.0):
+            self.add_error('origin_lat', [msg, ])
 
         return super(OriginLatitudeValidator, self).errors()
 

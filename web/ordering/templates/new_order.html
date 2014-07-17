@@ -31,7 +31,7 @@
 
         div#errorbox{
 	     margin:15px auto;
-	     border:6px solid #CC0000;
+	     border:4px solid #CC0000;
 	     width:750px;
              overflow:hidden;
 	     color:#AA0000;
@@ -102,17 +102,17 @@
 	    display:inline-block;
 	}
         
-        div#order_description_productbox {
-           text-align:center;
-        }
+     div#order_description_productbox {
+         text-align:center;
+     }
         
-        #order_description {
-            width: 625px;
-            height: 100px;
-            margin-top: 10px;
-            margin: 10px auto;
-            align: center;
-        }
+     #order_description {
+         width: 625px;
+         height: 100px;
+         margin-top: 10px;
+         margin: 10px auto;
+         align: center;
+     }
         
         
 	div.inputitem {
@@ -126,10 +126,9 @@
      }
 	
 	div#resize_options, div#reprojection, div#scene_extents {
-	    display:none;
-	    visibility:hidden;
+	    //display:none;
+	    //visibility:hidden;
 	    height:auto;
-	    /*border:1px solid red;*/
 	    margin:10px auto;
 	    padding:10px;
 	    width:85%;
@@ -140,8 +139,8 @@
 	}
 	
 	div#resample_options {
-	    display:none;
-	    visibility:hidden;
+	    //display:none;
+	    //visibility:hidden;
 	    height:auto;
 	    padding-top:20px;
 	    padding-bottom:20px;
@@ -167,7 +166,7 @@
 	}
 	
 	.projection_params_txt {
-	    width:125px;
+	    width:170px;
 	    margin-right:10px;
 	}
 	
@@ -241,7 +240,7 @@
     <div id="errorbox">
     <h3>Errors were found in your request.&nbsp;&nbsp;Please correct them and retry your order.</h3>
     {% for error in errors %}
-    <h4>{{ error }}</h4>
+    <h4>{{ error|safe }}</h4>
     {% endfor %}
     {% endif %}
     {% if errors %}
@@ -251,114 +250,114 @@
     {% cache 60 new_order_html_2 %}
 
      <h4>Add Scenes To Process</h4>
-     <div class='product_box'>
-	    <div class='product_boxheader'>
+     <div class="product_box">
+	    <div class="product_boxheader">
 		Scene List
 	    </div>
-         <div class='product_boxbody'> 
-             <div class='inputitem'>
-             <input type='file' id='scenelist' name='scenelist'>
+         <div class="product_boxbody"> 
+             <div class="inputitem">
+             <input type="file" id="scenelist" name="scenelist">
              </div>
          </div>
      </div>
 		
 	<h4>Select Product Contents</h4>
 	
-	<div class='product_box'>
-	    <div class='product_boxheader'>
+	<div class="product_box">
+	    <div class="product_boxheader">
 		Source Products
 	    </div>
-	    <div class='product_boxbody'>
+	    <div class="product_boxbody">
 		
-		<div class='inputitem'>
-		    <input type='checkbox' name='include_source_data'>
-		    <label class='tooltip' title="Deliver Unmodified Input Products" for="source_products">Original Input Products</label>
+		<div class="inputitem">
+		    <input class="product" type="checkbox" id="include_source_data" name="include_source_data">
+		    <label class="tooltip" title="Deliver Unmodified Input Products" for="source_products">Original Input Products</label>
 		</div>
 		
-		<div class='inputitem'>
-		    <input type='checkbox' name='include_source_metadata'>
-		    <label class='tooltip' title="Deliver Unmodified Input Product Metadata">Original Input Metadata</label>
+		<div class="inputitem">
+		    <input class="product" type="checkbox" id="include_source_metadata" name="include_source_metadata">
+		    <label class="tooltip" title="Deliver Unmodified Input Product Metadata">Original Input Metadata</label>
 		</div>
 
-           <div class='inputitem'>
-		    <input type='checkbox' name='include_customized_source_data'>
-		    <label class='tooltip' title="Apply ESPA Customizations to Input Products">Customized Input Products</label>
+           <div class="inputitem">
+		    <input class="product custom_product" type="checkbox" id="include_customized_source_data" name="include_customized_source_data">
+		    <label class="tooltip" title="Apply ESPA Customizations to Input Products">Customized Input Products</label>
 		</div>
 		
 	    </div>
 	</div>
 	
-	<div class='product_box'>
-	    <div class='product_boxheader'>
+	<div class="product_box">
+	    <div class="product_boxheader">
 		Climate Data Records
 	    </div>
-	    <div class='product_boxbody'>
+	    <div class="product_boxbody">
 		
-		<div class='inputitem'>
-		    <input type='checkbox' name='include_sr_toa'></input>
-		    <label class='tooltip' title="LEDAPS Top of Atmosphere Reflectance " for="toa_reflectance">Top of Atmosphere Reflectance</label>
+		<div class="inputitem">
+		    <input class="product custom_product" type="checkbox" id="include_sr_toa" name="include_sr_toa"></input>
+		    <label class="tooltip" title="LEDAPS Top of Atmosphere Reflectance " for="toa_reflectance">Top of Atmosphere Reflectance</label>
 		</div>
 		
-		<div class='inputitem'>
-		    <input type='checkbox' name='include_sr'></input>
-		    <label class='tooltip' title="LEDAPS Surface Reflectance" for="surface_reflectance">Surface Reflectance</label>
+		<div class="inputitem">
+		    <input class="product custom_product" type="checkbox" id="include_sr" name="include_sr"></input>
+		    <label class="tooltip" title="LEDAPS Surface Reflectance" for="surface_reflectance">Surface Reflectance</label>
 		</div>
 		
-		<div class='inputitem'>
-		    <input type='checkbox' name='include_sr_thermal'></input>
-		    <label class='tooltip' title="Surface Reflectance Brightness Temperature" for="sr_thermal">Brightness Temperature</label>
+		<div class="inputitem">
+		    <input class="product custom_product" type="checkbox" id="include_sr_thermal" name="include_sr_thermal"></input>
+		    <label class="tooltip" title="Surface Reflectance Brightness Temperature" for="sr_thermal">Brightness Temperature</label>
 		</div>
 	    </div>
 	</div>
         
-        <div style='{{ optionstyle }}' class='product_box'>
-	    <div class='product_boxheader'>
+        <div style="{{ optionstyle }}" class="product_box">
+	    <div class="product_boxheader">
 		Essential Climate Variables
 	    </div>
-	    <div class='product_boxbody'>
-		<div class='inputitem'></div>
+	    <div class="product_boxbody">
+		<div class="inputitem"></div>
 	    </div>
 	</div>
 	
-	<div class='product_box'>
-	    <div class='product_boxheader'>
+	<div class="product_box">
+	    <div class="product_boxheader">
 		Spectral Indices
 	    </div>
-	    <div class='product_boxbody'>
+	    <div class="product_boxbody">
 		
-		<div class='inputitem'>
-		    <input type='checkbox' name='include_sr_ndvi'></input>
-		    <label class='tooltip' title='Normalized Difference Vegetation Index' for="include_sr_ndvi">Surface Reflectance NDVI</label>
+		<div class="inputitem">
+		    <input class="product custom_product" type="checkbox" id="include_sr_ndvi" name="include_sr_ndvi"></input>
+		    <label class="tooltip" title="Normalized Difference Vegetation Index" for="include_sr_ndvi">Surface Reflectance NDVI</label>
 		</div>
 		
-		<div class='inputitem'>
-		    <input type='checkbox' name='include_sr_ndmi'></input>
-		    <label class='tooltip' title='Normalized Difference Moisture Index' for="include_sr_ndmi">Surface Reflectance NDMI</label>
+		<div class="inputitem">
+		    <input class="product custom_product" type="checkbox" id="include_sr_ndmi" name="include_sr_ndmi"></input>
+		    <label class="tooltip" title="Normalized Difference Moisture Index" for="include_sr_ndmi">Surface Reflectance NDMI</label>
 		</div>
 		
-		<div class='inputitem'>
-		    <input type='checkbox' name='include_sr_nbr'></input>
-		    <label class='tooltip' title='Normalized Burn Ratio using bands 4 &amp; 7' for="include_sr_nbr">Surface Reflectance NBR</label>
+		<div class="inputitem">
+		    <input class="product custom_product" type="checkbox" id="include_sr_nbr" name="include_sr_nbr"></input>
+		    <label class="tooltip" title="Normalized Burn Ratio using bands 4 &amp; 7" for="include_sr_nbr">Surface Reflectance NBR</label>
 		</div>
 		
-		<div class='inputitem'>
-		    <input type='checkbox' name='include_sr_nbr2'></input>
-		    <label class='tooltip' title='Normalized Burn Ratio using bands 5 &amp; 7' for="include_sr_nbr2">Surface Reflectance NBR2</label>
+		<div class="inputitem">
+		    <input class="product custom_product" type="checkbox" id="include_sr_nbr2" name="include_sr_nbr2"></input>
+		    <label class="tooltip" title="Normalized Burn Ratio using bands 5 &amp; 7" for="include_sr_nbr2">Surface Reflectance NBR2</label>
 		</div>
 		
-		<div class='inputitem'>
-		    <input type='checkbox' name='include_sr_savi'></input>
-		    <label class='tooltip' title='Soil Adjusted Vegetation Index' for="include_sr_savi">Surface Reflectance SAVI</label>
+		<div class="inputitem">
+		    <input class="product custom_product" type="checkbox" id="include_sr_savi" name="include_sr_savi"></input>
+		    <label class="tooltip" title="Soil Adjusted Vegetation Index" for="include_sr_savi">Surface Reflectance SAVI</label>
 		</div>
                 
-                <div class='inputitem'>
-		    <input type='checkbox' name='include_sr_msavi'></input>
-		    <label class='tooltip' title='Modified Soil Adjusted Vegetation Index' for="include_sr_msavi">Surface Reflectance MSAVI</label>
+            <div class="inputitem">
+		    <input class="product custom_product" type="checkbox" id="include_sr_msavi" name="include_sr_msavi"></input>
+		    <label class="tooltip" title="Modified Soil Adjusted Vegetation Index" for="include_sr_msavi">Surface Reflectance MSAVI</label>
 		</div>
 		
-		<div class='inputitem'>
-		    <input type='checkbox' name='include_sr_evi'></input>
-		    <label class='tooltip' title="Enhanced Vegetation Index" for="include_sr_evi">Surface Reflectance EVI</label>
+		<div class="inputitem">
+		    <input class="product custom_product" type="checkbox" id="include_sr_evi" name="include_sr_evi"></input>
+		    <label class="tooltip" title="Enhanced Vegetation Index" for="include_sr_evi">Surface Reflectance EVI</label>
 		</div>
 		
 	    </div>
@@ -366,72 +365,77 @@
 	
 	
      <h4>Customize Outputs</h4>
-	<div class='product_box'>
+	<div class="product_box">
 
-	    <div class='product_boxheader'>
+	    <div class="product_boxheader">
 		Customization Options
 	    </div>
 
-	    <div class='product_boxbody'>
+	    <div class="product_boxbody">
 
-           <div class='inputitem' id='output_formats'>
-               <label class='tooltip' title='Output format for ESPA products'>Output Format</label>
-               <input type='radio' id='output_format' name='output_format' value='gtiff' checked="checked">GeoTiff</input>
-               <input type='radio' id='output_format' name='output_format' value='envi'>ENVI</input>
-               <input type='radio' id='output_format' name='output_format' value='hdf-eos2'>HDF-EOS2</input>   		
+           <div class="inputitem" id="output_formats">
+               <label class="tooltip" title="Output format for ESPA products">Output Format</label>
+               <input type="radio" id="output_format" name="output_format" value="gtiff" checked="checked">GeoTiff</input>
+               <input type="radio" id="output_format" name="output_format" value="envi">ENVI</input>
+               <input type="radio" id="output_format" name="output_format" value="hdf-eos2">HDF-EOS2</input>   		
            </div>
 
 				
-		<div class='inputitem'>
-		    <input type='checkbox' id='reproject' name='reproject' onchange=handle_inputitem_click('reprojection');handle_projection_selection()>
-		    <label class='tooltip' title='Specify custom image projection for output products' for="reproject">Reproject Products</label>
-		    <div id='reprojection'>
-   		        <label for='projection'>Projection:</label>
-                   <input type='hidden' id='target_projection' name='target_projection' />
-			  <select id='select_target_projection' form='request_form' onchange=handle_projection_selection();>
-			      <option value='lonlat'>Geographic</option>
-                       <option value='aea'>Albers Equal Area</option>
-			      <option value='sinu'>Sinusoidal</option>
-			      <option value='utm'>Universal Transverse Mercator</option>
-                       <option value='ps'>Polar Stereographic</option>
+		<div class="inputitem">
+		    <input class="custom_control" type="checkbox" id="reproject" name="reproject" onchange=handle_projection_selection()>
+		    <label class="tooltip" title="Specify custom image projection for output products" for="reproject">Reproject Products</label>
+		    
+               <div class="custom_control_options needs_resample_opts" id="reprojection">
+   		        <label for="projection">Projection:</label>
+
+			  <select id="select_target_projection" form="request_form" onchange=handle_projection_selection();>
+			      <option value="lonlat">Geographic</option>
+                       <option value="aea">Albers Equal Area</option>
+			      <option value="sinu">Sinusoidal</option>
+			      <option value="utm">Universal Transverse Mercator</option>
+                       <option value="ps">Polar Stereographic</option>
 			  </select>
+                  
+                   <input type="hidden" id="target_projection" name="target_projection" />
 			
-                   <div id='projection_parameters'></div>
+                   <div id="projection_parameters"></div>
 		    </div>
 
 		</div><!-- End inputitem -->
 		
-		<div class='inputitem'>
-		    <input type='checkbox' id='image_extents' name='image_extents' onchange=handle_inputitem_click('scene_extents');>
-		    <label class='tooltip' title='Enter user defined extents for output products    (minimum X,Y maximum X,Y in meters or decimal degrees)' for="include_solr_index">Modify Image Extents</label>
+		<div class="inputitem" id="custom_control_div">
+		    <!--<input class="custom_control" type="checkbox" id="image_extents" name="image_extents" onchange=handle_inputitem_click("scene_extents");>-->
+               <input class="custom_control" type="checkbox" id="image_extents" name="image_extents">
+		    <label class="tooltip" title="Enter user defined extents for output products    (minimum X,Y maximum X,Y in meters or decimal degrees)" for="include_solr_index">Modify Image Extents</label>
 		
-		    <div id='scene_extents'>
-		      <div class='inputitem'>
+		    <div class="custom_control_options" id="scene_extents">
+		      <div class="inputitem" id="minx_div">
 			    <input type="text" id="minx" name="minx" />
 			    <label for="minx">Upper left X coordinate</label>
 		      </div>
-			<div class='inputitem'>
+			<div class="inputitem" id="maxy_div">
 			    <input type="text" id="maxy" name="maxy" />
 			    <label for="maxy">Upper left Y coordinate</label>
 		      </div>
-		      <div class='inputitem'>
+		      <div class="inputitem" id="maxx_div">
 			    <input type="text" id="maxx" name="maxx" />
 			    <label for="maxx">Lower right X coordinate</label>
 		      </div>
-			<div class='inputitem'>
+			<div class="inputitem" id="miny_div">
 			    <input type="text" id="miny" name="miny" />
 			    <label for="miny">Lower right Y coordinate</label>
 		      </div>
 		    </div>
 		</div>
 		
-		<div class='inputitem'>
-		    <input type='checkbox' id='resize' name='resize' onclick=handle_inputitem_click('resize_options');display_pixelsize_placeholder()>
-		    <label class='tooltip inline' title='Specify desired pixel size' for="resize">Pixel Resizing</label>
-		    <div id='resize_options'>
+		<div class="inputitem">
+		    <input class="custom_control" type="checkbox" id="resize" name="resize" onclick=display_pixelsize_placeholder()>
+		    <label class="tooltip inline" title="Specify desired pixel size" for="resize">Pixel Resizing</label>
+		    
+                <div class="custom_control_options needs_resample_opts" id="resize_options">
 			 <input placeholder="30 to 1000" type="text" name="pixel_size" id="pixel_size" />
-                 <input type='hidden' id='pixel_size_units' name='pixel_size_units' />
-  		      <select id="select_pixel_size_units" form='request_form' onchange="display_pixelsize_placeholder();">
+                 <input type="hidden" id="pixel_size_units" name="pixel_size_units" />
+  		      <select id="select_pixel_size_units" form="request_form" onchange="display_pixelsize_placeholder();">
                      <option value="meters">Meters</option>
                     <option value="dd">Decimal Degrees</option>
                  </select>			
@@ -439,12 +443,12 @@
 		</div>
 		
 		<div id="resample_options">
-		    <label class='tooltip' title='Select method for resampling' for="resample_method">Resample Method:</label>
+		    <label class="tooltip" title="Select method for resampling" for="resample_method">Resample Method:</label>
 		    <input id="resample_method" name="resample_method" type="hidden" value="near" />
-                    <select id="select_resample_method" form='request_form' onchange="$('#resample_method').val($('#select_resample_method option:selected').val());">
-			<option value='near'>Nearest Neighbor</option>
-			<option value='bilinear'>Bilinear Interpolation</option>
-			<option value='cubic'>Cubic Convolution</option>
+                <select id="select_resample_method" form="request_form" onchange="$('#resample_method').val($('#select_resample_method option:selected').val());">
+			<option value="near">Nearest Neighbor</option>
+			<option value="bilinear">Bilinear Interpolation</option>
+			<option value="cubic">Cubic Convolution</option>
 		    </select>
 		</div>
 
@@ -455,12 +459,12 @@
 
 
       <h4>Add Order Description</h4>
-      <div class='product_box'>
-	     <div class='product_boxheader'>
+      <div class="product_box">
+	     <div class="product_boxheader">
 		    Order Description (optional)
 	     </div>
-	     <div class='product_boxbody' id="order_description_productbox">
-	         <textarea id='order_description' name='order_description'></textarea>
+	     <div class="product_boxbody" id="order_description_productbox">
+	         <textarea id="order_description" name="order_description"></textarea>
            </div>
       </div>
         
@@ -477,58 +481,130 @@
 {% endblock %}
     
 {% block scripts %}
-{% cache 60 new_order_javascripts %}      
-      /*
-        Simple function to show an element
-      */
-      function show_item(element_id) {
-	    var elem = document.getElementById(element_id);
-	
-	    if (elem.nodeName == 'SPAN') {
-	        elem.style.display = 'inline';
-	    }
-	    else {
-		  elem.style.display = 'block';
-	    }
-	    
-	    elem.style.visibility = 'visible';
-	    return elem;
-      }
-      
-      /*
-        Simple function to hide an element
-      */
-      function hide_item(element_id) {
-	    var elem = document.getElementById(element_id);
-	    elem.style.display = 'none';
-	    elem.style.visibility= 'hidden';
-	    return elem;
-      }
-    
-      /*
-        Returns true if an element is visible, false if not
-      */
-      function isVisible(element_id) {
-	    return document.getElementById(element_id).style.visibility == 'visible';
-      }
-      
-      /*
-        Toggles an element between visibile and hidden
-      */
-      
-      function show_hide(element_id) {
-	    var elem = document.getElementById(element_id);    
-	
-	    if (isVisible(element_id)) {
-	        hide_item(element_id);
-	    }
-	    else {
-	        show_item(element_id);
-	    }
-	    return elem;
-      }
-      
-            
+{% cache 1 new_order_javascripts %}
+       
+       /***********************************************************************
+           Define global lookups for the jquery code
+       ***********************************************************************/
+       var submit_button = "#submit"
+       var products = ".product"
+       var checked_products = products + ":checked";
+       var custom_products = ".custom_product";
+       var checked_custom_products = custom_products + ":checked";
+
+       //class for top-level custom controls
+       var custom_controls = ".custom_control";
+       var custom_control_options = ".custom_control_options";
+
+       //these are the controls that need the resample option control 
+       //shown or hidden
+       var needs_resample_opts_classname = "needs_resample_opts";
+       var needs_resample_opts = "." + needs_resample_opts_classname;
+       var needs_resample_opts_visible = needs_resample_opts + ":visible";
+
+       var resample_control = "#resample_options";
+        
+
+       $(document).ready(function(){
+           
+           /******************************************************************* 
+              Initial page load & initialization 
+           *******************************************************************/
+           
+           //disable the custom controls if no custom products are selected
+           $(products).prop("checked", false);
+           $(custom_controls).prop("checked", false);
+           $(custom_controls).prop("disabled", true);
+           $(submit_button).prop("disabled", true);
+           
+ 
+           //hide the custom controls on page load
+           $(custom_control_options).hide();
+
+           //hide resample options on page load
+           $(resample_options).hide();
+                     
+           
+
+           /******************************************************************* 
+               default the output format to gtiff
+           *******************************************************************/
+           $("input:radio[name='output_format']").filter("[value=gtiff]").click();
+       
+           
+           $("#select_resample_method").change(function() {
+               alert("Resample method clicked");
+           });
+           
+           
+           /*******************************************************************
+               Event handler to enable & disable the submit button.
+               Only enabled if there are products selected.
+           *******************************************************************/
+           $(products).click(function(item) {
+               if ($(checked_products).length > 0) {
+                   $(submit_button).prop("disabled", false);
+               }
+               else {
+                   $(submit_button).prop("disabled", true);
+               }
+           });
+
+
+           /*******************************************************************
+               Event handler to disable & enable the custom controls.
+               Depends on whether there are any customizable products 
+               selected.
+           *******************************************************************/           
+           $(custom_products).click(function(item) {
+          
+               if ($(checked_custom_products).length > 0) {
+                   $(custom_controls).prop("disabled", false);
+               }
+               else {
+                  $(custom_controls).prop("disabled", true);
+                  $(custom_controls).prop("checked", false);
+                  $(custom_control_options).hide()
+               }
+           });
+
+           
+           /*******************************************************************
+               Event handler to show & hide the custom controls
+           *******************************************************************/
+           $(custom_controls).click(function(item) {
+               //built the lookup value for jquery
+               //this will be the id of the element that was clicked
+               //plus the jquery selector '~' and the class for
+               //the custom control for that element.
+               
+               var lookup = "#" + item.target.id;
+               lookup = lookup + " ~ " + custom_control_options;
+
+               //if hidden show it & vice versa
+               if ( $(lookup).is(":hidden") ) {
+                   $(lookup).show();
+                   
+                   //show the resample options if necessary
+                   if ($(lookup).hasClass(needs_resample_opts_classname)) {
+                       $(resample_options).show();
+                   }
+               } 
+               else {
+                   $(lookup).hide();
+                   if ( $(lookup).hasClass(needs_resample_opts_classname) ) {
+                      
+                      if ($(needs_resample_opts_visible).length == 0) {
+                          $(resample_options).hide();
+                      }
+                   }
+               } 
+           });
+
+       });
+
+
+  
       /*
         Top level input item click handler.  Handles hiding/displaying an item
         and also ensures the 'resample' option is selected if the user
@@ -539,10 +615,10 @@
 	    show_hide(element_id);
 	
 	    //see if we need to select the resample options
-	    if (isVisible(element_id) && (element_id == 'resize_options' || element_id == 'reprojection')) {
+	    if (isVisible(element_id) && (element_id == "resize_options" || element_id == "reprojection")) {
 	        //look to see if 'resample' is already selected.  If not, display it
-	        if (! isVisible('resample_options')) {
-	            show_item('resample_options');	
+	        if (! isVisible("resample_options")) {
+	            show_item("resample_options");	
 	        }
 	   
 	    }
@@ -550,13 +626,13 @@
 	    //since this item was deselected, check to see if there is anything
 	    //else that needs the 'resample_options' displayed.  If not, hide it.
 	    if (! isVisible(element_id)
-	        && (element_id == 'resize_options' || element_id == 'reprojection')
-	        && ((! isVisible('resize_options') && (! isVisible('reprojection'))))) {
+	        && (element_id == "resize_options" || element_id == "reprojection")
+	        && ((! isVisible("resize_options") && (! isVisible("reprojection"))))) {
 	    
-	        hide_item('resample_options');
+	        hide_item("resample_options");
 	    }
 	
-	    if (element_id == 'reprojection' && isVisible('reprojection')) {
+	    if (element_id == "reprojection" && isVisible("reprojection")) {
 	        handle_projection_selection();
 	    }
       }
@@ -565,40 +641,40 @@
       function build_albers_options() {
 	  var html = "";
 	  html += "<div class='inputitem'>";
-	  html += "<input placeholder='40.0' class='projection_params_txt' type='text' id='origin_lat' name='origin_lat'>";
+	  html += "<input placeholder='-90.0 to 90.0' class='projection_params_txt' type='text' id='origin_lat' name='origin_lat'>";
 	  html += "<label for='origin_lat'>Latitude of Origin</label>";
 	  html += "</div>";
 	 
 	  html += "<div class='inputitem'>";
-	  html += "<input placeholder='-96.0' class='projection_params_txt' type='text' id='central_meridian' name='central_meridian'>";
+	  html += "<input placeholder='-180.0 to 180.0' class='projection_params_txt' type='text' id='central_meridian' name='central_meridian'>";
 	  html += "<label for='central_meridian'>Central Meridian</label>";
 	  html += "</div>";
 	  
 	  html += "<div class='inputitem'>";
-	  html += "<input class='projection_params_txt' type='text' id='std_parallel_1' name='std_parallel_1' placeholder='20.0'>";
+	  html += "<input class='projection_params_txt' type='text' id='std_parallel_1' name='std_parallel_1' placeholder='-90.0 to 90.0'>";
 	  html += "<label for='std_parallel_1'>1st Standard Parallel</label>";
 	  html += "</div>";
 	  
 	  html += "<div class='inputitem'>";
-	  html += "<input class='projection_params_txt' type='text' id='std_parallel_2' name='std_parallel_2' placeholder='60.0'>";
+	  html += "<input class='projection_params_txt' type='text' id='std_parallel_2' name='std_parallel_2' placeholder='-90.0 to 90.0'>";
 	  html += "<label for='std_parallel_2'>2nd Standard Parallel</label>";
 	  html += "</div>";
 	  
 	  html += "<div class='inputitem'>";
-	  html += "<input class='projection_params_txt' type='text' id='false_easting' name='false_easting' placeholder='0.0'>";
+	  html += "<input class='projection_params_txt' type='text' id='false_easting' name='false_easting' placeholder='any float (e.g. 0.0)'>";
 	  html += "<label for='false_easting'>False Easting</label>";
 	  html += "</div>";
 	  	  
 	  html += "<div class='inputitem'>";
-	  html += "<input class='projection_params_txt' type='text' id='false_northing' name='false_northing' placeholder='0.0'>";
+	  html += "<input class='projection_params_txt' type='text' id='false_northing' name='false_northing' placeholder='any float (e.g. 0.0)'>";
 	  html += "<label for='false_northing'>False Northing</label>";
 	  html += "</div>";
 	  
 	  html += "<div class='inputitem'>";
-          html += "<input type='hidden' id='datum' name='datum' />";
+       html += "<input type='hidden' id='datum' name='datum' />";
 	  html += "<select class='projection_params_select' form='request_form' id='select_datum' onchange=update_datum();>";
 	  html += "<option value='wgs84'>WGS 84</option>";
-          html += "<option value='nad27'>NAD 27</option>";
+       html += "<option value='nad27'>NAD 27</option>";
 	  html += "<option value='nad83'>NAD 83</option>";
 	  html += "</select>";
 	  
@@ -612,17 +688,17 @@
       function build_sinusoidal_options() {
           var html = "";
 	  html += "<div class='inputitem'>";
-	  html += "<input class='projection_params_txt' type='text' id='central_meridian' name='central_meridian' placeholder='0.0'>";
+	  html += "<input class='projection_params_txt' type='text' id='central_meridian' name='central_meridian' placeholder='-180.0 to 180.0'>";
 	  html += "<label for='central_meridian'>Central Meridian</label>";
 	  html += "</div>";
 	  
 	  html += "<div class='inputitem'>";
-	  html += "<input class='projection_params_txt' type='text' id='false_easting' name='false_easting' placeholder='0.0'>";
+	  html += "<input class='projection_params_txt' type='text' id='false_easting' name='false_easting' placeholder='any float (e.g. 0.0)'>";
 	  html += "<label for='false_easting'>False Easting</label>";
 	  html += "</div>";
 	  	  
 	  html += "<div class='inputitem'>";
-	  html += "<input class='projection_params_txt' type='text' id='false_northing' name='false_northing' placeholder='0.0'>";
+	  html += "<input class='projection_params_txt' type='text' id='false_northing' name='false_northing' placeholder='any float (e.g. 0.0)'>";
 	  html += "<label for='false_northing'>False Northing</label>";
 	  html += "</div>";
 	  
@@ -649,23 +725,23 @@
       function build_ps_options() {
           var html = "";
 	  html += "<div class='inputitem'>";
-	  html += "<input class='projection_params_txt' type='text' id='longitude_pole' name='longitude_pole' placeholder='0.0'>";
+	  html += "<input class='projection_params_txt' type='text' id='longitude_pole' name='longitude_pole' placeholder='-180.0 to 180.0'>";
 	  html += "<label for='longitude_pole'>Longitudinal Pole</label>";
 	  html += "</div>";
 
        html += "<div class='inputitem'>";
-	  html += "<input class='projection_params_txt' type='text' id='latitude_true_scale' name='latitude_true_scale' placeholder='0.0'>";
+	  html += "<input class='projection_params_txt' type='text' id='latitude_true_scale' name='latitude_true_scale' placeholder='-90.0 to -60.0 or 60.0 to 90.0'>";
 	  html += "<label for='latitude_true_scale'>Latitude True Scale</label>";
 	  html += "</div>";
 
       	  
 	  html += "<div class='inputitem'>";
-	  html += "<input class='projection_params_txt' type='text' id='false_easting' name='false_easting' placeholder='0.0'>";
+	  html += "<input class='projection_params_txt' type='text' id='false_easting' name='false_easting' placeholder='any float (e.g. 0.0)'>";
 	  html += "<label for='false_easting'>False Easting</label>";
 	  html += "</div>";
 	  	  
 	  html += "<div class='inputitem'>";
-	  html += "<input class='projection_params_txt' type='text' id='false_northing' name='false_northing' placeholder='0.0'>";
+	  html += "<input class='projection_params_txt' type='text' id='false_northing' name='false_northing' placeholder='any float (e.g. 0.0)'>";
 	  html += "<label for='false_northing'>False Northing</label>";
 	  html += "</div>";
 	  
@@ -685,39 +761,39 @@
 	    switch( $('#select_target_projection').val() ) {
 
             case "aea":
-               $('#projection_parameters').html(build_albers_options());
-		    $('#projection_parameters').css("display", "block");
-	          $('#projection_parameters').css("visibility", "visible");
-               $('#target_projection').val("aea");
-               $('#select_pixel_size_units').val('meters');                  //force pixel size units to meters
+               $("#projection_parameters").html(build_albers_options());
+		    $("#projection_parameters").css("display", "block");
+	          $("#projection_parameters").css("visibility", "visible");
+               $("#target_projection").val("aea");
+               $("#select_pixel_size_units").val("meters");                  //force pixel size units to meters
                display_pixelsize_placeholder();
                update_datum();                                               //set hidden input field for initial value
 		    break;
 
             case "sinu":
-                 $('#projection_parameters').html(build_sinusoidal_options());
-		      $('#projection_parameters').css("display", "block");
-	           $('#projection_parameters').css("visibility", "visible");
-                 $('#select_pixel_size_units').val('meters');                  //force pixel size units to meters
+                 $("#projection_parameters").html(build_sinusoidal_options());
+		      $("#projection_parameters").css("display", "block");
+	           $("#projection_parameters").css("visibility", "visible");
+                 $("#select_pixel_size_units").val("meters");                  //force pixel size units to meters
                  display_pixelsize_placeholder();
-                 $('#target_projection').val("sinu");
+                 $("#target_projection").val("sinu");
 		      break;
 
             case "ps":
-                  $('#projection_parameters').html(build_ps_options());
-		       $('#projection_parameters').css("display", "block");
-	             $('#projection_parameters').css("visibility", "visible");
-                  $('#select_pixel_size_units').val('meters');                  //force pixel size units to meters
+                  $("#projection_parameters").html(build_ps_options());
+		       $("#projection_parameters").css("display", "block");
+	             $("#projection_parameters").css("visibility", "visible");
+                  $("#select_pixel_size_units").val("meters");                  //force pixel size units to meters
                   display_pixelsize_placeholder();
-                  $('#target_projection').val("ps");
+                  $("#target_projection").val("ps");
 		       break;
 
             case "utm":
-                $('#projection_parameters').html(build_utm_options());
-		     $('#projection_parameters').css("display", "block");
-	           $('#projection_parameters').css("visibility", "visible");
-                $('#target_projection').val("utm");
-                $('#select_pixel_size_units').val('meters');                  //force pixel size units to meters
+                $("#projection_parameters").html(build_utm_options());
+		     $("#projection_parameters").css("display", "block");
+	           $("#projection_parameters").css("visibility", "visible");
+                $("#target_projection").val("utm");
+                $("#select_pixel_size_units").val("meters");                  //force pixel size units to meters
                 display_pixelsize_placeholder();
                 update_utm_params();                                          //update hidden input field
                 
@@ -725,11 +801,11 @@
 	    
             case "lonlat":
 		     html = "";
-                $('#projection_parameters').html(html);
-		     $('#projection_parameters').css("display", "none");
-	           $('#projection_parameters').css("visibility", "hidden");
-                $('#target_projection').val("lonlat");
-                $('#select_pixel_size_units').val('dd');                      //force pixel size units to dd
+                $("#projection_parameters").html(html);
+		     $("#projection_parameters").css("display", "none");
+	           $("#projection_parameters").css("visibility", "hidden");
+                $("#target_projection").val("lonlat");
+                $("#select_pixel_size_units").val("dd");                      //force pixel size units to dd
                 display_pixelsize_placeholder();
 		     break;
 	}
@@ -743,29 +819,29 @@
        
        function display_pixelsize_placeholder() {
 	var psval = "";
-	if ($('#select_pixel_size_units option:selected').val() == 'dd') {
-          psval = ".0002695 to .0089831";
+	if ($("#select_pixel_size_units option:selected").val() == "dd") {
+          psval = "0.0002695 to 0.0089831";
 	}
 	else {
-	  psval = "30 to 1000";
+	  psval = "30.0 to 1000.0";
 	}
         
         /*
         Populate the hidden input field
         */
         
-        $('#pixel_size_units').val($('#select_pixel_size_units option:selected').val())
+        $("#pixel_size_units").val($("#select_pixel_size_units option:selected").val())
 	
-	  $('#pixel_size').attr('placeholder', psval);
+	  $("#pixel_size").attr("placeholder", psval);
        }
        
        
        function update_utm_params() {
-           $('#utm_north_south').val($('#select_utm_north_south option:selected').val());
+           $("#utm_north_south").val($("#select_utm_north_south option:selected").val());
        }
        
        function update_datum() {
-           $('#datum').val($('#select_datum option:selected').val());
+           $("#datum").val($("#select_datum option:selected").val());
        }
     
     {% endcache %}
