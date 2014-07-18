@@ -23,6 +23,10 @@ valid_modis_sensors = ['terra', 'aqua']
 valid_sensors = valid_landsat_sensors + valid_modis_sensors
 valid_output_formats = ['envi', 'gtiff', 'hdf-eos2']
 
+# Some defines for common pixels sizes in decimal degrees
+DEG_FOR_30_METERS = 0.0002695
+DEG_FOR_15_METERS = DEG_FOR_30_METERS / 2.0
+
 
 # ============================================================================
 def add_orderid_parameter(parser):
@@ -633,13 +637,13 @@ def validate_reprojection_parameters(parms, projections, ns_values,
     if parms['reproject'] or parms['image_extents'] and not parms['resize']:
         # Sombody asked for reproject or extents, but didn't specify a pixel
         # size
-        # Default to 30 meters of dd equivalent
+        # Default to 30 meters or dd equivalent
         # Everything will default to 30 meters except if they chose geographic
         # projection, which will default to dd equivalent
         parms['pixel_size'] = 30.0
         parms['pixel_size_units'] = 'meters'
         if test_for_parameter(parms, 'target_projection'):
             if str(parms['target_projection']).lower() == 'lonlat':
-                parms['pixel_size'] = 0.0002695
+                parms['pixel_size'] = DEG_FOR_30_METERS
                 parms['pixel_size_units'] = 'dd'
 # END - validate_reprojection_parameters

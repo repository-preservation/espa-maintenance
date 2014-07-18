@@ -41,7 +41,7 @@ if __name__ == '__main__':
       After validation the generation of cdr_ecv products is performed.
     '''
 
-    # Grab our only command lin parameter
+    # Grab our only command line parameter
     parser = ArgumentParser(
         description="Processes a list of scenes from stdin")
     parser.add_argument('--keep-log', action='store_true', dest='keep_log',
