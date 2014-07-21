@@ -108,22 +108,21 @@ def send_completion_email(email, ordernum, readyscenes=[]):
     config = None
 
     status_url = ('%s/%s') % (status_base_url, email)
-
-    msg = ("""Your order is now complete and can be downloaded from %s
-
-    This order will remain available for 14 days.  \
-
-    Any data not downloaded will need to be reordered after this time.
-
-    Please contact Customer Services at 1-800-252-4547 or \
-    email custserv@usgs.gov with any questions.
-
-    Your scenes
-    -------------------------------------------
-    """) % (status_url)
-
+    m = list()
+    m.append("Your order is now complete and can be downloaded ")
+    m.append("from %s.\n" % status_url)
+    m.append("This order will remain available for 14 days.  ")
+    m.append("Any data not downloaded will need to be reordered ")
+    m.append("after this time.\n")
+    m.append("Please contact Customer Services at 1-800-252-4547 or ")
+    m.append("email custserv@usgs.gov with any questions.\n")
+    m.append("Your scenes\n")
+    m.append("-------------------------------------------\n")
+    for r in readyscenes:
+        m.append("%s\n" % r)
+        
     #build the email message with the scenelist tacked onto it
-    email_msg = "%s%s" % (msg, ''.join(["%s\n" % r for r in readyscenes]))
+    email_msg = ''.join(m)
 
     #for r in readyscenes:
         #msg = msg.join([r, '\n'])
@@ -253,6 +252,7 @@ def get_scenes_to_process():
         if len(nlaps_scenes) > 0:
             Scene.objects.filter(status='submitted', name__in=nlaps_scenes)\
                 .update(status='unavailable',
+                        completion_date = datetime.datetime.now(),
                         note='TMA data cannot be processed')
 
         # find all the submitted scenes that are available in the tm/etm

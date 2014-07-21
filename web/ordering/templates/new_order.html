@@ -213,6 +213,10 @@
         margin-left:15px;
     }
 
+    input.bounding_box_params {
+        width:174px;
+    }
+
    
     {% endblock %}
 
@@ -249,7 +253,7 @@
     
     {% cache 60 new_order_html_2 %}
 
-     <h4>Add Scenes To Process</h4>
+     <h4>Add Scenes To Process (TM/ETM+)</h4>
      <div class="product_box">
 	    <div class="product_boxheader">
 		Scene List
@@ -379,20 +383,20 @@
                <input type="radio" id="output_format" name="output_format" value="envi">ENVI</input>
                <input type="radio" id="output_format" name="output_format" value="hdf-eos2">HDF-EOS2</input>   		
            </div>
-
 				
 		<div class="inputitem">
-		    <input class="custom_control" type="checkbox" id="reproject" name="reproject" onchange=handle_projection_selection()>
+		    
+               <input class="custom_control needs_resample_opts" type="checkbox" id="reproject" name="reproject">
 		    <label class="tooltip" title="Specify custom image projection for output products" for="reproject">Reproject Products</label>
 		    
-               <div class="custom_control_options needs_resample_opts" id="reprojection">
+               <div class="custom_control_options" id="reprojection">
    		        <label for="projection">Projection:</label>
 
-			  <select id="select_target_projection" form="request_form" onchange=handle_projection_selection();>
-			      <option value="lonlat">Geographic</option>
+                   <select id="select_target_projection" form="request_form">
                        <option value="aea">Albers Equal Area</option>
+                       <option value="utm">Universal Transverse Mercator</option>
+			      <option value="lonlat">Geographic</option>
 			      <option value="sinu">Sinusoidal</option>
-			      <option value="utm">Universal Transverse Mercator</option>
                        <option value="ps">Polar Stereographic</option>
 			  </select>
                   
@@ -404,48 +408,48 @@
 		</div><!-- End inputitem -->
 		
 		<div class="inputitem" id="custom_control_div">
-		    <!--<input class="custom_control" type="checkbox" id="image_extents" name="image_extents" onchange=handle_inputitem_click("scene_extents");>-->
                <input class="custom_control" type="checkbox" id="image_extents" name="image_extents">
 		    <label class="tooltip" title="Enter user defined extents for output products    (minimum X,Y maximum X,Y in meters or decimal degrees)" for="include_solr_index">Modify Image Extents</label>
 		
 		    <div class="custom_control_options" id="scene_extents">
 		      <div class="inputitem" id="minx_div">
-			    <input type="text" id="minx" name="minx" />
+			    <input class="bounding_box_params" type="text" id="minx" name="minx" />
 			    <label for="minx">Upper left X coordinate</label>
 		      </div>
 			<div class="inputitem" id="maxy_div">
-			    <input type="text" id="maxy" name="maxy" />
+			    <input class="bounding_box_params" type="text" id="maxy" name="maxy" />
 			    <label for="maxy">Upper left Y coordinate</label>
 		      </div>
 		      <div class="inputitem" id="maxx_div">
-			    <input type="text" id="maxx" name="maxx" />
+			    <input class="bounding_box_params" type="text" id="maxx" name="maxx" />
 			    <label for="maxx">Lower right X coordinate</label>
 		      </div>
 			<div class="inputitem" id="miny_div">
-			    <input type="text" id="miny" name="miny" />
+			    <input class="bounding_box_params" type="text" id="miny" name="miny" />
 			    <label for="miny">Lower right Y coordinate</label>
 		      </div>
 		    </div>
 		</div>
 		
 		<div class="inputitem">
-		    <input class="custom_control" type="checkbox" id="resize" name="resize" onclick=display_pixelsize_placeholder()>
+		    
+               <input class="custom_control needs_resample_opts" type="checkbox" id="resize" name="resize">
 		    <label class="tooltip inline" title="Specify desired pixel size" for="resize">Pixel Resizing</label>
 		    
-                <div class="custom_control_options needs_resample_opts" id="resize_options">
+                <div class="custom_control_options" id="resize_options">
 			 <input placeholder="30 to 1000" type="text" name="pixel_size" id="pixel_size" />
                  <input type="hidden" id="pixel_size_units" name="pixel_size_units" />
-  		      <select id="select_pixel_size_units" form="request_form" onchange="display_pixelsize_placeholder();">
-                     <option value="meters">Meters</option>
-                    <option value="dd">Decimal Degrees</option>
-                 </select>			
+  		    
+                 <label id="pixel_size_unit_label" form="request_form"></label>
+                                     
   		    </div>
 		</div>
 		
 		<div id="resample_options">
 		    <label class="tooltip" title="Select method for resampling" for="resample_method">Resample Method:</label>
 		    <input id="resample_method" name="resample_method" type="hidden" value="near" />
-                <select id="select_resample_method" form="request_form" onchange="$('#resample_method').val($('#select_resample_method option:selected').val());">
+                
+               <select id="select_resample_method" form="request_form">                
 			<option value="near">Nearest Neighbor</option>
 			<option value="bilinear">Bilinear Interpolation</option>
 			<option value="cubic">Cubic Convolution</option>
@@ -500,9 +504,35 @@
        //shown or hidden
        var needs_resample_opts_classname = "needs_resample_opts";
        var needs_resample_opts = "." + needs_resample_opts_classname;
-       var needs_resample_opts_visible = needs_resample_opts + ":visible";
+       var needs_resample_opts_checked = needs_resample_opts + ":checked";
 
        var resample_control = "#resample_options";
+       var resample_method = "#resample_method";
+       var selected_resample_option = "#select_resample_method option:selected";
+       
+       var reproject = "#reproject";
+       var reproject_div = "#reprojection";
+
+       var resize = "#resize";
+       var resize_option_div = "#resize_options";
+
+       var select_target_projection = "#select_target_projection";
+       var selected_target_projection = select_target_projection + ":selected";
+
+       var scenelist = "#scenelist";
+
+       var image_extents = $("#image_extents");
+       var minx = $("#minx");
+       var miny = $("#miny");
+       var maxx = $("#maxx");
+       var maxy = $("#maxy");
+
+
+       var decimal_degrees = "dd";
+       var meters = "meters";
+
+       //this is in milliseconds
+       var show_hide_delay = 200;
         
 
        $(document).ready(function(){
@@ -516,34 +546,49 @@
            $(custom_controls).prop("checked", false);
            $(custom_controls).prop("disabled", true);
            $(submit_button).prop("disabled", true);
-           
- 
+            
            //hide the custom controls on page load
-           $(custom_control_options).hide();
+           $(custom_control_options).hide(0);
 
            //hide resample options on page load
-           $(resample_options).hide();
-                     
-           
+           $(resample_options).hide(0);                   
+          
 
            /******************************************************************* 
                default the output format to gtiff
            *******************************************************************/
+
            $("input:radio[name='output_format']").filter("[value=gtiff]").click();
-       
-           
-           $("#select_resample_method").change(function() {
-               alert("Resample method clicked");
-           });
-           
-           
+                
+                
            /*******************************************************************
                Event handler to enable & disable the submit button.
-               Only enabled if there are products selected.
+               Only enabled if there are products and scenes selected.
            *******************************************************************/
+
            $(products).click(function(item) {
+
                if ($(checked_products).length > 0) {
-                   $(submit_button).prop("disabled", false);
+                   if ($(scenelist).val().length > 0) {
+                       $(submit_button).prop("disabled", false);
+                   }
+               }
+               else {
+                   $(submit_button).prop("disabled", true);
+               }
+           });
+
+
+           /*******************************************************************
+               Event handler to enable & disable the submit button.
+               Only enabled if there are products and scenesselected.
+           *******************************************************************/
+          $(scenelist).change(function(item) {
+              
+              if ( $(scenelist).val().length > 0 ) {
+                   if ( $(checked_products).length > 0 ) {     
+                       $(submit_button).prop("disabled", false);
+                   }
                }
                else {
                    $(submit_button).prop("disabled", true);
@@ -556,6 +601,7 @@
                Depends on whether there are any customizable products 
                selected.
            *******************************************************************/           
+
            $(custom_products).click(function(item) {
           
                if ($(checked_custom_products).length > 0) {
@@ -564,7 +610,9 @@
                else {
                   $(custom_controls).prop("disabled", true);
                   $(custom_controls).prop("checked", false);
-                  $(custom_control_options).hide()
+                  $(custom_control_options).hide(show_hide_delay);
+                  $(resample_options).hide(show_hide_delay);
+                  $("#target_projection").val(undefined);
                }
            });
 
@@ -572,6 +620,7 @@
            /*******************************************************************
                Event handler to show & hide the custom controls
            *******************************************************************/
+
            $(custom_controls).click(function(item) {
                //built the lookup value for jquery
                //this will be the id of the element that was clicked
@@ -583,60 +632,92 @@
 
                //if hidden show it & vice versa
                if ( $(lookup).is(":hidden") ) {
-                   $(lookup).show();
-                   
-                   //show the resample options if necessary
-                   if ($(lookup).hasClass(needs_resample_opts_classname)) {
-                       $(resample_options).show();
-                   }
+                   $(lookup).show(show_hide_delay);
                } 
                else {
-                   $(lookup).hide();
-                   if ( $(lookup).hasClass(needs_resample_opts_classname) ) {
-                      
-                      if ($(needs_resample_opts_visible).length == 0) {
-                          $(resample_options).hide();
-                      }
-                   }
+                   $(lookup).hide(show_hide_delay);
                } 
            });
 
-       });
+           /*******************************************************************
+               Event handler to initially populate the default projection
+           *******************************************************************/
+           $(reproject).change(function(item) {
+                if ( $(this).is(":checked") ) {
+                    handle_projection_selection();
+                }
+                else {
+                    $("#reproject_div").hide();
+                    $("#target_projection").val(undefined);
+                    update_pixelsize_units(meters);
+                    update_bounding_box_placeholders(meters);                             
+                }
+           });
+
+           /*******************************************************************
+              Initial value population for pixelsize units (meters or dd)
+           *******************************************************************/
+           $(resize).click(function(item) {
+               if ( $("#target_projection").val().length == 0 ) {
+                   update_pixelsize_units(meters);
+               }
+           });
+
+           /*******************************************************************
+              Initialize the bounding box placeholders
+           *******************************************************************/
+           $(image_extents).click(function(item) {
+               if ( $("#target_projection").val().length == 0 ) {
+                   update_bounding_box_placeholders(meters);
+               }
+           });
 
 
-  
-      /*
-        Top level input item click handler.  Handles hiding/displaying an item
-        and also ensures the 'resample' option is selected if the user
-        chooses an option that needs resampling.
-      */
-      
-      function handle_inputitem_click(element_id) {
-	    show_hide(element_id);
-	
-	    //see if we need to select the resample options
-	    if (isVisible(element_id) && (element_id == "resize_options" || element_id == "reprojection")) {
-	        //look to see if 'resample' is already selected.  If not, display it
-	        if (! isVisible("resample_options")) {
-	            show_item("resample_options");	
-	        }
-	   
-	    }
-	
-	    //since this item was deselected, check to see if there is anything
-	    //else that needs the 'resample_options' displayed.  If not, hide it.
-	    if (! isVisible(element_id)
-	        && (element_id == "resize_options" || element_id == "reprojection")
-	        && ((! isVisible("resize_options") && (! isVisible("reprojection"))))) {
-	    
-	        hide_item("resample_options");
-	    }
-	
-	    if (element_id == "reprojection" && isVisible("reprojection")) {
-	        handle_projection_selection();
-	    }
-      }
-      
+           /*******************************************************************
+              Show/hide the resample options
+           *******************************************************************/
+           $(needs_resample_opts).change(function(item) {
+               if ( $(needs_resample_opts_checked).length == 0) {
+                   $(resample_options).hide(show_hide_delay);
+               }
+               else {
+                   $(resample_options).show(show_hide_delay);
+               }
+           });
+
+    });
+ 
+    
+    /**************************************************************************
+       Event handler for projection changes.
+     
+      Since the select box is not created during document load, we have 
+      to use event delegation here to attach events to it.
+      once its parent is loaded and ready (reproject_div) then attach the 
+      listener
+
+    **************************************************************************/
+     
+      $(reproject_div).on('change', select_target_projection, function() {
+              handle_projection_selection();
+      });
+
+
+     /**************************************************************************
+       Event handler for resample method changes.
+     
+      Since the select box is not created during document load, we have 
+      to use event delegation here to attach events to it.
+      once its parent is loaded and ready (resample_control) then attach the 
+      listener
+
+    **************************************************************************/
+      $(resample_control).on('change', select_resample_method, function() {
+          $(resample_method).val($(selected_resample_option).val());
+      });
+
+       
+
       /* Constructs html to be displayed when albers is selected as a projection */
       function build_albers_options() {
 	  var html = "";
@@ -749,24 +830,33 @@
       }
 
        
-      
-            
       /*
       Event listener for the projection selection box
       */
       
-     function handle_projection_selection() {
+     function handle_projection_selection(projection) {
 	    var html = "";
 
-	    switch( $('#select_target_projection').val() ) {
+         
+         //allow the caller to override the value we go looking for.
+         switchval = "";
+         if (typeof projection != 'undefined') {
+             switchval = projection;
+         }
+         else {
+             switchval = $("#select_target_projection").val();
+         }
 
+	    switch( $('#select_target_projection').val() ) {
+           
             case "aea":
                $("#projection_parameters").html(build_albers_options());
 		    $("#projection_parameters").css("display", "block");
 	          $("#projection_parameters").css("visibility", "visible");
                $("#target_projection").val("aea");
                $("#select_pixel_size_units").val("meters");                  //force pixel size units to meters
-               display_pixelsize_placeholder();
+               update_pixelsize_units(meters);
+               update_bounding_box_placeholders(meters);
                update_datum();                                               //set hidden input field for initial value
 		    break;
 
@@ -775,7 +865,8 @@
 		      $("#projection_parameters").css("display", "block");
 	           $("#projection_parameters").css("visibility", "visible");
                  $("#select_pixel_size_units").val("meters");                  //force pixel size units to meters
-                 display_pixelsize_placeholder();
+                 update_pixelsize_units(meters);
+                 update_bounding_box_placeholders(meters);
                  $("#target_projection").val("sinu");
 		      break;
 
@@ -784,7 +875,8 @@
 		       $("#projection_parameters").css("display", "block");
 	             $("#projection_parameters").css("visibility", "visible");
                   $("#select_pixel_size_units").val("meters");                  //force pixel size units to meters
-                  display_pixelsize_placeholder();
+                  update_pixelsize_units(meters);
+                  update_bounding_box_placeholders(meters);
                   $("#target_projection").val("ps");
 		       break;
 
@@ -794,9 +886,9 @@
 	           $("#projection_parameters").css("visibility", "visible");
                 $("#target_projection").val("utm");
                 $("#select_pixel_size_units").val("meters");                  //force pixel size units to meters
-                display_pixelsize_placeholder();
+                update_pixelsize_units(meters);
+                update_bounding_box_placeholders(meters);
                 update_utm_params();                                          //update hidden input field
-                
                 break;
 	    
             case "lonlat":
@@ -806,44 +898,73 @@
 	           $("#projection_parameters").css("visibility", "hidden");
                 $("#target_projection").val("lonlat");
                 $("#select_pixel_size_units").val("dd");                      //force pixel size units to dd
-                display_pixelsize_placeholder();
+                update_pixelsize_units(decimal_degrees);
+                update_bounding_box_placeholders(decimal_degrees);
 		     break;
-	}
+	       
+           default:
+               $("#projection_parameters").html(build_albers_options());
+		    $("#projection_parameters").css("display", "block");
+	          $("#projection_parameters").css("visibility", "visible");
+               $("#target_projection").val("aea");
+               $("#select_pixel_size_units").val("meters");                  //force pixel size units to meters
+               update_pixelsize_units(meters);
+               update_bounding_box_placeholders(meters);
+               update_datum();                                               //set hidden input field for initial value
+		    break;
+           }
 	
-       }
+           }
        
-       /*
-        Simply changes the placeholder value in the pixel size input field
-        depending on what is selected
-        */
+
+           function update_bounding_box_placeholders(projection_units) {
+               if (projection_units == decimal_degrees) {
+                   minx.attr("placeholder", "-180.0 to 180.0");
+                   maxx.attr("placeholder", "-180.0 to 180.0");
+                   miny.attr("placeholder", "-90.0 to 90.0");
+                   maxy.attr("placeholder", "-90.0 to 90.0");
+               }
+               else {
+                   minx.attr("placeholder", "any float in projection space");
+                   maxx.attr("placeholder", "any float in projection space");
+                   miny.attr("placeholder", "any float in projection space");
+                   maxy.attr("placeholder", "any float in projection space");
+               }
+
+           }
+
+           /*******************************************************************
+           Change the pixel_size_unit label, hidden pixel_size_unit label
+           to the correct values.
+           *******************************************************************/
        
-       function display_pixelsize_placeholder() {
-	var psval = "";
-	if ($("#select_pixel_size_units option:selected").val() == "dd") {
-          psval = "0.0002695 to 0.0089831";
-	}
-	else {
-	  psval = "30.0 to 1000.0";
-	}
-        
-        /*
-        Populate the hidden input field
-        */
-        
-        $("#pixel_size_units").val($("#select_pixel_size_units option:selected").val())
-	
-	  $("#pixel_size").attr("placeholder", psval);
-       }
+           function update_pixelsize_units(units) {
+	         if (units == decimal_degrees) {
+                  $("#pixel_size").attr("placeholder", "0.0002695 to 0.0089831");
+                  $("#pixel_size_unit_label").text("Decimal Degrees");
+               }
+               else {
+                  $("#pixel_size").attr("placeholder", "30.0 to 1000.0");
+                  $("#pixel_size_unit_label").text("Meters");
+               } 
+
+               $("#pixel_size_units").val(units);
+           }
        
        
-       function update_utm_params() {
-           $("#utm_north_south").val($("#select_utm_north_south option:selected").val());
-       }
+           function update_utm_params() {
+               $("#utm_north_south").val($("#select_utm_north_south option:selected").val());
+           }
        
-       function update_datum() {
-           $("#datum").val($("#select_datum option:selected").val());
-       }
-    
+           function update_datum() {
+               $("#datum").val($("#select_datum option:selected").val());
+           }
+
+      
+
+      
+
+         
     {% endcache %}
     {% endblock %}  
    

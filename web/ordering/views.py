@@ -72,11 +72,13 @@ class AbstractView(View):
         if msg.lower() == 'true':
 
             ctx['display_system_message'] = True
+            
+            cache_keys = ['system_message_title',
+                          'system_message_1',
+                          'system_message_2',
+                          'system_message_3']
 
-            cache_vals = cache.get_many(['system_message_title',
-                                         'system_message_1',
-                                         'system_message_2',
-                                         'system_message_3'])
+            cache_vals = cache.get_many(cache_keys)
 
             # flag to determine if any cached values were expired/missing and
             # need to be updated
@@ -85,8 +87,8 @@ class AbstractView(View):
             c = Config()
 
             #look through the cache_vals and see if any of them are none
-            for key in cache_vals:
-                if not cache_vals[key]:
+            for key in cache_keys:
+                if not key in cache_vals:
                     update_cache = True
                     cache_vals[key] = c.get_value(key)
 
@@ -174,11 +176,25 @@ class NewOrder(AbstractView):
         if not self.scenelist:    
             if 'scenelist' in request.FILES:
                 self.scenelist = request.FILES['scenelist'].read().split('\n')
+
+
+        retval = None
         
         if self.scenelist:
-            return [d.strip() for d in self.scenelist]
-        else:
-            return None
+            for line in self.scenelist:
+                
+                line = line.strip()
+                
+                if (line.startswith("LE7") 
+                    or line.startswith("LT4") 
+                    or line.startswith("LT5")):
+                        
+                    if retval is None:
+                        retval = list()
+                        
+                    retval.append(line)
+                            
+        return retval
 
     def _get_verified_scenelist(self, request):
         sl = self._get_scenelist(request)
