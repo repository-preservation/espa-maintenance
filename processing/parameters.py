@@ -634,7 +634,8 @@ def validate_reprojection_parameters(parms, projections, ns_values,
         parms['pixel_size_units'] = None
 
     # ------------------------------------------------------------------------
-    if parms['reproject'] or parms['image_extents'] and not parms['resize']:
+    if ((parms['reproject'] or parms['image_extents'])
+            and not parms['resize']):
         # Sombody asked for reproject or extents, but didn't specify a pixel
         # size
         # Default to 30 meters or dd equivalent
