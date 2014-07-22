@@ -46,21 +46,23 @@ non_product_files = [
     '*_dem.img'
 ]
 
-# Define L1T source files that may need to be removed before product generation
-l1t_source_files = [
+# Define L1 source files that may need to be removed before product generation
+l1_source_files = [
     '*gap_mask*'
 ]
 
-# Define L1T source metadata files that may need to be removed before product
+# Define L1 source metadata files that may need to be removed before product
 # generation
-l1t_source_metadata_files = [
+l1_source_metadata_files = [
     '*MTL*',
     '*VER*',
     '*GCP*'
 ]
 
+# Map order options to the products in the XML files
+# This is currently used for removal purposes
 order_to_product_mapping = {
-    'include_customized_source_data': 'L1T',
+    'include_customized_source_data': ['L1T', 'L1G', 'L1GT'],
     'include_sr': 'sr_refl',
     'include_sr_toa': 'toa_refl',
     'include_sr_thermal': 'toa_bt',
@@ -153,8 +155,11 @@ def remove_products(xml_filename, products_to_remove=None):
         # Remove them from the file system first
         for band in bands.band:
             if band.product in products_to_remove:
-                file_name = band.file_name.rsplit('.')[0]
-                file_names.extend(glob.glob('%s*' % file_name))
+                # Add the .img file
+                file_names.append(band.file_name)
+                # Add the .hdr file
+                hdr_file_name = band.file_name.replace('.img', '.hdr')
+                file_names.append(hdr_file_name)
 
         # Only remove files if we found some
         if len(file_names) > 0:
@@ -209,7 +214,7 @@ def build_landsat_science_products(parms):
       Build all the requested science products for Landsat data.
     '''
 
-    global non_product_files, l1t_source_files, l1t_source_metadata_files
+    global non_product_files, l1_source_files, l1_source_metadata_files
     global order_to_product_mapping
 
     # Keep a local options for those apps that only need a few things
@@ -433,12 +438,12 @@ def build_landsat_science_products(parms):
         for item in non_product_files:
             non_products.extend(glob.glob(item))
 
-        # Add L1T source files if not requested
+        # Add level 1 source files if not requested
         if not options['include_source_data']:
-            for item in l1t_source_files:
+            for item in l1_source_files:
                 non_products.extend(glob.glob(item))
         if not options['include_source_metadata']:
-            for item in l1t_source_metadata_files:
+            for item in l1_source_metadata_files:
                 non_products.extend(glob.glob(item))
 
         if len(non_products) > 0:
@@ -457,7 +462,7 @@ def build_landsat_science_products(parms):
         # Remove generated products that were not requested
         products_to_remove = []
         if not options['include_customized_source_data']:
-            products_to_remove.append(
+            products_to_remove.extend(
                 order_to_product_mapping['include_customized_source_data'])
         if not options['include_sr']:
             products_to_remove.append(
