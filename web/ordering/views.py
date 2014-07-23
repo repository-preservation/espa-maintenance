@@ -136,10 +136,7 @@ class TestAjax(AbstractView):
     def get(self, request):
         
         name = request.GET.get('name', '')
-        
-        if name == '':
-            name = 'nameless'
-            
+                    
         data = {'name':name, 'status':'GET request ok'}
 
         return self.render_to_json_response(data)
