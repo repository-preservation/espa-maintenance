@@ -8,6 +8,9 @@ from ordering.views import ListOrders
 from ordering.views import OrderDetails
 from django.contrib.auth.decorators import login_required
 
+from ordering.views import TestAjax
+from ordering.views import AjaxForm
+
 '''
 author David V. Hill
 
@@ -47,4 +50,12 @@ urlpatterns = patterns('',
     url(r'^status/(?P<orderid>[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,4}.*)/$',
         login_required(OrderDetails.as_view()),
         name='generic_order_status_detail'),
+        
+    url(r'^ajax/$',
+        TestAjax.as_view(),
+        name='ajax'),
+                
+    url(r'^test/$',
+        AjaxForm.as_view(),
+        name='ajax_form'),
 )
