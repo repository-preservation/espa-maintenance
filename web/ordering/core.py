@@ -713,7 +713,9 @@ def load_ee_orders():
             order.order_type = 'level2_ondemand'
             order.status = 'ordered'
             order.note = 'EarthExplorer order id: %s' % eeorder
-            order.product_options = json.dumps(Order.get_default_ee_options())
+            order.product_options = json.dumps(Order.get_default_ee_options(),
+                                               sort_keys=True,
+                                               indent=4)
             order.ee_order_id = eeorder
             order.order_source = 'ee'
             order.order_date = datetime.datetime.now()
