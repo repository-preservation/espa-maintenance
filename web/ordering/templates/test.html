@@ -63,8 +63,6 @@
 {% block scripts %}
     $(document).ready(function(){
 
-        console.log("CSRF FROM THE TOP:" + $.cookie('csrftoken'));
-
         function csrfSafeMethod(method) {
             // these HTTP methods do not require CSRF protection
             return (/^(GET|HEAD|OPTIONS|TRACE)$/.test(method));
@@ -84,7 +82,6 @@
         $("#submit_post").click(function(item) {
 
             var csrftoken = $.cookie('csrftoken');
-            console.log("CSRF TOKEN:" + csrftoken);
 
             $.ajaxSetup({
                 beforeSend: function(xhr, settings) {
@@ -100,13 +97,13 @@
             requestdata = {};
             requestdata['name'] = $("#name").val();
  
-            console.log("Request data:" + JSON.stringify(requestdata, null, 4));
+            //console.log("Request data:" + JSON.stringify(requestdata, null, 4));
 
             var jqxhr = $.post("{% url 'ajax' %}",
                               requestdata,
                               function(response) {
 
-                                  console.log("Response data:" + JSON.stringify(response, null, 4));
+                                  //console.log("Response data:" + JSON.stringify(response, null, 4));
 
                                   var resp = "====== Server Response [POST] ======\n"
                                   resp = resp +  "[status:" + response.status + "] ";
@@ -119,7 +116,7 @@
                                   output = output + resp;
 
                                   $("#output").html(output);
-                                  console.log( "Load was performed." );
+                                  //console.log( "Load was performed." );
                               });
                              
 
@@ -133,28 +130,22 @@
 
             $.ajaxSetup({
                 beforeSend: function(xhr, settings) {
-                    console.log("Setting type:" + settings.type);
-                    console.log("csrfSafe:" + csrfSafeMethod(settings.type));
-
+                    
                     if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
                         xhr.setRequestHeader("X-CSRFToken", csrftoken);
                     }
                 }
             });
 
-           
-            //requestdata = {'name': $("#name").serialize};
             requestdata = {};
             requestdata['name'] = $("#name").val();
  
-            //requestdata = {'name' : 'davidvhill'};
-
-            console.log("Request data:" + JSON.stringify(requestdata, null, 4));
+            //console.log("Request data:" + JSON.stringify(requestdata, null, 4));
 
             var jqxhr = $.get("{% url 'ajax' %}",
                               requestdata,
                               function(response) {
-                                  console.log("Response data:" + JSON.stringify(response, null, 4));
+                                  //console.log("Response data:" + JSON.stringify(response, null, 4));
                                   var resp = "====== Server Response [GET] ======\n";
                                   resp = resp +  "[status:" + response.status + "] ";
                                   resp = resp + "Name:" + response.name + "\n";
@@ -166,7 +157,7 @@
                                   output = output + resp;
 
                                   $("#output").html(output);
-                                  console.log( "Load was performed." );
+                                  //console.log( "Load was performed." );
                               });
                              
 
