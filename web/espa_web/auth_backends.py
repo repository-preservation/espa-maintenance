@@ -20,6 +20,13 @@ class EEAuthBackend(object):
     def authenticate(self, username=None, password=None):
 
         registration = RegistrationServiceClient()
+        
+        #strip whitespace to save users from accidental fat-fingering
+        if username is not None:
+            username = str(username).strip()
+            
+        if password is not None:
+            password = str(password).strip()
 
         try:
             contactid = registration.login_user(username, password)
