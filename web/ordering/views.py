@@ -137,7 +137,9 @@ class TestAjax(AbstractView):
         
         name = request.GET.get('name', '')
                     
-        data = {'name':name, 'status':'GET request ok'}
+        data = {'user': request.user.get_username(),
+                'name':name,
+                'status':'GET request ok'}
 
         return self.render_to_json_response(data)
         
@@ -152,7 +154,10 @@ class TestAjax(AbstractView):
         if 'age' in request.POST:
             age = request.POST['age']
                 
-        data = {'name':name, 'age':age, 'status':'POST request ok'}
+        data = {'user':request.user.get_username(), 
+                'name':name,
+                'age':age,
+                'status':'POST request ok'}
         
         return self.render_to_json_response(data)
 

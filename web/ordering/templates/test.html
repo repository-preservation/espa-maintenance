@@ -107,7 +107,7 @@
 
                                   var resp = "====== Server Response [POST] ======\n"
                                   resp = resp +  "[status:" + response.status + "] ";
-                                  resp = resp + "Name:" + response.name + "\n";
+                                  resp = resp + "User: " + response.user + " Name:" + response.name + "\n";
 
                                   var output = $("#output").val();
                                   if (output.length > 0) {
@@ -148,7 +148,7 @@
                                   //console.log("Response data:" + JSON.stringify(response, null, 4));
                                   var resp = "====== Server Response [GET] ======\n";
                                   resp = resp +  "[status:" + response.status + "] ";
-                                  resp = resp + "Name:" + response.name + "\n";
+                                  resp = resp + "User: " + response.user + " Name:" + response.name + "\n";
 
                                   var output = $("#output").val();
                                   if (output.length > 0) {
