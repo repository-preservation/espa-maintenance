@@ -632,6 +632,7 @@
 
                //if hidden show it & vice versa
                if ( $(lookup).is(":hidden") ) {
+                   $(lookup).css({"visibility":"visible"})
                    $(lookup).show(show_hide_delay);
                } 
                else {
@@ -682,6 +683,7 @@
                }
                else {
                    $(resample_options).show(show_hide_delay);
+                   $(resample_options).css({"visibility":"visible"})
                }
            });
 

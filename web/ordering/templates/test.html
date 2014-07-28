@@ -105,9 +105,9 @@
 
                                   //console.log("Response data:" + JSON.stringify(response, null, 4));
 
-                                  var resp = "====== Server Response [POST] ======\n"
-                                  resp = resp +  "[status:" + response.status + "] ";
-                                  resp = resp + "User: " + response.user + " Name:" + response.name + "\n";
+                                  var resp = "====== Server Response [status:" + response.status + "] ======\n"
+                                  resp = resp + "    User: " + response.user + "\n";
+                                  resp = resp + "    Name: " + response.name + "\n";
 
                                   var output = $("#output").val();
                                   if (output.length > 0) {
@@ -146,9 +146,9 @@
                               requestdata,
                               function(response) {
                                   //console.log("Response data:" + JSON.stringify(response, null, 4));
-                                  var resp = "====== Server Response [GET] ======\n";
-                                  resp = resp +  "[status:" + response.status + "] ";
-                                  resp = resp + "User: " + response.user + " Name:" + response.name + "\n";
+                                  var resp = "====== Server Response [status:" + response.status + "] ======\n"
+                                  resp = resp + "    User: " + response.user + "\n";
+                                  resp = resp + "    Name: " + response.name + "\n";
 
                                   var output = $("#output").val();
                                   if (output.length > 0) {
