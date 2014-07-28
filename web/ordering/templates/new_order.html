@@ -634,8 +634,6 @@
                if ( $(lookup).is(":hidden") ) {
                    $(lookup).css({"visibility":"visible"})
                    $(lookup).show(show_hide_delay);
-                   //fix for IE not supporting placeholders
-                   $.placeholder.shim();
                } 
                else {
                    $(lookup).hide(show_hide_delay);
@@ -686,8 +684,6 @@
                else {
                    $(resample_options).show(show_hide_delay);
                    $(resample_options).css({"visibility":"visible"})
-                   //fix for IE not supporting placeholders
-                   $.placeholder.shim();
                }
            });
 
