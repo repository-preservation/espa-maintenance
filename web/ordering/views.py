@@ -90,7 +90,7 @@ class AbstractView(View):
             for key in cache_keys:
                 if not key in cache_vals:
                     update_cache = True
-                    cache_vals[key] = c.get_value(key)
+                    cache_vals[key] = c.getValue(key)
 
             if update_cache:
                 cache.set_many(cache_vals,
