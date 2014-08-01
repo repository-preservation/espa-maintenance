@@ -4,6 +4,7 @@ from SimpleXMLRPCServer import SimpleXMLRPCDispatcher
 from django.views.decorators.csrf import csrf_exempt
 from ordering import core
 from ordering.models import Configuration
+from ordering.models import DataPoint
 from django.db import transaction
 
 __author__ = "David V. Hill"
@@ -31,6 +32,7 @@ def rpc_handler(request):
         d.register_function(_finalize_orders, 'finalize_orders')
         d.register_function(_get_configuration, 'get_configuration')
         d.register_function(_get_scenes_to_process, 'get_scenes_to_process')
+        d.register_function(_get_data_points, 'get_data_points')
         
         response = HttpResponse(mimetype="application/xml")
         response.write(d._marshaled_dispatch(request.body))
@@ -101,6 +103,9 @@ def _get_configuration(key):
 
 def _get_scenes_to_process():
     return core.get_scenes_to_process()
+    
+def _get_data_points(tags=[]):
+    return DataPoint.get_data_points(tags)
 
 #def _get_scene_input_path(sceneid):
 #    return core.get_scene_input_path(sceneid)
