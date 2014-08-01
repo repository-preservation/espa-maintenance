@@ -590,8 +590,6 @@ def mark_scene_complete(name,
             client = lta.OrderUpdateServiceClient()
             client.update_order(o.ee_order_id, s.ee_unit_id, 'C')
 
-        update_order_if_complete(o.orderid)
-
         return True
     else:
         print("MarkSceneComplete:No scene was found with the name:%s" % name)
@@ -599,7 +597,7 @@ def mark_scene_complete(name,
 
 
 @transaction.atomic
-def update_order_if_complete(orderid):
+def update_order_if_complete(order):
     '''Method to send out the order completion email
     for orders if the completion of a scene
     completes the order
@@ -608,20 +606,24 @@ def update_order_if_complete(orderid):
     orderid -- id of the order
 
     '''
-    o = Order.objects.get(orderid=orderid)
-    scenes = Scene.objects.filter(order__id=o.id)
-
-    #we have to do this because we need to see if all scenes
-    #for the given order are complete. Don't know how to
-    #run that query through the Django Model interface.
-    isComplete = True
-    for s in scenes:
-        if s.status != 'complete' and s.status != 'unavailable':
-            isComplete = False
-            break
-
-    if isComplete and scenes:
-        scene_names = [s.name for s in scenes if s.status != 'unavailable']
+    complete_scene_status = ['complete', 'unavailable']
+    
+    o = None
+                           
+    if type(order) == Order:
+        o = order
+    elif type(order) == str:
+        o = Order.objects.get(orderid=order)
+    
+    if not o:
+        msg = "Order [%s] not found in update_order_if_complete" % order
+        raise Exception(msg)
+    
+    scenes = o.scene_set.exclude(status__in=complete_scene_status)    
+        
+    if len(scenes) == 0:
+        complete_scenes = o.scene_set.exclude(status='unavailable')
+        scene_names = [s.name for s in complete_scenes]
         o.status = 'complete'
         o.completion_date = datetime.datetime.now()
         o.save()
@@ -631,11 +633,32 @@ def update_order_if_complete(orderid):
             order_email = o.user.email
             if not order_email:
                 order_email = o.email
-            send_completion_email(order_email,
-                                  o.orderid,
-                                  readyscenes=scene_names)
+                
+            sent = send_completion_email(order_email,
+                                         o.orderid,
+                                         readyscenes=scene_names)
+            if sent:
+                o.completion_email_sent = datetime.now()
+                o.save()
+            else:
+                msg = "Could not send completion email to %s for order: %s" % \
+                    (o.user.email, o.orderid)
+                    
+                raise Exception(msg)
 
 
+@transaction.atomic
+def finalize_orders():
+    '''Checks all open orders in the system and marks them complete if all 
+    required scene processing is done'''
+    
+    orders = Order.objects.filter(status='ordered')
+    for o in orders:
+        update_order_if_complete(o)
+    
+    return True    
+
+        
 @transaction.atomic
 def load_ee_orders():
     ''' Loads all the available orders from lta into

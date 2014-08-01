@@ -2,6 +2,8 @@ from ordering.models import Scene
 from ordering.models import Order
 from ordering.models import Configuration
 from ordering.models import UserProfile
+from ordering.models import Download
+from ordering.models import DownloadSection
 
 from django.contrib import admin
 
@@ -109,7 +111,52 @@ class UserProfileAdmin(admin.ModelAdmin):
     readonly_fields = ('user',)
 
 
+class DownloadAdmin(admin.ModelAdmin):
+    fields = ['target_name',
+              'target_url',
+              'checksum_name',
+              'checksum_url',
+              'readme_text',
+              'display_order',
+              'visible']
+
+    list_display = ['target_name',
+                    'target_url',
+                    'checksum_name',
+                    'checksum_url',
+                    'readme_text',
+                    'display_order',
+                    'visible']
+
+    list_filter = ['visible']
+
+    search_fields = ['target_name',
+                     'target_url',
+                     'checksum_name',
+                     'checksum_url',
+                     'readme_text',
+                     'visible']
+
+
+class DownloadInline(admin.StackedInline):
+    model = Download
+
+
+class DownloadSectionAdmin(admin.ModelAdmin):
+    fields = ['title', 'text', 'display_order', 'visible']
+
+    list_display = ['title', 'display_order', 'visible']
+
+    list_filter = ['title', 'visible']
+
+    search_fields = ['title', 'text']
+
+    inlines = [DownloadInline, ]
+
+
 admin.site.register(Scene, SceneAdmin)
 admin.site.register(Order, OrderAdmin)
 admin.site.register(Configuration, ConfigurationAdmin)
 admin.site.register(UserProfile, UserProfileAdmin)
+admin.site.register(Download, DownloadAdmin)
+admin.site.register(DownloadSection, DownloadSectionAdmin)

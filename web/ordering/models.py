@@ -68,6 +68,11 @@ class Order(models.Model):
                                            blank=True,
                                            null=True,
                                            db_index=True)
+                                           
+    completion_email_sent = models.DateTimeField('completion_email_sent',
+                                                 blank=True,
+                                                 null=True,
+                                                 db_index=True)
 
     #o ne of order.STATUS
     status = models.CharField(max_length=20, choices=STATUS, db_index=True)
@@ -431,3 +436,24 @@ class Configuration(models.Model):
             return str(value)
         except:
             return ''
+
+            
+class DownloadSection(models.Model):
+    title = models.CharField('name', max_length=255)
+    text = models.TextField('section_text')
+    display_order = models.IntegerField()
+    visible = models.BooleanField('visible')
+
+            
+class Download(models.Model):
+    section = models.ForeignKey(DownloadSection)
+    target_name = models.CharField('target_name', max_length=255)
+    target_url = models.URLField('target_url', max_length=255)
+    checksum_name = models.CharField('checksum_name', max_length=255, blank=True, null=True)
+    checksum_url = models.URLField('checksum_url', max_length=255, blank=True, null=True)
+    readme_text = models.TextField('readme_text', blank=True, null=True)
+    display_order = models.IntegerField()
+    visible = models.BooleanField('visible')
+    
+
+    

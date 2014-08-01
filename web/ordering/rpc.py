@@ -2,7 +2,7 @@
 from django.http import HttpResponse
 from SimpleXMLRPCServer import SimpleXMLRPCDispatcher
 from django.views.decorators.csrf import csrf_exempt
-from ordering.core import *
+from ordering import core
 from ordering.models import Configuration
 from django.db import transaction
 
@@ -28,11 +28,10 @@ def rpc_handler(request):
         d.register_function(_set_scene_error, 'set_scene_error')
         d.register_function(_set_scene_unavailable, 'set_scene_unavailable')
         d.register_function(_mark_scene_complete, 'mark_scene_complete')
+        d.register_function(_finalize_orders, 'finalize_orders')
         d.register_function(_get_configuration, 'get_configuration')
         d.register_function(_get_scenes_to_process, 'get_scenes_to_process')
-        d.register_function(_get_scenes_to_purge, 'get_scenes_to_purge')
-        d.register_function(_get_scene_input_path, 'get_scene_input_path')
-
+        
         response = HttpResponse(mimetype="application/xml")
         response.write(d._marshaled_dispatch(request.body))
     else:
@@ -57,15 +56,19 @@ def rpc_handler(request):
 
 
 def _update_status(name, orderid, processing_loc, status):
-        return update_status(name, orderid, processing_loc, status)
+        return core.update_status(name, orderid, processing_loc, status)
 
 
 def _set_scene_error(name, orderid, processing_loc, error):
-    return set_scene_error(name, orderid, processing_loc, error)
+    return core.set_scene_error(name, orderid, processing_loc, error)
 
 
 def _set_scene_unavailable(name, orderid, processing_loc, error, note):
-    return set_scene_unavailable(name, orderid, processing_loc, error, note)
+    return core.set_scene_unavailable(name, 
+                                      orderid, 
+                                      processing_loc, 
+                                      error, 
+                                      note)
 
 
 def _mark_scene_complete(name,
@@ -81,13 +84,15 @@ def _mark_scene_complete(name,
     else:
         log_file_contents = log_file_contents_binary.data
 
-    return mark_scene_complete(name,
+    return core.mark_scene_complete(name,
                                orderid,
                                processing_loc,
                                completed_scene_location,
                                cksum_file_location,
                                log_file_contents)
 
+def _finalize_orders():
+    return core.finalize_orders()
 
 #method to expose master configuration repository to the system
 def _get_configuration(key):
@@ -95,12 +100,7 @@ def _get_configuration(key):
 
 
 def _get_scenes_to_process():
-    return get_scenes_to_process()
+    return core.get_scenes_to_process()
 
-
-def _get_scenes_to_purge():
-    return get_scenes_to_purge()
-
-
-def _get_scene_input_path(sceneid):
-    return get_scene_input_path(sceneid)
+#def _get_scene_input_path(sceneid):
+#    return core.get_scene_input_path(sceneid)

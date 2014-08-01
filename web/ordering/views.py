@@ -7,6 +7,8 @@ from ordering import validators
 from ordering.models import Scene
 from ordering.models import Order
 from ordering.models import Configuration as Config
+from ordering.models import Download
+from ordering.models import DownloadSection
 
 from django import forms
 from django.conf import settings
@@ -381,6 +383,28 @@ class ListOrders(AbstractView):
             return HttpResponse(t.render(c))
 
 
+class Downloads(AbstractView):
+    template = 'downloads.html'
+
+    def get(self, request):
+        '''Request handler to display the downloads template
+        
+        Keyword args:
+        request -- HTTP request object
+        
+        Return:
+        HttpResponse
+        '''
+        
+        dload_sections = DownloadSection.objects.filter(visible=True).order_by('display_order', 'title')
+        
+        t = loader.get_template(self.template)
+
+        c = self._get_request_context(request, {'sections': dload_sections})
+                
+        return HttpResponse(t.render(c))
+        
+        
 class OrderDetails(AbstractView):
     template = 'orderdetails.html'
 
