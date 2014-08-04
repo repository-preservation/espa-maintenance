@@ -52,16 +52,22 @@ def execute_cmd(cmd):
 
         if proc.returncode < 0:
             message = "Application terminated by signal [%s]" % cmd
+            if len(output) > 0:
+                message = ' Stdout/Stderr is: '.join([message, output])
             raise Exception(message)
 
         if proc.returncode != 0:
             message = "Application failed to execute [%s]" % cmd
+            if len(output) > 0:
+                message = ' Stdout/Stderr is: '.join([message, output])
             raise Exception(message)
 
         application_exitcode = proc.returncode >> 8
         if application_exitcode != 0:
             message = "Application [%s] returned error code [%d]" \
                       % (cmd, application_exitcode)
+            if len(output) > 0:
+                message = ' Stdout/Stderr is: '.join([message, output])
             raise Exception(message)
 
     finally:
