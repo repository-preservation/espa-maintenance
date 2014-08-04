@@ -281,6 +281,7 @@ def build_landsat_science_products(parms):
             cmd = ' '.join(['do_ledaps.py', '--xml', xml_filename])
             log(' '.join(['LEDAPS COMMAND:', cmd]))
 
+            output = ''
             try:
                 output = util.execute_cmd(cmd)
             except Exception, e:
@@ -334,6 +335,8 @@ def build_landsat_science_products(parms):
 
             cmd = ' '.join(cmd)
             log(' '.join(['SPECTRAL INDICES COMMAND:', cmd]))
+
+            output = ''
             try:
                 output = util.execute_cmd(cmd)
             except Exception, e:
@@ -358,6 +361,8 @@ def build_landsat_science_products(parms):
                             '--demfile', dem_filename])
 
             log(' '.join(['CREATE DEM COMMAND:', cmd]))
+
+            output = ''
             try:
                 output = util.execute_cmd(cmd)
             except Exception, e:
@@ -402,8 +407,9 @@ def build_landsat_science_products(parms):
             cmd = ' '.join(['cfmask', '--verbose', '--max_cloud_pixels',
                             settings.CFMASK_MAX_CLOUD_PIXELS,
                             '--xml', xml_filename])
-
             log(' '.join(['CREATE CFMASK COMMAND:', cmd]))
+
+            output = ''
             try:
                 output = util.execute_cmd(cmd)
             except Exception, e:
@@ -450,6 +456,7 @@ def build_landsat_science_products(parms):
             cmd = ' '.join(['rm', '-rf'] + non_products)
             log(' '.join(['REMOVING INTERMEDIATE DATA COMMAND:', cmd]))
 
+            output = ''
             try:
                 output = util.execute_cmd(cmd)
             except Exception, e:
