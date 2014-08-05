@@ -83,7 +83,7 @@ if __name__ == '__main__':
 
             # Update the status in the database
             if parameters.test_for_parameter(parms, 'xmlrpcurl'):
-                if parms['xmlrpcurl'] != 'dev':
+                if parms['xmlrpcurl'] != 'skip_xmlrpc':
                     server = xmlrpclib.ServerProxy(parms['xmlrpcurl'])
                     if server is not None:
                         status = server.update_status(sceneid, orderid,
