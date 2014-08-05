@@ -42,7 +42,6 @@ non_product_files = [
     'lndsr.*.txt',
     'lndcal.*.txt',
     'LogReport*',
-    'README*',
     '*_MTL.txt.old',
     '*_dem.img'
 ]
@@ -50,6 +49,7 @@ non_product_files = [
 # Define L1 source files that may need to be removed before product generation
 l1_source_files = [
     'L*.TIF',
+    'README.GTF',
     '*gap_mask*'
 ]
 
@@ -236,7 +236,8 @@ def remove_landsat_science_products(parms, xml_filename):
         if not options['include_source_data']:
             for item in l1_source_files:
                 non_products.extend(glob.glob(item))
-        if not options['include_source_metadata']:
+        if (not options['include_source_metadata'] and
+                not options['include_source_data']):
             for item in l1_source_metadata_files:
                 non_products.extend(glob.glob(item))
 
