@@ -1,7 +1,22 @@
 {
   "orderid": "rdd_test_orderid",
+      "_orderid_comment":
+          "Introduced Release 1.0.0
+           Must be present
+           Datatypes Allowed: string",
+
   "xmlrpcurl": "http://l8srlscp03.cr.usgs.gov/rpc",
+      "_xmlrpcurl_comment":
+          "Introduced Release 1.0.0
+           Must be present
+           Datatypes Allowed: string",
+
   "scene": "LE70290302013185EDC00",
+      "_scene_comment":
+          "Introduced Release 1.0.0
+           Must be present
+           Datatypes Allowed: string",
+
   "options": {
     "debug": false,
 #    "output_format": "gtiff",
