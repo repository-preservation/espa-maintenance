@@ -279,19 +279,26 @@ def process(parms):
             statistics.generate_statistics(options['work_directory'],
                                            files_to_search_for)
 
+        # Cleanup all the intermediate non-products and the science products
+        # not requested
+        # (Before the warp so we don't warp stuff that will not be delivered)
+        science.remove_landsat_science_products(parms, xml_filename)
+
         # Convert to the user requested output format or leave it in ESPA ENVI
         # We do all of our processing using ESPA ENVI format so it can be
         # hard-coded here
         warp.reformat(xml_filename, work_directory, 'envi',
                       options['output_format'])
+
     # END - Science Product Building
     else:
         log("***NO SCIENCE PRODUCTS CHOSEN***")
 
-
-    # Cleanup all the intermediate non-products and the science products not
-    # requested
-    science.remove_landsat_science_products(parms, xml_filename)
+        # Cleanup all the intermediate non-products and the science products
+        # not requested
+        # (Also here because we didn't do any science products, and may not
+        #  want all of the original source data)
+        science.remove_landsat_science_products(parms, xml_filename)
 
     # Deliver the product files
     # Attempt X times sleeping between each attempt
