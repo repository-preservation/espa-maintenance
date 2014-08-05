@@ -42,21 +42,23 @@ non_product_files = [
     'lndsr.*.txt',
     'lndcal.*.txt',
     'LogReport*',
-    'README*'
+    'README*',
+    '*_MTL.txt.old',
     '*_dem.img'
 ]
 
 # Define L1 source files that may need to be removed before product generation
 l1_source_files = [
+    'L*.TIF',
     '*gap_mask*'
 ]
 
 # Define L1 source metadata files that may need to be removed before product
 # generation
 l1_source_metadata_files = [
-    '*MTL*',
-    '*VER*',
-    '*GCP*'
+    '*_MTL*',
+    '*_VER*',
+    '*_GCP*'
 ]
 
 # Map order options to the products in the XML files
@@ -208,14 +210,90 @@ def remove_products(xml_filename, products_to_remove=None):
 
 
 # ============================================================================
+def remove_landsat_science_products(parms, xml_filename):
+    '''
+    Description:
+      Remove all the intermediate non-product files along with all of the
+      landsat science products that were generated, but not requested.
+      Remove them from the system and the metadata.xml file.
+    '''
+
+    # Keep a local options variable
+    options = parms['options']
+
+    # Change to the working directory
+    current_directory = os.getcwd()
+    os.chdir(options['work_directory'])
+
+    try:
+        # --------------------------------------------------------------------
+        # Remove the intermediate non-product files
+        non_products = []
+        for item in non_product_files:
+            non_products.extend(glob.glob(item))
+
+        # Add level 1 source files if not requested
+        if not options['include_source_data']:
+            for item in l1_source_files:
+                non_products.extend(glob.glob(item))
+        if not options['include_source_metadata']:
+            for item in l1_source_metadata_files:
+                non_products.extend(glob.glob(item))
+
+        if len(non_products) > 0:
+            cmd = ' '.join(['rm', '-rf'] + non_products)
+            log(' '.join(['REMOVING INTERMEDIATE DATA COMMAND:', cmd]))
+
+            output = ''
+            try:
+                output = util.execute_cmd(cmd)
+            except Exception, e:
+                raise ee.ESPAException(ee.ErrorCodes.cleanup_work_dir,
+                                       str(e)), None, sys.exc_info()[2]
+            finally:
+                if len(output) > 0:
+                    log(output)
+
+        if xml_filename is not None:
+            # Remove generated products that were not requested
+            products_to_remove = []
+            if not options['include_customized_source_data']:
+                products_to_remove.extend(
+                    order_to_product_mapping['include_customized_source_data'])
+            if not options['include_sr']:
+                products_to_remove.append(
+                    order_to_product_mapping['include_sr'])
+            if not options['include_sr_toa']:
+                products_to_remove.append(
+                    order_to_product_mapping['include_sr_toa'])
+            if not options['include_sr_thermal']:
+                products_to_remove.append(
+                    order_to_product_mapping['include_sr_thermal'])
+            # These both need to be false before we delete the fmask files
+            # Because our defined SR product includes the fmask band
+            if not options['include_cfmask'] and not options['include_sr']:
+                products_to_remove.append(
+                    order_to_product_mapping['include_cfmask'])
+
+            try:
+                remove_products(xml_filename, products_to_remove)
+            except Exception, e:
+                raise ee.ESPAException(ee.ErrorCodes.remove_products,
+                                       str(e)), None, sys.exc_info()[2]
+
+    finally:
+        # Change back to the previous directory
+        os.chdir(current_directory)
+
+# END - remove_landsat_science_products
+
+
+# ============================================================================
 def build_landsat_science_products(parms):
     '''
     Description:
       Build all the requested science products for Landsat data.
     '''
-
-    global non_product_files, l1_source_files, l1_source_metadata_files
-    global order_to_product_mapping
 
     # Keep a local options for those apps that only need a few things
     options = parms['options']
@@ -437,60 +515,6 @@ def build_landsat_science_products(parms):
 #            finally:
 #                if len(output) > 0:
 #                    log(output)
-
-        # --------------------------------------------------------------------
-        # Remove the intermediate non-product files
-        non_products = []
-        for item in non_product_files:
-            non_products.extend(glob.glob(item))
-
-        # Add level 1 source files if not requested
-        if not options['include_source_data']:
-            for item in l1_source_files:
-                non_products.extend(glob.glob(item))
-        if not options['include_source_metadata']:
-            for item in l1_source_metadata_files:
-                non_products.extend(glob.glob(item))
-
-        if len(non_products) > 0:
-            cmd = ' '.join(['rm', '-rf'] + non_products)
-            log(' '.join(['REMOVING INTERMEDIATE DATA COMMAND:', cmd]))
-
-            output = ''
-            try:
-                output = util.execute_cmd(cmd)
-            except Exception, e:
-                raise ee.ESPAException(ee.ErrorCodes.cleanup_work_dir,
-                                       str(e)), None, sys.exc_info()[2]
-            finally:
-                if len(output) > 0:
-                    log(output)
-
-        # Remove generated products that were not requested
-        products_to_remove = []
-        if not options['include_customized_source_data']:
-            products_to_remove.extend(
-                order_to_product_mapping['include_customized_source_data'])
-        if not options['include_sr']:
-            products_to_remove.append(
-                order_to_product_mapping['include_sr'])
-        if not options['include_sr_toa']:
-            products_to_remove.append(
-                order_to_product_mapping['include_sr_toa'])
-        if not options['include_sr_thermal']:
-            products_to_remove.append(
-                order_to_product_mapping['include_sr_thermal'])
-        # These both need to be false before we delete the fmask files
-        # Because our defined SR product includes the fmask band
-        if not options['include_cfmask'] and not options['include_sr']:
-            products_to_remove.append(
-                order_to_product_mapping['include_cfmask'])
-
-        try:
-            remove_products(xml_filename, products_to_remove)
-        except Exception, e:
-            raise ee.ESPAException(ee.ErrorCodes.remove_products,
-                                   str(e)), None, sys.exc_info()[2]
 
     finally:
         # Change back to the previous directory

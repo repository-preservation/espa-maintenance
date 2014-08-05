@@ -233,6 +233,7 @@ def process(parms):
 
     # BEGIN - Science Product Building
     # Only build, warp, and generate stats if some science products are chosen
+    xml_filename = None
     if (options['include_customized_source_data']
             or options['include_sr']
             or options['include_sr_toa']
@@ -286,6 +287,11 @@ def process(parms):
     # END - Science Product Building
     else:
         log("***NO SCIENCE PRODUCTS CHOSEN***")
+
+
+    # Cleanup all the intermediate non-products and the science products not
+    # requested
+    science.remove_landsat_science_products(parms, xml_filename)
 
     # Deliver the product files
     # Attempt X times sleeping between each attempt
