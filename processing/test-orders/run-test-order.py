@@ -31,9 +31,9 @@ def build_argument_parser():
     parser = ArgumentParser(description=description)
 
     # Add parameters
-    parser.add_argument('--debug',
-                        action='store_true', dest='debug', default=False,
-                        help="turn debug logging on")
+    parser.add_argument('--keep-log',
+                        action='store_true', dest='keep_log', default=False,
+                        help="keep the log file")
 
     parser.add_argument('--order-file',
                         action='store', dest='order_file', required=True,
@@ -44,7 +44,7 @@ def build_argument_parser():
 
 
 # ============================================================================
-def process_test_order(order_file, env_vars, do_debug):
+def process_test_order(order_file, env_vars, keep_log):
     '''
     Description:
       Process the test order file.
@@ -97,12 +97,12 @@ def process_test_order(order_file, env_vars, do_debug):
         print error_msg
         return False
 
-    keep_log = ''
-    if do_debug:
-        keep_log = '--keep-log'
+    keep_log_str = ''
+    if keep_log:
+        keep_log_str = '--keep-log'
 
     cmd = ("cd ..; cat test-orders/%s | ./cdr_ecv_mapper.py %s"
-           % (tmp_order, keep_log))
+           % (tmp_order, keep_log_str))
 
     output = ''
     proc = None
@@ -184,7 +184,7 @@ if __name__ == '__main__':
     # Avoid the creation of the *.pyc files
     os.environ['PYTHONDONTWRITEBYTECODE'] = '1'
 
-    if not process_test_order(args.order_file, env_vars, args.debug):
+    if not process_test_order(args.order_file, env_vars, args.keep_log):
         print "Order file (%s) failed to process" % args.order_file
         sys.exit(1)
 

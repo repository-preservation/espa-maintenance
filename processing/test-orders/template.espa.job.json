@@ -21,6 +21,7 @@
     "debug": false,
 #    "output_format": "gtiff",
     "data_type": "level1",
+    "keep_log": false,
 
     "source_host": "localhost",
     "source_directory": "/home/dilley/espa-data",

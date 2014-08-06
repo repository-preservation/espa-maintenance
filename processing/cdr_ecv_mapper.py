@@ -57,6 +57,8 @@ if __name__ == '__main__':
 
         # Reset these for each line
         (server, orderid, sceneid) = (None, None, None)
+        # Default to the command line value
+        scene_keep_log = args.keep_log
 
         log_filename = None
         try:
@@ -66,7 +68,13 @@ if __name__ == '__main__':
             if not parameters.test_for_parameter(parms, 'options'):
                 raise ValueError("Error missing JSON 'options' record")
 
-            (orderid, sceneid) = (parms['orderid'], parms['scene'])
+            (orderid, sceneid, options) = (parms['orderid'], parms['scene'],
+                                           parms['options'])
+
+            # If the command line option is True don't use the scene option
+            if not scene_keep_log:
+                if parameters.test_for_parameter(options, 'keep_log'):
+                    scene_keep_log = options['keep_log']
 
             # Create the log file
             log_filename = util.get_logfile(orderid, sceneid)
@@ -74,8 +82,8 @@ if __name__ == '__main__':
             if status != SUCCESS:
                 raise Exception("Error failed to create log handler")
 
-            if parameters.test_for_parameter(parms['options'], 'debug'):
-                set_debug(parms['options']['debug'])
+            if parameters.test_for_parameter(options, 'debug'):
+                set_debug(options['debug'])
 
             log("Processing %s:%s" % (orderid, sceneid))
 
@@ -98,11 +106,11 @@ if __name__ == '__main__':
                 raise ValueError("Invalid Sensor %s" % sensor)
 
             # Make sure we have a valid output format
-            if (parms['options']['output_format']
+            if (options['output_format']
                     not in parameters.valid_output_formats):
 
                 raise ValueError("Invalid Output format %s"
-                                 % parms['options']['output_format'])
+                                 % options['output_format'])
 
             # -----------------------------------------------------------------
             # NOTE:
@@ -148,7 +156,7 @@ if __name__ == '__main__':
 
             # Cleanup the log file
             close_log_handler()
-            if not args.keep_log and os.path.exists(log_filename):
+            if not scene_keep_log and os.path.exists(log_filename):
                 os.unlink(log_filename)
 
         except ee.ESPAException, e:
@@ -252,7 +260,7 @@ if __name__ == '__main__':
                         log("Failed processing xmlrpc call to set_scene_error")
                 else:
                     # Cleanup the log file
-                    if not args.keep_log and os.path.exists(log_filename):
+                    if not scene_keep_log and os.path.exists(log_filename):
                         os.unlink(log_filename)
             else:
                 # Log the error information
@@ -288,7 +296,7 @@ if __name__ == '__main__':
                         log("Failed processing xmlrpc call to set_scene_error")
                 else:
                     # Cleanup the log file
-                    if not args.keep_log and os.path.exists(log_filename):
+                    if not scene_keep_log and os.path.exists(log_filename):
                         os.unlink(log_filename)
             else:
                 # Log the error information
