@@ -6,7 +6,6 @@ from espa_constants import EXIT_FAILURE
 from espa_constants import EXIT_SUCCESS
 import traceback
 
-
 from espa_logging import log
 
 def finalize_orders():
