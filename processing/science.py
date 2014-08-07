@@ -270,8 +270,8 @@ def remove_landsat_science_products(parms, xml_filename):
             if not options['include_sr_thermal']:
                 products_to_remove.append(
                     order_to_product_mapping['include_sr_thermal'])
-            # These both need to be false before we delete the fmask files
-            # Because our defined SR product includes the fmask band
+            # These both need to be false before we delete the cfmask files
+            # Because our defined SR product includes the cfmask band
             if not options['include_cfmask'] and not options['include_sr']:
                 products_to_remove.append(
                     order_to_product_mapping['include_cfmask'])
