@@ -1,5 +1,7 @@
 {% extends "base.html" %}
 
+{% load static %}
+
 {% block title %} Show all orders {% endblock %}
 
 {% block header %}
@@ -63,7 +65,7 @@ tr.evenrow td{
 
 {% if orders %}
 <h4>
-<a href="{% url 'status_feed' email %}"><img border="0" alt="RSS Status Feed" title="Completed Scene RSS Feed" src="http://landsat.usgs.gov/espa/images/feed-icon-28x28.png"></img></a>
+<a href="{% url 'status_feed' email %}"><img border="0" alt="RSS Status Feed" title="Completed Scene RSS Feed" src="{% static 'img/feed-icon-28x28.png' %}"></img></a>
 &nbsp;&nbsp;Showing all orders for {{ email }}
 </h4>
 
