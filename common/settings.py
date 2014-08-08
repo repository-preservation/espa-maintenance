@@ -18,6 +18,7 @@ HADOOP_TIMEOUT = 172800000  # which is 2 days
 # Path to the Landsat L1T source data location
 LANDSAT_BASE_SOURCE_PATH = '/data/standard_l1t'
 
+LANDSAT_INPUT_FILENAME_EXTENSION = '.tar.gz'
 
 ##############################################################################
 # Used in modis.py
@@ -26,6 +27,9 @@ LANDSAT_BASE_SOURCE_PATH = '/data/standard_l1t'
 TERRA_BASE_SOURCE_PATH = '/MOLT'
 # Path to the MODIS Aqua source data location
 AQUA_BASE_SOURCE_PATH = '/MOLA'
+
+# file extension for modis input products
+MODIS_INPUT_FILENAME_EXTENSION = '.hdf'
 
 
 ##############################################################################
@@ -127,3 +131,21 @@ SENSOR_NAMES = {
     'MYD': 'aqua',
     'MOD': 'terra'
 }
+
+'''DAVID, MOVE THESE TO SENSOR.PY AS A CONSTANT'''
+'''Default pixel sizes based on the input products'''
+DEFAULT_PIXEL_SIZE = {
+    '09A1': 0,
+    '09GA': 0,
+    '09GQ': 0,
+    '09Q1': 0,
+    '13Q1': 250,
+    '13A3': 1000,
+    '13A2': 1000,
+    '13A1': 500,
+    'LE7': 30,
+    'LT4': 30,
+    'LT5': 30   
+}
+
+
