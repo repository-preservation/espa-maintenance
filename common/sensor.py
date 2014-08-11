@@ -2,7 +2,8 @@ import settings
 import re
 import os
 import util
-import datetime
+import httplib
+import xmlrpclib
 
 class SensorProduct(object):
 
@@ -10,32 +11,29 @@ class SensorProduct(object):
     input_file_path = None
     
     # full path where the output file should be placed
-    output_file_path = None
+    #output_file_path = None
     
     # http, ftp, scp, file, etc
-    input_scheme = None    
-    input_host = None
-    input_port = None
+    #input_scheme = None    
+    #input_host = None
+    #input_port = None
     input_file_name = None
-    input_user = None
-    input_pw = None
-    input_url = None
+    #input_user = None
+    #input_pw = None
+    #input_url = None
     
     # http, ftp, scp, file, etc
-    output_scheme = None
-    output_host = None    
-    output_port = None
-    output_file_name = None
-    output_user = None
-    output_pw = None
-    output_url = None
+    #output_scheme = None
+    #output_host = None    
+    #output_port = None
+    #output_file_name = None
+    #output_user = None
+    #output_pw = None
+    #output_url = None
   
     # landsat sceneid, modis tile name, aster granule id, etc.
     product_id = None
-    
-    # landsat l1t, modis 09A1, 09A2, etc.
-    product_code = None
-    
+        
     # lt5, le7, mod, myd, etc
     sensor_code = None
     
@@ -60,16 +58,16 @@ class SensorProduct(object):
         self.sensor_code = product_id[0:3]
         self.sensor_name = settings.SENSOR_NAMES[self.sensor_code.upper()]
         
-    # subclasses should override, construct and return string    
+    # subclasses should override, construct and return True/False    
     def input_exists(self):
         raise NotImplementedError()
         
-    # subclasses should override, construct and return string
-    def output_exists(self):
-        raise NotImplementedError()
+    # subclasses should override, construct and return True/False
+    #def output_exists(self):
+    #    raise NotImplementedError()
     
-    def get_input_product(self, target_directory):
-        raise NotImplementedError()
+    #def get_input_product(self, target_directory):
+    #    raise NotImplementedError()
         
          
 class Modis(SensorProduct):
@@ -99,13 +97,9 @@ class Modis(SensorProduct):
         self.vertical = hv[4:6]
         self.version = parts[3]
         self.date_produced = parts[4]
-        
-        self.product_code = self.short_name[3:7]
-        
-    def build_input_file_path(self, base_source_path):
-        print(self.year)
-        print(self.doy)
-        
+                
+    def _build_input_file_path(self, base_source_path):
+               
         date = util.date_from_doy(self.year, self.doy)
 
         path_date = "%s.%s.%s" % (date.year, 
@@ -117,18 +111,40 @@ class Modis(SensorProduct):
             '.'.join([self.short_name.upper(), self.version.upper()]),
             path_date.upper(),
             self.input_file_name)
+            
+    def input_exists(self):
+        
+        host = settings.MODIS_INPUT_CHECK_HOST
+        port = settings.MODIS_INPUT_CHECK_PORT
+                
+        try:            
+            conn = httplib.HTTPConnection(host, port)
 
+            conn.request("HEAD", self.input_file_path)
+            
+            resp = conn.getresponse()
+            
+            if resp.status == 200:
+                return True
+            else:
+                return False
+        except Exception, e:
+            print ("Exception checking inputs:%s" % e)
+            return False
+        finally:
+            conn.close()
+                
         
 class Terra(Modis):
     def __init__(self, product_id):
         super(Terra, self).__init__(product_id)
-        self.build_input_file_path(settings.TERRA_BASE_SOURCE_PATH)
+        self._build_input_file_path(settings.TERRA_BASE_SOURCE_PATH)
         
         
 class Aqua(Modis):
     def __init__(self, product_id):
         super(Aqua, self).__init__(product_id)
-        self.build_input_file_path(settings.AQUA_BASE_SOURCE_PATH)
+        self._build_input_file_path(settings.AQUA_BASE_SOURCE_PATH)
         
                
 class ModisTerra09A1(Terra):
@@ -258,9 +274,27 @@ class Landsat(SensorProduct):
             self.row,
             self.year,
             self.input_file_name)
+            
+    def input_exists(self):
+        ''' Checks the existence of a landsat tm/etm+ scene on the online
+        cache via call to the ESPA scene cache'''
         
-
-    
+        host = settings.LANDSAT_INPUT_CHECK_HOST
+        port = settings.LANDSAT_INPUT_CHECK_PORT
+        base_url = settings.LANDSAT_INPUT_CHECK_BASE_PATH
+        
+        url = ''.join(["http://", host, ":", str(port), base_url])
+        server = xmlrpclib.ServerProxy(url)
+        
+        result = server.scenes_exist([self.product_id])
+        nlaps = server.is_nlaps([self.product_id])
+        
+        if self.product_id in result and not self.product_id in nlaps:
+            return True
+        else:
+            return False
+               
+               
 class LandsatTM(Landsat):
     def __init__(self, product_id):
         super(LandsatTM, self).__init__(product_id)

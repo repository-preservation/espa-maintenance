@@ -21,14 +21,13 @@ LANDSAT_BASE_SOURCE_PATH = '/data/standard_l1t'
 #filename extension for landsat input products
 LANDSAT_INPUT_FILENAME_EXTENSION = '.tar.gz'
 
-#url scheme for landsat input check urls
-LANDSAT_INPUT_CHECK_URL_SCHEME = 'http'
-
 #host for landsat input checks
 LANDSAT_INPUT_CHECK_HOST = 'edclpdsftp.cr.usgs.gov'
 
 #port for landsat input checks
 LANDSAT_INPUT_CHECK_PORT = 50000
+
+LANDSAT_INPUT_CHECK_BASE_PATH = "/RPC2"
 
 
 ##############################################################################
@@ -42,14 +41,13 @@ AQUA_BASE_SOURCE_PATH = '/MOLA'
 # file extension for modis input products
 MODIS_INPUT_FILENAME_EXTENSION = '.hdf'
 
-#url scheme for landsat input check urls
-MODIS_INPUT_CHECK_URL_SCHEME = 'http'
-
 #host for landsat input checks
 MODIS_INPUT_CHECK_HOST = 'e4ftl01.cr.usgs.gov'
 
 #port for landsat input checks
 MODIS_INPUT_CHECK_PORT = 80
+
+MODIS_INPUT_CHECK_BASE_PATH = "/"
 
 
 ##############################################################################
