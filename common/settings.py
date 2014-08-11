@@ -18,7 +18,18 @@ HADOOP_TIMEOUT = 172800000  # which is 2 days
 # Path to the Landsat L1T source data location
 LANDSAT_BASE_SOURCE_PATH = '/data/standard_l1t'
 
+#filename extension for landsat input products
 LANDSAT_INPUT_FILENAME_EXTENSION = '.tar.gz'
+
+#url scheme for landsat input check urls
+LANDSAT_INPUT_CHECK_URL_SCHEME = 'http'
+
+#host for landsat input checks
+LANDSAT_INPUT_CHECK_HOST = 'edclpdsftp.cr.usgs.gov'
+
+#port for landsat input checks
+LANDSAT_INPUT_CHECK_PORT = 50000
+
 
 ##############################################################################
 # Used in modis.py
@@ -30,6 +41,15 @@ AQUA_BASE_SOURCE_PATH = '/MOLA'
 
 # file extension for modis input products
 MODIS_INPUT_FILENAME_EXTENSION = '.hdf'
+
+#url scheme for landsat input check urls
+MODIS_INPUT_CHECK_URL_SCHEME = 'http'
+
+#host for landsat input checks
+MODIS_INPUT_CHECK_HOST = 'e4ftl01.cr.usgs.gov'
+
+#port for landsat input checks
+MODIS_INPUT_CHECK_PORT = 80
 
 
 ##############################################################################
@@ -132,7 +152,6 @@ SENSOR_NAMES = {
     'MOD': 'terra'
 }
 
-'''DAVID, MOVE THESE TO SENSOR.PY AS A CONSTANT'''
 '''Default pixel sizes based on the input products'''
 DEFAULT_PIXEL_SIZE = {
     '09A1': 0,
@@ -146,6 +165,24 @@ DEFAULT_PIXEL_SIZE = {
     'LE7': 30,
     'LT4': 30,
     'LT5': 30   
+}
+
+''' Constant dictionary to hold the cache keys used in Django
+ caching/memcached'''
+CACHE_KEYS = {
+
+
+}
+
+
+#LOGGING DEFINITIONS
+
+LOGGING_CONFIG = {}
+
+LOGGER_ALIAS = {
+    'PROCESSING': 'processing',
+    'WEB': 'web',
+    'CRON': 'cron'
 }
 
 
