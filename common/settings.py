@@ -141,7 +141,7 @@ BAND_TYPE_STAT_RANGES = {
 
 '''Resolves system-wide identification of sensor name based on three letter
  prefix
-''' 
+'''
 SENSOR_NAMES = {
     'LE7': 'etm',
     'LT4': 'tm',
@@ -162,7 +162,7 @@ DEFAULT_PIXEL_SIZE = {
     '13A1': 500,
     'LE7': 30,
     'LT4': 30,
-    'LT5': 30   
+    'LT5': 30
 }
 
 ''' Constant dictionary to hold the cache keys used in Django
@@ -182,5 +182,3 @@ LOGGER_ALIAS = {
     'WEB': 'web',
     'CRON': 'cron'
 }
-
-
