@@ -2,81 +2,54 @@
 import logging
 import logging.config
 
-
-LOG_CONFIG = {
-    'version': 1,
-    'disable_existing_loggers': True,
-    'formatters': {
-        'espa.standard': {
-            'format': ('%(asctime)s.%(msecs)03d %(process)d'
-                       ' %(levelname)-8s'
-                       ' %(filename)s:%(lineno)d:%(funcName)s'
-                       ' -- %(message)s'),
-            'datefmt': '%Y-%m-%d %H:%M:%S'
-        },
-        'espa.thread': {
-            'format': ('%(asctime)s.%(msecs)03d %(process)d'
-                       ' %(levelname)-8s'
-                       ' %(filename)s:%(lineno)d:%(funcName)s'
-                       ' %(thread)d'
-                       ' -- %(message)s'),
-            'datefmt': '%Y-%m-%d %H:%M:%S'
-        }
-    },
-    'handlers': {
-        'processing': {
-            'level': 'DEBUG',
-            'class': 'logging.FileHandler',
-            'formatter': 'espa.standard',
-            'filename': '/tmp/espa_processing.log',
-            'mode': 'a'
-        },
-        'web': {
-            'level': 'DEBUG',
-            'class': 'logging.FileHandler',
-            'formatter': 'espa.thread',
-            'filename': '/tmp/espa_web.log',
-            'mode': 'a'
-        }
-    },
-    'loggers': {
-        'processing': {
-            'level': 'INFO',
-            'propagate': False,
-            'handlers': ['processing']
-        },
-        'web': {
-            'level': 'INFO',
-            'propagate': False,
-            'handlers': ['web']
-        },
-        'django.request': {
-            'level': 'ERROR',
-            'propagate': False,
-            'handlers': ['web'],
-        }
-    }
-}
+import rdd_settings
 
 
-def configure_log_handler(handler_name=None, filename=None):
+class EspaLogger(object):
+    configured = False
 
-    if not handler_name:
-        raise Exception("You must specify a handler_name")
+    @classmethod
+    def configure(cls, order, scene):
 
-    if not filename:
-        raise Exception("You must specify a filename for the log")
+        if not cls.configured:
+            # Setup a basic logger so that we can use it for errors
+            logging.basicConfig(level=logging.DEBUG)
 
-    LOG_CONFIG['handlers'][handler_name]['filename'] = ('/tmp/espa_%s.log'
-                                                       % filename)
+            # Figure out the log path and name
+            filename = '/tmp/espa-%s-%s-jobdebug.log' % (order, scene)
 
-def configure_logger(logger_name=None, level='INFO'):
+            # Get the name of the handler to be modified
+            handler_name = rdd_settings.LOGGER_ALIAS['PROCESSING']
 
-    if not logger_name:
-        raise Exception("You must specify a logger_name")
+            # Get the handler
+            config_handler = rdd_settings.LOG_CONFIG['handlers'][handler_name]
 
-    LOG_CONFIG['loggers'][logger_name]['level'] = level
+            # Set the filename
+            config_handler['filename'] = filename
 
+            # Now configure the python logging module
+            logging.config.dictConfig(rdd_settings.LOG_CONFIG)
 
-def configure_loggers():
-    logging.config.dictConfig(LOG_CONFIG)
+            # Let the class know we are configured
+            cls.configured = True
+
+        return logging.getLogger(rdd_settings.LOGGER_ALIAS['PROCESSING'])
+
+    @classmethod
+    def get_logfile(cls, logger_name):
+        pass
+
+    @classmethod
+    def delete_logfile(cls, logger_name):
+        pass
+
+    @classmethod
+    def read_logfile(cls, logger_name):
+        pass
+
+    @classmethod
+    def getLogger(cls, logger_name):
+        if not cls.configured:
+            raise Exception("EspaLogger not configured you dummy")
+
+        return logging.getLogger(logger_name)
