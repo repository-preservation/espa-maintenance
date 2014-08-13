@@ -222,7 +222,7 @@ def package_product(source_directory, destination_directory, product_name):
         output = output.split()
         cksum_value = "%s %s %s" \
             % (str(output[0]), str(output[1]), str(cksum_prod_filename))
-        log("Generating cksum:%s" % cksum_value)
+        log("Generating cksum: %s" % cksum_value)
 
         cksum_full_path = os.path.join(destination_directory, cksum_filename)
 
