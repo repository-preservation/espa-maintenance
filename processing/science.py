@@ -120,7 +120,7 @@ def validate_landsat_parameters(parms):
             'include_sr_browse', 'include_sr_nbr', 'include_sr_nbr2',
             'include_sr_ndvi', 'include_sr_ndmi', 'include_sr_savi',
             'include_sr_msavi', 'include_sr_evi',
-            'include_swe', 'include_solr_index']
+            'include_dswe', 'include_solr_index']
 
     for key in keys:
         if not parameters.test_for_parameter(options, key):
@@ -355,7 +355,8 @@ def build_landsat_science_products(parms):
                 or options['include_sr_savi']
                 or options['include_sr_msavi']
                 or options['include_sr_evi']
-                or options['include_swe']):
+                or options['include_cfmask']
+                or options['include_dswe']):
 
             cmd = ' '.join(['do_ledaps.py', '--xml', xml_filename])
             log(' '.join(['LEDAPS COMMAND:', cmd]))
@@ -428,7 +429,7 @@ def build_landsat_science_products(parms):
 
         # --------------------------------------------------------------------
         # Create a DEM
-        if options['include_swe']:
+        if options['include_dswe']:
             # Does not use our internal raw binary XML format, because it is
             # executing code which comes from Landsat to generate the DEM and
             # because we do not distribute DEM's.
@@ -500,7 +501,7 @@ def build_landsat_science_products(parms):
 
 #        # --------------------------------------------------------------------
 #        # Generate Surface Water Extent product
-#        if options['include_swe']:
+#        if options['include_dswe']:
 #            # TODO - Needs modification for XML
 #            cmd = ' '.join(['do_surface_water_extent.py',
 #                            '--metafile', metadata_filename,
