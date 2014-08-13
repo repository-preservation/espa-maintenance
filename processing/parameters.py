@@ -183,8 +183,8 @@ def add_science_product_parameters(parser):
                         default=False,
                         help="build SR EVI index")
 
-    parser.add_argument('--include_swe',
-                        action='store_true', dest='include_swe',
+    parser.add_argument('--include_dswe',
+                        action='store_true', dest='include_dswe',
                         default=False,
                         help="build surface water extent product")
 
