@@ -247,7 +247,7 @@ def process(parms):
             or options['include_sr_savi']
             or options['include_sr_msavi']
             or options['include_sr_evi']
-            or options['include_swe']
+            or options['include_dswe']
             or options['include_solr_index']):
 
         # Build the requested science products
