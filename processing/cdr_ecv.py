@@ -253,6 +253,11 @@ def process(parms):
         # Build the requested science products
         xml_filename = science.build_landsat_science_products(parms)
 
+        # Cleanup all the intermediate non-products and the science products
+        # not requested
+        # (Before the warp so we don't warp stuff that will not be delivered)
+        science.remove_landsat_science_products(parms, xml_filename)
+
         # Reproject the data for each science product, but only if necessary
         if (options['reproject']
                 or options['resize']
@@ -278,11 +283,6 @@ def process(parms):
             # Generate the stats for each file
             statistics.generate_statistics(options['work_directory'],
                                            files_to_search_for)
-
-        # Cleanup all the intermediate non-products and the science products
-        # not requested
-        # (Before the warp so we don't warp stuff that will not be delivered)
-        science.remove_landsat_science_products(parms, xml_filename)
 
         # Convert to the user requested output format or leave it in ESPA ENVI
         # We do all of our processing using ESPA ENVI format so it can be
