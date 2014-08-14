@@ -258,3 +258,34 @@ def get_cache_hostname():
                 raise Exception("No online cache hosts available...")
 
     return get_hostname()
+
+
+# ============================================================================
+def get_input_hostname(sensor):
+    '''
+    Description:
+      Determine the input hostname to use for the sensors data.
+
+    Note:
+      Today all landsat source products use the landsat online cache which is
+      provided by get_cache_hostname.
+    '''
+
+    if sensor in ['terra', 'aqua']:
+        return settings.MODIS_INPUT_HOSTNAME
+
+    return get_cache_hostname()
+
+
+# ============================================================================
+def get_output_hostname():
+    '''
+    Description:
+      Determine the output hostname to use for espa products.
+
+    Note:
+      Today all output products use the landsat online cache which is provided
+      by get_cache_hostname.
+    '''
+
+    return get_cache_hostname()
