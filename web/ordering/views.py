@@ -1,5 +1,8 @@
 import core
 import json
+import collections
+from common import sensor
+
 
 import django.contrib.auth
 
@@ -186,7 +189,7 @@ class Index(AbstractView):
 
 class NewOrder(AbstractView):
     template = 'new_order.html'
-    scenelist = None
+    input_product_list = None
 
 
     def _get_order_description(self, parameters):
@@ -217,38 +220,39 @@ class NewOrder(AbstractView):
 
         return defaults
 
-    def _get_scenelist(self, request):
+    def _get_input_product_list(self, request):
                
-        if not self.scenelist:    
-            if 'scenelist' in request.FILES:
-                self.scenelist = request.FILES['scenelist'].read().split('\n')
+        if not self.input_product_list:    
+            if 'input_product_list' in request.FILES:
+                _ipl = request.FILES['input_product_list'].read().split('\n')
+                self.input_product_list = _ipl
 
 
-        retval = None
+        retval = collections.namedtuple("InputProductListResult",
+                                        ['input_products', 'not_implemented'])
+        retval.input_products = list()
+        retval.not_implemented = list()
         
-        if self.scenelist:
-            for line in self.scenelist:
+        if self.input_product_list:
+            for line in self.input_product_list:
                 
-                line = line.strip()
+                line = line.strip().upper()
                 
-                if (line.startswith("LE7") 
-                    or line.startswith("LT4") 
-                    or line.startswith("LT5")):
-                        
-                    if retval is None:
-                        retval = list()
-                        
-                    retval.append(line)
+                try:
+                    s = sensor.instance(line)
+                    retval.input_products.append(s)
+                except sensor.ProductNotImplemented, ni:
+                    retval.not_implemented.append(ni.product_id)
                             
         return retval
 
-    def _get_verified_scenelist(self, request):
-        sl = self._get_scenelist(request)
+    def _get_verified_input_product_list(self, request):
+        ipl = self._get_input_product_list(request)
         
-        if sl:
-            payload = {'scenelist': sl}
-            slv = validators.SceneListValidator(payload)
-            return list(slv.get_verified_scene_set(sl))
+        if ipl:
+            payload = {'input_product_list': ipl}
+            iplv = validators.InputProductListValidator(payload)
+            return list(iplv.get_verified_input_product_set(ipl))
         else:
             return None
 
@@ -284,8 +288,19 @@ class NewOrder(AbstractView):
         #in order for the files to be uploaded
 
         validator_parameters = {}
+        
+        # coerce the request.POST to be a normal Python dictionary
         validator_parameters = dict(request.POST)
-        validator_parameters['scenelist'] = self._get_scenelist(request)
+        
+        # retrieve the namedtuple for the input product list
+        ipl = self._get_input_product_list(request)
+        
+        # send the validator only the items in the list that could actually 
+        # be instantiated as a sensor.  The other tuple item not_implemented
+        # is being ignored unless we want to tell the users about all the 
+        # junk they included in their input file
+        validator_parameters['input_products'] = ipl.input_products
+        
         validator = validators.NewOrderValidator(validator_parameters)
                 
         if validator.errors():
@@ -324,11 +339,13 @@ class NewOrder(AbstractView):
                                        sort_keys=True,
                                        indent=4)
 
+            ipl = self._get_verified_input_product_list(request)
+            desc = self._get_order_description(request.POST)
             order = Order.enter_new_order(request.user.username,
                                           'espa',
-                                          self._get_verified_scenelist(request),
+                                          ipl,
                                           option_string,
-                                          note=self._get_order_description(request.POST)
+                                          note=desc
                                           )
             core.send_initial_email(order)
 

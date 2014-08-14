@@ -14,7 +14,6 @@ from django.contrib.auth.models import User
 from django.conf import settings
 from django.db import transaction
 
-
 import json
 import datetime
 import lta
@@ -121,7 +120,7 @@ def send_completion_email(email, ordernum, readyscenes=[]):
     for r in readyscenes:
         m.append("%s\n" % r)
 
-    #build the email message with the scenelist tacked onto it
+    #build the email message with the input_product_list tacked onto it
     email_msg = ''.join(m)
 
     #for r in readyscenes:
@@ -147,64 +146,28 @@ def get_scene_input_path(sceneid):
     return scene.getOnlineCachePath()
 
 
-def scenecache_is_alive(url='http://edclpdsftp.cr.usgs.gov:50000/RPC2'):
-    """Determine if the specified url has an http server
-    that accepts POST calls
-
-    Keyword args:
-    url -- The url of the server to check
-
-    Return:
-    True -- If the contacted server is alive and accepts POST calls
-    False -- If the server does not accept POST calls or the
-             server could not be contacted
-    """
-
-    try:
-        return urllib2.urlopen(url, data="").getcode() == 200
-    except Exception, e:
-        if settings.DEBUG:
-            print("Scene cache could not be contacted")
-            print(e)
-        return False
-
-
-def get_xmlrpc_proxy():
-    """Return an xmlrpc proxy to the caller for the scene cache
-
-    Returns -- An xmlrpclib ServerProxy object
-    """
-    url = 'http://edclpdsftp.cr.usgs.gov:50000/RPC2'
-    #url = os.environ['ESPA_SCENECACHE_URL']
-    if scenecache_is_alive(url):
-        return xmlrpclib.ServerProxy(url)
-    else:
-        msg = "Could not contact scene_cache at %s" % url
-        raise RuntimeError(msg)
-
-
-def scenes_on_cache(scenelist):
+def scenes_on_cache(input_product_list):
     """Proxy method call to determine if the scenes in question are on disk
 
     Keyword args:
-    scenelist -- A Python list of scene identifiers
+    input_product_list -- A Python list of scene identifiers
 
     Returns:
     A subset of scene identifiers
     """
-    return get_xmlrpc_proxy().scenes_exist(scenelist)
+    return get_xmlrpc_proxy().scenes_exist(input_product_list)
 
 
-def scenes_are_nlaps(scenelist):
+def scenes_are_nlaps(input_product_list):
     """Proxy method call to determine if the scenes are nlaps scenes
 
     Keyword args:
-    scenelist -- A Python list of scene identifiers
+    input_product_list -- A Python list of scene identifiers
 
     Return:
     A subset of scene identifiers
     """
-    return get_xmlrpc_proxy().is_nlaps(scenelist)
+    return get_xmlrpc_proxy().is_nlaps(input_product_list)
 
 
 @transaction.atomic

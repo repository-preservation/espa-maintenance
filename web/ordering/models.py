@@ -69,7 +69,7 @@ class Order(models.Model):
                                            blank=True,
                                            null=True,
                                            db_index=True)
-                                           
+
     completion_email_sent = models.DateTimeField('completion_email_sent',
                                                  blank=True,
                                                  null=True,
@@ -438,24 +438,31 @@ class Configuration(models.Model):
         except:
             return ''
 
-            
+
 class DownloadSection(models.Model):
+    ''' Persists grouping of download items and controls appearance order'''
     title = models.CharField('name', max_length=255)
     text = models.TextField('section_text')
     display_order = models.IntegerField()
     visible = models.BooleanField('visible')
 
-            
+
 class Download(models.Model):
     section = models.ForeignKey(DownloadSection)
     target_name = models.CharField('target_name', max_length=255)
     target_url = models.URLField('target_url', max_length=255)
-    checksum_name = models.CharField('checksum_name', max_length=255, blank=True, null=True)
-    checksum_url = models.URLField('checksum_url', max_length=255, blank=True, null=True)
+    checksum_name = models.CharField('checksum_name',
+                                     max_length=255,
+                                     blank=True,
+                                     null=True)
+    checksum_url = models.URLField('checksum_url',
+                                   max_length=255,
+                                   blank=True,
+                                   null=True)
     readme_text = models.TextField('readme_text', blank=True, null=True)
     display_order = models.IntegerField()
     visible = models.BooleanField('visible')
-    
+
 
 class Tag(models.Model):
     tag = models.CharField('tag', max_length=255)
@@ -463,15 +470,15 @@ class Tag(models.Model):
     last_updated = models.DateTimeField('last_updated',
                                         blank=True,
                                         null=True)
-                                        
+
     def __unicode__(self):
         return self.tag
-                                        
+
     def save(self, *args, **kwargs):
         self.last_updated = datetime.datetime.now()
-        super(Tag, self).save(*args, **kwargs)                         
-        
-    
+        super(Tag, self).save(*args, **kwargs)
+
+
 class DataPoint(models.Model):
     tags = models.ManyToManyField(Tag)
     key = models.CharField('key', max_length=250)
@@ -481,15 +488,15 @@ class DataPoint(models.Model):
     last_updated = models.DateTimeField('last_updated',
                                         blank=True,
                                         null=True)
-                                        
+
     def __unicode__(self):
         return "%s:%s" % (self.key, self.command)
-    
+
     def save(self, *args, **kwargs):
         self.last_updated = datetime.datetime.now()
-        super(DataPoint, self).save(*args, **kwargs) 
-    
-    @staticmethod        
+        super(DataPoint, self).save(*args, **kwargs)
+
+    @staticmethod
     def get_data_points(tagnames=[]):
         js = {}
 
@@ -497,8 +504,8 @@ class DataPoint(models.Model):
             dps = DataPoint.objects.filter(enable=True, tags__tag__in=tagnames)
         else:
             dps = DataPoint.objects.filter(enable=True)
-            
+
         for d in dps:
             js[d.key] = d.command
-            
+
         return json.dumps(js)

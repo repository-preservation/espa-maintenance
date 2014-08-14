@@ -154,7 +154,7 @@
 	}
 	
 		
-	input#scenelist {
+	input#input_product_list {
 	    margin-left:40px;
 	}
 	
@@ -179,12 +179,12 @@
 	    padding-right:10px;
 	}
 
-     h5#scenelist {
+     h5#input_product_list {
       margin:0 auto;
       padding:20px;
      }
 
-     #scenelist_box {
+     #input_product_list_box {
         width:650px;
         margin-top:40px;
         margin-bottom:15px;
@@ -196,7 +196,7 @@
 	   overflow:hidden; 
      }
 
-    input#scenelist {
+    input#input_product_list {
        max-width:90%;
        width:90%;
     }
@@ -260,7 +260,7 @@
 	    </div>
          <div class="product_boxbody"> 
              <div class="inputitem">
-             <input type="file" id="scenelist" name="scenelist">
+             <input type="file" id="input_product_list" name="input_product_list">
              </div>
          </div>
      </div>
@@ -519,7 +519,7 @@
        var select_target_projection = "#select_target_projection";
        var selected_target_projection = select_target_projection + ":selected";
 
-       var scenelist = "#scenelist";
+       var input_product_list = "#input_product_list";
 
        var image_extents = $("#image_extents");
        var minx = $("#minx");
@@ -569,7 +569,7 @@
            $(products).click(function(item) {
 
                if ($(checked_products).length > 0) {
-                   if ($(scenelist).val().length > 0) {
+                   if ($(input_product_list).val().length > 0) {
                        $(submit_button).prop("disabled", false);
                    }
                }
@@ -581,11 +581,11 @@
 
            /*******************************************************************
                Event handler to enable & disable the submit button.
-               Only enabled if there are products and scenesselected.
+               Only enabled if there are products and scenes selected.
            *******************************************************************/
-          $(scenelist).change(function(item) {
+          $(input_product_list).change(function(item) {
               
-              if ( $(scenelist).val().length > 0 ) {
+              if ( $(input_product_list).val().length > 0 ) {
                    if ( $(checked_products).length > 0 ) {     
                        $(submit_button).prop("disabled", false);
                    }

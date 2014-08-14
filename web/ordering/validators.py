@@ -3,88 +3,123 @@ import lta
 import core
 from models import Order
 
+from common import sensor
 
-class SceneListValidator(Validator):
+
+class ModisProductListValidator(Validator):
     '''Validates that a scene list has been provided and it contains at
     least one scene to process'''
 
-    def get_verified_scene_set(self, scenelist):
-        __scenelist = list()
-
-        for line in self._get_scenes_from_list(scenelist):
-            if self._line_header_ok(line):
-                __scenelist.append(line)
-
-        valid_scenes = list()
-        if len(__scenelist) > 0:
-            client = lta.OrderWrapperServiceClient()
-            verified = client.verify_scenes(list(__scenelist))
-
-            for scene, valid in verified.iteritems():
-                if valid:
-                    valid_scenes.append(scene)
-
-        return set(valid_scenes)
-
-
-    def _get_scenes_from_list(self, scenelist):
-        sl = list()
-        if scenelist:
-            for line in scenelist:
-                line = line.strip()
-            
-                if line.find('.tar.gz') != -1:
-                    line = line[0:line.index('.tar.gz')]
-                if len(line) > 0:
-                    sl.append(line)
-        return sl
-
-    def _line_header_ok(self, line):
-        return len(line) == 21 and \
-            (line.startswith("LT") or line.startswith("LE"))
+    def get_verified_input_product_set(self, input_products):
+        valid_products = None
+        for product in input_products:
+            if product.input_exists():
+                valid_products.append(product)
+        return set(valid_products)
 
     def errors(self):
-        '''Looks through the scenelist if present and determines if there
+        '''Looks through the input_product_list if present and determines if there
         are valid scenes to process'''
 
-        if not 'scenelist' in self.parameters:
-            return super(SceneListValidator, self).errors()
+        modis_products = list()
+
+        if not 'input_products' in self.parameters:
+            return super(ModisProductListValidator, self).errors()
         else:
-            scenes = self._get_scenes_from_list(self.parameters['scenelist'])
 
-            if len(scenes) == 0:
-                self.add_error('scenelist', ['No scenes found in order file',])
-            else:
-                prev_error = False
+            for product in self.parameters['input_products']:
+                if isinstance(product, sensor.Modis):
+                    modis_products.append(product)
 
-                for line in scenes:
-                    if not self._line_header_ok(line):
-                        prev_error = True
-                        msg = "%s is an invalid TM or ETM scene id" % line
-                        self.add_error('scenelist', [msg,])
-
-                if not prev_error:
-                    valid = self.get_verified_scene_set(scenes)
+            if len(modis_products) > 0:
+                
+                valid = self.get_verified_input_product_set(modis_products)
                                         
-                    if len(valid) == 0:
-                        msg_parts = []
-                        msg_parts.append("The following scenes were not found")
-                        msg_parts.append(" in the Landsat inventory:\n")
-                        for s in scenes:
-                            msg_parts.append("\t%s\n" % s)
-                        msg = ''.join(msg_parts)
-                        self.add_error('scenelist', [msg,])
-                    else:
+                if len(valid) == 0:
+                    msg_parts = []
+                    msg_parts.append("The following Modis tiles were not ")
+                    msg_parts.append("found in the datapool:\n")
+                    
+                    for mp in modis_products:
+                        msg_parts.append("\t%s\n" % mp.product_id)
                         
-                        difference = set(scenes) - set(valid)
+                    msg = ''.join(msg_parts)
+                    
+                    self.add_error('input_products', [msg,])
+                else:
+                    prod_ids = [p.product_id for p in modis_products]
+                    valid_ids = [v.product_id for v in valid]
+                    difference = set(prod_ids) - set(valid_ids)
 
-                        if len(difference) > 0:
-                            for diff in difference:
-                                msg = ("%s not found in Landsat inventory" 
-                                        % diff)
-                                self.add_error('scenelist', [msg,])
+                    if len(difference) > 0:
+                        for diff in difference:
+                            msg = ("%s not found in Modis datapool" % diff)
+                            self.add_error('input_products', [msg,])
 
-        return super(SceneListValidator, self).errors()
+        return super(ModisProductListValidator, self).errors()
+                
+
+class LandsatProductListValidator(Validator):
+    '''Validates that a scene list has been provided and it contains at
+    least one scene to process'''
+    
+    def get_verified_input_product_set(self, products):
+
+        valid_products = list()
+        
+        if len(products) > 0:
+            
+            client = lta.OrderWrapperServiceClient()
+            
+            request = list()
+            for p in products:
+                if isinstance(p, sensor.Landsat):
+                    request.append(p.product_id)
+            
+            verified = client.verify_scenes(request)
+
+            for product_name, valid in verified.iteritems():
+                if valid:
+                    valid_products.append(product_name)
+
+        return set(valid_products)
+
+    def errors(self):
+        '''Looks through the input_product_list if present and determines if there
+        are valid scenes to process'''
+
+        landsat_products = list()
+
+        if not 'input_products' in self.parameters:
+            return super(LandsatProductListValidator, self).errors()
+        else:
+            
+            for product in self.parameters['input_products']:
+                if isinstance(product, sensor.Landsat):
+                    landsat_products.append(product)
+
+            if len(landsat_products) > 0:
+                
+                valid = self.get_verified_input_product_set(landsat_products)
+                                        
+                if len(valid) == 0:
+                    msg_parts = []
+                    msg_parts.append("The following scenes were not found")
+                    msg_parts.append(" in the Landsat inventory:\n")
+                    for lp in landsat_products:
+                        msg_parts.append("\t%s\n" % lp)
+                    msg = ''.join(msg_parts)
+                    self.add_error('input_products', [msg,])
+                else:
+                        
+                    difference = set(landsat_products) - set(valid)
+
+                    if len(difference) > 0:
+                        for diff in difference:
+                            msg = ("%s not found in Landsat inventory" % diff)
+                            self.add_error('input_products', [msg,])
+
+        return super(LandsatProductListValidator, self).errors()
 
 
 class ProductIsSelectedValidator(Validator):
@@ -581,17 +616,30 @@ class NewOrderFilesValidator(Validator):
         super(NewOrderFilesValidator, self).__init__(parameters,
                                                      child_validators,
                                                      name)
-
-        self.add_child(SceneListValidator(parameters))
+            
+        if not 'input_products' in self.parameters:
+            return super(NewOrderFilesValidator, self).errors()
+        
+        for product in self.parameters['input_products']:
+            if not isinstance(product, sensor.SensorProduct):
+                msg = list()
+                msg.append("parameters['input_products'] must be of type ")
+                msg.append("list(common.SensorProduct())\n")
+                msg.append("Incorrect type value was:%s" % product)
+                raise TypeError(''.join(msg))
+                
+        self.add_child(LandsatProductListValidator(parameters))
+        self.add_child(ModisProductListValidator(parameters))
 
     def errors(self):
         '''Validates a file was provided on upload and delegates calls to
-        its child, SceneListValidator'''
+        its children, *ProductListValidator'''
 
-        msg = ''.join(['Please provide a scene list file with at least',
-                 ' one scene for processing'])
+        msg = ''.join(['Please provide an input product list with at least',
+                 ' one product for processing'])
 
-        if not 'scenelist' in self.parameters:
+        if not 'input_products' in self.parameters \
+            and len(self.parameters['input_products']) > 0:
             self.add_error('files', [msg, ])
 
         return super(NewOrderFilesValidator, self).errors()
@@ -637,11 +685,12 @@ class NewOrderValidator(Validator):
 
     def __init__(self, parameters, child_validators=None, name=None):
 
-        # need this to coerce Django's QueryDict into a normal dict.
-        # QueryDict provides every value as a list.
-        # The only item that should be a list is the scene list
+        # this is necessary because Django usually includes all the normal
+        # single value parameter values as a tuple.  The only thing coming
+        # in that should be a list is input_products
+        # This method will work fine for a normal dictionary as well
         for key,item in parameters.iteritems():
-            if type(item) is list and key is not 'scenelist' and len(item) > 0:
+            if type(item) is list and key is not 'input_products' and len(item) > 0:
                 parameters[key] = item[0]
 
         super(NewOrderValidator, self).__init__(parameters,
