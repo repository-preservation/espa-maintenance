@@ -60,7 +60,7 @@ def run_orders():
     if (dev_cache_hostname not in os.environ
             or os.environ.get(dev_cache_hostname) is None
             or len(os.environ.get(dev_cache_hostname)) < 1):
-        cache_host = util.get_cache_hostname()
+        cache_host = util.get_cache_hostname()  # MUST USE THIS TODAY
     else:
         cache_host = os.environ.get('DEV_CACHE_HOSTNAME')
 
