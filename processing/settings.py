@@ -76,12 +76,14 @@ MAX_DISTRIBUTION_ATTEMPTS = 5
 
 
 ##############################################################################
-# Used by util.py
+# Used by util.py and lpcs.py
 
 # List of hostnames to choose from for the access to the online cache
 # 140 is here twice so the load is 2/3 + 1/3.  machines are mismatched
 ESPA_CACHE_HOST_LIST = ['edclxs67p', 'edclxs140p', 'edclxs140p']
-# Can override this by setting the environment variable DEV_CACHE_HOSTNAME
+MODIS_INPUT_HOSTNAME = 'e4ftl01.cr.usgs.gov'
+# Developers can override these for LPCS by setting the environment variable
+# DEV_CACHE_HOSTNAME
 
 # Where to place the temporary scene processing log files
 LOGFILE_PATH = '/tmp'
