@@ -116,6 +116,7 @@ def validate_landsat_parameters(parms):
     options = parms['options']
 
     # Force these parameters to false if not provided
+    # They are the required includes for science product generation
     required_includes = ['include_cfmask', 'include_customized_source_data',
                          'include_dswe', 'include_solr_index',
                          'include_source_data', 'include_source_metadata',
@@ -123,8 +124,7 @@ def validate_landsat_parameters(parms):
                          'include_sr_msavi', 'include_sr_nbr',
                          'include_sr_nbr2', 'include_sr_ndmi',
                          'include_sr_ndvi', 'include_sr_savi',
-                         'include_sr_thermal', 'include_sr_toa',
-                         'include_statistics']
+                         'include_sr_thermal', 'include_sr_toa']
 
     for parameter in required_includes:
         if not parameters.test_for_parameter(options, parameter):
