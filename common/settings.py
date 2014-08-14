@@ -41,10 +41,10 @@ AQUA_BASE_SOURCE_PATH = '/MOLA'
 # file extension for modis input products
 MODIS_INPUT_FILENAME_EXTENSION = '.hdf'
 
-#host for landsat input checks
+#host for modis input checks
 MODIS_INPUT_CHECK_HOST = 'e4ftl01.cr.usgs.gov'
 
-#port for landsat input checks
+#port for modis input checks
 MODIS_INPUT_CHECK_PORT = 80
 
 MODIS_INPUT_CHECK_BASE_PATH = "/"
