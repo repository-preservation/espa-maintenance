@@ -537,6 +537,59 @@ def build_landsat_science_products(parms):
 
 
 # ============================================================================
+def build_modis_science_products(parms):
+    '''
+    Description:
+      Build all the requested science products for Modis data.
+
+    Note:
+      We get science products as the input, so the only thing really happening
+      here is generating a customized product for the statistics generation.
+    '''
+
+    # Keep a local options for those apps that only need a few things
+    options = parms['options']
+
+    # Change to the working directory
+    current_directory = os.getcwd()
+    os.chdir(options['work_directory'])
+
+    try:
+        # The format of MODIS data is HDF we are going to process using
+        # GeoTIFF for the time being
+        hdf_filename = glob.glob('*.hdf')[0]  # Should only be one file
+        xml_filename = hdf_filename.replace('.hdf', '.xml')
+
+        # Convert lpgs to espa first
+        # Call with deletion of source files
+        cmd = ['convert_modis_to_espa',
+               '--hdf', hdf_filename,
+               '--xml', xml_filename]
+        if not options['include_source_data']:
+            cmd.append('--del_src_files')
+
+        cmd = ' '.join(cmd)
+        log(' '.join(['CONVERT MODIS TO ESPA COMMAND:', cmd]))
+
+        output = ''
+        try:
+            output = util.execute_cmd(cmd)
+        except Exception, e:
+            raise ee.ESPAException(ee.ErrorCodes.reformat, str(e)), \
+                None, sys.exc_info()[2]
+        finally:
+            if len(output) > 0:
+                log(output)
+
+    finally:
+        # Change back to the previous directory
+        os.chdir(current_directory)
+
+    return xml_filename
+# END - build_modis_science_products
+
+
+# ============================================================================
 if __name__ == '__main__':
     '''
     Description:
