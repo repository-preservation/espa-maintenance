@@ -23,26 +23,31 @@ class LimitExceeded(PolicyViolation):
        pass
 
 
+class Policy(object):
+    
+    def check(self, username, input_products, product_options):
+        raise NotImplementedError()
+
 # Policies
-class DuplicateOrderPolicy(object):
+class DuplicateOrderPolicy(Policy):
     
     def check(self, username, input_products, product_options):
         pass
 
 
-class DailyOrderLimitPolicy(object):
+class DailyOrderLimitPolicy(Policy):
     
     def check(self, username, input_products, product_options):
         pass
 
     
-class WeeklyOrderLimitPolicy(object):
+class WeeklyOrderLimitPolicy(Policy):
     
     def check(self, username, input_products, product_options):
         pass
     
     
-class MonthlyOrderLimitPolicy(object):
+class MonthlyOrderLimitPolicy(Policy):
     
     def check(self, username, input_products, product_options):
         pass
