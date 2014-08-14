@@ -116,6 +116,8 @@ def validate_parameters(parms):
 
     for key in keys:
         if not parameters.test_for_parameter(options, key):
+            log("Warning: '%s' parameter missing defaulting to False"
+                % key)
             options[key] = False
 
     # Extract information from the scene string
@@ -130,7 +132,7 @@ def validate_parameters(parms):
 
     # Verify or set the source information
     if not parameters.test_for_parameter(options, 'source_host'):
-        options['source_host'] = util.get_cache_hostname()
+        options['source_host'] = util.get_input_hostname(sensor)
 
     if not parameters.test_for_parameter(options, 'source_username'):
         options['source_username'] = None
@@ -147,7 +149,7 @@ def validate_parameters(parms):
 
     # Verify or set the destination information
     if not parameters.test_for_parameter(options, 'destination_host'):
-        options['destination_host'] = util.get_cache_hostname()
+        options['destination_host'] = util.get_output_hostname()
 
     if not parameters.test_for_parameter(options, 'destination_username'):
         options['destination_username'] = 'localhost'
