@@ -443,9 +443,24 @@ def validate_reprojection_parameters(parms, projections, ns_values,
       assumed that the web tier has validated them.
     '''
 
-    # Create this and set to None
+    # Create this and set to None if not present
     if not test_for_parameter(parms, 'projection'):
+        log("Warning: 'projection' parameter missing defaulting to None")
         parms['projection'] = None
+
+    # Create this and set to 'near' if not present
+    if not test_for_parameter(parms, 'resample_method'):
+        log("Warning: 'resample_method' parameter missing defaulting to near")
+        parms['resample_method'] = 'near'
+
+    # Make sure these have at least a False value
+    required_parameters = ['reproject', 'image_extents', 'resize']
+
+    for parameter in required_parameters:
+        if not test_for_parameter(parms, parameter):
+            log("Warning: '%s' parameter missing defaulting to False"
+                % parameter)
+            parms[parameter] = False
 
     if parms['reproject']:
         if not test_for_parameter(parms, 'target_projection'):
@@ -647,4 +662,9 @@ def validate_reprojection_parameters(parms, projections, ns_values,
             if str(parms['target_projection']).lower() == 'lonlat':
                 parms['pixel_size'] = DEG_FOR_30_METERS
                 parms['pixel_size_units'] = 'dd'
+
+        log("Warning: 'resize' parameter not provided but required for"
+            " reprojection or image extents"
+            " (Defaulting pixel_size(%f) and pixel_size_units(%s)"
+            % (parms['pixel_size'], parms['pixel_size_units']))
 # END - validate_reprojection_parameters

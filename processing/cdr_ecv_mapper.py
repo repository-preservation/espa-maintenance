@@ -73,8 +73,10 @@ if __name__ == '__main__':
 
             # If the command line option is True don't use the scene option
             if not scene_keep_log:
-                if parameters.test_for_parameter(options, 'keep_log'):
-                    scene_keep_log = options['keep_log']
+                if not parameters.test_for_parameter(options, 'keep_log'):
+                    options['keep_log'] = False
+
+                scene_keep_log = options['keep_log']
 
             # Create the log file
             log_filename = util.get_logfile(orderid, sceneid)
@@ -106,6 +108,11 @@ if __name__ == '__main__':
                 raise ValueError("Invalid Sensor %s" % sensor)
 
             # Make sure we have a valid output format
+            if not parameters.test_for_parameter(options, 'output_format'):
+                log("Warning: 'output_format' parameter missing defaulting"
+                    " to envi")
+                options['output_format'] = 'envi'
+
             if (options['output_format']
                     not in parameters.valid_output_formats):
 

@@ -116,26 +116,36 @@ def validate_landsat_parameters(parms):
     options = parms['options']
 
     # Force these parameters to false if not provided
-    keys = ['include_sr', 'include_sr_toa', 'include_sr_thermal',
-            'include_sr_browse', 'include_sr_nbr', 'include_sr_nbr2',
-            'include_sr_ndvi', 'include_sr_ndmi', 'include_sr_savi',
-            'include_sr_msavi', 'include_sr_evi',
-            'include_dswe', 'include_solr_index']
+    required_includes = ['include_cfmask', 'include_customized_source_data',
+                         'include_dswe', 'include_solr_index',
+                         'include_source_data', 'include_source_metadata',
+                         'include_sr', 'include_sr_browse', 'include_sr_evi',
+                         'include_sr_msavi', 'include_sr_nbr',
+                         'include_sr_nbr2', 'include_sr_ndmi',
+                         'include_sr_ndvi', 'include_sr_savi',
+                         'include_sr_thermal', 'include_sr_toa',
+                         'include_statistics']
 
-    for key in keys:
-        if not parameters.test_for_parameter(options, key):
-            options[key] = False
+    for parameter in required_includes:
+        if not parameters.test_for_parameter(options, parameter):
+            log("Warning: '%s' parameter missing defaulting to False"
+                % parameter)
+            options[parameter] = False
 
     # Determine if browse was requested and specify the default resolution if
     # a resolution was not specified
     if options['include_sr_browse']:
         if not parameters.test_for_parameter(options, 'browse_resolution'):
+            log("Warning: 'browse_resolution' parameter missing defaulting"
+                " to %d" % settings.DEFAULT_BROWSE_RESOLUTION)
             options['browse_resolution'] = settings.DEFAULT_BROWSE_RESOLUTION
 
     # Determine if SOLR was requested and specify the default collection name
     # if a collection name was not specified
     if options['include_solr_index']:
         if not parameters.test_for_parameter(options, 'collection_name'):
+            log("Warning: 'collection_name' parameter missing defaulting"
+                " to %s" % settings.DEFAULT_SOLR_COLLECTION_NAME)
             options['collection_name'] = settings.DEFAULT_SOLR_COLLECTION_NAME
 # END - validate_landsat_parameters
 
