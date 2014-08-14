@@ -33,6 +33,7 @@ import parameters
 import util
 import transfer
 import staging
+import science
 import warp
 import statistics
 import distribution
@@ -108,6 +109,8 @@ def validate_parameters(parms):
 
     for key in keys:
         if not parameters.test_for_parameter(options, key):
+            log("Warning: '%s' parameter missing defaulting to False"
+                % key)
             options[key] = False
 
     # Extract information from the scene string
@@ -119,15 +122,9 @@ def validate_parameters(parms):
     # Add the sensor to the options
     options['sensor'] = sensor
 
-    # Setup the base paths
-    if sensor == 'terra':
-        base_source_path = settings.TERRA_BASE_SOURCE_PATH
-    else:
-        base_source_path = settings.AQUA_BASE_SOURCE_PATH
-
     # Verify or set the source information
     if not parameters.test_for_parameter(options, 'source_host'):
-        options['source_host'] = 'localhost'
+        options['source_host'] = util.get_input_hostname(sensor)
 
     if not parameters.test_for_parameter(options, 'source_username'):
         options['source_username'] = None
@@ -136,6 +133,12 @@ def validate_parameters(parms):
         options['source_pw'] = None
 
     if not parameters.test_for_parameter(options, 'source_directory'):
+        # Setup the base paths
+        if sensor == 'terra':
+            base_source_path = settings.TERRA_BASE_SOURCE_PATH
+        else:
+            base_source_path = settings.AQUA_BASE_SOURCE_PATH
+
         short_name = util.get_modis_short_name(parms['scene'])
         version = util.get_modis_version(parms['scene'])
         archive_date = util.get_modis_archive_date(parms['scene'])
@@ -144,7 +147,7 @@ def validate_parameters(parms):
 
     # Verify or set the destination information
     if not parameters.test_for_parameter(options, 'destination_host'):
-        options['destination_host'] = 'localhost'
+        options['destination_host'] = util.get_output_hostname()
 
     if not parameters.test_for_parameter(options, 'destination_username'):
         options['destination_username'] = 'localhost'
@@ -216,6 +219,16 @@ def process(parms):
                                         stage_directory)
     log(filename)
 
+    # Force these parameters to false if not provided
+    required_includes = ['include_customized_source_data',
+                         'include_source_data']
+
+    for parameter in required_includes:
+        if not parameters.test_for_parameter(options, parameter):
+            log("Warning: '%s' parameter missing defaulting to False"
+                % parameter)
+            options[parameter] = False
+
     # Copy the staged data to the work directory
     try:
         transfer.copy_file_to_file(filename, work_directory)
@@ -224,68 +237,45 @@ def process(parms):
         raise ee.ESPAException(ee.ErrorCodes.unpacking, str(e)), \
             None, sys.exc_info()[2]
 
-    # Change to the working directory
-    current_directory = os.getcwd()
-    os.chdir(options['work_directory'])
+    if options['include_customized_source_data']:
 
-    # The format of MODIS data is HDF we are going to process using GeoTIFF
-    # for the time being
-    hdf_filename = glob.glob('*.hdf')[0]  # Should only be one file
-    xml_filename = hdf_filename.replace('.hdf', '.xml')
+        xml_filename = science.build_modis_science_products(parms)
 
-    # Convert lpgs to espa first
-    # Call with deletion of source files
-    cmd = ['convert_modis_to_espa',
-           '--hdf', hdf_filename,
-           '--xml', xml_filename]
-    if not options['include_source_data']:
-        cmd.append('--del_src_files')
+        # Reproject the data for each science product, but only if necessary
+        if (options['reproject'] or options['resize']
+                or options['image_extents']
+                or options['projection'] is not None):
 
-    cmd = ' '.join(cmd)
-    log(' '.join(['CONVERT MODIS TO ESPA COMMAND:', cmd]))
+            warp.warp_espa_data(options, xml_filename)
 
-    output = ''
-    try:
-        output = util.execute_cmd(cmd)
-    except Exception, e:
-        raise ee.ESPAException(ee.ErrorCodes.reformat, str(e)), \
-            None, sys.exc_info()[2]
-    finally:
-        if len(output) > 0:
-            log(output)
-        # Change back to the previous directory
-        os.chdir(current_directory)
+        # Generate the stats for each stat'able' science product
+        if options['include_statistics']:
+            # Hold the wild card strings in a type based dictionary
+            files_to_search_for = dict()
 
-    # Reproject the data for each science product, but only if necessary
-    if (options['reproject'] or options['resize'] or options['image_extents']
-            or options['projection'] is not None):
+            # MODIS files
+            # The types must match the types in settings.py
+            files_to_search_for['SR'] = ['*sur_refl_b*.img']
+            files_to_search_for['INDEX'] = ['*NDVI.img', '*EVI.img']
+            files_to_search_for['LST'] = ['*LST_Day_1km.img',
+                                          '*LST_Night_1km.img',
+                                          '*LST_Day_6km.img',
+                                          '*LST_Night_6km.img']
+            files_to_search_for['EMIS'] = ['*Emis_*.img']
 
-        warp.warp_espa_data(options, xml_filename)
+            # Generate the stats for each file
+            statistics.generate_statistics(options['work_directory'],
+                                           files_to_search_for)
 
-    # Generate the stats for each stat'able' science product
-    if options['include_statistics']:
-        # Hold the wild card strings in a type based dictionary
-        files_to_search_for = dict()
+        # Convert to the user requested output format or leave it in ESPA ENVI
+        # We do all of our processing using ESPA ENVI format so it can be
+        # hard-coded here
+        warp.reformat(xml_filename, work_directory, 'envi',
+                      options['output_format'])
 
-        # MODIS files
-        # The types must match the types in settings.py
-        files_to_search_for['SR'] = ['*sur_refl_b*.img']
-        files_to_search_for['INDEX'] = ['*NDVI.img', '*EVI.img']
-        files_to_search_for['LST'] = ['*LST_Day_1km.img',
-                                      '*LST_Night_1km.img',
-                                      '*LST_Day_6km.img',
-                                      '*LST_Night_6km.img']
-        files_to_search_for['EMIS'] = ['*Emis_*.img']
-
-        # Generate the stats for each file
-        statistics.generate_statistics(options['work_directory'],
-                                       files_to_search_for)
-
-    # Convert to the user requested output format or leave it in ESPA ENVI
-    # We do all of our processing using ESPA ENVI format so it can be
-    # hard-coded here
-    warp.reformat(xml_filename, work_directory, 'envi',
-                  options['output_format'])
+    # END - Customized Source Data
+    else:
+        log("***NO CUSTOIMIZED PRODUCTS CHOSEN***")
 
     # Deliver the product files
     # Attempt X times sleeping between each attempt
