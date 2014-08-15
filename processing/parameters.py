@@ -492,6 +492,9 @@ def validate_reprojection_parameters(parms, projections, ns_values,
                 else:
                     parms['false_northing'] = float(parms['false_northing'])
 
+                if not test_for_parameter(parms, 'datum'):
+                    parms['datum'] = None
+
             # ................................................................
             if target_projection == 'aea':
                 if not test_for_parameter(parms, 'std_parallel_1'):
@@ -550,6 +553,9 @@ def validate_reprojection_parameters(parms, projections, ns_values,
                                      % (parms['utm_north_south'],
                                         ', '.join(ns_values)))
 
+                if not test_for_parameter(parms, 'datum'):
+                    parms['datum'] = None
+
             # ................................................................
             if target_projection == 'ps':
                 if not test_for_parameter(parms, 'latitude_true_scale'):
@@ -593,9 +599,14 @@ def validate_reprojection_parameters(parms, projections, ns_values,
                 else:
                     parms['false_northing'] = float(parms['false_northing'])
 
+                if not test_for_parameter(parms, 'datum'):
+                    parms['datum'] = None
+
             # ................................................................
             if target_projection == 'lonlat':
-                nothing_to_do = None
+
+                if not test_for_parameter(parms, 'datum'):
+                    parms['datum'] = None
 
     # ------------------------------------------------------------------------
     if parms['resample_method'] not in resample_methods:
