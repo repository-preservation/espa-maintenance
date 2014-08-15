@@ -6,16 +6,157 @@ import logging
 import json
 
 
+# Exceptions - TODO TODO TODO This should be else-where
+class DeveloperViolation(Exception):
+    pass
+
+
+# Exceptions provided by this method
 class ParameterViolation(Exception):
     pass
+
 
 class OptionViolation(Exception):
     pass
 
 
-class OrderParameters(dict):
+class Parameters(dict):
+    '''
+    Definition:
+      This class provides all of the base functionality for order parameters.
+    '''
 
-    valid_parameters = ['orderid', 'scene', 'xmlrpcurl', 'options']
+    valid_parameters = None
+    valid_options = None
+
+
+    def __init__(self, *args, **kwarg):
+        '''
+        Definition:
+          Provides the constructor which is just a pass-through to create the
+          underlying dict object.
+        '''
+        super(Parameters, self).__init__(*args, **kwarg)
+
+
+    def _is_valid_parameter(self, parameter):
+
+        if not self.valid_parameters:
+            message = "You must specify the valid parameters in the sub-class"
+            raise DeveloperViolation(message)
+
+        if parameter not in self.valid_parameters:
+            message = "[%s] is not a valid parameter" % parameter
+            raise ParameterViolation(message)
+
+
+    def _is_valid_option(self, option):
+
+        if not self.valid_options:
+            message = "You must specify the valid options in the sub-class"
+            raise DeveloperViolation(message)
+
+        if option not in self.valid_options.keys():
+            message = "[%s] is not a valid option" % option
+            raise OptionViolation(message)
+
+
+    def _find_required_parameters(self, parameters):
+
+        if not self.valid_parameters:
+            message = "You must specify the valid parameters in the sub-class"
+            raise DeveloperViolation(message)
+
+        for parameter in self.valid_parameters:
+            if parameter not in parameters:
+                message = "[%s] is missing from order parameters" % parameter
+                raise ParameterViolation(message)
+
+
+    def _find_required_options(self, options):
+
+        logger = logging.getLogger()
+
+        if not self.valid_options:
+            message = "You must specify the valid options in the sub-class"
+            raise DeveloperViolation(message)
+
+        # TODO TODO TODO - Verify assumption
+        # I think all of the options can be defaulted so right now this is
+        # very simple
+        for option in self.valid_options:
+            if option not in options:
+                message = ("[%s] is missing from order options and will be"
+                           " defaulted to [%s]"
+                           % (option, str(self.valid_options[option])))
+                logger.warning(message)
+                self['options'][option] = self.valid_options[option]
+
+
+class Options(dict):
+    '''
+    Definition:
+      This class provides all of the base functionality for order options.
+    '''
+
+    options = None
+
+
+    def __init__(self, *args, **kwarg):
+        '''
+        Definition:
+          Provides the constructor which is just a pass-through to create the
+          underlying dict object.
+        '''
+        super(Parameters, self).__init__(*args, **kwarg)
+
+    def _is_valid_option(self, option):
+
+        if not self.options:
+            message = "You must specify the options in the sub-class"
+            raise DeveloperViolation(message)
+
+        if type(self.options) == dict:
+            message = "the specified options must be a dict"
+            raise DeveloperViolation(message)
+
+        if option not in self.options.keys():
+            message = "[%s] is not a valid option" % option
+            raise OptionViolation(message)
+
+    # TODO TODO TODO - IMPLEMENT ME
+
+
+class Projection(dict):
+
+    def __init__(self, name, value):
+        super(GeographicProjection, self).__init__(*args, **kwarg)
+
+    def is_present(options):
+        message = "You must implement this in the sub-class"
+        raise NotImplementedError(message)
+
+
+class GeographicProjection(Projection):
+
+    default_options = {
+        'target_projection': 'latlon'
+    }
+
+    def __init__(self):
+        super(GeographicProjection, self).__init__(*args, **kwarg)
+
+    def proj4(options):
+        pass
+#        if 'target_projection' in options.keys():
+#            if self.target_projection == 
+
+
+    # TODO TODO TODO - IMPLEMENT ME
+
+
+class OrderParameters(Parameters):
+
     valid_dev_options = {
         'debug': False,
         'keep_log': False
@@ -40,11 +181,11 @@ class OrderParameters(dict):
         'include_source_data': False
     }
 
-    valid_options = None
-
 
     def __init__(self, *args, **kwarg):
         super(OrderParameters, self).__init__(*args, **kwarg)
+
+        self.valid_parameters = ['orderid', 'scene', 'xmlrpcurl', 'options']
 
         # -----------
         parameters = self.keys()
@@ -68,44 +209,6 @@ class OrderParameters(dict):
 
         # Make sure all of the required options are present
         self._find_required_options(options)
-
-
-    def _is_valid_parameter(self, parameter):
-
-        if parameter not in self.valid_parameters:
-            message = "[%s] is not a valid parameter" % parameter
-            raise ParameterViolation(message)
-
-
-    def _is_valid_option(self, option):
-
-        if option not in self.valid_options.keys():
-            message = "[%s] is not a valid option" % option
-            raise OptionViolation(message)
-
-
-    def _find_required_parameters(self, parameters):
-
-        for parameter in self.valid_parameters:
-            if parameter not in parameters:
-                message = "[%s] is missing from order parameters" % parameter
-                raise ParameterViolation(message)
-
-
-    def _find_required_options(self, options):
-
-        logger = logging.getLogger()
-
-        # TODO TODO TODO - Verify assumption
-        # I think all of the options can be defaulted so right now this is
-        # very simple
-        for option in self.valid_options:
-            if option not in options:
-                message = ("[%s] is missing from order options and will be"
-                           " defaulted to [%s]"
-                           % (option, str(self.valid_options[option])))
-                logger.warning(message)
-                self['options'][option] = self.valid_options[option]
 
 
 class LandsatOrderParameters(OrderParameters):
