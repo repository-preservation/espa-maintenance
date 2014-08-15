@@ -1,79 +1,54 @@
 {
-  "orderid": "rdd_test_orderid",
-      "_orderid_comment":
-          "Introduced Release 1.0.0
-           Must be present
-           Datatypes Allowed: string",
-
-  "xmlrpcurl": "http://l8srlscp03.cr.usgs.gov/rpc",
-      "_xmlrpcurl_comment":
-          "Introduced Release 1.0.0
-           Must be present
-           Datatypes Allowed: string",
-
-  "scene": "LE70290302013185EDC00",
-      "_scene_comment":
-          "Introduced Release 1.0.0
-           Must be present
-           Datatypes Allowed: string",
-
-  "options": {
-    "debug": false,
-#    "output_format": "gtiff",
-    "data_type": "level1",
-    "keep_log": false,
-
-    "source_host": "localhost",
-    "source_directory": "/home/dilley/espa-data",
-    "destination_host": "localhost",
-    "destination_directory": "/home/dilley/espa-data/output-dir",
-
-#    "reproject": false,
-
-#    "target_projection": null,
-
-#    "datum": "wgs84",
-#    "origin_lat": null,
-#    "central_meridian": null,
-#    "std_parallel_1": null,
-#    "std_parallel_2": null,
-#    "false_northing": null,
-#    "false_easting": null,
-    "longitude_pole": null,
-    "latitude_true_scale": null,
-
-#    "utm_zone": 15,
-#    "utm_north_south": "north",
-
-#    "resize": true,
-#    "pixel_size": 28.5,
-#    "pixel_size_units": "meters",
-
-#    "image_extents": false,
-#    "minx": null,
-#    "miny": null,
-#    "maxx": null,
-#    "maxy": null,
-
-#    "resample_method": "near",
-
-#    "include_source_data": false,
-#    "include_source_metadata": false,
-#    "include_customized_source_data": false,
-#    "include_sr": true,
-#    "include_sr_toa": false,
-#    "include_sr_thermal": false,
-#    "include_sr_browse": false,
-#    "include_cfmask": false,
-#    "include_sr_nbr": false,
-#    "include_sr_nbr2": false,
-#    "include_sr_ndvi": false,
-#    "include_sr_ndmi": true,
-#    "include_sr_evi": false,
-#    "include_sr_savi": false,
-#    "include_sr_msavi": false,
-    "include_dswe": true,
-#    "include_solr_index": false,
-    "include_statistics": true
-  }
+    "options": {
+        "central_meridian": null,
+        "datum": "wgs84",
+        "debug": false,
+        "destination_directory": "/home/dilley/espa-data/output-dir",
+        "destination_host": "localhost",
+        "false_easting": null,
+        "false_northing": null,
+        "image_extents": false,
+        "include_cfmask": false,
+        "include_customized_source_data": false,
+        "include_dswe": false,
+        "include_solr_index": false,
+        "include_source_data": false,
+        "include_source_metadata": false,
+        "include_sr": true,
+        "include_sr_browse": false,
+        "include_sr_evi": false,
+        "include_sr_msavi": false,
+        "include_sr_nbr": false,
+        "include_sr_nbr2": false,
+        "include_sr_ndmi": true,
+        "include_sr_ndvi": false,
+        "include_sr_savi": false,
+        "include_sr_thermal": false,
+        "include_sr_toa": false,
+        "include_statistics": true,
+        "keep_log": false,
+        "latitude_true_scale": null,
+        "longitude_pole": null,
+        "maxx": null,
+        "maxy": null,
+        "minx": null,
+        "miny": null,
+        "origin_lat": null,
+        "output_format": "gtiff",
+        "pixel_size": 28.5,
+        "pixel_size_units": "meters",
+        "reproject": false,
+        "resample_method": "near",
+        "resize": true,
+        "source_directory": "/home/dilley/espa-data",
+        "source_host": "localhost",
+        "std_parallel_1": null,
+        "std_parallel_2": null,
+        "target_projection": null,
+        "utm_north_south": "north",
+        "utm_zone": 15
+    },
+    "orderid": "rdd_test_orderid",
+    "scene": "LE70290302013185EDC00",
+    "xmlrpcurl": "http://l8srlscp03.cr.usgs.gov/rpc"
 }
