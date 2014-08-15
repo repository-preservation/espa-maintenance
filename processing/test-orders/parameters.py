@@ -15,7 +15,7 @@ class OptionViolation(Exception):
 
 class OrderParameters(dict):
 
-    valid_parameters = ['orderid', 'scene', 'xmlrpc', 'options']
+    valid_parameters = ['orderid', 'scene', 'xmlrpcurl', 'options']
     valid_options = None
 
     def __init__(self, *args, **kwarg):
@@ -25,13 +25,15 @@ class OrderParameters(dict):
 
         for parameter in parameters:
             self._is_valid_parameter(parameter)
-            self._is_missing_parameter(parameter)
+
+        self._find_missing_parameters(parameters)
 
         options = self['options'].keys()
 
         for option in options:
             self._is_valid_option(option)
-            self._is_missing_option(option)
+
+        self._find_missing_options(option)
 
     def _is_valid_parameter(self, parameter):
 
@@ -45,20 +47,26 @@ class OrderParameters(dict):
             message = "[%s] is not a valid option" % option
             raise OptionViolation(message)
 
-    def _is_missing_parameter(self, parameter):
+    def _find_missing_parameters(self, parameters):
 
-        if parameter not in self.valid_parameters:
-            message = "[%s] is missing from order parameters" % parameter
-            raise ParameterViolation(message)
+        for parameter in self.valid_parameters:
+            if parameter not in parameters:
+                message = "[%s] is missing from order parameters" % parameter
+                raise ParameterViolation(message)
 
-    def _is_missing_option(self, option):
+    def _find_missing_options(self, options):
 
-        # TODO TODO TODO
-        # This probably is not a failure condition since most options can be
-        # defaulted
-        if option not in self.valid_options.keys():
-            message = "[%s] is missing from order options" % option
-            raise OptionViolation(message)
+        logger = logging.getLogger()
+
+        # TODO TODO TODO - Verify assumption
+        # I think all of the options can be defaulted so right now this is
+        # very simple
+        for option in self.valid_options:
+            if option not in options:
+                message = ("[%s] is missing from order options and will be"
+                           " defaulted to [%s]"
+                           % (option, str(self.valid_options[option])))
+                logger.warning(message)
 
 
 class LandsatOrderParameters(OrderParameters):
@@ -66,7 +74,14 @@ class LandsatOrderParameters(OrderParameters):
     def __init__(self, *args, **kwarg):
 
         self.valid_options = {
-            'keep_log': False
+            'destination_host': None,
+            'destination_directory': None,
+            'include_customized_source_data': False,
+            'include_source_data': False,
+            'include_source_metadata': False,
+            'keep_log': False,
+            'source_host': None,
+            'source_directory': None
         }
 
         super(LandsatOrderParameters, self).__init__(*args, **kwarg)
@@ -149,6 +164,8 @@ if __name__ == '__main__':
     "scene": "MOD09A1.A2002041.h09v04.005.2007125045728",
     '''
 
+    logger = logging.basicConfig()
+
     order_string = \
 """
 {
@@ -157,7 +174,7 @@ if __name__ == '__main__':
     },
     "orderid": "water",
     "scene": "LE72181092013069PFS00",
-    "xmlrpc": "skip_xmlrpc"
+    "xmlrpcurl": "skip_xmlrpc"
 }
 """
 
