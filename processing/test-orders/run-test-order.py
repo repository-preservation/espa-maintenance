@@ -13,10 +13,13 @@ History:
 
 import os
 import sys
+import logging
 import json
 import subprocess
 from cStringIO import StringIO
 from argparse import ArgumentParser
+
+import parameters
 
 
 # ============================================================================
@@ -65,7 +68,9 @@ def process_test_order(order_file, env_vars, keep_log):
         tmp_line = line
 
         is_modis = False
-        order = json.loads(line)
+        # Validate using our parameter object
+        order = parameters.instance(json.loads(line))
+        print json.dumps(order, indent=4, sort_keys=True)
         scene = order['scene']
 
         tmp = scene[:3]
@@ -89,6 +94,9 @@ def process_test_order(order_file, env_vars, keep_log):
                                     env_vars['dev_cache_dir']['value'])
 
         tmp_fd.write(tmp_line)
+
+        # Validate again, since we modified it
+        parms = parameters.instance(json.loads(tmp_line))
 
     order_fd.close()
     tmp_fd.close()
@@ -149,6 +157,12 @@ if __name__ == '__main__':
     Description:
         Main code for executing a test order.
     '''
+
+    logger = logging.basicConfig(format=('%(asctime)s.%(msecs)03d %(process)d'
+                                         ' %(levelname)-8s'
+                                         ' %(filename)s:%(lineno)d:%(funcName)s'
+                                         ' -- %(message)s'),
+                                 datefmt='%Y-%m-%d %H:%M:%S')
 
     # Build the command line argument parser
     parser = build_argument_parser()
