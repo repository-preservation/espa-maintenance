@@ -105,6 +105,8 @@ def instance(parms):
 
     _id = parms['scene'].lower().strip()
 
+    # TODO TODO TODO - These regular expresions should probably be in
+    #                  common/settings.py
     instances = {
         'tm': (r'^lt[4|5]\d{3}\d{3}\d{4}\d{3}\w{3}\d{2}$',
                LandsatOrderParameters),
