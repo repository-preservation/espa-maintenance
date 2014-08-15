@@ -6,6 +6,8 @@ from common import sensor
 
 import django.contrib.auth
 
+from common import util
+
 from ordering import validators
 from ordering.models import Scene
 from ordering.models import Order
@@ -28,6 +30,8 @@ from django.utils.feedgenerator import Rss201rev2Feed
 from django.views.generic import View
 
 from django.contrib.auth.models import User
+
+
 
 
 class AbstractView(View):
@@ -77,7 +81,7 @@ class AbstractView(View):
         if msg.lower() == 'true':
 
             ctx['display_system_message'] = True
-            
+
             cache_keys = ['system_message_title',
                           'system_message_1',
                           'system_message_2',
@@ -129,41 +133,41 @@ class AjaxForm(AbstractView):
         c = self._get_request_context(request)
         t = loader.get_template(template)
         return HttpResponse(t.render(c))
-        
+
 
 class TestAjax(AbstractView):
-    
+
     def render_to_json_response(self, context, **response_kwargs):
         data = json.dumps(context)
         response_kwargs['content_type'] = 'application/json'
         return HttpResponse(data, **response_kwargs)
-    
+
     def get(self, request):
-        
+
         name = request.GET.get('name', '')
-                    
+
         data = {'user': request.user.get_username(),
                 'name':name,
                 'status':'GET request ok'}
 
         return self.render_to_json_response(data)
-        
-    
+
+
     def post(self, request):
-        
+
         name = "No name provided"
         if 'name' in request.POST:
             name = request.POST['name']
-        
+
         age = "No age provided"
         if 'age' in request.POST:
             age = request.POST['age']
-                
-        data = {'user':request.user.get_username(), 
+
+        data = {'user':request.user.get_username(),
                 'name':name,
                 'age':age,
                 'status':'POST request ok'}
-        
+
         return self.render_to_json_response(data)
 
 
@@ -210,7 +214,7 @@ class NewOrder(AbstractView):
                 val = request.POST[key]
                 if val is True or str(val).lower() == 'on':
                     defaults[key] = True
-                elif core.is_number(val):
+                elif util.is_number(val):
                     if str(val).find('.') != -1:
                         defaults[key] = float(val)
                     else:
@@ -221,8 +225,8 @@ class NewOrder(AbstractView):
         return defaults
 
     def _get_input_product_list(self, request):
-               
-        if not self.input_product_list:    
+
+        if not self.input_product_list:
             if 'input_product_list' in request.FILES:
                 _ipl = request.FILES['input_product_list'].read().split('\n')
                 self.input_product_list = _ipl
@@ -232,27 +236,35 @@ class NewOrder(AbstractView):
                                         ['input_products', 'not_implemented'])
         retval.input_products = list()
         retval.not_implemented = list()
-        
+
         if self.input_product_list:
             for line in self.input_product_list:
-                
-                line = line.strip().upper()
-                
+
+                line = line.strip()
+
                 try:
                     s = sensor.instance(line)
                     retval.input_products.append(s)
                 except sensor.ProductNotImplemented, ni:
                     retval.not_implemented.append(ni.product_id)
-                            
+
         return retval
 
     def _get_verified_input_product_list(self, request):
         ipl = self._get_input_product_list(request)
-        
+
         if ipl:
-            payload = {'input_product_list': ipl}
-            iplv = validators.InputProductListValidator(payload)
-            return list(iplv.get_verified_input_product_set(ipl))
+            payload = {'input_products': ipl.input_products}
+
+            lplv = validators.LandsatProductListValidator(payload)
+
+            mplv = validators.ModisProductListValidator(payload)
+
+            landsat = lplv.get_verified_input_product_set(ipl.input_products)
+
+            modis = mplv.get_verified_input_product_set(ipl.input_products)
+
+            return list(landsat.union(modis))
         else:
             return None
 
@@ -288,23 +300,23 @@ class NewOrder(AbstractView):
         #in order for the files to be uploaded
 
         validator_parameters = {}
-        
+
         # coerce the request.POST to be a normal Python dictionary
         validator_parameters = dict(request.POST)
-        
+
         # retrieve the namedtuple for the input product list
         ipl = self._get_input_product_list(request)
-        
-        # send the validator only the items in the list that could actually 
+
+        # send the validator only the items in the list that could actually
         # be instantiated as a sensor.  The other tuple item not_implemented
-        # is being ignored unless we want to tell the users about all the 
+        # is being ignored unless we want to tell the users about all the
         # junk they included in their input file
         validator_parameters['input_products'] = ipl.input_products
-        
+
         validator = validators.NewOrderValidator(validator_parameters)
-                
+
         if validator.errors():
-         
+
             c = self._get_request_context(request)
 
             #unwind the validator errors.  It comes out as a dict with a key
@@ -339,24 +351,21 @@ class NewOrder(AbstractView):
                                        sort_keys=True,
                                        indent=4)
 
-            ipl = self._get_verified_input_product_list(request)
+            vipl = self._get_verified_input_product_list(request)
+
             desc = self._get_order_description(request.POST)
+
             order = Order.enter_new_order(request.user.username,
                                           'espa',
-                                          ipl,
+                                          vipl,
                                           option_string,
                                           note=desc
                                           )
-            core.send_initial_email(order)
 
-            #TODO -- Remove this logic once all pre ESPA-2.3.0 orders are out
-            # of the system
-            if order.email:
-                email = order.email
-            else:
-                email = order.user.email
+            email = order.user.email
 
             url = reverse('list_orders', kwargs={'email': email})
+
             return HttpResponseRedirect(url)
 
 
@@ -377,7 +386,7 @@ class ListOrders(AbstractView):
         '''
 
         #no email provided, ask user for an email address
-        if email is None or not core.validate_email(email):
+        if email is None or not util.validate_email(email):
             user = User.objects.get(username=request.user.username)
 
             #default the email field to the current user email
@@ -405,23 +414,23 @@ class Downloads(AbstractView):
 
     def get(self, request):
         '''Request handler to display the downloads template
-        
+
         Keyword args:
         request -- HTTP request object
-        
+
         Return:
         HttpResponse
         '''
-        
+
         dload_sections = DownloadSection.objects.filter(visible=True).order_by('display_order', 'title')
-        
+
         t = loader.get_template(self.template)
 
         c = self._get_request_context(request, {'sections': dload_sections})
-                
+
         return HttpResponse(t.render(c))
-        
-        
+
+
 class OrderDetails(AbstractView):
     template = 'orderdetails.html'
 

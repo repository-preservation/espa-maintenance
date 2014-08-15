@@ -70,6 +70,11 @@ class Order(models.Model):
                                            null=True,
                                            db_index=True)
 
+    initial_email_sent = models.DateTimeField('initial_email_sent',
+                                              blank=True,
+                                              null=True,
+                                              db_index=True)
+
     completion_email_sent = models.DateTimeField('completion_email_sent',
                                                  blank=True,
                                                  null=True,
@@ -353,8 +358,18 @@ class Scene(models.Model):
         ('error', 'Error')
     )
 
+    SENSOR_PRODUCT = (
+        ('landsat', 'Landsat'),
+        ('modis', 'Modis')
+    )
+
     #scene file name, with no suffix
     name = models.CharField(max_length=256, db_index=True)
+
+    #flags scene as either landsat or modis
+    sensor_type = models.CharField(max_length=50,
+                                   choices=SENSOR_PRODUCT,
+                                   db_index=True)
 
     #scene system note, used to add message to users
     note = models.CharField(max_length=2048, blank=True, null=True)

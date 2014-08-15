@@ -5,6 +5,12 @@ import util
 import httplib
 import xmlrpclib
 
+class ProductNotImplemented(NotImplementedError):
+
+    def __init__(self, product_id, *args, **kwargs):
+        self.product_id = product_id
+        super(ProductNotImplemented, self).__init__(*args, **kwargs)
+
 
 class SensorProduct(object):
 
@@ -108,16 +114,29 @@ class Modis(SensorProduct):
                                   str(date.month).zfill(2),
                                   str(date.day).zfill(2))
 
+        input_file_extension = settings.MODIS_INPUT_FILENAME_EXTENSION
+
+        input_file_name = "%s.A%s%s.h%sv%s.%s.%s%s" % (self.short_name,
+                                                     self.year,
+                                                     self.doy,
+                                                     self.horizontal,
+                                                     self.vertical,
+                                                     self.version,
+                                                     self.date_produced,
+                                                     input_file_extension)
+
         self.input_file_path = os.path.join(
             base_source_path,
             '.'.join([self.short_name.upper(), self.version.upper()]),
             path_date.upper(),
-            self.input_file_name)
+            input_file_name)
 
     def input_exists(self):
 
         host = settings.MODIS_INPUT_CHECK_HOST
         port = settings.MODIS_INPUT_CHECK_PORT
+
+        conn = None
 
         try:
             conn = httplib.HTTPConnection(host, port)
@@ -135,6 +154,7 @@ class Modis(SensorProduct):
             return False
         finally:
             conn.close()
+            conn = None
 
 
 class Terra(Modis):
@@ -387,4 +407,4 @@ def instance(product_id):
             return instances[key][1](product_id)
 
     msg = "[%s] is not a supported sensor product" % product_id
-    raise NotImplementedError(msg)
+    raise ProductNotImplemented(product_id, msg)

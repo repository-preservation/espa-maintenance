@@ -15,24 +15,80 @@ History:
 import datetime
 import subprocess
 import random
+import urllib2
+import xmlrpclib
+import re
+from email.mime.text import MIMEText
+from smtplib import SMTP
 
 # local objects and methods
 import settings
 
+def scenecache_is_alive(url='http://edclpdsftp.cr.usgs.gov:50000/RPC2'):
+    """Determine if the specified url has an http server
+    that accepts POST calls
+
+    Keyword args:
+    url -- The url of the server to check
+
+    Return:
+    True -- If the contacted server is alive and accepts POST calls
+    False -- If the server does not accept POST calls or the
+             server could not be contacted
+    """
+
+    try:
+        return urllib2.urlopen(url, data="").getcode() == 200
+    except Exception, e:
+        if settings.DEBUG:
+            print("Scene cache could not be contacted")
+            print(e)
+        return False
+
+
+def scenecache_client():
+    """Return an xmlrpc proxy to the caller for the scene cache
+
+    Returns -- An xmlrpclib ServerProxy object
+    """
+    url = 'http://edclpdsftp.cr.usgs.gov:50000/RPC2'
+    #url = os.environ['ESPA_SCENECACHE_URL']
+    if scenecache_is_alive(url):
+        return xmlrpclib.ServerProxy(url)
+    else:
+        msg = "Could not contact scene_cache at %s" % url
+        raise RuntimeError(msg)
 
 
 def date_from_doy(year, doy):
     '''Returns a python date object given a year and day of year'''
-    
-    date = datetime.datetime(int(year), 1, 1) + datetime.timedelta(int(doy) - 1)
-    
-    if int(date.year) != int(year):
+
+    d = datetime.datetime(int(year), 1, 1) + datetime.timedelta(int(doy) - 1)
+
+    if int(d.year) != int(year):
         raise Exception("doy [%s] must fall within the specified year [%s]" %
         (doy, year))
     else:
-        return date
-    
-    
+        return d
+
+
+def is_number(s):
+    '''Determines if a string value is a float or int.
+
+    Keyword args:
+    s -- A string possibly containing a float or int
+
+    Return:
+    True if s is a float or int
+    False if s is not a float or int
+    '''
+    try:
+        float(s)
+        return True
+    except ValueError:
+        return False
+
+
 # ============================================================================
 def get_logfile(orderid, sceneid):
     '''
@@ -127,3 +183,33 @@ def get_cache_hostname():
                 raise Exception("No online cache hosts available...")
 
     return get_hostname()
+
+
+def send_email(recipient, subject, body):
+    '''Sends an email to a receipient on the behalf of espa'''
+
+    if not validate_email(recipient):
+        raise TypeError("Invalid email address provided:%s" % recipient)
+
+    msg = MIMEText(body)
+    msg['Subject'] = subject
+    msg['To'] = recipient
+    msg['From'] = settings.ESPA_EMAIL_ADDRESS
+    s = SMTP(host=settings.ESPA_EMAIL_SERVER)
+    s.sendmail(msg['From'], msg['To'], msg.as_string())
+    s.quit()
+
+
+def validate_email(email):
+    '''Compares incoming email address against regular expression to make sure
+    its at least formatted like an email
+
+    Keyword args:
+    email -- String to validate as an email address
+
+    Return:
+    True if the string is a properly formatted email address
+    False if not
+    '''
+    pattern = '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,4}$'
+    return re.match(pattern, email.strip())

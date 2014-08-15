@@ -65,6 +65,11 @@ ESPA_CACHE_DIRECTORY = '/data2/LSRD'
 # Can override this by setting the environment variable DEV_CACHE_DIRECTORY
 
 
+ESPA_EMAIL_ADDRESS = 'espa@usgs.gov'
+
+ESPA_EMAIL_SERVER = 'gssdsflh01.cr.usgs.gov'
+
+
 ##############################################################################
 # Used by browse.py and science.py
 

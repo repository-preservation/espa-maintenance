@@ -30,10 +30,11 @@ def rpc_handler(request):
         d.register_function(_set_scene_unavailable, 'set_scene_unavailable')
         d.register_function(_mark_scene_complete, 'mark_scene_complete')
         d.register_function(_finalize_orders, 'finalize_orders')
+        d.register_function(_send_initial_emails, 'send_initial_emails')
         d.register_function(_get_configuration, 'get_configuration')
         d.register_function(_get_scenes_to_process, 'get_scenes_to_process')
         d.register_function(_get_data_points, 'get_data_points')
-        
+
         response = HttpResponse(mimetype="application/xml")
         response.write(d._marshaled_dispatch(request.body))
     else:
@@ -66,10 +67,10 @@ def _set_scene_error(name, orderid, processing_loc, error):
 
 
 def _set_scene_unavailable(name, orderid, processing_loc, error, note):
-    return core.set_scene_unavailable(name, 
-                                      orderid, 
-                                      processing_loc, 
-                                      error, 
+    return core.set_scene_unavailable(name,
+                                      orderid,
+                                      processing_loc,
+                                      error,
                                       note)
 
 
@@ -96,6 +97,11 @@ def _mark_scene_complete(name,
 def _finalize_orders():
     return core.finalize_orders()
 
+
+def _send_initial_emails():
+    return core.send_initial_emails()
+
+
 #method to expose master configuration repository to the system
 def _get_configuration(key):
     return Configuration().getValue(key)
@@ -103,9 +109,7 @@ def _get_configuration(key):
 
 def _get_scenes_to_process():
     return core.get_scenes_to_process()
-    
+
 def _get_data_points(tags=[]):
     return DataPoint.get_data_points(tags)
 
-#def _get_scene_input_path(sceneid):
-#    return core.get_scene_input_path(sceneid)

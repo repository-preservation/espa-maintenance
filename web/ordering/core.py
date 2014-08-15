@@ -4,8 +4,7 @@ Purpose: Holds common logic needed between views.py and api.py
 Original Author: David V. Hill
 '''
 
-from email.mime.text import MIMEText
-from smtplib import SMTP
+
 from models import Scene
 from models import Order
 from models import Configuration
@@ -17,56 +16,13 @@ from django.db import transaction
 import json
 import datetime
 import lta
-import re
-import xmlrpclib
-import urllib2
+
+import common
 
 
 def frange(start,end,step):
     '''Provides Python range functions over floating point values'''
     return [x*step for x in range(int(start * 1./step), int(end * 1./step))]
-
-def is_number(s):
-    '''Determines if a string value is a float or int.
-
-    Keyword args:
-    s -- A string possibly containing a float or int
-
-    Return:
-    True if s is a float or int
-    False if s is not a float or int
-    '''
-    try:
-        float(s)
-        return True
-    except ValueError:
-        return False
-
-
-def validate_email(email):
-    '''Compares incoming email address against regular expression to make sure
-    its at least formatted like an email
-
-    Keyword args:
-    email -- String to validate as an email address
-
-    Return:
-    True if the string is a properly formatted email address
-    False if not
-    '''
-    pattern = '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,4}$'
-    return re.match(pattern, email.strip())
-
-
-def send_email(recipient, subject, body):
-
-    msg = MIMEText(body)
-    msg['Subject'] = subject
-    msg['To'] = recipient
-    msg['From'] = 'espa@usgs.gov'
-    s = SMTP(host='gssdsflh01.cr.usgs.gov')
-    s.sendmail('espa@usgs.gov', msg['To'], msg.as_string())
-    s.quit()
 
 
 # Sends the order submission confirmation email
@@ -93,9 +49,9 @@ def send_initial_email(order):
 
     email_msg = ''.join(m)
 
-    send_email(recipient=order.user.email,
-               subject='Processing Order Received',
-               body=email_msg)
+    common.util.send_email(recipient=order.user.email,
+                           subject='Processing Order Received',
+                           body=email_msg)
 
 
 def send_completion_email(email, ordernum, readyscenes=[]):
@@ -127,23 +83,9 @@ def send_completion_email(email, ordernum, readyscenes=[]):
         #msg = msg.join([r, '\n'])
     #    msg = msg + r + '\n'
 
-    send_email(recipient=email,
-               subject='Processing for %s Complete' % ordernum,
-               body=email_msg)
-
-
-def get_scene_input_path(sceneid):
-    '''Returns the location on the online cache where a scene
-    does/should reside
-
-    Keyword args:
-    sceneid -- The scene name
-
-    Return:
-    Path on disk where the scene should be located if it exists
-    '''
-    scene = Scene.objects.get(name=sceneid)
-    return scene.getOnlineCachePath()
+    common.util.send_email(recipient=email,
+                           subject='Processing for %s Complete' % ordernum,
+                           body=email_msg)
 
 
 def scenes_on_cache(input_product_list):
@@ -155,7 +97,7 @@ def scenes_on_cache(input_product_list):
     Returns:
     A subset of scene identifiers
     """
-    return get_xmlrpc_proxy().scenes_exist(input_product_list)
+    return common.util.scenecache_client().scenes_exist(input_product_list)
 
 
 def scenes_are_nlaps(input_product_list):
@@ -167,8 +109,14 @@ def scenes_are_nlaps(input_product_list):
     Return:
     A subset of scene identifiers
     """
-    return get_xmlrpc_proxy().is_nlaps(input_product_list)
+    return common.util.scenecache_client().is_nlaps(input_product_list)
 
+
+def get_landsat_products_to_process():
+    pass
+
+def get_modis_products_to_process():
+    pass
 
 @transaction.atomic
 def get_scenes_to_process():
@@ -186,7 +134,7 @@ def get_scenes_to_process():
         return []
 
     # is cache online?
-    if not scenecache_is_alive():
+    if not common.util.scenecache_is_alive():
         print("Could not contact the scene cache...")
         raise Exception("Could not contact the scene cache...")
 
@@ -618,6 +566,17 @@ def finalize_orders():
         update_order_if_complete(o)
 
     return True
+
+@transaction.atomic
+def send_initial_emails():
+    '''Finds all the orders that have not had their initial emails sent and
+    sends them'''
+
+    orders = Order.objects.filter(status='ordered')
+    for o in orders:
+        if not o.initial_email_sent():
+            send_initial_email(o)
+            o.initial_email_sent(datetime.datetime.now())
 
 
 @transaction.atomic

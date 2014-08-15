@@ -1,9 +1,9 @@
 from validation import Validator
 import lta
-import core
 from models import Order
 
 from common import sensor
+from common import util
 
 
 class ModisProductListValidator(Validator):
@@ -11,15 +11,18 @@ class ModisProductListValidator(Validator):
     least one scene to process'''
 
     def get_verified_input_product_set(self, input_products):
-        valid_products = None
-        for product in input_products:
-            if product.input_exists():
-                valid_products.append(product)
+        valid_products = list()
+
+        for p in input_products:
+            if isinstance(p, sensor.Modis):
+                if p.input_exists():
+                    valid_products.append(p.product_id)
+
         return set(valid_products)
 
     def errors(self):
-        '''Looks through the input_product_list if present and determines if there
-        are valid scenes to process'''
+        '''Looks through the input_product_list if present and determines
+        if there are valid scenes to process'''
 
         modis_products = list()
 
@@ -32,23 +35,23 @@ class ModisProductListValidator(Validator):
                     modis_products.append(product)
 
             if len(modis_products) > 0:
-                
-                valid = self.get_verified_input_product_set(modis_products)
-                                        
-                if len(valid) == 0:
+
+                valid_ids = self.get_verified_input_product_set(modis_products)
+
+                if len(valid_ids) == 0:
                     msg_parts = []
                     msg_parts.append("The following Modis tiles were not ")
                     msg_parts.append("found in the datapool:\n")
-                    
+
                     for mp in modis_products:
                         msg_parts.append("\t%s\n" % mp.product_id)
-                        
+
                     msg = ''.join(msg_parts)
-                    
+
                     self.add_error('input_products', [msg,])
                 else:
                     prod_ids = [p.product_id for p in modis_products]
-                    valid_ids = [v.product_id for v in valid]
+
                     difference = set(prod_ids) - set(valid_ids)
 
                     if len(difference) > 0:
@@ -57,25 +60,40 @@ class ModisProductListValidator(Validator):
                             self.add_error('input_products', [msg,])
 
         return super(ModisProductListValidator, self).errors()
-                
+
 
 class LandsatProductListValidator(Validator):
     '''Validates that a scene list has been provided and it contains at
     least one scene to process'''
-    
+
     def get_verified_input_product_set(self, products):
+        '''Returns a subset ( set() )  of products that are orderable
+        from Landsat
+
+        Keyword args:
+        products A list() of sensor.Landsat objects
+
+        Returns:
+        A set() of valid sensor.Landsat objects
+
+        Note:
+        This method duplicates type checks for sensor.Landsat from the
+        errors() method so it's usable by a caller outside the validators
+        module.
+        '''
 
         valid_products = list()
-        
+
         if len(products) > 0:
-            
+
             client = lta.OrderWrapperServiceClient()
-            
+
             request = list()
+
             for p in products:
                 if isinstance(p, sensor.Landsat):
                     request.append(p.product_id)
-            
+
             verified = client.verify_scenes(request)
 
             for product_name, valid in verified.iteritems():
@@ -85,34 +103,38 @@ class LandsatProductListValidator(Validator):
         return set(valid_products)
 
     def errors(self):
-        '''Looks through the input_product_list if present and determines if there
-        are valid scenes to process'''
+        '''Looks through the input_product_list if present and determines
+        if there are valid scenes to process'''
 
         landsat_products = list()
 
         if not 'input_products' in self.parameters:
             return super(LandsatProductListValidator, self).errors()
         else:
-            
+
             for product in self.parameters['input_products']:
                 if isinstance(product, sensor.Landsat):
                     landsat_products.append(product)
 
             if len(landsat_products) > 0:
-                
+
                 valid = self.get_verified_input_product_set(landsat_products)
-                                        
+
                 if len(valid) == 0:
                     msg_parts = []
                     msg_parts.append("The following scenes were not found")
                     msg_parts.append(" in the Landsat inventory:\n")
+
                     for lp in landsat_products:
                         msg_parts.append("\t%s\n" % lp)
+
                     msg = ''.join(msg_parts)
+
                     self.add_error('input_products', [msg,])
                 else:
-                        
-                    difference = set(landsat_products) - set(valid)
+
+                    product_list = [s.product_id for s in landsat_products]
+                    difference = set(product_list) - set(valid)
 
                     if len(difference) > 0:
                         for diff in difference:
@@ -161,7 +183,7 @@ class FalseEastingValidator(Validator):
     def errors(self):
 
         if not 'false_easting' in self.parameters\
-            or not core.is_number(self.parameters['false_easting']):
+            or not util.is_number(self.parameters['false_easting']):
                 msg = "Please provide a valid false easting value"
                 self.add_error('false_easting', [msg, ])
 
@@ -174,7 +196,7 @@ class FalseNorthingValidator(Validator):
     def errors(self):
 
         if not 'false_northing' in self.parameters\
-            or not core.is_number(self.parameters['false_northing']):
+            or not util.is_number(self.parameters['false_northing']):
                 msg = "Please provide a valid false northing value"
                 self.add_error('false_northing', [msg, ])
 
@@ -185,22 +207,22 @@ class CentralMeridianValidator(Validator):
     '''Validates the central_meridian parameter'''
 
     def errors(self):
-        
+
         msg_parts = []
         msg_parts.append("Please provide a central meridian value ")
         msg_parts.append("between -180.0 to 180.0")
         msg = ''.join(msg_parts)
 
         cm = None
-        
+
         if 'central_meridian' in self.parameters\
-            and core.is_number(self.parameters['central_meridian']):
+            and util.is_number(self.parameters['central_meridian']):
                 cm = float(self.parameters['central_meridian'])
         else:
              self.add_error('central_meridian', [msg, ])
-             
+
         if cm and (cm < -180.0 or cm > 180.0):
-            self.add_error('central_meridian', [msg, ])            
+            self.add_error('central_meridian', [msg, ])
 
         return super(CentralMeridianValidator, self).errors()
 
@@ -216,7 +238,7 @@ class LatitudeTrueScaleValidator(Validator):
         ts = None
 
         if 'latitude_true_scale' in self.parameters\
-            and core.is_number(self.parameters['latitude_true_scale']):
+            and util.is_number(self.parameters['latitude_true_scale']):
             ts = float(self.parameters['latitude_true_scale'])
         else:
             self.add_error('latitude_true_scale', [msg, ])
@@ -237,18 +259,18 @@ class LongitudinalPoleValidator(Validator):
         msg_parts.append("Please provide a longitudinal pole value ")
         msg_parts.append("between -180.0 to 180.0")
         msg = ''.join(msg_parts)
-        
+
         lp = None
-        
+
         if 'longitude_pole' in self.parameters\
-            and core.is_number(self.parameters['longitude_pole']):
+            and util.is_number(self.parameters['longitude_pole']):
                 lp = float(self.parameters['longitude_pole'])
         else:
            self.add_error('longitude_pole', [msg, ])
 
         if lp and (lp > 180.0 or lp < -180.0):
             self.add_error('longitude_pole', [msg, ])
-            
+
         return super(LongitudinalPoleValidator, self).errors()
 
 
@@ -260,14 +282,14 @@ class StandardParallel1Validator(Validator):
         msg_parts.append("Please provide a 1st standard parallel value ")
         msg_parts.append("between -90.0 to 90.0")
         msg = ''.join(msg_parts)
-        
+
         sp = None
         if 'std_parallel_1' in self.parameters\
-            and core.is_number(self.parameters['std_parallel_1']):
+            and util.is_number(self.parameters['std_parallel_1']):
                 sp = float(self.parameters['std_parallel_1'])
         else:
             self.add_error('std_parallel_1', [msg, ])
-            
+
         if sp and (sp < -90.0 or sp > 90.0):
             self.add_error('std_parallel_1', [msg, ])
 
@@ -285,11 +307,11 @@ class StandardParallel2Validator(Validator):
 
         sp = None
         if 'std_parallel_2' in self.parameters\
-            and core.is_number(self.parameters['std_parallel_2']):
+            and util.is_number(self.parameters['std_parallel_2']):
                 sp = float(self.parameters['std_parallel_2'])
         else:
             self.add_error('std_parallel_2', [msg, ])
-            
+
         if sp and (sp < -90.0 or sp > 90.0):
             self.add_error('std_parallel_2', [msg, ])
 
@@ -304,14 +326,14 @@ class OriginLatitudeValidator(Validator):
         msg_parts.append("Please provide a latitude of origin ")
         msg_parts.append("between -90.0 to 90.0")
         msg = ''.join(msg_parts)
-        
+
         lo = None
         if 'origin_lat' in self.parameters\
-            and core.is_number(self.parameters['origin_lat']):
+            and util.is_number(self.parameters['origin_lat']):
                 lo = float(self.parameters['origin_lat'])
         else:
             self.add_error('origin_lat', [msg, ])
-            
+
         if lo and (lo < -90.0 or lo > 90.0):
             self.add_error('origin_lat', [msg, ])
 
@@ -491,7 +513,7 @@ class MeterPixelSizeValidator(Validator):
         ps = None
 
         if 'pixel_size' in self.parameters\
-            and core.is_number(self.parameters['pixel_size']):
+            and util.is_number(self.parameters['pixel_size']):
             ps = float(self.parameters['pixel_size'])
         else:
             self.add_error('pixel_size', [msg, ])
@@ -515,7 +537,7 @@ class DecimalDegreePixelSizeValidator(Validator):
         ps = None
 
         if 'pixel_size' in self.parameters\
-            and core.is_number(self.parameters['pixel_size']):
+            and util.is_number(self.parameters['pixel_size']):
             ps = float(self.parameters['pixel_size'])
         else:
             self.add_error('pixel_size', [msg, ])
@@ -567,25 +589,25 @@ class ImageExtentsValidator(Validator):
         maxy = None
 
         # make sure we got upper left x,y and lower right x,y vals
-        if not 'minx' in P or not core.is_number(P['minx']):
+        if not 'minx' in P or not util.is_number(P['minx']):
             msg = "Please provide a valid upper left x value"
             self.add_error('minx', [msg, ])
         else:
             minx = float(P['minx'])
 
-        if not 'maxx' in P or not core.is_number(P['maxx']):
+        if not 'maxx' in P or not util.is_number(P['maxx']):
             msg = "Please provide a valid lower right x value"
             self.add_error('maxx', [msg, ])
         else:
             maxx = float(P['maxx'])
 
-        if not 'miny' in P or not core.is_number(P['miny']):
+        if not 'miny' in P or not util.is_number(P['miny']):
             msg = "Please provide a valid lower right y value"
             self.add_error('miny', [msg, ])
         else:
             miny = float(P['miny'])
 
-        if not 'maxy' in P or not core.is_number(P['maxy']):
+        if not 'maxy' in P or not util.is_number(P['maxy']):
             msg = "Please provide a valid upper left y value"
             self.add_error('maxy', [msg, ])
         else:
@@ -616,10 +638,10 @@ class NewOrderFilesValidator(Validator):
         super(NewOrderFilesValidator, self).__init__(parameters,
                                                      child_validators,
                                                      name)
-            
+
         if not 'input_products' in self.parameters:
             return super(NewOrderFilesValidator, self).errors()
-        
+
         for product in self.parameters['input_products']:
             if not isinstance(product, sensor.SensorProduct):
                 msg = list()
@@ -627,7 +649,7 @@ class NewOrderFilesValidator(Validator):
                 msg.append("list(common.SensorProduct())\n")
                 msg.append("Incorrect type value was:%s" % product)
                 raise TypeError(''.join(msg))
-                
+
         self.add_child(LandsatProductListValidator(parameters))
         self.add_child(ModisProductListValidator(parameters))
 
