@@ -18,22 +18,33 @@ class OrderParameters(dict):
     valid_parameters = ['orderid', 'scene', 'xmlrpcurl', 'options']
     valid_options = None
 
+
     def __init__(self, *args, **kwarg):
         super(OrderParameters, self).__init__(*args, **kwarg)
 
+        # -----------
         parameters = self.keys()
 
+        # Make sure all of the provided parameters are allowed
         for parameter in parameters:
             self._is_valid_parameter(parameter)
 
-        self._find_missing_parameters(parameters)
+        # Make sure all of the required parameters are present
+        self._find_required_parameters(parameters)
 
+        # -----------
         options = self['options'].keys()
 
+        # TODO TODO TODO - Option validation needs an overhall, it should
+        #                  probably be split into associated groups.
+
+        # Make sure all of the provided options are allowed
         for option in options:
             self._is_valid_option(option)
 
-        self._find_missing_options(option)
+        # Make sure all of the required options are present
+        self._find_required_options(options)
+
 
     def _is_valid_parameter(self, parameter):
 
@@ -41,20 +52,23 @@ class OrderParameters(dict):
             message = "[%s] is not a valid parameter" % parameter
             raise ParameterViolation(message)
 
+
     def _is_valid_option(self, option):
 
         if option not in self.valid_options.keys():
             message = "[%s] is not a valid option" % option
             raise OptionViolation(message)
 
-    def _find_missing_parameters(self, parameters):
+
+    def _find_required_parameters(self, parameters):
 
         for parameter in self.valid_parameters:
             if parameter not in parameters:
                 message = "[%s] is missing from order parameters" % parameter
                 raise ParameterViolation(message)
 
-    def _find_missing_options(self, options):
+
+    def _find_required_options(self, options):
 
         logger = logging.getLogger()
 
@@ -67,6 +81,7 @@ class OrderParameters(dict):
                            " defaulted to [%s]"
                            % (option, str(self.valid_options[option])))
                 logger.warning(message)
+                self['options'][option] = self.valid_options[option]
 
 
 class LandsatOrderParameters(OrderParameters):
@@ -74,14 +89,61 @@ class LandsatOrderParameters(OrderParameters):
     def __init__(self, *args, **kwarg):
 
         self.valid_options = {
+            'debug': False,
+            'keep_log': False,
+
+            'source_host': None,
+            'source_directory': None,
             'destination_host': None,
             'destination_directory': None,
+
+            'include_cfmask': False,
             'include_customized_source_data': False,
+            'include_dswe': False,
+            'include_solr_index': False,
             'include_source_data': False,
             'include_source_metadata': False,
-            'keep_log': False,
-            'source_host': None,
-            'source_directory': None
+            'include_sr': False,
+            'include_sr_browse': False,
+            'include_sr_evi': False,
+            'include_sr_msavi': False,
+            'include_sr_nbr': False,
+            'include_sr_nbr2': False,
+            'include_sr_ndmi': False,
+            'include_sr_ndvi': False,
+            'include_sr_savi': False,
+            'include_sr_thermal': False,
+            'include_sr_toa': False,
+            'include_statistics': False,
+
+            'output_format': 'envi',
+
+            'image_extents': False,
+            'maxx': None,
+            'maxy': None,
+            'minx': None,
+            'miny': None,
+
+            'reproject': False,
+
+            'datum': "wgs84",
+            'target_projection': None,
+            'resample_method': 'near',
+
+            'resize': False,
+            'pixel_size': 30.0,
+            'pixel_size_units': 'meters',
+
+            'false_easting': None,
+            'false_northing': None,
+            'std_parallel_1': None,
+            'std_parallel_2': None,
+            'central_meridian': None,
+            'latitude_true_scale': None,
+            'longitude_pole': None,
+            'origin_lat': None,
+            'utm_north_south': None,
+            'utm_zone': None
         }
 
         super(LandsatOrderParameters, self).__init__(*args, **kwarg)
@@ -92,7 +154,45 @@ class ModisOrderParameters(OrderParameters):
     def __init__(self, *args, **kwarg):
 
         self.valid_options = {
-            'keep_log': False
+            'debug': False,
+            'keep_log': False,
+
+            'source_host': None,
+            'source_directory': None,
+            'destination_host': None,
+            'destination_directory': None,
+
+            'include_customized_source_data': False,
+            'include_source_data': False,
+
+            'output_format': 'envi',
+
+            'image_extents': False,
+            'maxx': None,
+            'maxy': None,
+            'minx': None,
+            'miny': None,
+
+            'reproject': False,
+
+            'datum': "wgs84",
+            'target_projection': None,
+            'resample_method': 'near',
+
+            'resize': False,
+            'pixel_size': 30.0,
+            'pixel_size_units': 'meters',
+
+            'false_easting': None,
+            'false_northing': None,
+            'std_parallel_1': None,
+            'std_parallel_2': None,
+            'central_meridian': None,
+            'latitude_true_scale': None,
+            'longitude_pole': None,
+            'origin_lat': None,
+            'utm_north_south': None,
+            'utm_zone': None
         }
 
         super(ModisOrderParameters, self).__init__(*args, **kwarg)
@@ -166,7 +266,11 @@ if __name__ == '__main__':
     "scene": "MOD09A1.A2002041.h09v04.005.2007125045728",
     '''
 
-    logger = logging.basicConfig()
+    logger = logging.basicConfig(format=('%(asctime)s.%(msecs)03d %(process)d'
+                                         ' %(levelname)-8s'
+                                         ' %(filename)s:%(lineno)d:%(funcName)s'
+                                         ' -- %(message)s'),
+                                 datefmt='%Y-%m-%d %H:%M:%S')
 
     order_string = \
 """
