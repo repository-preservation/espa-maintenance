@@ -16,6 +16,30 @@ class OptionViolation(Exception):
 class OrderParameters(dict):
 
     valid_parameters = ['orderid', 'scene', 'xmlrpcurl', 'options']
+    valid_dev_options = {
+        'debug': False,
+        'keep_log': False
+    }
+    valid_source_options = {
+        'source_host': None,
+        'source_username': None,
+        'source_pw': None,
+        'source_directory': None
+    }
+    valid_destination_options = {
+        'destination_host': None,
+        'destination_username': None,
+        'destination_pw': None,
+        'destination_directory': None
+    }
+    valid_output_options = {
+        'output_format': 'envi'
+    }
+    valid_common_include_options = {
+        'include_customized_source_data': False,
+        'include_source_data': False
+    }
+
     valid_options = None
 
 
@@ -88,17 +112,18 @@ class LandsatOrderParameters(OrderParameters):
 
     def __init__(self, *args, **kwarg):
 
-        self.valid_options = {
-            'debug': False,
-            'keep_log': False,
+        # Create empty options
+        self.valid_options = dict()
 
-            'source_host': None,
-            'source_directory': None,
-            'destination_host': None,
-            'destination_directory': None,
+        # Use update to add the options we need
+        self.valid_options.update(self.valid_dev_options)
+        self.valid_options.update(self.valid_source_options)
+        self.valid_options.update(self.valid_destination_options)
+        self.valid_options.update(self.valid_output_options)
+        self.valid_options.update(self.valid_common_include_options)
 
+        self.valid_options.update({
             'include_cfmask': False,
-            'include_customized_source_data': False,
             'include_dswe': False,
             'include_solr_index': False,
             'include_source_data': False,
@@ -116,8 +141,6 @@ class LandsatOrderParameters(OrderParameters):
             'include_sr_toa': False,
             'include_statistics': False,
 
-            'output_format': 'envi',
-
             'image_extents': False,
             'maxx': None,
             'maxy': None,
@@ -144,7 +167,7 @@ class LandsatOrderParameters(OrderParameters):
             'origin_lat': None,
             'utm_north_south': None,
             'utm_zone': None
-        }
+        })
 
         super(LandsatOrderParameters, self).__init__(*args, **kwarg)
 
@@ -153,20 +176,17 @@ class ModisOrderParameters(OrderParameters):
 
     def __init__(self, *args, **kwarg):
 
-        self.valid_options = {
-            'debug': False,
-            'keep_log': False,
+        # Create empty options
+        self.valid_options = dict()
 
-            'source_host': None,
-            'source_directory': None,
-            'destination_host': None,
-            'destination_directory': None,
+        # Use update to add the options we need
+        self.valid_options.update(self.valid_dev_options)
+        self.valid_options.update(self.valid_source_options)
+        self.valid_options.update(self.valid_destination_options)
+        self.valid_options.update(self.valid_output_options)
+        self.valid_options.update(self.valid_common_include_options)
 
-            'include_customized_source_data': False,
-            'include_source_data': False,
-
-            'output_format': 'envi',
-
+        self.valid_options.update({
             'image_extents': False,
             'maxx': None,
             'maxy': None,
@@ -193,7 +213,7 @@ class ModisOrderParameters(OrderParameters):
             'origin_lat': None,
             'utm_north_south': None,
             'utm_zone': None
-        }
+        })
 
         super(ModisOrderParameters, self).__init__(*args, **kwarg)
 

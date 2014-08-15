@@ -67,13 +67,14 @@ def process_test_order(order_file, env_vars, keep_log):
 
         tmp_line = line
 
-        is_modis = False
         # Validate using our parameter object
         order = parameters.instance(json.loads(line))
         print json.dumps(order, indent=4, sort_keys=True)
         scene = order['scene']
 
+        # Update the order for the developer
         tmp = scene[:3]
+        is_modis = False
         if tmp == 'MOD' or tmp == 'MYD':
             is_modis = True
 
