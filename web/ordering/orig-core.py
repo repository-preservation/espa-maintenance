@@ -49,10 +49,9 @@ def send_initial_email(order):
 
     email_msg = ''.join(m)
 
-    subject = 'Processing order %s received' % order.orderid
-    return common.util.send_email(recipient=order.user.email,
-                                  subject=subject,
-                                  body=email_msg)
+    common.util.send_email(recipient=order.user.email,
+                           subject='Processing Order Received',
+                           body=email_msg)
 
 
 def send_completion_email(email, ordernum, readyscenes=[]):
@@ -74,17 +73,19 @@ def send_completion_email(email, ordernum, readyscenes=[]):
     m.append("email custserv@usgs.gov with any questions.\n")
     m.append("Your scenes\n")
     m.append("-------------------------------------------\n")
-    
     for r in readyscenes:
         m.append("%s\n" % r)
 
+    #build the email message with the input_product_list tacked onto it
     email_msg = ''.join(m)
 
-    subject = 'Processing for %s complete.' % ordernum
-    
-    return common.util.send_email(recipient=email,
-                                  subject=subject,
-                                  body=email_msg)
+    #for r in readyscenes:
+        #msg = msg.join([r, '\n'])
+    #    msg = msg + r + '\n'
+
+    common.util.send_email(recipient=email,
+                           subject='Processing for %s Complete' % ordernum,
+                           body=email_msg)
 
 
 def scenes_on_cache(input_product_list):
@@ -111,217 +112,156 @@ def scenes_are_nlaps(input_product_list):
     return common.util.scenecache_client().is_nlaps(input_product_list)
 
 
-def handle_onorder_landsat_products():
-    landsat_products = Scene.objects.filter(status='onorder',
-                                            sensor_type='landsat')\
-                                            .order_by('order__order_date')
-    if len(landsat_products) == 0:
-        return None
+def get_landsat_products_to_process():
+    pass
 
-    landsat_oncache = scenes_on_cache([l.name for l in landsat_products])
+def get_modis_products_to_process():
+    pass
 
-    filter_args = {'status': 'onorder', 'name__in': landsat_oncache}
-    update_args = {'status': 'oncache'}
-    Scene.objects.filter(**filter_args).update(**update_args)
+@transaction.atomic
+def get_scenes_to_process():
+    # sanity checks
 
-    #Scene.objects.filter(status='onorder', name__in=landsat_oncache)\
-    #    .update(status='oncache')
-
-
-
-def handle_submitted_landsat_products():
-    filter_args = {'status': 'submitted', 'sensor_type': 'landsat'}
-    orderby = 'order__order_date'
-    landsat_products = Scene.objects.filter(**filter_args).order_by(orderby)
-
-    #landsat_products =  Scene.objects.filter(status='submitted',
-    #                                         sensor_type='landsat')\
-    #                                         .order_by('order__order_date')
-
-    if len(landsat_products) == 0:
-        return None
-
+    # load up any orders from ee that are waiting for us.
     if settings.DEBUG:
-        print("Found %i landsat products submitted" % len(landsat_products))
+        print("Load ee orders")
+    load_ee_orders()
+
+    # are there even any scenes to handle?
+    statuses = ['submitted', 'onorder', 'oncache']
+
+    if Scene.objects.filter(status__in=statuses).count() <= 0:
+        return []
 
     # is cache online?
     if not common.util.scenecache_is_alive():
-        msg = "Scene cache could not be contacted..."
-        print(msg)
-        raise Exception(msg)
+        print("Could not contact the scene cache...")
+        raise Exception("Could not contact the scene cache...")
 
-    #build list input for calls to the scene cache
-    landsat_submitted = [l.name for l in landsat_products]
+    # the cache is online and there are scenes to process...
 
-    # find all the submitted products that are nlaps and reject them
-    landsat_nlaps = scenes_are_nlaps(landsat_submitted)
+    # get all the scenes that are in submitted status in the order in which
+    # they were placed... limit to 500 at once
 
-    if settings.DEBUG:
-        print("Found %i landsat nlaps products" % len(landsat_nlaps))
+    submitted = Scene.objects.filter(status='submitted')\
+        .order_by('order__order_date')[:500]
 
-    # bulk update the nlaps scenes
-    if len(landsat_nlaps) > 0:
+    if submitted:
+        if settings.DEBUG:
+            print("Found %i submitted scenes" % len(submitted))
 
-        filter_args = {'status': 'submitted',
-                       'name__in': landsat_nlaps,
-                       'sensor_type': 'landsat'}
+        #check to see which ones are sitting on cache
+        submitted_list = [s.name for s in submitted]
 
-        update_args = {'status': 'unavailable',
-                       'completion_date': datetime.datetime.now(),
-                       'note': 'TMA data cannot be processed'
-                      }
-
-        Scene.objects.filter(**filter_args).update(**update_args)
-
-        #Scene.objects.filter(status='submitted', name__in=landsat_nlaps)\
-        #    .update(status='unavailable',
-        #            completion_date = datetime.datetime.now(),
-        #            note='TMA data cannot be processed')
-
-    # find all the landsat products already sitting on online cache
-    landsat_oncache = scenes_on_cache(landsat_submitted)
-
-    if settings.DEBUG:
-        print("Found %i landsat products on cache" % len(landsat_oncache))
-
-    # bulk update the oncache scene status
-    if len(landsat_oncache) > 0:
-
-        filter_args = {'status': 'submitted',
-                       'name__in': landsat_oncache,
-                       'sensor_type': 'landsat'
-                       }
-
-        update_args = {'status': 'oncache'}
-
-        Scene.objects.filter(**filter_args).update(**update_args)
-
-        #Scene.objects.filter(status='submitted', name__in=landsat_oncache)\
-        #   .update(status='oncache')
-
-    # placeholder for all the scenes that are not nlaps but are not on cache
-    need_to_order = set(landsat_submitted) - set(landsat_nlaps)
-
-    need_to_order = set(need_to_order) - set(landsat_oncache)
-
-    if settings.DEBUG:
-        print("Found %i landsat products to order" % len(need_to_order))
-
-    # Need to run another query because the calls to order_scenes require
-    # the user contactid.  We don't want to make 500 separate calls to the
-    # EE service so this will allow us to group all the scenes by
-    # the order and thus the contactid
-
-    # this resultset is only a dict of orderids, not a normal queryset
-    # result
-
-    #TODO: Get this query and the next one for Order.objects.get(id...)
-    #TODO: down to a single query.  Should be doable
-
-    filter_args = {'status': 'submitted',
-                   'name__in': need_to_order,
-                   'sensor_type': 'landsat'
-                  }
-
-    orders = Scene.objects.filter(**filter_args).values('order').distinct()
-
-    order_wrapper = lta.OrderWrapperServiceClient()
-
-    # look through the Orders that are part of need_to_order
-    # and place one order with lta for each one that has scenes that
-    # need to be ordered
-    #
-    # The response that comes back is a dictionary with
-    # the lta_order_id key and a list of scene names in a key 'ordered'
-    # Two other lists may exist as well, 'invalid' and 'available'
-    # The lta_order_id and 'ordered' lists are either both present or
-    # missing if nothing was ordered.
-    # The other two lists may or may not exist as well depending on if
-    # there are any scenes in those statuses
-    for o in orders:
-        eo = Order.objects.get(id=o.get('order'))
-
-        try:
-            contactid = None
-            contactid = eo.user.userprofile.contactid
-        except Exception, e:
-            print("Exception getting contactid for user:%s"
-                  % eo.user.username)
-            print(e)
-
-        if not contactid:
-            print("No contactid associated with order:%s... skipping"
-                  % o.get('order'))
-            continue
-
-        filter_args = {'status': 'submitted', 'sensor_type': 'landsat'}
-
-        eo_scenes = eo.scene_set.filter(**filter_args).values('name')
-
-        eo_scene_list = [s.get('name') for s in eo_scenes]
+         # find all the submitted scenes that are nlaps and reject them
+        nlaps_scenes = scenes_are_nlaps(submitted_list)
 
         if settings.DEBUG:
-            print("Ordering  %i landsat products" % len(eo_scene_list))
-            print eo_scene_list
+            print("Found %i nlaps scenes" % len(nlaps_scenes))
 
-        if len(eo_scene_list) > 0:
-            resp_dict = order_wrapper.order_scenes(eo_scene_list, contactid)
+        # bulk update the nlaps scenes
+        if len(nlaps_scenes) > 0:
+            Scene.objects.filter(status='submitted', name__in=nlaps_scenes)\
+                .update(status='unavailable',
+                        completion_date = datetime.datetime.now(),
+                        note='TMA data cannot be processed')
+
+        # find all the submitted scenes that are available in the tm/etm
+        # dirs on the online cache
+        oncache_scenes = scenes_on_cache(submitted_list)
+
+        if settings.DEBUG:
+            print("Found %i oncache scenes" % len(nlaps_scenes))
+
+        # bulk update the oncache scene status
+        if len(oncache_scenes) > 0:
+            Scene.objects.filter(status='submitted', name__in=oncache_scenes)\
+                .update(status='oncache')
+
+        # placeholder list for all the scenes that are not nlaps but are
+        # not oncache
+        need_to_order = set(submitted_list) - set(nlaps_scenes)
+
+        need_to_order = set(need_to_order) - set(oncache_scenes)
+
+        if settings.DEBUG:
+            print("Found %i scenes to order" % len(need_to_order))
+
+        # Need to run another query because the calls to order_scenes require
+        # the user contactid.  We don't want to make 500 separate calls to the
+        # EE service so this will allow us to group all the scenes by
+        # the order and thus the contactid
+
+        # this resultset is only a dict of orderids, not a normal queryset
+        # result
+        orders = Scene.objects.filter(status='submitted',
+                                      name__in=need_to_order)\
+            .values('order').distinct()
+
+        order_wrapper = lta.OrderWrapperServiceClient()
+
+        # look through the Orders that are part of this 500 scene set
+        # and place one order with lta for each one that has scenes that
+        # need to be ordered
+        #
+        # The response that comes back is a dictionary with
+        # the lta_order_id key and a list of scene names in a key 'ordered'
+        # Two other lists may exist as well, 'invalid' and 'available'
+        # The lta_order_id and 'ordered' lists are either both present or
+        # missing if nothing was ordered.
+        # The other two lists may or may not exist as well depending on if
+        # there are any scenes in those statuses
+        for o in orders:
+            eo = Order.objects.get(id=o.get('order'))
+
+            try:
+                contactid = None
+                contactid = eo.user.userprofile.contactid
+            except Exception, e:
+                print("Exception getting contactid for user:%s"
+                      % eo.user.username)
+                print(e)
+
+            if not contactid:
+                print("No contactid associated with order:%s... skipping"
+                      % o.get('order'))
+                continue
+
+            eo_scenes = eo.scene_set.filter(status='submitted').values('name')
+
+            eo_scene_list = [s.get('name') for s in eo_scenes]
 
             if settings.DEBUG:
-                print("Resp dict")
-                print(resp_dict)
+                print("Ordering  %i scenes" % len(eo_scene_list))
+                print eo_scene_list
 
-            if 'ordered' in resp_dict:
-                filter_args = {'status': 'submitted',
-                               'name__in': resp_dict['ordered']}
+            if len(eo_scene_list) > 0:
+                resp_dict = order_wrapper.order_scenes(eo_scene_list,
+                                                       contactid)
 
-                update_args = {'status': 'onorder',
-                               'tram_order_id': resp_dict['lta_order_id']}
+                if settings.DEBUG:
+                    print("Resp dict")
+                    print(resp_dict)
 
-                eo.scene_set.filter(**filter_args).update(**update_args)
+                if 'ordered' in resp_dict:
+                    eo.scene_set.filter(status='submitted',
+                                        name__in=resp_dict['ordered'])\
+                        .update(status='onorder',
+                                tram_order_id=resp_dict['lta_order_id'])
 
-                #eo.scene_set.filter(status='submitted',
-                #                    name__in=resp_dict['ordered'])\
-                #    .update(status='onorder',
-                #            tram_order_id=resp_dict['lta_order_id'])
+                if 'invalid' in resp_dict:
+                    eo.scene_set.filter(status='submitted',
+                                        name__in=resp_dict['invalid'])\
+                        .update(status='unavailable',
+                                completion_date = datetime.datetime.now(),
+                                note='Not found in landsat archive')
 
-            if 'invalid' in resp_dict:
-                filter_args = {'status': 'submitted',
-                               'name__in': resp_dict['invalid']}
+                if 'available' in resp_dict:
+                    eo.scene_set.filter(status='submitted',
+                                        name__in=resp_dict['available'])\
+                        .update(status='oncache')
 
-                update_args = {'status': 'unavailable',
-                               'completion_date': datetime.datetime.now(),
-                               'note': 'Not found in landsat archive'}
-
-                eo.scene_set.filter(**filter_args).update(**update_args)
-
-                #eo.scene_set.filter(status='submitted',
-                #                    name__in=resp_dict['invalid'])\
-                #    .update(status='unavailable',
-                #            completion_date = datetime.datetime.now(),
-                #            note='Not found in landsat archive')
-
-            if 'available' in resp_dict:
-                filter_args = {'status': 'submitted',
-                               'name__in': resp_dict['available']}
-
-                eo.scene_set.filter(**filter_args).update(status='oncache')
-
-
-
-def handle_submitted_modis_products():
-    modis_products =  Scene.objects.filter(
-                                           status='submitted',
-                                           sensor_type='modis'
-                                           ).order_by('order__order_date')
-
-    if len(modis_products) == 0:
-        return None
-
-
-
-def handle_submitted_products():
-    '''
+    ''' This completes handling all the scenes that were in submitted status
     TODO -- Create new method handle_submitted_scenes() or something to that
     effect.  get_scenes_to_process down to this comment should be included
     in it.
@@ -345,67 +285,44 @@ def handle_submitted_products():
     TODO -- HadoopHandler().cancel_job(jobid)
     '''
 
-    load_ee_orders()
-    landsat_result = handle_submitted_landsat_products()
-    modis_result = handle_submitted_modis_products()
+    # Now going to go through and check for scenes that were in onorder status
+    # and then go ahead and build the actual response for this method
 
-    if not landsat_result and not modis_result:
-        return None
+    # Check all onorder scenes and update if they are oncache
+    ordered_scenes = Scene.objects.filter(status='onorder')
 
+    if ordered_scenes:
+        #oncache2 = cache.has_scenes(ordered_list)
+        oncache2 = scenes_on_cache([s.name for s in ordered_scenes])
 
-def get_landsat_products_to_process():
-    pass
+        ordered_scenes.filter(name__in=oncache2).update(status='oncache')
 
-
-def get_modis_products_to_process():
-    pass
-
-
-@transaction.atomic
-def get_scenes_to_process(limit=500, for_user=None, priority=None):
-    '''Find scenes that are oncache and return them as properly formatted
-    json per the interface description between the web and processing tier'''
-
-    # use kwargs so we can dynamically build the filter criteria
-    kwargs = {
-        'status': 'oncache'
-    }
-
-    # use orderby for the orderby clause
-    orderby = 'order__order_date'
-
-    if for_user:
-        # Find orders submitted by a specific user
-        kwargs['order__user__username'] = for_user
-
-    if priority:
-        # retrieve by specified priority
-        kwargs['order__priority'] = priority
-
-    #products = Scene.objects.filter(status='oncache')\
-    #    .order_by('order__order_date')[:limit]
-
-    products = Scene.objects.filter(**kwargs).order_by(orderby)[:limit]
-
-    if len(products) == 0:
-        return []
-
+    #don't do anything with the ones that weren't oncache.
+    #They remain on order.
+    #
+    #Now the database should be fully updated
+    #with the current status.
+    #
     #Pull the current oncache set from the db
     #and include it as the result
     results = []
 
-    for p in products:
+    # get 500 scenes ready to be processed in the order in which they were
+    # submitted
+    available_scenes = Scene.objects.filter(status='oncache')\
+        .order_by('order__order_date')[:500]
 
-        options = json.loads(p.order.product_options)
+    if available_scenes:
 
-        orderline = json.dumps({
-                                'orderid': p.order.orderid,
-                                'scene': p.name,
-                                'priority': p.order.priority,
-                                'options': options
-                               })
+        for a in available_scenes:
+            order = a.order
+            options = json.loads(order.product_options)
+            oid = order.orderid
 
-        results.append(orderline)
+            orderline = json.dumps(
+                {'orderid': oid, 'scene': a.name, 'options': options})
+
+            results.append(orderline)
 
     return results
 
@@ -623,7 +540,9 @@ def update_order_if_complete(order):
         #only send the email if this was an espa order.
         if o.order_source == 'espa':
             order_email = o.user.email
-        
+            if not order_email:
+                order_email = o.email
+
             sent = send_completion_email(order_email,
                                          o.orderid,
                                          readyscenes=scene_names)
@@ -665,11 +584,6 @@ def load_ee_orders():
     ''' Loads all the available orders from lta into
     our database and updates their status
     '''
-
-    #TODO -- Get the common operations out of this method and rehomed 
-    #TODO where they belong.  This method should be calling into 
-    #TODO the Order.enter_new_order() method rather than creating and
-    #TODO persisting the Order() itself.  
 
     order_delivery = lta.OrderDeliveryServiceClient()
 
@@ -736,8 +650,6 @@ def load_ee_orders():
 
             # We have a user now.  Now build the new Order since it
             # wasn't found.
-            # TODO: This code should be housed in the models module.  
-            # TODO: This logic should not be visible at this level.                                    
             order = Order()
             order.orderid = order_id
             order.user = user
@@ -750,7 +662,6 @@ def load_ee_orders():
             order.ee_order_id = eeorder
             order.order_source = 'ee'
             order.order_date = datetime.datetime.now()
-            order.priority = 'normal'
             order.save()
 
         for s in orders[eeorder, email, contactid]:
@@ -802,21 +713,8 @@ def load_ee_orders():
 
                         helper_logger(log_msg)
             except Scene.DoesNotExist:
-                # TODO: This code should be housed in the models module.  
-                # TODO: This logic should not be visible at this level.
                 scene = Scene()
-                
-                product = common.sensor.instance(s['sceneid'])
-                
-                sensor_type = None
-                
-                if isinstance(product, common.sensor.Landsat):
-                    sensor_type = 'landsat'
-                elif isinstance(product, common.sensor.Modis):
-                    sensor_type = 'modis'
-
-                scene.sensor_type = sensor_type                    
-                scene.name = product.product_id
+                scene.name = s['sceneid']
                 scene.ee_unit_id = s['unit_num']
                 scene.order = order
                 scene.order_date = datetime.datetime.now()

@@ -1,6 +1,9 @@
 import datetime
 import re
 import json
+
+from common import sensor
+
 from django.db import models
 from django.db import transaction
 from django.contrib.auth.models import User
@@ -28,7 +31,7 @@ class Order(models.Model):
 
     ORDER_TYPES = (
         ('level2_ondemand', 'Level 2 On Demand'),
-        ('lpvs', 'Product Validation')
+        ('lpcs', 'Product Characterization')
     )
 
     STATUS = (
@@ -40,6 +43,12 @@ class Order(models.Model):
     ORDER_SOURCE = (
         ('espa', 'ESPA'),
         ('ee', 'EE')
+    )
+    
+    ORDER_PRIORITY = (
+        ('low', 'Low'),
+        ('normal', 'Normal'),
+        ('high', 'High')
     )
 
     # orderid should be in the format email_MMDDYY_HHMMSS
@@ -59,6 +68,10 @@ class Order(models.Model):
                                   choices=ORDER_TYPES,
                                   db_index=True)
 
+    priority = models.CharField(max_length=10,
+                                choices=ORDER_PRIORITY,
+                                db_index=True)
+                                
     # date the order was placed
     order_date = models.DateTimeField('date ordered',
                                       blank=True,
@@ -314,25 +327,48 @@ class Order(models.Model):
         # find the user
         user = User.objects.get(username=username)
 
+        # determine a simple priority classification (for now)
+        order_size = len(scene_list)
+        
+        priority = 'normal'
+        
+        if order_size <= 100:
+            priority = 'high'
+        elif order_size > 100 and order_size <= 500:
+            priority = 'normal'
+        else:
+            priority = 'low'
+
         # create the order
         order = Order()
         order.orderid = Order.generate_order_id(user.email)
         order.user = user
         order.note = note
         order.status = 'ordered'
-        order.order_date = datetime.datetime.now()
-        order.product_options = option_string
         order.order_source = order_source
         order.order_type = 'level2_ondemand'
+        order.order_date = datetime.datetime.now()
+        order.product_options = option_string
+        order.priority = priority        
         order.save()
 
         # save the scenes for the order
         for s in set(scene_list):
+            product = sensor.instance(s)
+
+            sensor_type = None
+            
+            if isinstance(product, sensor.Landsat):
+                sensor_type = 'landsat'
+            elif isinstance(product, sensor.Modis):
+                sensor_type = 'modis'
+            
             scene = Scene()
             scene.name = s
             scene.order = order
             scene.order_date = datetime.datetime.now()
             scene.status = 'submitted'
+            scene.sensor_type = sensor_type
             scene.save()
 
         return order
