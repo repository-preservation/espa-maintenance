@@ -21,6 +21,85 @@ class OptionViolation(Exception):
     pass
 
 
+def get_sensor_code(parms):
+
+    if 'scene' not in parms.keys():
+        message = "[scene] is missing from order parameters"
+        raise ParameterViolation(message)
+
+    _id = parms['scene'].lower().strip()
+
+    sensors = {
+        'tm': r'^lt[4|5]\d{3}\d{3}\d{4}\d{3}\w{3}\d{2}$',
+        'etm': r'^le7\d{3}\d{3}\d{4}\d{3}\w{3}\d{2}$',
+
+        'mod09a1': r'^mod09a1\.a\d{7}\.h\d{2}v\d{2}\.005\.\d{13}$',
+        'mod09ga': r'^mod09ga\.a\d{7}\.h\d{2}v\d{2}\.005\.\d{13}$',
+        'mod09gq': r'^mod09gq\.a\d{7}\.h\d{2}v\d{2}\.005\.\d{13}$',
+        'mod09q1': r'^mod09q1\.a\d{7}\.h\d{2}v\d{2}\.005\.\d{13}$',
+
+        'mod13a1': r'^mod13a1\.a\d{7}\.h\d{2}v\d{2}\.005\.\d{13}$',
+        'mod13a2': r'^mod13a2\.a\d{7}\.h\d{2}v\d{2}\.005\.\d{13}$',
+        'mod13a3': r'^mod13a3\.a\d{7}\.h\d{2}v\d{2}\.005\.\d{13}$',
+        'mod13q1': r'^mod13q1\.a\d{7}\.h\d{2}v\d{2}\.005\.\d{13}$',
+
+        'myd09a1': r'^myd09a1\.a\d{7}\.h\d{2}v\d{2}\.005\.\d{13}$',
+        'myd09ga': r'^myd09ga\.a\d{7}\.h\d{2}v\d{2}\.005\.\d{13}$',
+        'myd09gq': r'^myd09gq\.a\d{7}\.h\d{2}v\d{2}\.005\.\d{13}$',
+        'myd09q1': r'^myd09q1\.a\d{7}\.h\d{2}v\d{2}\.005\.\d{13}$',
+
+        'myd13a1': r'^myd13a1\.a\d{7}\.h\d{2}v\d{2}\.005\.\d{13}$',
+        'myd13a2': r'^myd13a2\.a\d{7}\.h\d{2}v\d{2}\.005\.\d{13}$',
+        'myd13a3': r'^myd13a3\.a\d{7}\.h\d{2}v\d{2}\.005\.\d{13}$',
+        'myd13q1': r'^myd13q1\.a\d{7}\.h\d{2}v\d{2}\.005\.\d{13}$'
+    }
+
+    for sensor_code in sensors.keys():
+        if re.match(sensors[sensor_code], _id):
+            return sensor_code
+
+    msg = "[%s] is not a supported sensor product" % parms['scene']
+    raise NotImplementedError(msg)
+# END - get_sensor_code
+
+
+def get_default_resize_parameters(sensor_code):
+
+    sensors = {
+        'tm': {'pixel_size': 30.0, 'pixel_size_units': 'meters'},
+        'etm': {'pixel_size': 30.0, 'pixel_size_units': 'meters'},
+
+        # TODO TODO TODO - I don't know if any modis are correct
+        'mod09a1': {'pixel_size': 500.0, 'pixel_size_units': 'meters'},
+        'mod09ga': {'pixel_size': 500.0, 'pixel_size_units': 'meters'},
+        'mod09gq': {'pixel_size': 500.0, 'pixel_size_units': 'meters'},
+        'mod09q1': {'pixel_size': 500.0, 'pixel_size_units': 'meters'},
+
+        'mod13a1': {'pixel_size': 500.0, 'pixel_size_units': 'meters'},
+        'mod13a2': {'pixel_size': 500.0, 'pixel_size_units': 'meters'},
+        'mod13a3': {'pixel_size': 500.0, 'pixel_size_units': 'meters'},
+        'mod13q1': {'pixel_size': 500.0, 'pixel_size_units': 'meters'},
+
+        'myd09a1': {'pixel_size': 500.0, 'pixel_size_units': 'meters'},
+        'myd09ga': {'pixel_size': 500.0, 'pixel_size_units': 'meters'},
+        'myd09gq': {'pixel_size': 500.0, 'pixel_size_units': 'meters'},
+        'myd09q1': {'pixel_size': 500.0, 'pixel_size_units': 'meters'},
+
+        'myd13a1': {'pixel_size': 500.0, 'pixel_size_units': 'meters'},
+        'myd13a2': {'pixel_size': 500.0, 'pixel_size_units': 'meters'},
+        'myd13a3': {'pixel_size': 500.0, 'pixel_size_units': 'meters'},
+        'myd13q1': {'pixel_size': 500.0, 'pixel_size_units': 'meters'}
+    }
+
+    for sensor in sensors.keys():
+        if sensor == sensor_code:
+            return sensors[sensor]
+
+    msg = "[%s] is not a supported sensor" % sensor_code
+    raise NotImplementedError(msg)
+# END - get_default_resize_parameters
+
+
 class Parameters(dict):
     '''
     Definition:
@@ -111,7 +190,7 @@ class Options(dict):
             message = "You must specify the options in the sub-class"
             raise DeveloperViolation(message)
 
-        if type(self.options) == dict:
+        if type(self.options) != dict:
             message = "the specified options must be a dict"
             raise DeveloperViolation(message)
 
@@ -302,8 +381,6 @@ class ImageExtents(object):
         d = dict()
 
         d.update({'image_extents': False})
-        for option in self._required_options:
-            d.update({option: None})
 
         return d
 
@@ -333,19 +410,95 @@ def get_image_extents_instance(options):
 # END - get_image_extents_instance
 
 
+class Resize(object):
+
+    _options = None
+    _defaults = None
+    _required_options = ['pixel_size', 'pixel_size_units']
+
+    def __init__(self, options, default_pixel_options):
+
+        self._defaults = default_pixel_options
+
+        # Initially set them to the defaults
+        self._options = dict(self._defaults)
+
+        # Override them with the specified options
+        for option in self._required_options:
+            if option not in options.keys():
+                message = ("[%s] is required for resize" % option)
+                raise OptionViolation(message)
+            else:
+                option = str(option)
+                value = options[option]
+                if type(value) is unicode:
+                    if value.isnumeric():
+                        value = float(value)
+                    else:
+                        value = str(value)
+                else:
+                    # It is already what I want
+                    pass
+
+                self._options.update({option: value})
+
+    def gdal_warp_options(self):
+        return ('-tr %f %f' % (self._options['pixel_size'],
+                               self._options['pixel_size']))
+
+    def defaults(self):
+        d = dict()
+
+        d.update({'resize': False})
+
+        for option in self._defaults:
+            d.update({option: None})
+
+        return d
+
+    def to_dict(self):
+        d = dict()
+
+        d.update({'resize': True})
+        d.update(self._options)
+
+        return d
+# END - Resize
+
+
+# TODO TODO TODO - Add more Resize Sensors
+
+
+def get_resize_instance(options, default_pixel_options):
+    '''
+    Description:
+        TODO TODO TODO
+    '''
+
+    if 'resize' in options.keys():
+        if options['resize']:
+            return Resize(options, default_pixel_options)
+        else:
+            return None
+    else:
+        return None
+# END - resize_instance
+
+
 class WarpParameters(object):
 
     _reproject = None
     _defaults = {'reproject': False}
-    _required_options = ['reproject']
 
     _projection = None
     _image_extents = None
     _resize = None
 
-    def __init__(self, *args, **kwarg):
+    def __init__(self, options, sensor_code):
 
-        options = dict(*args, **kwarg)
+        logger = logging.getLogger()
+
+        default_pixel_options = get_default_resize_parameters(sensor_code)
 
         self._reproject = options['reproject']
 
@@ -357,7 +510,25 @@ class WarpParameters(object):
             self._image_extents = get_image_extents_instance(options)
 
             # Get resize options
-            #     resize_parameters(object)
+            self._resize = get_resize_instance(options, default_pixel_options)
+
+        # Resize was not specified but is required (so default it)
+        if (((self._projection is not None)
+             or (self._image_extents is not None))
+            and (self._resize is None)):
+
+            pixel_options = json.dumps(default_pixel_options, indent=4,
+                                        sort_keys=True)
+            message = ("[resize] is required but not specified defaulting"
+                       " to\n%s" % pixel_options)
+            logger.warning(message)
+
+            # Specify resize in the options
+            options['resize'] = True
+            options.update(default_pixel_options)
+
+            # Get resize options
+            self._resize = get_resize_instance(options, default_pixel_options)
 
     def gdal_warp_options(self):
         warp_cmd = ''
@@ -369,9 +540,8 @@ class WarpParameters(object):
             warp_cmd = ' '.join([warp_cmd,
                                  self._image_extents.gdal_warp_options()])
 
-# TODO TODO TODO - Implement this
-#        if self._resize:
-#            warp_cmd = ' '.join([warp_cmd, self._resize.gdal_warp_options()])
+        if self._resize is not None:
+            warp_cmd = ' '.join([warp_cmd, self._resize.gdal_warp_options()])
 
         return warp_cmd
 
@@ -386,9 +556,8 @@ class WarpParameters(object):
         if self._image_extents is not None:
             d.update(self._image_extents.defaults())
 
-# TODO TODO TODO - Implement this
-#        if self._resize:
-#            d.update(self._resize.defaults()
+        if self._resize is not None:
+            d.update(self._resize.defaults())
 
         return d
 
@@ -404,22 +573,21 @@ class WarpParameters(object):
             if self._image_extents is not None:
                 d.update(self._image_extents.to_dict())
 
-# TODO TODO TODO - Implement this
-#            if self._resize:
-#                d.update(self._resize.to_dict()
+            if self._resize is not None:
+                d.update(self._resize.to_dict())
 
         return d
 # END - WarpParameters
 
 
-def get_warp_instance(options):
+def get_warp_instance(options, sensor_code):
     '''
     Description:
         TODO TODO TODO
     '''
 
     if 'reproject' in options.keys():
-        return WarpParameters(options)
+        return WarpParameters(options, sensor_code)
     else:
         return None
 # END - get_warp_instance
@@ -450,7 +618,6 @@ class OrderParameters(Parameters):
         'include_customized_source_data': False,
         'include_source_data': False
     }
-
 
     def __init__(self, *args, **kwarg):
         super(OrderParameters, self).__init__(*args, **kwarg)
@@ -652,6 +819,10 @@ def instance(parms):
 
 
 if __name__ == '__main__':
+    '''
+    Description:
+      This is test code for using the parameters module.
+    '''
 
     logger = logging.basicConfig(format=('%(asctime)s.%(msecs)03d %(process)d'
                                          ' %(levelname)-8s'
@@ -692,8 +863,10 @@ if __name__ == '__main__':
     if parms:
         print json.dumps(parms, indent=4, sort_keys=True)
 
+    sensor_code = get_sensor_code(parms)
+    print sensor_code
     # This is the new attempt
-    warp_parms = get_warp_instance(parms['options'])
+    warp_parms = get_warp_instance(parms['options'], sensor_code)
     if warp_parms:
         print warp_parms.gdal_warp_options()
         print json.dumps(warp_parms.defaults(), indent=4, sort_keys=True)
