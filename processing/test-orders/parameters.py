@@ -292,9 +292,11 @@ class ImageExtents(object):
 
                 self._options.update({option: value})
 
-    def gdal_warp(self):
-        message = "You must implement this here  TODO TODO TODO"
-        raise NotImplementedError(message)
+    def gdal_warp_options(self):
+        return ('-te %f %f %f %f' % (self._options['minx'],
+                                     self._options['miny'],
+                                     self._options['maxx'],
+                                     self._options['maxy']))
 
     def defaults(self):
         d = dict()
@@ -357,9 +359,21 @@ class WarpParameters(object):
             # Get resize options
             #     resize_parameters(object)
 
-    def gdal_warp(self):
-        message = "You must implement this here  TODO TODO TODO"
-        raise NotImplementedError(message)
+    def gdal_warp_options(self):
+        warp_cmd = ''
+
+        if self._projection is not None:
+            warp_cmd = ' '.join([warp_cmd, self._projection.proj4()])
+
+        if self._image_extents is not None:
+            warp_cmd = ' '.join([warp_cmd,
+                                 self._image_extents.gdal_warp_options()])
+
+# TODO TODO TODO - Implement this
+#        if self._resize:
+#            warp_cmd = ' '.join([warp_cmd, self._resize.gdal_warp_options()])
+
+        return warp_cmd
 
     def defaults(self):
         d = dict()
@@ -372,7 +386,7 @@ class WarpParameters(object):
         if self._image_extents is not None:
             d.update(self._image_extents.defaults())
 
-# TODO TODO TODO - Implement these
+# TODO TODO TODO - Implement this
 #        if self._resize:
 #            d.update(self._resize.defaults()
 
@@ -388,9 +402,9 @@ class WarpParameters(object):
                 d.update(self._projection.to_dict())
 
             if self._image_extents is not None:
-                d.update(self._image_extent.to_dict())
+                d.update(self._image_extents.to_dict())
 
-# TODO TODO TODO - Implement these
+# TODO TODO TODO - Implement this
 #            if self._resize:
 #                d.update(self._resize.to_dict()
 
@@ -660,32 +674,29 @@ if __name__ == '__main__':
     # Avoid the creation of the *.pyc files
     os.environ['PYTHONDONTWRITEBYTECODE'] = '1'
 
+    # Verify that the file is present
     if not os.path.isfile(args.order_file):
         logger.critical("Order file (%s) does not exist" % args.order_file)
         sys.exit(1)
 
     order_fd = open(args.order_file, 'r')
 
+    # Read in the entire file
     order_string = order_fd.read()
     if not order_string:
         logger.critical("Empty file exiting")
         sys.exit(1)
 
+    # This was the first attempt
     parms = instance(json.loads(order_string))
     if parms:
         print json.dumps(parms, indent=4, sort_keys=True)
 
-    proj = get_projection_instance(parms['options'])
-    if proj:
-        print proj.proj4()
-        print proj.defaults()
-        print proj.to_dict()
-        print json.dumps(proj.to_dict(), indent=4, sort_keys=True)
-
+    # This is the new attempt
     warp_parms = get_warp_instance(parms['options'])
     if warp_parms:
-        print warp_parms.defaults()
-        print warp_parms.to_dict()
+        print warp_parms.gdal_warp_options()
+        print json.dumps(warp_parms.defaults(), indent=4, sort_keys=True)
         print json.dumps(warp_parms.to_dict(), indent=4, sort_keys=True)
 
     sys.exit(0)
