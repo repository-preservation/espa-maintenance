@@ -57,14 +57,8 @@ def determine_order_disposition():
         raise Exception(msg)
 
     try:
-        result = server.send_initial_emails()
-        if not result:
-            msg = "server.send_initial_emails() was not successful"
-            raise Exception(msg)
-
-        result = server.finalize_orders()
-        if not result:
-            msg = "server.finalize_orders() result was not successful"
+        if not server.handle_orders():
+            msg = "server.handle_orders() was not successful"
             raise Exception(msg)
 
     except xmlrpclib.ProtocolError, e:
