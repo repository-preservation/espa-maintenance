@@ -38,7 +38,6 @@ import util
 import settings
 
 
-
 # ============================================================================
 def run_scenes():
     '''
@@ -95,17 +94,19 @@ def run_scenes():
         if scenes:
             # Figure out the name of the order file
             stamp = datetime.now()
-            ordername = ('%s_%s_%s_%s_%s_%s-espa_job.txt') % \
-                        (str(stamp.month), str(stamp.day),
-                         str(stamp.year), str(stamp.hour),
-                         str(stamp.minute), str(stamp.second))
+            espa_job_name = ('%s_%s_%s_%s_%s_%s-espa_job'
+                             % (str(stamp.month), str(stamp.day),
+                                str(stamp.year), str(stamp.hour),
+                                str(stamp.minute), str(stamp.second)))
 
             log(' '.join(["Found scenes to process,",
-                          "generating job number:", ordername]))
-            espaorderfile = os.path.join('/tmp', ordername)
+                          "generating job number:", espa_job_name]))
+
+            espa_job_filename = '%s%s' % (espa_job_name, '.txt')
+            espa_job_filepath = os.path.join('/tmp', espa_job_filename)
 
             # Create the order file full of all the scenes requested
-            with open(espaorderfile, 'w+') as espa_fd:
+            with open(espa_job_filepath, 'w+') as espa_fd:
                 for scene in scenes:
                     line = json.loads(scene)
 
@@ -138,11 +139,11 @@ def run_scenes():
             # END - with espa_fd
 
             # Specify the location of the order file on the hdfs
-            hdfs_target = 'requests/%s' % ordername
+            hdfs_target = 'requests/%s' % espa_job_filename
 
             # Define command line to store the job file in hdfs
             hadoop_store_command = [hadoop_executable, 'dfs', '-copyFromLocal',
-                                    espaorderfile, hdfs_target]
+                                    espa_job_filepath, hdfs_target]
 
             jars = os.path.join(home_dir, 'bin/hadoop/contrib/streaming',
                                 'hadoop-streaming*.jar')
@@ -152,13 +153,15 @@ def run_scenes():
                  '-D', 'mapred.task.timeout=%s' % settings.HADOOP_TIMEOUT,
                  '-D', 'mapred.reduce.tasks=0',
                  '-D', 'mapred.job.queue.name=ondemand',
-                 '-D', 'mapred.job.name="%s"' % ordername,
+                 '-D', 'mapred.job.name="%s"' % espa_job_name,
                  '-file', '%s/espa-site/processing/cdr_ecv.py' % home_dir,
-                 '-file', '%s/espa-site/processing/cdr_ecv_mapper.py' % home_dir,
+                 '-file', ('%s/espa-site/processing/cdr_ecv_mapper.py'
+                           % home_dir),
                  '-file', '%s/espa-site/processing/modis.py' % home_dir,
                  '-file', '%s/espa-site/processing/browse.py' % home_dir,
                  '-file', '%s/espa-site/processing/distribution.py' % home_dir,
-                 '-file', '%s/espa-site/processing/espa_exception.py' % home_dir,
+                 '-file', ('%s/espa-site/processing/espa_exception.py'
+                           % home_dir),
                  '-file', '%s/espa-site/processing/metadata.py' % home_dir,
                  '-file', '%s/espa-site/processing/parameters.py' % home_dir,
                  '-file', '%s/espa-site/processing/science.py' % home_dir,
@@ -169,7 +172,8 @@ def run_scenes():
                  '-file', '%s/espa-site/processing/util.py' % home_dir,
                  '-file', '%s/espa-site/processing/warp.py' % home_dir,
                  '-file', '%s/espa-site/processing/settings.py' % home_dir,
-                 '-mapper', '%s/espa-site/processing/cdr_ecv_mapper.py' % home_dir,
+                 '-mapper', ('%s/espa-site/processing/cdr_ecv_mapper.py'
+                             % home_dir),
                  '-cmdenv', 'ESPA_WORK_DIR=$ESPA_WORK_DIR',
                  '-cmdenv', 'HOME=$HOME',
                  '-cmdenv', 'USER=$USER',
@@ -202,17 +206,21 @@ def run_scenes():
             # ----------------------------------------------------------------
             # Update the scene list as queued so they don't get pulled down
             # again now that these jobs have been stored in hdfs
+            product_list = list()
             for scene in scenes:
                 line = json.loads(scene)
                 orderid = line['orderid']
                 sceneid = line['scene']
-                log("Updating scene:%s orderid:%s to queued" % (sceneid,
-                                                                orderid))
-                server.update_status(sceneid, orderid,
-                                     'CDR_ECV cron driver', 'queued')
+                product_list.append((orderid, sceneid))
 
-            log("Deleting local request file copy...")
-            os.unlink(espaorderfile)
+                log("Adding scene:%s orderid:%s to queued list"
+                    % (sceneid, orderid))
+
+            server.queue_products(product_list, 'CDR_ECV cron driver',
+                                  espa_job_name)
+
+            log("Deleting local request file copy [%s]" % espa_job_filepath)
+            os.unlink(espa_job_filepath)
 
             # ----------------------------------------------------------------
             log("Running hadoop job...")
