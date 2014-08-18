@@ -28,6 +28,7 @@ import xmlrpclib
 from datetime import datetime
 import urllib
 import traceback
+from argparse import ArgumentParser
 
 # espa-common objects and methods
 from espa_constants import *
@@ -39,12 +40,13 @@ import settings
 
 
 # ============================================================================
-def run_scenes():
+def process_products(args):
     '''
     Description:
-      Queries the xmlrpc service to see if there are any scenes that need to
-      be processed.  If there are, this method builds and executes a hadoop
-      job and updates the xmlrpc service to flag all the scenes as "queued"
+      Queries the xmlrpc service to see if there are any products that need
+      to be processed with the specified priority and/or user.  If there are,
+      this method builds and executes a hadoop job and updates the status for
+      each order through the xmlrpc service."
     '''
 
     rpcurl = os.environ.get('ESPA_XMLRPC')
@@ -84,13 +86,23 @@ def run_scenes():
     # adding this so we can disable on-demand processing via the admin console
     ondemand_enabled = server.get_configuration('ondemand_enabled')
 
+    # determine the appropriate priority value to request
+    priority = args.priority
+    if priority == 'all':
+        priority = None  # for 'get_scenes_to_process' None means all
+
+    # determine the appropriate hadoop queue to use
+    hadoop_job_queue = settings.HADOOP_QUEUE_MAPPING[args.priority]
+
     if not ondemand_enabled.lower() == 'true':
         log("on demand disabled...")
         sys.exit(EXIT_SUCCESS)
 
     try:
         log("Checking for scenes to process...")
-        scenes = server.get_scenes_to_process()
+        scenes = server.get_scenes_to_process(limit=args.limit,
+                                              for_user=args.user,
+                                              priority=args.priority)
         if scenes:
             # Figure out the name of the order file
             stamp = datetime.now()
@@ -152,7 +164,7 @@ def run_scenes():
                 [hadoop_executable, 'jar', jars,
                  '-D', 'mapred.task.timeout=%s' % settings.HADOOP_TIMEOUT,
                  '-D', 'mapred.reduce.tasks=0',
-                 '-D', 'mapred.job.queue.name=ondemand',
+                 '-D', 'mapred.job.queue.name=%s' % hadoop_job_queue,
                  '-D', 'mapred.job.name="%s"' % espa_job_name,
                  '-file', '%s/espa-site/processing/cdr_ecv.py' % home_dir,
                  '-file', ('%s/espa-site/processing/cdr_ecv_mapper.py'
@@ -274,7 +286,7 @@ def run_scenes():
 
     finally:
         server = None
-# END - run_scenes
+# END - process_products
 
 
 # ============================================================================
@@ -295,6 +307,33 @@ if __name__ == '__main__':
             log("$%s is not defined... exiting" % env_var)
             sys.exit(EXIT_FAILURE)
 
-    run_scenes()
+    # Create a command line argument parser
+    description = ("Builds and kicks-off hadoop jobs for the espa processing"
+                   " system (to process product requests)")
+    parser = ArgumentParser(description=description)
+
+    # Add parameters
+    valid_priorities = sorted(settings.HADOOP_QUEUE_MAPPING.keys())
+    parser.add_argument('--priority',
+                        action='store', dest='priority', required=False,
+                        default='all', choices=valid_priorities,
+                        help="only process requests with this priority:"
+                             " one of (%s)" % ', '.join(valid_priorities))
+
+    parser.add_argument('--limit',
+                        action='store', dest='limit', required=False,
+                        default='500',
+                        help="specify the max number of requests to process")
+
+    parser.add_argument('--user',
+                        action='store', dest='user', required=False,
+                        default=None,
+                        help="only process requests for the specified user")
+
+    # Parse the command line arguments
+    args = parser.parse_args()
+
+    # Setup and submit products to hadoop for processing
+    process_products(args)
 
     sys.exit(EXIT_SUCCESS)

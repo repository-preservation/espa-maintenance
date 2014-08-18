@@ -11,6 +11,15 @@ ORDER_BUFFER_LENGTH = 2048
 # before they are done
 HADOOP_TIMEOUT = 172800000  # which is 2 days
 
+# Specifies the hadoop queue to use based on priority
+# 'all' must be present as it is the default in the cron
+HADOOP_QUEUE_MAPPING = {
+    'all': 'ondemand',
+    'low': 'ondemand',
+    'medium': 'ondemand',
+    'high': 'ondemand'
+}
+
 
 ##############################################################################
 # Used in cdr_ecv.py
