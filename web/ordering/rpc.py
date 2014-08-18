@@ -29,7 +29,7 @@ def rpc_handler(request):
         d.register_function(_set_scene_error, 'set_scene_error')
         d.register_function(_set_scene_unavailable, 'set_scene_unavailable')
         d.register_function(_mark_scene_complete, 'mark_scene_complete')
-        d.register_function(_finalize_orders, 'finalize_orders')
+        d.register_function(_handle_orders, 'handle_orders')
         d.register_function(_send_initial_emails, 'send_initial_emails')
         d.register_function(_get_configuration, 'get_configuration')
         d.register_function(_get_scenes_to_process, 'get_scenes_to_process')
@@ -94,8 +94,8 @@ def _mark_scene_complete(name,
                                cksum_file_location,
                                log_file_contents)
 
-def _finalize_orders():
-    return core.finalize_orders()
+def _handle_orders():
+    return core.handle_orders()
 
 
 def _send_initial_emails():
