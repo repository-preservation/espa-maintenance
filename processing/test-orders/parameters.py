@@ -9,19 +9,35 @@ from argparse import ArgumentParser
 
 # Exceptions - TODO TODO TODO This should be else-where
 class DeveloperViolation(Exception):
+    '''
+    Description:
+        TODO TODO TODO
+    '''
     pass
 
 
 # Exceptions provided by this method
 class ParameterViolation(Exception):
+    '''
+    Description:
+        TODO TODO TODO
+    '''
     pass
 
 
 class OptionViolation(Exception):
+    '''
+    Description:
+        TODO TODO TODO
+    '''
     pass
 
 
 def get_sensor_code(parms):
+    '''
+    Description:
+        TODO TODO TODO
+    '''
 
     if 'scene' not in parms.keys():
         message = "[scene] is missing from order parameters"
@@ -64,6 +80,10 @@ def get_sensor_code(parms):
 
 
 def get_default_resize_parameters(sensor_code):
+    '''
+    Description:
+        TODO TODO TODO
+    '''
 
     sensors = {
         'tm': {'pixel_size': 30.0, 'pixel_size_units': 'meters'},
@@ -118,6 +138,10 @@ class Parameters(dict):
         super(Parameters, self).__init__(*args, **kwarg)
 
     def _is_valid_parameter(self, parameter):
+        '''
+        Description:
+            TODO TODO TODO
+        '''
 
         if not self.valid_parameters:
             message = "You must specify the valid parameters in the sub-class"
@@ -128,6 +152,10 @@ class Parameters(dict):
             raise ParameterViolation(message)
 
     def _is_valid_option(self, option):
+        '''
+        Description:
+            TODO TODO TODO
+        '''
 
         if not self.valid_options:
             message = "You must specify the valid options in the sub-class"
@@ -138,6 +166,10 @@ class Parameters(dict):
             raise OptionViolation(message)
 
     def _find_required_parameters(self, parameters):
+        '''
+        Description:
+            TODO TODO TODO
+        '''
 
         if not self.valid_parameters:
             message = "You must specify the valid parameters in the sub-class"
@@ -149,6 +181,10 @@ class Parameters(dict):
                 raise ParameterViolation(message)
 
     def _find_required_options(self, options):
+        '''
+        Description:
+            TODO TODO TODO
+        '''
 
         logger = logging.getLogger()
 
@@ -182,9 +218,14 @@ class Options(dict):
           Provides the constructor which is just a pass-through to create the
           underlying dict object.
         '''
+
         super(Parameters, self).__init__(*args, **kwarg)
 
     def _is_valid_option(self, option):
+        '''
+        Description:
+            TODO TODO TODO
+        '''
 
         if not self.options:
             message = "You must specify the options in the sub-class"
@@ -202,6 +243,10 @@ class Options(dict):
 
 
 class Projection(object):
+    '''
+    Description:
+        TODO TODO TODO
+    '''
 
     _target_projection = None
     _options = None
@@ -209,6 +254,11 @@ class Projection(object):
     _required_options = None
 
     def __init__(self, *args, **kwarg):
+        '''
+        Description:
+            TODO TODO TODO
+        '''
+
         if self._required_options:
             options = dict(*args, **kwarg)
             self._options = dict()
@@ -236,10 +286,20 @@ class Projection(object):
             self._options = None
 
     def proj4(self):
+        '''
+        Description:
+            TODO TODO TODO
+        '''
+
         message = "You must implement this in the sub-class"
         raise NotImplementedError(message)
 
     def defaults(self):
+        '''
+        Description:
+            TODO TODO TODO
+        '''
+
         d = dict()
         d.update({'target_projection': self._target_projection})
         if self._defaults is not None:
@@ -248,6 +308,11 @@ class Projection(object):
         return d
 
     def to_dict(self):
+        '''
+        Description:
+            TODO TODO TODO
+        '''
+
         d = dict()
 
         if self._target_projection:
@@ -260,8 +325,17 @@ class Projection(object):
 
 
 class GeographicProjection(Projection):
+    '''
+    Description:
+        TODO TODO TODO
+    '''
 
     def __init__(self, *args, **kwarg):
+        '''
+        Description:
+            TODO TODO TODO
+        '''
+
         self._target_projection = 'lonlat'
         self._defaults = None
         self._required_options = None
@@ -283,8 +357,17 @@ class GeographicProjection(Projection):
 
 
 class UTMProjection(Projection):
+    '''
+    Description:
+        TODO TODO TODO
+    '''
 
     def __init__(self, *args, **kwarg):
+        '''
+        Description:
+            TODO TODO TODO
+        '''
+
         self._target_projection = 'utm'
         self._defaults = {
             'utm_north_south': None,
@@ -348,12 +431,21 @@ def get_projection_instance(options):
 
 
 class ImageExtents(object):
+    '''
+    Description:
+        TODO TODO TODO
+    '''
 
     _options = None
     _defaults = None
     _required_options = ['maxx', 'maxy', 'minx', 'miny']
 
     def __init__(self, *args, **kwarg):
+        '''
+        Description:
+            TODO TODO TODO
+        '''
+
         options = dict(*args, **kwarg)
 
         self._options = dict()
@@ -372,12 +464,22 @@ class ImageExtents(object):
                 self._options.update({option: value})
 
     def gdal_warp_options(self):
+        '''
+        Description:
+            TODO TODO TODO
+        '''
+
         return ('-te %f %f %f %f' % (self._options['minx'],
                                      self._options['miny'],
                                      self._options['maxx'],
                                      self._options['maxy']))
 
     def defaults(self):
+        '''
+        Description:
+            TODO TODO TODO
+        '''
+
         d = dict()
 
         d.update({'image_extents': False})
@@ -385,6 +487,11 @@ class ImageExtents(object):
         return d
 
     def to_dict(self):
+        '''
+        Description:
+            TODO TODO TODO
+        '''
+
         d = dict()
 
         d.update({'image_extents': True})
@@ -411,12 +518,20 @@ def get_image_extents_instance(options):
 
 
 class Resize(object):
+    '''
+    Description:
+        TODO TODO TODO
+    '''
 
     _options = None
     _defaults = None
     _required_options = ['pixel_size', 'pixel_size_units']
 
     def __init__(self, options, default_pixel_options):
+        '''
+        Description:
+            TODO TODO TODO
+        '''
 
         self._defaults = default_pixel_options
 
@@ -443,10 +558,20 @@ class Resize(object):
                 self._options.update({option: value})
 
     def gdal_warp_options(self):
+        '''
+        Description:
+            TODO TODO TODO
+        '''
+
         return ('-tr %f %f' % (self._options['pixel_size'],
                                self._options['pixel_size']))
 
     def defaults(self):
+        '''
+        Description:
+            TODO TODO TODO
+        '''
+
         d = dict()
 
         d.update({'resize': False})
@@ -457,6 +582,11 @@ class Resize(object):
         return d
 
     def to_dict(self):
+        '''
+        Description:
+            TODO TODO TODO
+        '''
+
         d = dict()
 
         d.update({'resize': True})
@@ -485,7 +615,11 @@ def get_resize_instance(options, default_pixel_options):
 # END - resize_instance
 
 
-class WarpParameters(object):
+class CustomizationParameters(object):
+    '''
+    Description:
+        TODO TODO TODO
+    '''
 
     _reproject = None
     _defaults = {'reproject': False}
@@ -495,6 +629,10 @@ class WarpParameters(object):
     _resize = None
 
     def __init__(self, options, sensor_code):
+        '''
+        Description:
+            TODO TODO TODO
+        '''
 
         logger = logging.getLogger()
 
@@ -531,6 +669,11 @@ class WarpParameters(object):
             self._resize = get_resize_instance(options, default_pixel_options)
 
     def gdal_warp_options(self):
+        '''
+        Description:
+            TODO TODO TODO
+        '''
+
         warp_cmd = ''
 
         if self._projection is not None:
@@ -546,6 +689,11 @@ class WarpParameters(object):
         return warp_cmd
 
     def defaults(self):
+        '''
+        Description:
+            TODO TODO TODO
+        '''
+
         d = dict()
 
         d.update(self._defaults)
@@ -562,6 +710,11 @@ class WarpParameters(object):
         return d
 
     def to_dict(self):
+        '''
+        Description:
+            TODO TODO TODO
+        '''
+
         d = dict()
 
         if self._reproject:
@@ -577,23 +730,27 @@ class WarpParameters(object):
                 d.update(self._resize.to_dict())
 
         return d
-# END - WarpParameters
+# END - CustomizationParameters
 
 
-def get_warp_instance(options, sensor_code):
+def get_customization_instance(options, sensor_code):
     '''
     Description:
         TODO TODO TODO
     '''
 
     if 'reproject' in options.keys():
-        return WarpParameters(options, sensor_code)
+        return CustomizationParameters(options, sensor_code)
     else:
         return None
-# END - get_warp_instance
+# END - get_customization_instance
 
 
 class OrderParameters(Parameters):
+    '''
+    Description:
+        TODO TODO TODO
+    '''
 
     valid_dev_options = {
         'debug': False,
@@ -620,6 +777,11 @@ class OrderParameters(Parameters):
     }
 
     def __init__(self, *args, **kwarg):
+        '''
+        Description:
+            TODO TODO TODO
+        '''
+
         super(OrderParameters, self).__init__(*args, **kwarg)
 
         self.valid_parameters = ['orderid', 'scene', 'xmlrpcurl', 'options']
@@ -649,8 +811,16 @@ class OrderParameters(Parameters):
 
 
 class LandsatOrderParameters(OrderParameters):
+    '''
+    Description:
+        TODO TODO TODO
+    '''
 
     def __init__(self, *args, **kwarg):
+        '''
+        Description:
+            TODO TODO TODO
+        '''
 
         # Create empty options
         self.valid_options = dict()
@@ -713,8 +883,16 @@ class LandsatOrderParameters(OrderParameters):
 
 
 class ModisOrderParameters(OrderParameters):
+    '''
+    Description:
+        TODO TODO TODO
+    '''
 
     def __init__(self, *args, **kwarg):
+        '''
+        Description:
+            TODO TODO TODO
+        '''
 
         # Create empty options
         self.valid_options = dict()
@@ -759,6 +937,11 @@ class ModisOrderParameters(OrderParameters):
 
 
 def instance(parms):
+    '''
+    Description:
+        TODO TODO TODO
+    '''
+
     if 'scene' not in parms.keys():
         message = "[scene] is missing from order parameters"
         raise ParameterViolation(message)
@@ -824,11 +1007,14 @@ if __name__ == '__main__':
       This is test code for using the parameters module.
     '''
 
-    logger = logging.basicConfig(format=('%(asctime)s.%(msecs)03d %(process)d'
-                                         ' %(levelname)-8s'
-                                         ' %(filename)s:%(lineno)d:'
-                                         '%(funcName)s -- %(message)s'),
-                                 datefmt='%Y-%m-%d %H:%M:%S')
+    logging.basicConfig(format=('%(asctime)s.%(msecs)03d %(process)d'
+                                ' %(levelname)-8s'
+                                ' %(filename)s:%(lineno)d:'
+                                '%(funcName)s -- %(message)s'),
+                        datefmt='%Y-%m-%d %H:%M:%S',
+                        level=logging.INFO)
+
+    logger = logging.getLogger(__name__)
 
     # Create a command line argument parser
     description = "Configures and executes a test order"
@@ -866,7 +1052,7 @@ if __name__ == '__main__':
     sensor_code = get_sensor_code(parms)
     print sensor_code
     # This is the new attempt
-    warp_parms = get_warp_instance(parms['options'], sensor_code)
+    warp_parms = get_customization_instance(parms['options'], sensor_code)
     if warp_parms:
         print warp_parms.gdal_warp_options()
         print json.dumps(warp_parms.defaults(), indent=4, sort_keys=True)
