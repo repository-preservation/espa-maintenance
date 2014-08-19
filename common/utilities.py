@@ -24,6 +24,7 @@ from smtplib import SMTP
 # local objects and methods
 import settings
 
+
 def scenecache_is_alive(url='http://edclpdsftp.cr.usgs.gov:50000/RPC2'):
     """Determine if the specified url has an http server
     that accepts POST calls
@@ -67,7 +68,7 @@ def date_from_doy(year, doy):
 
     if int(d.year) != int(year):
         raise Exception("doy [%s] must fall within the specified year [%s]" %
-        (doy, year))
+                        (doy, year))
     else:
         return d
 

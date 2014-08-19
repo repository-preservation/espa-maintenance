@@ -157,7 +157,7 @@ SENSOR_NAMES = {
 
 '''Default pixel sizes based on the input products'''
 DEFAULT_PIXEL_SIZE = {
-    'meters':{
+    'meters': {
         '09A1': 500,
         '09GA': 500,
         '09GQ': 250,
@@ -181,8 +181,8 @@ DEFAULT_PIXEL_SIZE = {
         '13A1': 0.00449155,
         'LE7': 0.0002695,
         'LT4': 0.0002695,
-        'LT5': 0.0002695    
-    }
+        'LT5': 0.0002695
+        }
 }
 
 
