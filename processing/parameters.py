@@ -16,16 +16,15 @@ import os
 from espa_constants import *
 from espa_logging import log
 
+# imports from espa/common
+import sensor
+
 
 # This contains the valid sensors and data types which are supported
 valid_landsat_sensors = ['tm', 'etm']
 valid_modis_sensors = ['terra', 'aqua']
 valid_sensors = valid_landsat_sensors + valid_modis_sensors
 valid_output_formats = ['envi', 'gtiff', 'hdf-eos2']
-
-# Some defines for common pixels sizes in decimal degrees
-DEG_FOR_30_METERS = 0.0002695
-DEG_FOR_15_METERS = DEG_FOR_30_METERS / 2.0
 
 
 # ============================================================================
@@ -431,7 +430,7 @@ def convert_to_command_line_options(parms):
 
 
 # ============================================================================
-def validate_reprojection_parameters(parms, projections, ns_values,
+def validate_reprojection_parameters(parms, scene, projections, ns_values,
                                      pixel_size_units, resample_methods,
                                      datum_values):
     '''
@@ -664,15 +663,14 @@ def validate_reprojection_parameters(parms, projections, ns_values,
             and not parms['resize']):
         # Sombody asked for reproject or extents, but didn't specify a pixel
         # size
-        # Default to 30 meters or dd equivalent
-        # Everything will default to 30 meters except if they chose geographic
-        # projection, which will default to dd equivalent
-        parms['pixel_size'] = 30.0
-        parms['pixel_size_units'] = 'meters'
-        if test_for_parameter(parms, 'target_projection'):
-            if str(parms['target_projection']).lower() == 'lonlat':
-                parms['pixel_size'] = DEG_FOR_30_METERS
-                parms['pixel_size_units'] = 'dd'
+
+        units = 'meters'
+        if parms['reproject'] and parms['target_projection'] == 'lonlat':
+            units = 'meters'
+
+        # Default to the sensor specific meters or dd equivalent
+        parms['pixel_size'] = sensor.instance(scene).default_pixel_size[units]
+        parms['pixel_size_units'] = units
 
         log("Warning: 'resize' parameter not provided but required for"
             " reprojection or image extents"

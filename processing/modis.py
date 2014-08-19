@@ -98,6 +98,7 @@ def validate_parameters(parms):
 
     # Validate the reprojection parameters
     parameters.validate_reprojection_parameters(options,
+                                                parms['scene'],
                                                 warp.valid_projections,
                                                 warp.valid_ns,
                                                 warp.valid_pixel_size_units,
@@ -246,7 +247,7 @@ def process(parms):
                 or options['image_extents']
                 or options['projection'] is not None):
 
-            warp.warp_espa_data(options, xml_filename)
+            warp.warp_espa_data(options, parms['scene'], xml_filename)
 
         # Generate the stats for each stat'able' science product
         if options['include_statistics']:
