@@ -3,7 +3,7 @@ import lta
 from models import Order
 
 from common import sensor
-from common import util
+from common import utilities
 
 
 class ModisProductListValidator(Validator):
@@ -48,7 +48,7 @@ class ModisProductListValidator(Validator):
 
                     msg = ''.join(msg_parts)
 
-                    self.add_error('input_products', [msg,])
+                    self.add_error('input_products', [msg, ])
                 else:
                     prod_ids = [p.product_id for p in modis_products]
 
@@ -57,7 +57,7 @@ class ModisProductListValidator(Validator):
                     if len(difference) > 0:
                         for diff in difference:
                             msg = ("%s not found in Modis datapool" % diff)
-                            self.add_error('input_products', [msg,])
+                            self.add_error('input_products', [msg, ])
 
         return super(ModisProductListValidator, self).errors()
 
@@ -130,7 +130,7 @@ class LandsatProductListValidator(Validator):
 
                     msg = ''.join(msg_parts)
 
-                    self.add_error('input_products', [msg,])
+                    self.add_error('input_products', [msg, ])
                 else:
 
                     product_list = [s.product_id for s in landsat_products]
@@ -139,7 +139,7 @@ class LandsatProductListValidator(Validator):
                     if len(difference) > 0:
                         for diff in difference:
                             msg = ("%s not found in Landsat inventory" % diff)
-                            self.add_error('input_products', [msg,])
+                            self.add_error('input_products', [msg, ])
 
         return super(LandsatProductListValidator, self).errors()
 
@@ -168,8 +168,9 @@ class OutputFormatValidator(Validator):
     def errors(self):
         valid_formats = ['gtiff', 'envi', 'hdf-eos2']
 
-        if not 'output_format' in self.parameters \
-            and self.parameters['output_format']:
+        if not ('output_format' in self.parameters
+                and self.parameters['output_format']):
+
                 self.add_error('output_format',
                                ['Please select an output format', ])
         elif self.parameters['output_format'] not in valid_formats:
@@ -182,8 +183,9 @@ class FalseEastingValidator(Validator):
 
     def errors(self):
 
-        if not 'false_easting' in self.parameters\
-            or not util.is_number(self.parameters['false_easting']):
+        if (not 'false_easting' in self.parameters
+                or not utilities.is_number(self.parameters['false_easting'])):
+
                 msg = "Please provide a valid false easting value"
                 self.add_error('false_easting', [msg, ])
 
@@ -195,8 +197,9 @@ class FalseNorthingValidator(Validator):
 
     def errors(self):
 
-        if not 'false_northing' in self.parameters\
-            or not util.is_number(self.parameters['false_northing']):
+        if (not 'false_northing' in self.parameters
+                or not utilities.is_number(self.parameters['false_northing'])):
+
                 msg = "Please provide a valid false northing value"
                 self.add_error('false_northing', [msg, ])
 
@@ -215,11 +218,12 @@ class CentralMeridianValidator(Validator):
 
         cm = None
 
-        if 'central_meridian' in self.parameters\
-            and util.is_number(self.parameters['central_meridian']):
+        if ('central_meridian' in self.parameters
+                and utilities.is_number(self.parameters['central_meridian'])):
+
                 cm = float(self.parameters['central_meridian'])
         else:
-             self.add_error('central_meridian', [msg, ])
+            self.add_error('central_meridian', [msg, ])
 
         if cm and (cm < -180.0 or cm > 180.0):
             self.add_error('central_meridian', [msg, ])
@@ -237,15 +241,14 @@ class LatitudeTrueScaleValidator(Validator):
 
         ts = None
 
-        if 'latitude_true_scale' in self.parameters\
-            and util.is_number(self.parameters['latitude_true_scale']):
+        if ('latitude_true_scale' in self.parameters and
+                utilities.is_number(self.parameters['latitude_true_scale'])):
             ts = float(self.parameters['latitude_true_scale'])
         else:
             self.add_error('latitude_true_scale', [msg, ])
 
         # make sure ts is either in the range of 60 to 90 or -90 to -60
-        if ts and  \
-            ((ts < 60.0 and ts > 90.0) or (ts < -90.0 and ts > -60.0)):
+        if (ts and ((ts < 60.0 and ts > 90.0) or (ts < -90.0 and ts > -60.0))):
             self.add_error('latitude_true_scale', [msg, ])
 
         return super(LatitudeTrueScaleValidator, self).errors()
@@ -262,11 +265,11 @@ class LongitudinalPoleValidator(Validator):
 
         lp = None
 
-        if 'longitude_pole' in self.parameters\
-            and util.is_number(self.parameters['longitude_pole']):
+        if ('longitude_pole' in self.parameters and
+                utilities.is_number(self.parameters['longitude_pole'])):
                 lp = float(self.parameters['longitude_pole'])
         else:
-           self.add_error('longitude_pole', [msg, ])
+            self.add_error('longitude_pole', [msg, ])
 
         if lp and (lp > 180.0 or lp < -180.0):
             self.add_error('longitude_pole', [msg, ])
@@ -284,8 +287,8 @@ class StandardParallel1Validator(Validator):
         msg = ''.join(msg_parts)
 
         sp = None
-        if 'std_parallel_1' in self.parameters\
-            and util.is_number(self.parameters['std_parallel_1']):
+        if ('std_parallel_1' in self.parameters and
+                utilities.is_number(self.parameters['std_parallel_1'])):
                 sp = float(self.parameters['std_parallel_1'])
         else:
             self.add_error('std_parallel_1', [msg, ])
@@ -306,8 +309,8 @@ class StandardParallel2Validator(Validator):
         msg = ''.join(msg_parts)
 
         sp = None
-        if 'std_parallel_2' in self.parameters\
-            and util.is_number(self.parameters['std_parallel_2']):
+        if ('std_parallel_2' in self.parameters and
+                utilities.is_number(self.parameters['std_parallel_2'])):
                 sp = float(self.parameters['std_parallel_2'])
         else:
             self.add_error('std_parallel_2', [msg, ])
@@ -328,8 +331,8 @@ class OriginLatitudeValidator(Validator):
         msg = ''.join(msg_parts)
 
         lo = None
-        if 'origin_lat' in self.parameters\
-            and util.is_number(self.parameters['origin_lat']):
+        if ('origin_lat' in self.parameters and
+                utilities.is_number(self.parameters['origin_lat'])):
                 lo = float(self.parameters['origin_lat'])
         else:
             self.add_error('origin_lat', [msg, ])
@@ -346,12 +349,13 @@ class DatumValidator(Validator):
 
     def errors(self):
 
-         if not 'datum' in self.parameters\
-            or not self.parameters['datum'] in self.valid_datum:
-                msg = "Please select a datum from one of:%s" % self.valid_datum
-                self.add_error('datum', [msg, ])
+        if (not 'datum' in self.parameters or not
+                self.parameters['datum'] in self.valid_datum):
 
-         return super(DatumValidator, self).errors()
+            msg = "Please select a datum from one of:%s" % self.valid_datum
+            self.add_error('datum', [msg, ])
+
+        return super(DatumValidator, self).errors()
 
 
 class UTMZoneValidator(Validator):
@@ -359,9 +363,9 @@ class UTMZoneValidator(Validator):
 
     def errors(self):
 
-        if not 'utm_zone' in self.parameters\
-            or not str(self.parameters['utm_zone']).isdigit() \
-            or not int(self.parameters['utm_zone']) in range(1, 61):
+        if (not 'utm_zone' in self.parameters
+                or not str(self.parameters['utm_zone']).isdigit()
+                or not int(self.parameters['utm_zone']) in range(1, 61)):
                 msg = "Please provide a utm zone between 1 and 60"
                 self.add_error('utm_zone', [msg, ])
 
@@ -372,8 +376,9 @@ class UTMNorthSouthValidator(Validator):
     '''Validates utm_north_south for utm projection'''
     def errors(self):
 
-        if not 'utm_north_south' in self.parameters\
-            or not self.parameters['utm_north_south'] in ('north', 'south'):
+        if (not 'utm_north_south' in self.parameters or not
+                self.parameters['utm_north_south'] in ('north', 'south')):
+
                 msg = "Please select north or south for the UTM zone"
                 self.add_error('utm_north_south', [msg, ])
 
@@ -390,8 +395,8 @@ class ProjectionValidator(Validator):
         # delegate the call to superclass since we are overriding the
         # __init__ method
         super(ProjectionValidator, self).__init__(parameters,
-                                                         child_validators,
-                                                         name)
+                                                  child_validators,
+                                                  name)
 
         # check for projection value and add appropriate child validators
         proj = None
@@ -512,8 +517,9 @@ class MeterPixelSizeValidator(Validator):
 
         ps = None
 
-        if 'pixel_size' in self.parameters\
-            and util.is_number(self.parameters['pixel_size']):
+        if ('pixel_size' in self.parameters
+                and utilities.is_number(self.parameters['pixel_size'])):
+
             ps = float(self.parameters['pixel_size'])
         else:
             self.add_error('pixel_size', [msg, ])
@@ -536,8 +542,9 @@ class DecimalDegreePixelSizeValidator(Validator):
 
         ps = None
 
-        if 'pixel_size' in self.parameters\
-            and util.is_number(self.parameters['pixel_size']):
+        if ('pixel_size' in self.parameters
+                and utilities.is_number(self.parameters['pixel_size'])):
+
             ps = float(self.parameters['pixel_size'])
         else:
             self.add_error('pixel_size', [msg, ])
@@ -556,8 +563,9 @@ class PixelSizeValidator(Validator):
                                                  child_validators,
                                                  name)
 
-        if not 'pixel_size_units' in parameters \
-            or not parameters['pixel_size_units']:
+        if (not 'pixel_size_units' in parameters
+                or not parameters['pixel_size_units']):
+
             msg = "Target pixel size units not recognized"
             self.add_error('pixel_size_units', [msg, ])
         else:
@@ -589,25 +597,25 @@ class ImageExtentsValidator(Validator):
         maxy = None
 
         # make sure we got upper left x,y and lower right x,y vals
-        if not 'minx' in P or not util.is_number(P['minx']):
+        if not 'minx' in P or not utilities.is_number(P['minx']):
             msg = "Please provide a valid upper left x value"
             self.add_error('minx', [msg, ])
         else:
             minx = float(P['minx'])
 
-        if not 'maxx' in P or not util.is_number(P['maxx']):
+        if not 'maxx' in P or not utilities.is_number(P['maxx']):
             msg = "Please provide a valid lower right x value"
             self.add_error('maxx', [msg, ])
         else:
             maxx = float(P['maxx'])
 
-        if not 'miny' in P or not util.is_number(P['miny']):
+        if not 'miny' in P or not utilities.is_number(P['miny']):
             msg = "Please provide a valid lower right y value"
             self.add_error('miny', [msg, ])
         else:
             miny = float(P['miny'])
 
-        if not 'maxy' in P or not util.is_number(P['maxy']):
+        if not 'maxy' in P or not utilities.is_number(P['maxy']):
             msg = "Please provide a valid upper left y value"
             self.add_error('maxy', [msg, ])
         else:
@@ -658,10 +666,11 @@ class NewOrderFilesValidator(Validator):
         its children, *ProductListValidator'''
 
         msg = ''.join(['Please provide an input product list with at least',
-                 ' one product for processing'])
+                       ' one product for processing'])
 
-        if not 'input_products' in self.parameters \
-            and len(self.parameters['input_products']) > 0:
+        if (not 'input_products' in self.parameters
+                and len(self.parameters['input_products']) > 0):
+
             self.add_error('files', [msg, ])
 
         return super(NewOrderFilesValidator, self).errors()
@@ -681,18 +690,14 @@ class NewOrderPostValidator(Validator):
         self.add_child(ProductIsSelectedValidator(parameters))
         self.add_child(OutputFormatValidator(parameters))
 
-        if 'reproject' in parameters \
-            and parameters['reproject'] == 'on':
-
+        if 'reproject' in parameters and parameters['reproject'] == 'on':
             self.add_child(ProjectionValidator(parameters))
 
-        if 'resize' in parameters \
-            and parameters['resize'] == 'on':
-
+        if 'resize' in parameters and parameters['resize'] == 'on':
             self.add_child(PixelSizeValidator(parameters))
 
-        if 'image_extents' in parameters \
-            and parameters['image_extents'] == 'on':
+        if ('image_extents' in parameters
+                and parameters['image_extents'] == 'on'):
 
             self.add_child(ImageExtentsValidator(parameters))
 
@@ -711,8 +716,10 @@ class NewOrderValidator(Validator):
         # single value parameter values as a tuple.  The only thing coming
         # in that should be a list is input_products
         # This method will work fine for a normal dictionary as well
-        for key,item in parameters.iteritems():
-            if type(item) is list and key is not 'input_products' and len(item) > 0:
+        for key, item in parameters.iteritems():
+            if (type(item) is list
+                    and key is not 'input_products' and len(item) > 0):
+
                 parameters[key] = item[0]
 
         super(NewOrderValidator, self).__init__(parameters,

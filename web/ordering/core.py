@@ -20,7 +20,7 @@ import lta
 import common
 
 
-def frange(start,end,step):
+def frange(start, end, step):
     '''Provides Python range functions over floating point values'''
     return [x*step for x in range(int(start * 1./step), int(end * 1./step))]
 
@@ -50,9 +50,9 @@ def send_initial_email(order):
     email_msg = ''.join(m)
 
     subject = 'Processing order %s received' % order.orderid
-    return common.util.send_email(recipient=order.user.email,
-                                  subject=subject,
-                                  body=email_msg)
+    return common.utilities.send_email(recipient=order.user.email,
+                                       subject=subject,
+                                       body=email_msg)
 
 
 def send_completion_email(email, ordernum, readyscenes=[]):
@@ -82,9 +82,9 @@ def send_completion_email(email, ordernum, readyscenes=[]):
 
     subject = 'Processing for %s complete.' % ordernum
 
-    return common.util.send_email(recipient=email,
-                                  subject=subject,
-                                  body=email_msg)
+    return common.utilities.send_email(recipient=email,
+                                       subject=subject,
+                                       body=email_msg)
 
 
 def scenes_on_cache(input_product_list):
@@ -96,7 +96,8 @@ def scenes_on_cache(input_product_list):
     Returns:
     A subset of scene identifiers
     """
-    return common.util.scenecache_client().scenes_exist(input_product_list)
+    ipl = input_product_list
+    return common.utilities.scenecache_client().scenes_exist(ipl)
 
 
 def scenes_are_nlaps(input_product_list):
@@ -108,14 +109,17 @@ def scenes_are_nlaps(input_product_list):
     Return:
     A subset of scene identifiers
     """
-    return common.util.scenecache_client().is_nlaps(input_product_list)
+    return common.utilities.scenecache_client().is_nlaps(input_product_list)
 
 
 @transaction.atomic
 def handle_onorder_landsat_products():
-    landsat_products = Scene.objects.filter(status='onorder',
-                                            sensor_type='landsat')\
-                                            .order_by('order__order_date')
+    filter_args = {'status': 'onorder',
+                   'sensor_type': 'landsat'}
+
+    orderby = 'order__order_date'
+
+    landsat_products = Scene.objects.filter(**filter_args).order_by(orderby)
     if len(landsat_products) > 0:
 
         landsat_oncache = scenes_on_cache([l.name for l in landsat_products])
@@ -137,13 +141,12 @@ def handle_submitted_landsat_products():
 
     if len(landsat_products) > 0:
 
-
         if settings.DEBUG:
             print("Found %i landsat products submitted"
-                % len(landsat_products))
+                  % len(landsat_products))
 
         # is cache online?
-        if not common.util.scenecache_is_alive():
+        if not common.utilities.scenecache_is_alive():
             msg = "Scene cache could not be contacted..."
             print(msg)
             raise Exception(msg)
@@ -167,7 +170,7 @@ def handle_submitted_landsat_products():
             update_args = {'status': 'unavailable',
                            'completion_date': datetime.datetime.now(),
                            'note': 'TMA data cannot be processed'
-                          }
+                           }
 
             Scene.objects.filter(**filter_args).update(**update_args)
 
@@ -194,10 +197,11 @@ def handle_submitted_landsat_products():
 
             Scene.objects.filter(**filter_args).update(**update_args)
 
-            #Scene.objects.filter(status='submitted', name__in=landsat_oncache)\
+            #Scene.objects.filter(status='submitted',
+            #                     name__in=landsat_oncache)\
             #   .update(status='oncache')
 
-        # placeholder for all the scenes that are not nlaps but are not on cache
+        # placeholder for scenes that are not nlaps but are not on cache
         need_to_order = set(landsat_submitted) - set(landsat_nlaps)
 
         need_to_order = set(need_to_order) - set(landsat_oncache)
@@ -219,7 +223,7 @@ def handle_submitted_landsat_products():
         filter_args = {'status': 'submitted',
                        'name__in': need_to_order,
                        'sensor_type': 'landsat'
-                      }
+                       }
 
         orders = Scene.objects.filter(**filter_args).values('order').distinct()
 
@@ -263,7 +267,8 @@ def handle_submitted_landsat_products():
                 print eo_scene_list
 
             if len(eo_scene_list) > 0:
-                resp_dict = order_wrapper.order_scenes(eo_scene_list, contactid)
+                resp_dict = order_wrapper.order_scenes(eo_scene_list,
+                                                       contactid)
 
                 if settings.DEBUG:
                     print("Resp dict")
@@ -309,8 +314,8 @@ def handle_submitted_landsat_products():
 @transaction.atomic
 def handle_submitted_modis_products():
 
-    filter_args = {'status': 'submitted', 'sensor_type': 'modis' }
-    modis_products =  Scene.objects.filter(**filter_args)
+    filter_args = {'status': 'submitted', 'sensor_type': 'modis'}
+    modis_products = Scene.objects.filter(**filter_args)
 
     if len(modis_products) > 0:
 
@@ -329,11 +334,12 @@ def handle_submitted_modis_products():
 
         Scene.objects.filter(**filter_args).update(**update_args)
 
+
 @transaction.atomic
 def handle_submitted_products():
     '''
     TODO -- Create new method handle_submitted_scenes() or something to that
-    effect.  
+    effect.
     _process down to this comment should be included
     in it.
 
@@ -406,12 +412,11 @@ def get_scenes_to_process(limit=500, for_user=None, priority=None):
 
         options = json.loads(p.order.product_options)
 
-        orderline = json.dumps({
-                                'orderid': p.order.orderid,
+        orderline = json.dumps({'orderid': p.order.orderid,
                                 'scene': p.name,
                                 'priority': p.order.priority,
                                 'options': options
-                               })
+                                })
 
         results.append(orderline)
 
@@ -547,28 +552,28 @@ def set_scene_unavailable(name, orderid, processing_loc, error, note):
         return False
 
 
-@transaction.atomic       
+@transaction.atomic
 def queue_products(order_name_tuple_list, processing_location, job_name):
-    
+
     if not isinstance(order_name_tuple_list, list):
         msg = list()
         msg.append("queue_products expects a list of ")
         msg.append("tuples(order_id, product_id) for the first argument")
         raise TypeError(''.join(msg))
-    
-    # this should be a dictionary of lists, with order as the key and 
+
+    # this should be a dictionary of lists, with order as the key and
     # the scenes added to the list
     orders = {}
-    
+
     for order_product in order_name_tuple_list:
         order = order_product[0]
         product_name = order_product[1]
 
         if not order in orders:
             orders[order] = list()
-            
+
         orders[order].append(product_name)
-     
+
     # now use the orders dict we built to update the db
     for order in orders:
         products = orders[order]
@@ -578,16 +583,15 @@ def queue_products(order_name_tuple_list, processing_location, job_name):
         update_args = {'status': 'queued',
                        'processing_location': processing_location,
                        'log_file_contents': '',
-                       'job_name': job_name}        
-    
-        helper_logger("Queuing %s:%s from %s for job %s" \
-            % (order, products, processing_location, job_name))    
-        
+                       'job_name': job_name}
+
+        helper_logger("Queuing %s:%s from %s for job %s"
+                      % (order, products, processing_location, job_name))
+
         Scene.objects.filter(**filter_args).update(**update_args)
-        
+
     return True
-        
-    
+
 
 @transaction.atomic
 #  Marks a scene complete in the database for a given order
@@ -697,6 +701,7 @@ def finalize_orders():
         update_order_if_complete(o)
 
     return True
+
 
 @transaction.atomic
 def send_initial_emails():
@@ -891,15 +896,13 @@ def load_ee_orders():
                 lta return status code:%s" % (msg, status)
 
                 helper_logger(log_msg)
-                
+
+
 def handle_orders():
     '''Logic handler for how we accept orders + products into the system'''
     send_initial_emails()
     handle_onorder_landsat_products()
     handle_submitted_products()
     finalize_orders()
-    
+
     return True
-    
-    
-    

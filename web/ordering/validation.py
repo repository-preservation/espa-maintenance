@@ -103,8 +103,8 @@ class Validator(object):
         if type(parameters) is dict:
             self.parameters = parameters
         else:
-            raise Exception("parameters was of type %s, dict required" 
-                % type(parameters))
+            raise Exception("parameters was of type %s, dict required"
+                            % type(parameters))
 
         if child_validators:
             self.child_validators = child_validators
@@ -137,7 +137,7 @@ class Validator(object):
             self.validation_errors = {key: errmsg, }
         elif key in self.validation_errors:
             self.validation_errors[key].extend(errmsg)
-            # do this to prevent the list from continuing to grow            
+            # do this to prevent the list from continuing to grow
             errs = set(self.validation_errors[key])
             self.validation_errors[key] = list(errs)
         else:

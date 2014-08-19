@@ -1,7 +1,7 @@
 from django.http import HttpResponse
 from django.views.decorators.csrf import csrf_exempt
-from ordering.helper import *
 from ordering.models import Order
+from common import utilities
 
 __author__ = "David V. Hill"
 __api__version__ = "0.1.0"
@@ -123,7 +123,7 @@ def view_orders(email):
     '''Returns a full listing of all orders for the user.
        Return 404 if email not found in db.
     '''
-    if not util.validate_email(email):
+    if not utilities.validate_email(email):
         js = json.dumps({'msg': "Email address %s not found" % email},
                         status=404)
         return HttpResponse(content=js)

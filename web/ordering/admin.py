@@ -94,28 +94,28 @@ class ConfigurationAdmin(admin.ModelAdmin):
     list_display = ('key', 'value')
     list_filter = ('key', 'value')
     search_fields = ['key', 'value']
-    
+
 
 class TagAdmin(admin.ModelAdmin):
     fields = ['tag', 'description', 'last_updated']
     list_display = ('tag', 'last_updated')
     list_filter = ('tag', 'last_updated')
     search_fields = ['tag', 'description']
-    
-    
+
+
 class DatapointTagInline(admin.TabularInline):
     model = DataPoint.tags.through
     extra = 3
 
-    
+
 class DataPointAdmin(admin.ModelAdmin):
     fields = ['key', 'command', 'description', 'enable', 'last_updated']
     list_display = ('key', 'command', 'enable', 'last_updated')
     list_filter = ('enable', 'last_updated', 'tags__tag')
     search_fields = ['key', 'command', 'description', 'tags__tag']
     inlines = (DatapointTagInline,)
-    
-    
+
+
 class UserProfileAdmin(admin.ModelAdmin):
 
     fields = ['user', 'contactid']

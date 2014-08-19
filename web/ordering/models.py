@@ -44,7 +44,7 @@ class Order(models.Model):
         ('espa', 'ESPA'),
         ('ee', 'EE')
     )
-    
+
     ORDER_PRIORITY = (
         ('low', 'Low'),
         ('normal', 'Normal'),
@@ -71,7 +71,7 @@ class Order(models.Model):
     priority = models.CharField(max_length=10,
                                 choices=ORDER_PRIORITY,
                                 db_index=True)
-                                
+
     # date the order was placed
     order_date = models.DateTimeField('date ordered',
                                       blank=True,
@@ -329,9 +329,9 @@ class Order(models.Model):
 
         # determine a simple priority classification (for now)
         order_size = len(scene_list)
-        
+
         priority = 'normal'
-        
+
         if order_size <= 100:
             priority = 'high'
         elif order_size > 100 and order_size <= 500:
@@ -349,7 +349,7 @@ class Order(models.Model):
         order.order_type = 'level2_ondemand'
         order.order_date = datetime.datetime.now()
         order.product_options = option_string
-        order.priority = priority        
+        order.priority = priority
         order.save()
 
         # save the scenes for the order
@@ -357,12 +357,12 @@ class Order(models.Model):
             product = sensor.instance(s)
 
             sensor_type = None
-            
+
             if isinstance(product, sensor.Landsat):
                 sensor_type = 'landsat'
             elif isinstance(product, sensor.Modis):
                 sensor_type = 'modis'
-            
+
             scene = Scene()
             scene.name = s
             scene.order = order
@@ -412,7 +412,7 @@ class Scene(models.Model):
 
     #Reference to the Order this Scene is associated with
     order = models.ForeignKey(Order)
-    
+
     #holds the name of the processing job that is producing this product
     job_name = models.CharField(max_length=255, blank=True, null=True)
 

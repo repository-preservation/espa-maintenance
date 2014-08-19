@@ -1,12 +1,10 @@
-import core
 import json
 import collections
 from common import sensor
 
-
 import django.contrib.auth
 
-from common import util
+from common import utilities
 
 from ordering import validators
 from ordering.models import Scene
@@ -30,8 +28,6 @@ from django.utils.feedgenerator import Rss201rev2Feed
 from django.views.generic import View
 
 from django.contrib.auth.models import User
-
-
 
 
 class AbstractView(View):
@@ -105,7 +101,6 @@ class AbstractView(View):
                 cache.set_many(cache_vals,
                                timeout=settings.SYSTEM_MESSAGE_CACHE_TIMEOUT)
 
-
             ctx['system_message_title'] = cache_vals['system_message_title']
             ctx['system_message_1'] = cache_vals['system_message_1']
             ctx['system_message_2'] = cache_vals['system_message_2']
@@ -147,11 +142,10 @@ class TestAjax(AbstractView):
         name = request.GET.get('name', '')
 
         data = {'user': request.user.get_username(),
-                'name':name,
-                'status':'GET request ok'}
+                'name': name,
+                'status': 'GET request ok'}
 
         return self.render_to_json_response(data)
-
 
     def post(self, request):
 
@@ -163,10 +157,10 @@ class TestAjax(AbstractView):
         if 'age' in request.POST:
             age = request.POST['age']
 
-        data = {'user':request.user.get_username(),
-                'name':name,
-                'age':age,
-                'status':'POST request ok'}
+        data = {'user': request.user.get_username(),
+                'name': name,
+                'age': age,
+                'status': 'POST request ok'}
 
         return self.render_to_json_response(data)
 
@@ -195,7 +189,6 @@ class NewOrder(AbstractView):
     template = 'new_order.html'
     input_product_list = None
 
-
     def _get_order_description(self, parameters):
         description = None
         if 'order_description' in parameters:
@@ -214,7 +207,7 @@ class NewOrder(AbstractView):
                 val = request.POST[key]
                 if val is True or str(val).lower() == 'on':
                     defaults[key] = True
-                elif util.is_number(val):
+                elif utilities.is_number(val):
                     if str(val).find('.') != -1:
                         defaults[key] = float(val)
                     else:
@@ -230,7 +223,6 @@ class NewOrder(AbstractView):
             if 'input_product_list' in request.FILES:
                 _ipl = request.FILES['input_product_list'].read().split('\n')
                 self.input_product_list = _ipl
-
 
         retval = collections.namedtuple("InputProductListResult",
                                         ['input_products', 'not_implemented'])
@@ -332,7 +324,7 @@ class NewOrder(AbstractView):
             for e in errors:
                 for m in e:
                     m = m.replace("\n", "<br/>")
-                    m = m.replace("\t", "    &#149; " )
+                    m = m.replace("\t", "    &#149; ")
                     m = m.replace(" ", "&nbsp;")
                     error_list.append(m)
 
@@ -386,7 +378,7 @@ class ListOrders(AbstractView):
         '''
 
         #no email provided, ask user for an email address
-        if email is None or not util.validate_email(email):
+        if email is None or not utilities.validate_email(email):
             user = User.objects.get(username=request.user.username)
 
             #default the email field to the current user email
@@ -421,12 +413,13 @@ class Downloads(AbstractView):
         Return:
         HttpResponse
         '''
+        ob = 'display_order', 'title'
 
-        dload_sections = DownloadSection.objects.filter(visible=True).order_by('display_order', 'title')
+        d = DownloadSection.objects.filter(visible=True).order_by(ob)
 
         t = loader.get_template(self.template)
 
-        c = self._get_request_context(request, {'sections': dload_sections})
+        c = self._get_request_context(request, {'sections': d})
 
         return HttpResponse(t.render(c))
 

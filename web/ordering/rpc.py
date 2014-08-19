@@ -76,10 +76,11 @@ def _set_scene_unavailable(name, orderid, processing_loc, error, note):
 
 
 def _queue_products(order_name_tuple_list, processing_location, job_name):
-    
+
     return core.queue_products(order_name_tuple_list,
                                processing_location,
                                job_name)
+
 
 def _mark_scene_complete(name,
                          orderid,
@@ -95,11 +96,12 @@ def _mark_scene_complete(name,
         log_file_contents = log_file_contents_binary.data
 
     return core.mark_scene_complete(name,
-                               orderid,
-                               processing_loc,
-                               completed_scene_location,
-                               cksum_file_location,
-                               log_file_contents)
+                                    orderid,
+                                    processing_loc,
+                                    completed_scene_location,
+                                    cksum_file_location,
+                                    log_file_contents)
+
 
 def _handle_orders():
     return core.handle_orders()
@@ -117,6 +119,6 @@ def _get_configuration(key):
 def _get_scenes_to_process():
     return core.get_scenes_to_process()
 
+
 def _get_data_points(tags=[]):
     return DataPoint.get_data_points(tags)
-
