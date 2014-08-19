@@ -160,6 +160,7 @@ def process_products(args):
             jars = os.path.join(home_dir, 'bin/hadoop/contrib/streaming',
                                 'hadoop-streaming*.jar')
             # Define command line to execute the hadoop job
+            # Be careful it is possible to have conflicts between module names
             hadoop_run_command = \
                 [hadoop_executable, 'jar', jars,
                  '-D', 'mapred.task.timeout=%s' % settings.HADOOP_TIMEOUT,
@@ -183,7 +184,9 @@ def process_products(args):
                  '-file', '%s/espa-site/processing/transfer.py' % home_dir,
                  '-file', '%s/espa-site/processing/util.py' % home_dir,
                  '-file', '%s/espa-site/processing/warp.py' % home_dir,
-                 '-file', '%s/espa-site/processing/settings.py' % home_dir,
+                 '-file', '%s/espa-site/common/sensor.py' % home_dir,
+                 '-file', '%s/espa-site/common/settings.py' % home_dir,
+                 '-file', '%s/espa-site/common/utilities.py' % home_dir,
                  '-mapper', ('%s/espa-site/processing/cdr_ecv_mapper.py'
                              % home_dir),
                  '-cmdenv', 'ESPA_WORK_DIR=$ESPA_WORK_DIR',
