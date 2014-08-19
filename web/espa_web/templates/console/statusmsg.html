@@ -1,0 +1,84 @@
+{% extends "ordering/base.html" %}
+
+{% load staticfiles %}
+
+{% block title %} Status Message {% endblock %}
+{% block header %} Console - Status Message {% endblock %}
+
+{% block style %}
+    .messages { color: red }
+
+    input#id_title {
+        width:730px;
+    }
+
+    .box-margin{
+        margin:30px auto;
+    }
+
+{% endblock %}
+
+{% block nav %}{% include 'ordering/bulk_ordering_nav.html' %}{% endblock %}
+
+{% block content %}
+<div id="wrapper">
+
+    {% if messages %}
+    <ul class="messages">
+        {% for message in messages %}
+            <li{% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message }}</li>
+        {% endfor %}
+    </ul>
+    <br />
+    {% endif %}
+
+    <h4>Update system message</h4>
+
+    {{ form.non_field_errors }}
+
+    <form method="post" action="">
+        {% csrf_token %}
+
+        <div class='box-margin'></div>
+
+        <div id="make_public">
+            {{ form.display.label_tag }}
+            {{ form.display }}
+            {{ form.display.errors }}
+        </div>
+
+        <div class='box-margin'></div>
+
+        <div id="system_msg_header">
+            {{ form.title.label_tag }}
+            {{ form.title }}
+            {{ form.title.errors }}
+        </div>
+        
+        <div class='box-margin'></div>
+        
+        <div id="system_message">
+            {{ form.message }}
+            {{ form.message.errors }}
+        </div>
+
+        <div class='box-margin'></div>
+
+        <div id="system_msg_submit">
+             <input type="submit" value="Update" />
+        </div>
+
+    </form>
+
+</div>
+{% endblock %}
+
+{% block js_files %}
+    <script src="{% static 'js/ckeditor/ckeditor.js' %}"></script>
+{% endblock %}
+
+
+{% block scripts %}
+    CKEDITOR.replace('id_message');
+{% endblock %}
+
