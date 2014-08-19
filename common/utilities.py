@@ -12,8 +12,9 @@ History:
   Updated Jan/2014 by Ron Dilley, USGS/EROS
 '''
 
+import os
 import datetime
-import subprocess
+import commands
 import random
 import urllib2
 import xmlrpclib
@@ -53,7 +54,7 @@ def scenecache_client():
     Returns -- An xmlrpclib ServerProxy object
     """
     url = 'http://edclpdsftp.cr.usgs.gov:50000/RPC2'
-    #url = os.environ['ESPA_SCENECACHE_URL']
+    # url = os.environ['ESPA_SCENECACHE_URL']
     if scenecache_is_alive(url):
         return xmlrpclib.ServerProxy(url)
     else:
@@ -104,36 +105,35 @@ def get_logfile(orderid, sceneid):
 def execute_cmd(cmd):
     '''
     Description:
-      Execute a command line and return SUCCESS or ERROR
+      Execute a command line and return the terminal output or raise an
+      exception
 
     Returns:
         output - The stdout and/or stderr from the executed command.
     '''
 
     output = ''
-    proc = None
-    try:
-        proc = subprocess.Popen(cmd, stdin=subprocess.PIPE,
-                                stdout=subprocess.PIPE,
-                                stderr=subprocess.STDOUT, shell=True)
-        output = proc.communicate()[0]
 
-        if proc.returncode < 0:
-            message = "Application terminated by signal [%s]" % cmd
-            raise Exception(message)
+    (status, output) = commands.getstatusoutput(cmd)
 
-        if proc.returncode != 0:
-            message = "Application failed to execute [%s]" % cmd
-            raise Exception(message)
+    if status < 0:
+        message = "Application terminated by signal [%s]" % cmd
+        if len(output) > 0:
+            message = ' Stdout/Stderr is: '.join([message, output])
+        raise Exception(message)
 
-        application_exitcode = proc.returncode >> 8
-        if application_exitcode != 0:
-            message = "Application [%s] returned error code [%d]" \
-                      % (cmd, application_exitcode)
-            raise Exception(message)
+    if status != 0:
+        message = "Application failed to execute [%s]" % cmd
+        if len(output) > 0:
+            message = ' Stdout/Stderr is: '.join([message, output])
+        raise Exception(message)
 
-    finally:
-        del proc
+    if os.WEXITSTATUS(status) != 0:
+        message = "Application [%s] returned error code [%d]" \
+                  % (cmd, os.WEXITSTATUS(status))
+        if len(output) > 0:
+            message = ' Stdout/Stderr is: '.join([message, output])
+        raise Exception(message)
 
     return output
 
