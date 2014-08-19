@@ -8,4 +8,4 @@ class StatusMessageForm(forms.Form):
                               widget=forms.Textarea,
                               required=False)
                               
-    display = forms.BooleanField(label='Make Public', required=False)
+    display = forms.BooleanField(label='Publish Message', required=False)

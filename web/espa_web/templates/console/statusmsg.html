@@ -2,18 +2,22 @@
 
 {% load staticfiles %}
 
-{% block title %} Status Message {% endblock %}
-{% block header %} Console - Status Message {% endblock %}
+{% block title %} Edit System Message {% endblock %}
+{% block header %} Console - System Message Editor {% endblock %}
 
 {% block style %}
     .messages { color: red }
 
     input#id_title {
-        width:730px;
+        width:790px;
     }
 
     .box-margin{
         margin:30px auto;
+    }
+
+    label {
+        font-weight:bold;
     }
 
 {% endblock %}
