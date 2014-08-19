@@ -1,18 +1,30 @@
 import settings
 import re
 import os
-import util
+import utilities
 import httplib
 import xmlrpclib
 
+
 class ProductNotImplemented(NotImplementedError):
+    '''Exception to be thrown when trying to instantiate an unsupported
+    product'''
 
     def __init__(self, product_id, *args, **kwargs):
+        '''Constructor for the product not implemented
+
+        Keyword args:
+        product_id -- The product id of that is not implemented
+
+        Return:
+        None
+        '''
         self.product_id = product_id
         super(ProductNotImplemented, self).__init__(*args, **kwargs)
 
 
 class SensorProduct(object):
+    '''Base class for all sensor products'''
 
     # full path to the file containing the input product
     input_file_path = None
@@ -40,7 +52,7 @@ class SensorProduct(object):
 
     # landsat sceneid, modis tile name, aster granule id, etc.
     product_id = None
-
+    
     # lt5, le7, mod, myd, etc
     sensor_code = None
 
@@ -56,16 +68,27 @@ class SensorProduct(object):
     # last 5 for LANDSAT, collection # for MODIS
     version = None
 
-    # this is in meters
-    default_pixel_size = None
+    # this is a dictionary
+    default_pixel_size = {}
 
     def __init__(self, product_id):
+        '''Constructor for the SensorProduct base class
+
+        Keyword args:
+        product_id -- The product id for the requested product
+                      (e.g. Landsat is scene id, Modis is tilename, minus
+                      file extension)
+
+        Return:
+        None
+        '''
         self.product_id = product_id
         self.sensor_code = product_id[0:3]
         self.sensor_name = settings.SENSOR_NAMES[self.sensor_code.upper()]
 
     # subclasses should override, construct and return True/False
     def input_exists(self):
+        ''' '''
         raise NotImplementedError()
 
     # subclasses should override, construct and return True/False
@@ -105,10 +128,21 @@ class Modis(SensorProduct):
         self.vertical = hv[4:6]
         self.version = parts[3]
         self.date_produced = parts[4]
+        
+        # set the default pixel sizes
+        
+        # this comes out to 09A1, 09GA, 13A1, etc        
+        _product_code = self.short_name.split(self.sensor_code)[1]
+        
+        _meters = settings.DEFAULT_PIXEL_SIZE['meters'][_product_code]
+        
+        _dd =  settings.DEFAULT_PIXEL_SIZE['dd'][_product_code]
+        
+        self.default_pixel_size = {'meters': _meters, 'dd': _dd}
 
     def _build_input_file_path(self, base_source_path):
 
-        date = util.date_from_doy(self.year, self.doy)
+        date = utilities.date_from_doy(self.year, self.doy)
 
         path_date = "%s.%s.%s" % (date.year,
                                   str(date.month).zfill(2),
@@ -172,98 +206,82 @@ class Aqua(Modis):
 class ModisTerra09A1(Terra):
     def __init__(self, product_id):
         super(ModisTerra09A1, self).__init__(product_id)
-        self.default_pixel_size = settings.DEFAULT_PIXEL_SIZE['09A1']
-
-
+        
+        
 class ModisTerra09GA(Terra):
     def __init__(self, product_id):
         super(ModisTerra09GA, self).__init__(product_id)
-        self.default_pixel_size = settings.DEFAULT_PIXEL_SIZE['09GA']
-
+        
 
 class ModisTerra09GQ(Terra):
     def __init__(self, product_id):
         super(ModisTerra09GQ, self).__init__(product_id)
-        self.default_pixel_size = settings.DEFAULT_PIXEL_SIZE['09GQ']
-
+        
 
 class ModisTerra09Q1(Terra):
     def __init__(self, product_id):
         super(ModisTerra09Q1, self).__init__(product_id)
-        self.default_pixel_size = settings.DEFAULT_PIXEL_SIZE['09Q1']
-
+        
 
 class ModisTerra13A1(Terra):
     def __init__(self, product_id):
         super(ModisTerra13A1, self).__init__(product_id)
-        self.default_pixel_size = settings.DEFAULT_PIXEL_SIZE['13A1']
-
+        
 
 class ModisTerra13A2(Terra):
     def __init__(self, product_id):
         super(ModisTerra13A2, self).__init__(product_id)
-        self.default_pixel_size = settings.DEFAULT_PIXEL_SIZE['13A2']
-
+        
 
 class ModisTerra13A3(Terra):
     def __init__(self, product_id):
         super(ModisTerra13A3, self).__init__(product_id)
-        self.default_pixel_size = settings.DEFAULT_PIXEL_SIZE['13A3']
-
+        
 
 class ModisTerra13Q1(Terra):
     def __init__(self, product_id):
         super(ModisTerra13Q1, self).__init__(product_id)
-        self.default_pixel_size = settings.DEFAULT_PIXEL_SIZE['13Q1']
 
 
 class ModisAqua09A1(Aqua):
     def __init__(self, product_id):
         super(ModisAqua09A1, self).__init__(product_id)
-        self.default_pixel_size = settings.DEFAULT_PIXEL_SIZE['09A1']
-
+        
 
 class ModisAqua09GA(Aqua):
     def __init__(self, product_id):
         super(ModisAqua09GA, self).__init__(product_id)
-        self.default_pixel_size = settings.DEFAULT_PIXEL_SIZE['09GA']
-
+        
 
 class ModisAqua09GQ(Aqua):
     def __init__(self, product_id):
         super(ModisAqua09GQ, self).__init__(product_id)
-        self.default_pixel_size = settings.DEFAULT_PIXEL_SIZE['09GQ']
-
+        
 
 class ModisAqua09Q1(Aqua):
     def __init__(self, product_id):
         super(ModisAqua09Q1, self).__init__(product_id)
-        self.default_pixel_size = settings.DEFAULT_PIXEL_SIZE['09Q1']
-
+        
 
 class ModisAqua13A1(Aqua):
     def __init__(self, product_id):
         super(ModisAqua13A1, self).__init__(product_id)
-        self.default_pixel_size = settings.DEFAULT_PIXEL_SIZE['13A1']
 
 
 class ModisAqua13A2(Aqua):
     def __init__(self, product_id):
         super(ModisAqua13A2, self).__init__(product_id)
-        self.default_pixel_size = settings.DEFAULT_PIXEL_SIZE['13A2']
-
-
+        
+        
 class ModisAqua13A3(Aqua):
     def __init__(self, product_id):
         super(ModisAqua13A3, self).__init__(product_id)
-        self.default_pixel_size = settings.DEFAULT_PIXEL_SIZE['13A3']
-
+        
 
 class ModisAqua13Q1(Aqua):
     def __init__(self, product_id):
         super(ModisAqua13Q1, self).__init__(product_id)
-        self.default_pixel_size = settings.DEFAULT_PIXEL_SIZE['13Q1']
-
+        
 
 class Landsat(SensorProduct):
     path = None
@@ -281,11 +299,8 @@ class Landsat(SensorProduct):
 
         self.input_file_name = input_file_name
 
-        self.default_pixel_size = \
-            settings.DEFAULT_PIXEL_SIZE[self.sensor_code.upper()]
-
-        self.path = util.strip_zeros(product_id[3:6])
-        self.row = util.strip_zeros(product_id[6:9])
+        self.path = utilities.strip_zeros(product_id[3:6])
+        self.row = utilities.strip_zeros(product_id[6:9])
         self.year = product_id[9:13]
         self.doy = product_id[13:16]
         self.station = product_id[16:19]
@@ -298,6 +313,15 @@ class Landsat(SensorProduct):
             self.row,
             self.year,
             self.input_file_name)
+        
+        #set the default pixel sizes
+        _pixels = settings.DEFAULT_PIXEL_SIZE
+        
+        _meters = _pixels['meters'][self.sensor_code.upper()]
+        
+        _dd =  _pixels['dd'][self.sensor_code.upper()]
+        
+        self.default_pixel_size = {'meters': _meters, 'dd': _dd}
 
     def input_exists(self):
         ''' Checks the existence of a landsat tm/etm+ scene on the online
