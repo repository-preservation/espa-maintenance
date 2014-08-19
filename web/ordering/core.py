@@ -111,6 +111,7 @@ def scenes_are_nlaps(input_product_list):
     return common.util.scenecache_client().is_nlaps(input_product_list)
 
 
+@transaction.atomic
 def handle_onorder_landsat_products():
     landsat_products = Scene.objects.filter(status='onorder',
                                             sensor_type='landsat')\
@@ -124,6 +125,7 @@ def handle_onorder_landsat_products():
         Scene.objects.filter(**filter_args).update(**update_args)
 
 
+@transaction.atomic
 def handle_submitted_landsat_products():
     filter_args = {'status': 'submitted', 'sensor_type': 'landsat'}
     orderby = 'order__order_date'
@@ -304,7 +306,7 @@ def handle_submitted_landsat_products():
                     eo.scene_set.filter(**filter_args).update(status='oncache')
 
 
-
+@transaction.atomic
 def handle_submitted_modis_products():
 
     filter_args = {'status': 'submitted', 'sensor_type': 'modis' }
@@ -327,7 +329,7 @@ def handle_submitted_modis_products():
 
         Scene.objects.filter(**filter_args).update(**update_args)
 
-
+@transaction.atomic
 def handle_submitted_products():
     '''
     TODO -- Create new method handle_submitted_scenes() or something to that
