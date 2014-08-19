@@ -157,10 +157,10 @@ SENSOR_NAMES = {
 
 '''Default pixel sizes based on the input products'''
 DEFAULT_PIXEL_SIZE = {
-    '09A1': 0,
-    '09GA': 0,
-    '09GQ': 0,
-    '09Q1': 0,
+    '09A1': 500,
+    '09GA': 500,
+    '09GQ': 250,
+    '09Q1': 250,
     '13Q1': 250,
     '13A3': 1000,
     '13A2': 1000,

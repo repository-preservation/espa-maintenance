@@ -404,7 +404,7 @@ def instance(product_id):
 
     for key in instances.iterkeys():
         if re.match(instances[key][0], _id):
-            return instances[key][1](product_id)
+            return instances[key][1](product_id.strip())
 
     msg = "[%s] is not a supported sensor product" % product_id
     raise ProductNotImplemented(product_id, msg)

@@ -331,7 +331,8 @@ def handle_submitted_modis_products():
 def handle_submitted_products():
     '''
     TODO -- Create new method handle_submitted_scenes() or something to that
-    effect.  get_scenes_to_process down to this comment should be included
+    effect.  
+    _process down to this comment should be included
     in it.
 
     The rest of this method down should actually be 'get_scenes_to_process()'
@@ -543,6 +544,48 @@ def set_scene_unavailable(name, orderid, processing_loc, error, note):
 
         return False
 
+
+@transaction.atomic       
+def queue_products(order_name_tuple_list, processing_location, job_name):
+    
+    if not isinstance(order_name_tuple_list, list):
+        msg = list()
+        msg.append("queue_products expects a list of ")
+        msg.append("tuples(order_id, product_id) for the first argument")
+        raise TypeError(''.join(msg))
+    
+    # this should be a dictionary of lists, with order as the key and 
+    # the scenes added to the list
+    orders = {}
+    
+    for order_product in order_name_tuple_list:
+        order = order_product[0]
+        product_name = order_product[1]
+
+        if not order in orders:
+            orders[order] = list()
+            
+        orders[order].append(product_name)
+     
+    # now use the orders dict we built to update the db
+    for order in orders:
+        products = orders[order]
+
+        filter_args = {'name__in': products, 'order__orderid': order}
+
+        update_args = {'status': 'queued',
+                       'processing_location': processing_location,
+                       'log_file_contents': '',
+                       'job_name': job_name}        
+    
+        helper_logger("Queuing %s:%s from %s for job %s" \
+            % (order, products, processing_location, job_name))    
+        
+        Scene.objects.filter(**filter_args).update(**update_args)
+        
+    return True
+        
+    
 
 @transaction.atomic
 #  Marks a scene complete in the database for a given order

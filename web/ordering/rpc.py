@@ -30,6 +30,7 @@ def rpc_handler(request):
         d.register_function(_set_scene_unavailable, 'set_scene_unavailable')
         d.register_function(_mark_scene_complete, 'mark_scene_complete')
         d.register_function(_handle_orders, 'handle_orders')
+        d.register_function(_queue_products, 'queue_products')
         d.register_function(_send_initial_emails, 'send_initial_emails')
         d.register_function(_get_configuration, 'get_configuration')
         d.register_function(_get_scenes_to_process, 'get_scenes_to_process')
@@ -73,6 +74,12 @@ def _set_scene_unavailable(name, orderid, processing_loc, error, note):
                                       error,
                                       note)
 
+
+def _queue_products(order_name_tuple_list, processing_location, job_name):
+    
+    return core.queue_products(order_name_tuple_list,
+                               processing_location,
+                               job_name)
 
 def _mark_scene_complete(name,
                          orderid,

@@ -412,6 +412,9 @@ class Scene(models.Model):
 
     #Reference to the Order this Scene is associated with
     order = models.ForeignKey(Order)
+    
+    #holds the name of the processing job that is producing this product
+    job_name = models.CharField(max_length=255, blank=True, null=True)
 
     #full path including filename where this scene has been distributed to
     #minus the host and port. signifies that this scene is distributed
