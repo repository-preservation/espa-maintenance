@@ -1,4 +1,4 @@
- 
+
 <div id="nav">
     <span class="navitemleft"><a href="{% url 'index' %}">Home</a></span>
     <span class="navitemleft">|</span>
@@ -9,8 +9,14 @@
     <span class="navitemleft"><a href="http://landsat.usgs.gov/CDR_ECV.php">Product Information</a></span>
     <span class="navitemleft">|</span>
     <span class="navitemleft"><a href="http://landsat.usgs.gov/documents/espa_odi_userguide.pdf">User Guide</a></span>
-    
+
     <span class="navitemright"><a href="{% url 'logout' %}">Logout</a></span>
     <span class="navitemright">|</span>
     <span class="navitemright">{{ user.username}} ({{ user.email }})</span>
- </div>		
+    {% if user.is_staff %}
+        <span class="navitemright">|</span>
+        <span class="navitemright"><a href="{% url 'consoleindex' %}">Console</a></span>
+    {% endif %}    
+ </div> 
+
+ 

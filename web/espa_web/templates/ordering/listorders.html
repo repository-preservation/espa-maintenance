@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+{% extends "ordering/base.html" %}
 
 {% block title %} Bulk Order Status {% endblock %}
 {% block header %}Bulk Order Status {% endblock %}
@@ -27,14 +27,14 @@
 
 {% endblock %}
 
-{% block nav %}{% include "bulk_ordering_nav.html" %}{% endblock %}
+{% block nav %}{% include "ordering/bulk_ordering_nav.html" %}{% endblock %}
 
 {% block content %}
 
 <div id="wrapper">
 
 {% if display_system_message %}
-    {% include "system_message.html" %}
+    {% include "ordering/system_message.html" %}
 {% endif %}
 
     

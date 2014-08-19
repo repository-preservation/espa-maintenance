@@ -78,10 +78,7 @@ class AbstractView(View):
 
             ctx['display_system_message'] = True
 
-            cache_keys = ['system_message_title',
-                          'system_message_1',
-                          'system_message_2',
-                          'system_message_3']
+            cache_keys = ['system_message_title', 'system_message_body']
 
             cache_vals = cache.get_many(cache_keys)
 
@@ -102,9 +99,7 @@ class AbstractView(View):
                                timeout=settings.SYSTEM_MESSAGE_CACHE_TIMEOUT)
 
             ctx['system_message_title'] = cache_vals['system_message_title']
-            ctx['system_message_1'] = cache_vals['system_message_1']
-            ctx['system_message_2'] = cache_vals['system_message_2']
-            ctx['system_message_3'] = cache_vals['system_message_3']
+            ctx['system_message_body'] = cache_vals['system_message_body']
             c = None
         else:
             ctx['display_system_message'] = False
@@ -124,7 +119,7 @@ class AbstractView(View):
 
 class AjaxForm(AbstractView):
     def get(self, request):
-        template = 'test.html'
+        template = 'ordering/test.html'
         c = self._get_request_context(request)
         t = loader.get_template(template)
         return HttpResponse(t.render(c))
@@ -166,7 +161,7 @@ class TestAjax(AbstractView):
 
 
 class Index(AbstractView):
-    template = 'index.html'
+    template = 'ordering/index.html'
 
     def get(self, request):
         '''Request handler for / and /index
@@ -186,7 +181,7 @@ class Index(AbstractView):
 
 
 class NewOrder(AbstractView):
-    template = 'new_order.html'
+    template = 'ordering/new_order.html'
     input_product_list = None
 
     def _get_order_description(self, parameters):
@@ -362,8 +357,8 @@ class NewOrder(AbstractView):
 
 
 class ListOrders(AbstractView):
-    initial_template = "listorders.html"
-    results_template = "listorders_results.html"
+    initial_template = "ordering/listorders.html"
+    results_template = "ordering/listorders_results.html"
 
     def get(self, request, email=None, output_format=None):
         '''Request handler for displaying all user orders
@@ -402,7 +397,7 @@ class ListOrders(AbstractView):
 
 
 class Downloads(AbstractView):
-    template = 'downloads.html'
+    template = 'ordering/downloads.html'
 
     def get(self, request):
         '''Request handler to display the downloads template
@@ -425,7 +420,7 @@ class Downloads(AbstractView):
 
 
 class OrderDetails(AbstractView):
-    template = 'orderdetails.html'
+    template = 'ordering/orderdetails.html'
 
     def get(self, request, orderid, output_format=None):
         '''Request handler to get the full listing of all the scenes
@@ -451,7 +446,7 @@ class OrderDetails(AbstractView):
 
 
 class LogOut(AbstractView):
-    template = "loggedout.html"
+    template = "ordering.loggedout.html"
 
     def get(self, request):
         '''Simple view to log a user out and land them on an exit page'''

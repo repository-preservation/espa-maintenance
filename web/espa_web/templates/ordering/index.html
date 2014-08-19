@@ -1,4 +1,6 @@
-{% extends "base.html" %}
+{% extends "ordering/base.html" %}
+{% load static %}
+
 {% load cache %}
 {% cache 60 index_html_1 %}
 
@@ -107,7 +109,7 @@
 {% endblock %}
 {% endcache %}
 
-{% block nav %}{% include "bulk_ordering_nav.html" %}{% endblock %}
+{% block nav %}{% include "ordering/bulk_ordering_nav.html" %}{% endblock %}
 
 {% cache 60 index_html_2 %}
 
@@ -115,11 +117,11 @@
 
 <div id="wrapper">
 {% if display_system_message %}
-    {% include "system_message.html" %}
+    {% include "ordering/system_message.html" %}
 {% endif %}
 
 	<div id="logo_box">
-           <img src="/static/img/lsrd_logo_color.png" />
+           <img src="{% static 'img/lsrd_logo_color.png' %}" />
         </div>
 	<div id="opensource_box">
             <h3>Did you know?</h3>

@@ -78,6 +78,7 @@ INSTALLED_APPS = (
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'ordering',
+    'console',
 )
 
 MIDDLEWARE_CLASSES = (
@@ -137,7 +138,7 @@ TEMPLATE_DIRS = (
     #or "C:/www/django/templates".
     # Always use forward slashes, even on Windows.
     # Don't forget to use absolute paths, not relative paths.
-    os.path.join(BASE_DIR, "ordering/templates"),
+    os.path.join(BASE_DIR, "espa_web/templates"),
 )
 
 TEMPLATE_CONTEXT_PROCESSORS = (

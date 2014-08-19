@@ -115,8 +115,10 @@
     </script>
     <script src="{% static 'js/jquery-1.10.2.min.js' %}"></script>
     <script src="{% static 'js/jquery.cookie.js' %}"></script>
+    {% block js_files %}{% endblock %}
 
     <script type="text/javascript">
+    
     {% block scripts%}{% endblock %}
     </script>
 </body>

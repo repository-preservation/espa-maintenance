@@ -1,5 +1,4 @@
-{% extends "base.html" %}
-
+{% extends "ordering/base.html" %}
 
     {% block title %} LSRD Software Downloads {% endblock %}
     {% block header %} LSRD Software Downloads {% endblock %}
@@ -30,7 +29,7 @@
     
     {% endblock %}
 
-    {% block nav %}{% include "bulk_ordering_nav.html" %}{% endblock %}
+    {% block nav %}{% include "ordering/bulk_ordering_nav.html" %}{% endblock %}
 
     {% block content %}
     {% csrf_token %}
