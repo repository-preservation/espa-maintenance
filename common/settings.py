@@ -11,6 +11,15 @@ ORDER_BUFFER_LENGTH = 2048
 # before they are done
 HADOOP_TIMEOUT = 172800000  # which is 2 days
 
+# Specifies the hadoop queue to use based on priority
+# 'all' must be present as it is the default in the cron
+HADOOP_QUEUE_MAPPING = {
+    'all': 'ondemand',
+    'low': 'ondemand',
+    'medium': 'ondemand',
+    'high': 'ondemand'
+}
+
 
 ##############################################################################
 # Used in cdr_ecv.py
@@ -18,13 +27,13 @@ HADOOP_TIMEOUT = 172800000  # which is 2 days
 # Path to the Landsat L1T source data location
 LANDSAT_BASE_SOURCE_PATH = '/data/standard_l1t'
 
-#filename extension for landsat input products
+# filename extension for landsat input products
 LANDSAT_INPUT_FILENAME_EXTENSION = '.tar.gz'
 
-#host for landsat input checks
+# host for landsat input checks
 LANDSAT_INPUT_CHECK_HOST = 'edclpdsftp.cr.usgs.gov'
 
-#port for landsat input checks
+# port for landsat input checks
 LANDSAT_INPUT_CHECK_PORT = 50000
 
 LANDSAT_INPUT_CHECK_BASE_PATH = "/RPC2"
@@ -41,10 +50,10 @@ AQUA_BASE_SOURCE_PATH = '/MOLA'
 # file extension for modis input products
 MODIS_INPUT_FILENAME_EXTENSION = '.hdf'
 
-#host for modis input checks
+# host for modis input checks
 MODIS_INPUT_CHECK_HOST = 'e4ftl01.cr.usgs.gov'
 
-#port for modis input checks
+# port for modis input checks
 MODIS_INPUT_CHECK_PORT = 80
 
 MODIS_INPUT_CHECK_BASE_PATH = "/"
@@ -103,12 +112,14 @@ MAX_DISTRIBUTION_ATTEMPTS = 5
 
 
 ##############################################################################
-# Used by util.py
+# Used by util.py and lpcs.py
 
 # List of hostnames to choose from for the access to the online cache
 # 140 is here twice so the load is 2/3 + 1/3.  machines are mismatched
 ESPA_CACHE_HOST_LIST = ['edclxs67p', 'edclxs140p', 'edclxs140p']
-# Can override this by setting the environment variable DEV_CACHE_HOSTNAME
+MODIS_INPUT_HOSTNAME = 'e4ftl01.cr.usgs.gov'
+# Developers can override these for LPCS by setting the environment variable
+# DEV_CACHE_HOSTNAME
 
 # Where to place the temporary scene processing log files
 LOGFILE_PATH = '/tmp'
@@ -194,7 +205,9 @@ CACHE_KEYS = {
 }
 
 
-#LOGGING DEFINITIONS
+'''
+LOGGING DEFINITIONS
+'''
 
 LOGGING_CONFIG = {}
 
