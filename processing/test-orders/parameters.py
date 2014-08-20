@@ -6,6 +6,9 @@ import logging
 import json
 from argparse import ArgumentParser
 
+# from espa/common
+import sensor
+
 
 # Exceptions - TODO TODO TODO This should be else-where
 class DeveloperViolation(Exception):
@@ -33,93 +36,6 @@ class OptionViolation(Exception):
     pass
 
 
-def get_sensor_code(parms):
-    '''
-    Description:
-        TODO TODO TODO
-    '''
-
-    if 'scene' not in parms.keys():
-        message = "[scene] is missing from order parameters"
-        raise ParameterViolation(message)
-
-    _id = parms['scene'].lower().strip()
-
-    sensors = {
-        'tm': r'^lt[4|5]\d{3}\d{3}\d{4}\d{3}\w{3}\d{2}$',
-        'etm': r'^le7\d{3}\d{3}\d{4}\d{3}\w{3}\d{2}$',
-
-        'mod09a1': r'^mod09a1\.a\d{7}\.h\d{2}v\d{2}\.005\.\d{13}$',
-        'mod09ga': r'^mod09ga\.a\d{7}\.h\d{2}v\d{2}\.005\.\d{13}$',
-        'mod09gq': r'^mod09gq\.a\d{7}\.h\d{2}v\d{2}\.005\.\d{13}$',
-        'mod09q1': r'^mod09q1\.a\d{7}\.h\d{2}v\d{2}\.005\.\d{13}$',
-
-        'mod13a1': r'^mod13a1\.a\d{7}\.h\d{2}v\d{2}\.005\.\d{13}$',
-        'mod13a2': r'^mod13a2\.a\d{7}\.h\d{2}v\d{2}\.005\.\d{13}$',
-        'mod13a3': r'^mod13a3\.a\d{7}\.h\d{2}v\d{2}\.005\.\d{13}$',
-        'mod13q1': r'^mod13q1\.a\d{7}\.h\d{2}v\d{2}\.005\.\d{13}$',
-
-        'myd09a1': r'^myd09a1\.a\d{7}\.h\d{2}v\d{2}\.005\.\d{13}$',
-        'myd09ga': r'^myd09ga\.a\d{7}\.h\d{2}v\d{2}\.005\.\d{13}$',
-        'myd09gq': r'^myd09gq\.a\d{7}\.h\d{2}v\d{2}\.005\.\d{13}$',
-        'myd09q1': r'^myd09q1\.a\d{7}\.h\d{2}v\d{2}\.005\.\d{13}$',
-
-        'myd13a1': r'^myd13a1\.a\d{7}\.h\d{2}v\d{2}\.005\.\d{13}$',
-        'myd13a2': r'^myd13a2\.a\d{7}\.h\d{2}v\d{2}\.005\.\d{13}$',
-        'myd13a3': r'^myd13a3\.a\d{7}\.h\d{2}v\d{2}\.005\.\d{13}$',
-        'myd13q1': r'^myd13q1\.a\d{7}\.h\d{2}v\d{2}\.005\.\d{13}$'
-    }
-
-    for sensor_code in sensors.keys():
-        if re.match(sensors[sensor_code], _id):
-            return sensor_code
-
-    msg = "[%s] is not a supported sensor product" % parms['scene']
-    raise NotImplementedError(msg)
-# END - get_sensor_code
-
-
-def get_default_resize_parameters(sensor_code):
-    '''
-    Description:
-        TODO TODO TODO
-    '''
-
-    sensors = {
-        'tm': {'pixel_size': 30.0, 'pixel_size_units': 'meters'},
-        'etm': {'pixel_size': 30.0, 'pixel_size_units': 'meters'},
-
-        # TODO TODO TODO - I don't know if any modis are correct
-        'mod09a1': {'pixel_size': 500.0, 'pixel_size_units': 'meters'},
-        'mod09ga': {'pixel_size': 500.0, 'pixel_size_units': 'meters'},
-        'mod09gq': {'pixel_size': 500.0, 'pixel_size_units': 'meters'},
-        'mod09q1': {'pixel_size': 500.0, 'pixel_size_units': 'meters'},
-
-        'mod13a1': {'pixel_size': 500.0, 'pixel_size_units': 'meters'},
-        'mod13a2': {'pixel_size': 500.0, 'pixel_size_units': 'meters'},
-        'mod13a3': {'pixel_size': 500.0, 'pixel_size_units': 'meters'},
-        'mod13q1': {'pixel_size': 500.0, 'pixel_size_units': 'meters'},
-
-        'myd09a1': {'pixel_size': 500.0, 'pixel_size_units': 'meters'},
-        'myd09ga': {'pixel_size': 500.0, 'pixel_size_units': 'meters'},
-        'myd09gq': {'pixel_size': 500.0, 'pixel_size_units': 'meters'},
-        'myd09q1': {'pixel_size': 500.0, 'pixel_size_units': 'meters'},
-
-        'myd13a1': {'pixel_size': 500.0, 'pixel_size_units': 'meters'},
-        'myd13a2': {'pixel_size': 500.0, 'pixel_size_units': 'meters'},
-        'myd13a3': {'pixel_size': 500.0, 'pixel_size_units': 'meters'},
-        'myd13q1': {'pixel_size': 500.0, 'pixel_size_units': 'meters'}
-    }
-
-    for sensor in sensors.keys():
-        if sensor == sensor_code:
-            return sensors[sensor]
-
-    msg = "[%s] is not a supported sensor" % sensor_code
-    raise NotImplementedError(msg)
-# END - get_default_resize_parameters
-
-
 class Parameters(dict):
     '''
     Definition:
@@ -144,12 +60,12 @@ class Parameters(dict):
         '''
 
         if not self.valid_parameters:
-            message = "You must specify the valid parameters in the sub-class"
-            raise DeveloperViolation(message)
+            msg = "You must specify the valid parameters in the sub-class"
+            raise DeveloperViolation(msg)
 
         if parameter not in self.valid_parameters:
-            message = "[%s] is not a valid parameter" % parameter
-            raise ParameterViolation(message)
+            msg = "[%s] is not a valid parameter" % parameter
+            raise ParameterViolation(msg)
 
     def _is_valid_option(self, option):
         '''
@@ -158,12 +74,12 @@ class Parameters(dict):
         '''
 
         if not self.valid_options:
-            message = "You must specify the valid options in the sub-class"
-            raise DeveloperViolation(message)
+            msg = "You must specify the valid options in the sub-class"
+            raise DeveloperViolation(msg)
 
         if option not in self.valid_options.keys():
-            message = "[%s] is not a valid option" % option
-            raise OptionViolation(message)
+            msg = "[%s] is not a valid option" % option
+            raise OptionViolation(msg)
 
     def _find_required_parameters(self, parameters):
         '''
@@ -172,13 +88,13 @@ class Parameters(dict):
         '''
 
         if not self.valid_parameters:
-            message = "You must specify the valid parameters in the sub-class"
-            raise DeveloperViolation(message)
+            msg = "You must specify the valid parameters in the sub-class"
+            raise DeveloperViolation(msg)
 
         for parameter in self.valid_parameters:
             if parameter not in parameters:
-                message = "[%s] is missing from order parameters" % parameter
-                raise ParameterViolation(message)
+                msg = "[%s] is missing from order parameters" % parameter
+                raise ParameterViolation(msg)
 
     def _find_required_options(self, options):
         '''
@@ -189,18 +105,18 @@ class Parameters(dict):
         logger = logging.getLogger()
 
         if not self.valid_options:
-            message = "You must specify the valid options in the sub-class"
-            raise DeveloperViolation(message)
+            msg = "You must specify the valid options in the sub-class"
+            raise DeveloperViolation(msg)
 
         # TODO TODO TODO - Verify assumption
         # I think all of the options can be defaulted so right now this is
         # very simple
         for option in self.valid_options:
             if option not in options:
-                message = ("[%s] is missing from order options and will be"
-                           " defaulted to [%s]"
-                           % (option, str(self.valid_options[option])))
-                logger.warning(message)
+                msg = ("[%s] is missing from order options and will be"
+                       " defaulted to [%s]"
+                       % (option, str(self.valid_options[option])))
+                logger.warning(msg)
                 self['options'][option] = self.valid_options[option]
 
 
@@ -228,16 +144,16 @@ class Options(dict):
         '''
 
         if not self.options:
-            message = "You must specify the options in the sub-class"
-            raise DeveloperViolation(message)
+            msg = "You must specify the options in the sub-class"
+            raise DeveloperViolation(msg)
 
         if type(self.options) != dict:
-            message = "the specified options must be a dict"
-            raise DeveloperViolation(message)
+            msg = "the specified options must be a dict"
+            raise DeveloperViolation(msg)
 
         if option not in self.options.keys():
-            message = "[%s] is not a valid option" % option
-            raise OptionViolation(message)
+            msg = "[%s] is not a valid option" % option
+            raise OptionViolation(msg)
 
     # TODO TODO TODO - IMPLEMENT ME
 
@@ -250,8 +166,7 @@ class Projection(object):
 
     _target_projection = None
     _options = None
-    _defaults = None
-    _required_options = None
+    _required_defaults = None
 
     def __init__(self, *args, **kwarg):
         '''
@@ -259,14 +174,13 @@ class Projection(object):
             TODO TODO TODO
         '''
 
-        if self._required_options:
+        if self._required_defaults:
             options = dict(*args, **kwarg)
             self._options = dict()
-            for option in self._required_options:
+            for option in self._required_defaults.keys():
                 if option not in options.keys():
-                    message = ("[%s] is required for target_projection"
-                               % option)
-                    raise OptionViolation(message)
+                    msg = ("[%s] is required for target_projection" % option)
+                    raise OptionViolation(msg)
                 else:
                     option = str(option)
                     value = options[option]
@@ -291,8 +205,8 @@ class Projection(object):
             TODO TODO TODO
         '''
 
-        message = "You must implement this in the sub-class"
-        raise NotImplementedError(message)
+        msg = "You must implement this in the sub-class"
+        raise NotImplementedError(msg)
 
     def defaults(self):
         '''
@@ -302,8 +216,8 @@ class Projection(object):
 
         d = dict()
         d.update({'target_projection': self._target_projection})
-        if self._defaults is not None:
-            d.update(self._defaults)
+        if self._required_defaults is not None:
+            d.update(self._required_defaults)
 
         return d
 
@@ -337,8 +251,7 @@ class GeographicProjection(Projection):
         '''
 
         self._target_projection = 'lonlat'
-        self._defaults = None
-        self._required_options = None
+        self._required_defaults = None
 
         super(GeographicProjection, self).__init__(*args, **kwarg)
 
@@ -369,11 +282,10 @@ class UTMProjection(Projection):
         '''
 
         self._target_projection = 'utm'
-        self._defaults = {
+        self._required_defaults = {
             'utm_north_south': None,
             'utm_zone': None
         }
-        self._required_options = ['utm_north_south', 'utm_zone']
 
         super(UTMProjection, self).__init__(*args, **kwarg)
 
@@ -422,9 +334,8 @@ def get_projection_instance(options):
             return UTMProjection(options)
         # TODO TODO TODO - Write more projections
         else:
-            message = ("[%s] projection not implemented"
-                       % target_projection)
-            raise NotImplementedError(message)
+            msg = ("[%s] projection not implemented" % target_projection)
+            raise NotImplementedError(msg)
     else:
         return None
 # END - get_projection_instance
@@ -451,15 +362,15 @@ class ImageExtents(object):
         self._options = dict()
         for option in self._required_options:
             if option not in options.keys():
-                message = ("[%s] is required for image_extents" % option)
-                raise OptionViolation(message)
+                msg = ("[%s] is required for image_extents" % option)
+                raise OptionViolation(msg)
             else:
                 option = str(option)
                 try:
                     value = float(options[option])
                 except ValueError:
-                    message = ("[%s] is required to be numeric" % option)
-                    raise OptionViolation(message)
+                    msg = ("[%s] is required to be numeric" % option)
+                    raise OptionViolation(msg)
 
                 self._options.update({option: value})
 
@@ -533,16 +444,19 @@ class Resize(object):
             TODO TODO TODO
         '''
 
+        logger = logging.getLogger(__name__)
+
         self._defaults = default_pixel_options
+        logger.debug(self._defaults)
 
         # Initially set them to the defaults
-        self._options = dict(self._defaults)
+        self._options = self._defaults
 
         # Override them with the specified options
         for option in self._required_options:
             if option not in options.keys():
-                message = ("[%s] is required for resize" % option)
-                raise OptionViolation(message)
+                msg = ("[%s] is required for resize" % option)
+                raise OptionViolation(msg)
             else:
                 option = str(option)
                 value = options[option]
@@ -628,7 +542,7 @@ class CustomizationParameters(object):
     _image_extents = None
     _resize = None
 
-    def __init__(self, options, sensor_code):
+    def __init__(self, options, sensor_inst):
         '''
         Description:
             TODO TODO TODO
@@ -636,16 +550,29 @@ class CustomizationParameters(object):
 
         logger = logging.getLogger()
 
-        default_pixel_options = get_default_resize_parameters(sensor_code)
+        # Get the defaults assuming not geographic
+        pixel_sizes = sensor_inst.default_pixel_size
+        default_pixel_options = {
+            'pixel_size': pixel_sizes['meters'],
+            'pixel_size_units': 'meters'
+        }
 
         self._reproject = options['reproject']
 
         if self._reproject:
-            # Get a tprojection if one was requested
+            # Get a projection if one was requested
             self._projection = get_projection_instance(options)
 
             # Get image_extents if one was requested
             self._image_extents = get_image_extents_instance(options)
+
+            # If we have the geographic projection fixs the defaults
+            if (self._projection is not None
+                    and type(self._projection) is GeographicProjection):
+                default_pixel_options = {
+                    'pixel_size': pixel_sizes['dd'],
+                    'pixel_size_units': 'dd'
+                }
 
             # Get resize options
             self._resize = get_resize_instance(options, default_pixel_options)
@@ -653,13 +580,13 @@ class CustomizationParameters(object):
         # Resize was not specified but is required (so default it)
         if (((self._projection is not None)
              or (self._image_extents is not None))
-            and (self._resize is None)):
+                and (self._resize is None)):
 
             pixel_options = json.dumps(default_pixel_options, indent=4,
-                                        sort_keys=True)
-            message = ("[resize] is required but not specified defaulting"
-                       " to\n%s" % pixel_options)
-            logger.warning(message)
+                                       sort_keys=True)
+            msg = ("[resize] is required but not specified defaulting"
+                   " to\n%s" % pixel_options)
+            logger.warning(msg)
 
             # Specify resize in the options
             options['resize'] = True
@@ -733,17 +660,132 @@ class CustomizationParameters(object):
 # END - CustomizationParameters
 
 
-def get_customization_instance(options, sensor_code):
+def get_customization_instance(options, sensor_inst):
     '''
     Description:
         TODO TODO TODO
     '''
 
     if 'reproject' in options.keys():
-        return CustomizationParameters(options, sensor_code)
+        return CustomizationParameters(options, sensor_inst)
     else:
         return None
 # END - get_customization_instance
+
+
+class RequestBase(object):
+    '''
+    Description:
+        TODO TODO TODO
+    '''
+
+    _valid_keys = None
+    _items = None
+
+    def __init__(self):
+
+        self._valid_keys = self.get_valid_keys()
+        self._items = dict()
+
+    def get_valid_keys(self):
+        msg = "Must be implemented in sub-class"
+        raise DeveloperViolation(msg)
+
+    def __str__(self):
+        return self._items.__str__()
+
+    def __getitem__(self, key, **args):
+        if key not in self._valid_keys:
+            msg = "[%s] is not a valid request item" % key
+            raise ParameterViolation(msg)
+
+        return self._items.__getitem__(key, **args)
+#        return self.__getitem__(key, **args)
+
+    def __setitem__(self, key, value):
+        if key not in self._valid_keys:
+            msg = "[%s] is not a valid request item" % key
+            raise ParameterViolation(msg)
+
+        self._items.__setitem__(key, value)
+#        super(RequestBase, self).__setitem__(key, value)
+
+    def keys(self):
+        return self._items
+
+    def values(self):
+        return [self._items[key] for key in self._items]
+
+    def itervalues(self):
+        return [self._items[key] for key in self._items]
+# END - RequestBase
+
+
+class LandsatRequestOptions(RequestBase):
+
+    def get_valid_keys(self):
+        return ['destination_directory',
+                'destination_host',
+                'include_customized_source_data',
+                'source_directory',
+                'source_host']
+
+    def __init__(self, parameters):
+        super(LandsatRequestOptions, self).__init__()
+
+#        print self._valid_keys
+
+        # Add the parameters
+        for parameter in parameters:
+            self[parameter] = parameters[parameter]
+# END - LandsatRequestOptions
+
+
+class ModisRequestOptions(RequestBase):
+
+    def __init__(self, parameters):
+        pass
+# END - ModisRequestOptions
+
+
+class RequestParameters(RequestBase):
+    '''
+    Description:
+        TODO TODO TODO
+    '''
+
+    #    'include_customized_source_data': None,
+    #    'include_source_data': None
+    _customization_options = None
+
+    def get_valid_keys(self):
+        return ['orderid', 'scene', 'xmlrpcurl', 'options']
+
+    def __init__(self, parameters):
+        '''
+        Description:
+          TODO TODO TODO
+        '''
+
+        super(RequestParameters, self).__init__()
+
+        logger = logging.getLogger(__name__)
+
+        # Add the parameters
+        for parameter in parameters:
+            if parameter != 'options':
+                self[parameter] = parameters[parameter]
+            else:
+                # TODO TODO TODO Options
+                #self['options'] = LandsatRequestOptions(parameters['options'])
+                pass
+
+        # TODO TODO TODO
+        # Verify 'output_format' is present
+        # Verify 'include_source_data' and/or
+        #        'include_customized_source_data' is present
+
+# END - RequestParameters
 
 
 class OrderParameters(Parameters):
@@ -943,8 +985,8 @@ def instance(parms):
     '''
 
     if 'scene' not in parms.keys():
-        message = "[scene] is missing from order parameters"
-        raise ParameterViolation(message)
+        msg = "[scene] is missing from request parameters"
+        raise ParameterViolation(msg)
 
     _id = parms['scene'].lower().strip()
 
@@ -1021,9 +1063,13 @@ if __name__ == '__main__':
     parser = ArgumentParser(description=description)
 
     # Add parameters
-    parser.add_argument('--order-file',
-                        action='store', dest='order_file', required=True,
-                        help="order file to process")
+    parser.add_argument('--request-file',
+                        action='store', dest='request_file', required=True,
+                        help="request file to process")
+
+    parser.add_argument('--product-id',
+                        action='store', dest='product_id', required=True,
+                        help="product_id to process")
 
     # Parse the command line arguments
     args = parser.parse_args()
@@ -1032,30 +1078,41 @@ if __name__ == '__main__':
     os.environ['PYTHONDONTWRITEBYTECODE'] = '1'
 
     # Verify that the file is present
-    if not os.path.isfile(args.order_file):
-        logger.critical("Order file (%s) does not exist" % args.order_file)
+    if not os.path.isfile(args.request_file):
+        logger.critical("Order file (%s) does not exist" % args.request_file)
         sys.exit(1)
 
-    order_fd = open(args.order_file, 'r')
+    request_string = None
+    with open(args.request_file, 'r') as request_fd:
+        # Read in the entire file
+        request_string = request_fd.read()
+        if not request_string:
+            logger.critical("Empty file exiting")
+            sys.exit(1)
 
-    # Read in the entire file
-    order_string = order_fd.read()
-    if not order_string:
-        logger.critical("Empty file exiting")
-        sys.exit(1)
+    request_string = request_string.replace('SCENE_ID', args.product_id)
 
-    # This was the first attempt
-    parms = instance(json.loads(order_string))
-    if parms:
-        print json.dumps(parms, indent=4, sort_keys=True)
+#    # This was the first attempt
+#    parms = instance(json.loads(request_string))
+#    if parms:
+#        print json.dumps(parms, indent=4, sort_keys=True)
+#
+#    if 'scene' not in parms.keys():
+#        msg = "[scene] is missing from request parameters"
+#        raise ParameterViolation(msg)
+#
+#    sensor_inst = sensor.instance(parms['scene'])
+#    print sensor_inst.sensor_code
+#    # This is the new attempt
+#    warp_parms = get_customization_instance(parms['options'], sensor_inst)
+#    if warp_parms:
+#        print warp_parms.gdal_warp_options()
+#        print json.dumps(warp_parms.defaults(), indent=4, sort_keys=True)
+#        print json.dumps(warp_parms.to_dict(), indent=4, sort_keys=True)
 
-    sensor_code = get_sensor_code(parms)
-    print sensor_code
-    # This is the new attempt
-    warp_parms = get_customization_instance(parms['options'], sensor_code)
-    if warp_parms:
-        print warp_parms.gdal_warp_options()
-        print json.dumps(warp_parms.defaults(), indent=4, sort_keys=True)
-        print json.dumps(warp_parms.to_dict(), indent=4, sort_keys=True)
+    parms = json.loads(request_string)
+    request_parms = RequestParameters(parms)
+    print request_parms
+    print json.dumps(dict(request_parms), indent=4, sort_keys=True)
 
     sys.exit(0)
