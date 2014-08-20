@@ -27,7 +27,7 @@ urlpatterns = patterns('',
 
                        url(r'^login/$',
                            django_views.login,
-                           {'template_name': 'login.html'},
+                           {'template_name': 'ordering/login.html'},
                            name='login'),
 
                        url(r'^logout/$',

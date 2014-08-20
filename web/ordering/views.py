@@ -446,7 +446,7 @@ class OrderDetails(AbstractView):
 
 
 class LogOut(AbstractView):
-    template = "ordering.loggedout.html"
+    template = "ordering/loggedout.html"
 
     def get(self, request):
         '''Simple view to log a user out and land them on an exit page'''

@@ -11,12 +11,13 @@
     <span class="navitemleft"><a href="http://landsat.usgs.gov/documents/espa_odi_userguide.pdf">User Guide</a></span>
 
     <span class="navitemright"><a href="{% url 'logout' %}">Logout</a></span>
-    <span class="navitemright">|</span>
-    <span class="navitemright">{{ user.username}} ({{ user.email }})</span>
     {% if user.is_staff %}
         <span class="navitemright">|</span>
         <span class="navitemright"><a href="{% url 'consoleindex' %}">Console</a></span>
     {% endif %}    
+    <span class="navitemright">|</span>
+    <span class="navitemright">{{ user.username}} ({{ user.email }})</span>
+    
  </div> 
 
  
