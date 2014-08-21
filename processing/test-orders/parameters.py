@@ -694,13 +694,15 @@ class RequestBase(object):
     def __str__(self):
         return self._items.__str__()
 
+    def __repr__(self):
+        return self._items.__repr__()
+
     def __getitem__(self, key, **args):
         if key not in self._valid_keys:
             msg = "[%s] is not a valid request item" % key
             raise ParameterViolation(msg)
 
         return self._items.__getitem__(key, **args)
-#        return self.__getitem__(key, **args)
 
     def __setitem__(self, key, value):
         if key not in self._valid_keys:
@@ -708,7 +710,6 @@ class RequestBase(object):
             raise ParameterViolation(msg)
 
         self._items.__setitem__(key, value)
-#        super(RequestBase, self).__setitem__(key, value)
 
     def keys(self):
         return self._items
@@ -718,6 +719,37 @@ class RequestBase(object):
 
     def itervalues(self):
         return [self._items[key] for key in self._items]
+
+    def to_json(self):
+        '''
+        Description:
+          Convert the object to a json representation
+        '''
+
+        return json.dumps(self.json_serialize(self._items),
+                          indent=4, sort_keys=True)
+
+    def json_serialize(self, obj):
+        '''
+        Description:
+          Serialize for json dumps to work.
+        '''
+
+        if isinstance(obj, (bool, int, long, float, str)):
+            return obj
+        elif isinstance(obj, dict):
+            obj = obj.copy()
+            for key in obj:
+                obj[key] = self.json_serialize(obj[key])
+            return obj
+        elif isinstance(obj, list):
+            return [self.json_serialize(item) for item in obj]
+        elif isinstance(obj, tuple):
+            return tuple(self.json_serialize([item for item in obj]))
+        elif hasattr(obj, '__dict__'):
+            return self.json_serialize(obj.__dict__)
+        else:
+            return repr(obj)
 # END - RequestBase
 
 
@@ -754,10 +786,6 @@ class RequestParameters(RequestBase):
         TODO TODO TODO
     '''
 
-    #    'include_customized_source_data': None,
-    #    'include_source_data': None
-    _customization_options = None
-
     def get_valid_keys(self):
         return ['orderid', 'scene', 'xmlrpcurl', 'options']
 
@@ -776,15 +804,22 @@ class RequestParameters(RequestBase):
             if parameter != 'options':
                 self[parameter] = parameters[parameter]
             else:
-                # TODO TODO TODO Options
-                #self['options'] = LandsatRequestOptions(parameters['options'])
+                # TODO TODO TODO - Need to figure out if it should be the
+                #                  Landsat or Modis object
+                self['options'] = LandsatRequestOptions(parameters['options'])
                 pass
 
-        # TODO TODO TODO
-        # Verify 'output_format' is present
-        # Verify 'include_source_data' and/or
-        #        'include_customized_source_data' is present
+    def json_serialize(self, obj):
+        '''
+        Description:
+          Override the super implementation so that we can convert the
+          request options to a dictionary for processing
+        '''
 
+        if isinstance(obj, (LandsatRequestOptions, ModisRequestOptions)):
+            return super(RequestParameters, self).json_serialize(dict(obj))
+        else:
+            return super(RequestParameters, self).json_serialize(obj)
 # END - RequestParameters
 
 
@@ -1113,6 +1148,6 @@ if __name__ == '__main__':
     parms = json.loads(request_string)
     request_parms = RequestParameters(parms)
     print request_parms
-    print json.dumps(dict(request_parms), indent=4, sort_keys=True)
+    print request_parms.to_json()
 
     sys.exit(0)
