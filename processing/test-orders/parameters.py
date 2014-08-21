@@ -676,28 +676,49 @@ def get_customization_instance(options, sensor_inst):
 class RequestBase(object):
     '''
     Description:
-        TODO TODO TODO
+        Provides the super class implementation for product request parameters
+        and options
     '''
 
     _valid_keys = None
     _items = None
 
     def __init__(self):
-
-        self._valid_keys = self.get_valid_keys()
+        '''
+        Description:
+          Initializes the internal attributes
+        '''
+        self._valid_keys = self.get_defaults()
         self._items = dict()
 
-    def get_valid_keys(self):
+    def get_defaults(self):
+        '''
+        Description:
+          Returns the defaults for this instance of the object
+        '''
         msg = "Must be implemented in sub-class"
         raise DeveloperViolation(msg)
 
     def __str__(self):
+        '''
+        Description:
+          To provide string conversion
+        '''
         return self._items.__str__()
 
     def __repr__(self):
+        '''
+        Description:
+          To provide representation conversion
+        '''
         return self._items.__repr__()
 
     def __getitem__(self, key, **args):
+        '''
+        Description:
+          Implemented to allow acting like a dictionary but with key
+          validation
+        '''
         if key not in self._valid_keys:
             msg = "[%s] is not a valid request item" % key
             raise ParameterViolation(msg)
@@ -705,6 +726,11 @@ class RequestBase(object):
         return self._items.__getitem__(key, **args)
 
     def __setitem__(self, key, value):
+        '''
+        Description:
+          Implemented to allow acting like a dictionary but with key
+          validation
+        '''
         if key not in self._valid_keys:
             msg = "[%s] is not a valid request item" % key
             raise ParameterViolation(msg)
@@ -712,12 +738,24 @@ class RequestBase(object):
         self._items.__setitem__(key, value)
 
     def keys(self):
+        '''
+        Description:
+          Implemented to allow acting like a dictionary
+        '''
         return self._items
 
     def values(self):
+        '''
+        Description:
+          Implemented to allow acting like a dictionary
+        '''
         return [self._items[key] for key in self._items]
 
     def itervalues(self):
+        '''
+        Description:
+          Implemented to allow acting like a dictionary
+        '''
         return [self._items[key] for key in self._items]
 
     def to_json(self):
@@ -725,7 +763,6 @@ class RequestBase(object):
         Description:
           Convert the object to a json representation
         '''
-
         return json.dumps(self.json_serialize(self._items),
                           indent=4, sort_keys=True)
 
@@ -733,9 +770,12 @@ class RequestBase(object):
         '''
         Description:
           Serialize for json dumps to work.
+
+        Note:
+          It is intended that this method is only to be used by to_json()
         '''
 
-        if isinstance(obj, (bool, int, long, float, str)):
+        if isinstance(obj, (bool, int, long, float)):
             return obj
         elif isinstance(obj, dict):
             obj = obj.copy()
@@ -748,24 +788,124 @@ class RequestBase(object):
             return tuple(self.json_serialize([item for item in obj]))
         elif hasattr(obj, '__dict__'):
             return self.json_serialize(obj.__dict__)
+        elif obj is None:
+            return obj
         else:
-            return repr(obj)
+            return str(obj)
 # END - RequestBase
 
 
-class LandsatRequestOptions(RequestBase):
+class RequestOptionsBase(RequestBase):
 
-    def get_valid_keys(self):
+    def get_defaults(self):
+        '''
+        Description:
+            Provides the specific options required for all options
+        '''
         return ['destination_directory',
                 'destination_host',
+                'destination_pw',
+                'destination_username',
                 'include_customized_source_data',
+                'include_source_data',
                 'source_directory',
-                'source_host']
+                'source_host',
+                'source_pw',
+                'source_username',
+                'debug',
+                'keep_log']
+
+    def __init__(self):
+        super(RequestOptionsBase, self).__init__()
+# END - RequestOptionsBase
+
+
+class RequestCustomizationOptions(RequestOptionsBase):
+    '''
+    Description:
+        Provides custom implementations from Landsat requests
+    '''
+
+    def get_defaults(self):
+        '''
+        Description:
+            Provides the specific options allowed for product customization
+        '''
+
+        option_list = super(RequestCustomizationOptions,
+                            self).get_defaults()
+
+        additional_options = ['central_meridian',
+                              'datum',
+                              'false_easting',
+                              'false_northing',
+                              'image_extents',
+                              'latitude_true_scale',
+                              'longitude_pole',
+                              'maxx',
+                              'maxy',
+                              'minx',
+                              'miny',
+                              'origin_lat',
+                              'output_format',
+                              'pixel_size',
+                              'pixel_size_units',
+                              'reproject',
+                              'resample_method',
+                              'resize',
+                              'std_parallel_1',
+                              'std_parallel_2',
+                              'target_projection',
+                              'utm_north_south',
+                              'utm_zone']
+
+        option_list.extend(additional_options)
+        print option_list
+
+        return option_list
+
+    def __init__(self):
+        super(RequestCustomizationOptions, self).__init__()
+# END - RequestCustomizationOptionsBase
+
+
+class LandsatRequestOptions(RequestCustomizationOptions):
+    '''
+    Description:
+        Provides custom implementations from Landsat requests
+    '''
+
+    def get_defaults(self):
+        '''
+        Description:
+            Provides the specific options allowed for this sub-class
+        '''
+
+        option_list = super(LandsatRequestOptions, self).get_defaults()
+
+        additional_options = ['include_cfmask',
+                              'include_dswe',
+                              'include_solr_index',
+                              'include_source_metadata',
+                              'include_sr',
+                              'include_sr_browse',
+                              'include_sr_evi',
+                              'include_sr_msavi',
+                              'include_sr_nbr',
+                              'include_sr_nbr2',
+                              'include_sr_ndmi',
+                              'include_sr_ndvi',
+                              'include_sr_savi',
+                              'include_sr_thermal',
+                              'include_sr_toa',
+                              'include_statistics']
+
+        option_list.extend(additional_options)
+
+        return option_list
 
     def __init__(self, parameters):
         super(LandsatRequestOptions, self).__init__()
-
-#        print self._valid_keys
 
         # Add the parameters
         for parameter in parameters:
@@ -773,20 +913,53 @@ class LandsatRequestOptions(RequestBase):
 # END - LandsatRequestOptions
 
 
-class ModisRequestOptions(RequestBase):
+class ModisRequestOptions(RequestCustomizationOptions):
+    '''
+    Description:
+        Provides custom implementations from Landsat requests
+    '''
+
+    def get_defaults(self):
+        '''
+        Description:
+            Provides the specific options allowed for this sub-class
+        '''
+
+        option_list = super(LandsatRequestOptions, self).get_defaults()
+
+        # TODO TODO TODO - Does it need any?????
+        additional_options = []  # Doesn't have any yet
+
+        option_list.extend(additional_options)
+
+        return option_list
 
     def __init__(self, parameters):
-        pass
+        super(LandsatRequestOptions, self).__init__()
+
+        # Add the parameters
+        for parameter in parameters:
+            self[parameter] = parameters[parameter]
 # END - ModisRequestOptions
 
 
 class RequestParameters(RequestBase):
     '''
     Description:
-        TODO TODO TODO
+      Provide the validation and access to parameters and specifics for
+      processing requests.
+
+    Note:
+      This is intended to be all the user need to instantiate.
+      It will provide or through its super classes provide the methods
+      required to get the job done.
     '''
 
-    def get_valid_keys(self):
+    def get_defaults(self):
+        '''
+        Description:
+            Provides the specific parameters allowed for this sub-class
+        '''
         return ['orderid', 'scene', 'xmlrpcurl', 'options']
 
     def __init__(self, parameters):
