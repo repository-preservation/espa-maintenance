@@ -22,7 +22,7 @@ def rpc_handler(request):
      about the service.
     """
 
-    d = SimpleXMLRPCDispatcher(allow_none=False, encoding=None)
+    d = SimpleXMLRPCDispatcher(allow_none=True, encoding=None)
 
     if len(request.body):
         d.register_function(_update_status, 'update_status')
@@ -116,8 +116,10 @@ def _get_configuration(key):
     return Configuration().getValue(key)
 
 
-def _get_scenes_to_process():
-    return core.get_scenes_to_process()
+def _get_scenes_to_process(limit=None, for_user=None, priority=None):
+    return core.get_scenes_to_process(limit=limit,
+                                      for_user=for_user,
+                                      priority=priority)
 
 
 def _get_data_points(tags=[]):
