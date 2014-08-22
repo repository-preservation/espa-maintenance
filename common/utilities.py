@@ -200,6 +200,8 @@ def send_email(recipient, subject, body):
     s.sendmail(msg['From'], msg['To'], msg.as_string())
     s.quit()
 
+    return True
+
 
 def validate_email(email):
     '''Compares incoming email address against regular expression to make sure

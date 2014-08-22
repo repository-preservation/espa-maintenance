@@ -680,12 +680,18 @@ def update_order_if_complete(order):
         #only send the email if this was an espa order.
         if o.order_source == 'espa':
             order_email = o.user.email
+            sent = None
+            try:
+                sent = send_completion_email(order_email,
+                                             o.orderid,
+                                             readyscenes=scene_names)
+            except Exception, e:
+                msg = "Error calling send_completion_email:%s" % e
+                print(msg)
+                raise Exception(msg)
 
-            sent = send_completion_email(order_email,
-                                         o.orderid,
-                                         readyscenes=scene_names)
             if sent:
-                o.completion_email_sent = datetime.now()
+                o.completion_email_sent = datetime.datetime.now()
                 o.save()
             else:
                 msg = "Could not send completion email to %s for order: %s" % \
