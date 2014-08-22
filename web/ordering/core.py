@@ -667,6 +667,9 @@ def update_order_if_complete(order):
     scenes = o.scene_set.exclude(status__in=complete_scene_status)
 
     if len(scenes) == 0:
+
+        print("Trying to complete order: %s" % order)
+
         # if this condition is true then the order is complete
         complete_scenes = o.scene_set.exclude(status='unavailable')
         scene_names = [s.name for s in complete_scenes]
@@ -710,10 +713,10 @@ def send_initial_emails():
 
     orders = Order.objects.filter(status='ordered')
     for o in orders:
-        if not o.initial_email_sent():
+        if not o.initial_email_sent:
             send_initial_email(o)
-            o.initial_email_sent(datetime.datetime.now())
-
+            o.initial_email_sent = datetime.datetime.now()
+            o.save()
 
 @transaction.atomic
 def load_ee_orders():
