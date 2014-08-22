@@ -56,7 +56,7 @@ def process_products(args):
     if (rpcurl is not None and rpcurl.startswith('http://')
             and len(rpcurl) > 7):
 
-        server = xmlrpclib.ServerProxy(rpcurl)
+        server = xmlrpclib.ServerProxy(rpcurl, allow_none=True)
     else:
         log("Missing or invalid environment variable ESPA_XMLRPC")
 
@@ -100,9 +100,7 @@ def process_products(args):
 
     try:
         log("Checking for scenes to process...")
-        scenes = server.get_scenes_to_process(limit=args.limit,
-                                              for_user=args.user,
-                                              priority=args.priority)
+        scenes = server.get_scenes_to_process(args.limit, args.user, priority)
         if scenes:
             # Figure out the name of the order file
             stamp = datetime.now()
