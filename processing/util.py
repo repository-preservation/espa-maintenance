@@ -22,7 +22,6 @@ import random
 # local objects and methods
 import settings
 
-
 # ============================================================================
 def get_logfile(orderid, sceneid):
     '''

@@ -35,8 +35,7 @@ from espa_constants import *
 from espa_logging import log
 
 # local objects and methods
-import util
-import settings
+from common import utilities, settings
 
 
 # ============================================================================
@@ -208,7 +207,7 @@ def process_products(args):
                 cmd = ' '.join(hadoop_store_command)
                 print("Store cmd:%s" % cmd)
 
-                output = util.execute_cmd(cmd)
+                output = utilities.execute_cmd(cmd)
             except Exception, e:
                 log("Error storing files to HDFS... exiting")
                 sys.exit(EXIT_FAILURE)
@@ -241,7 +240,7 @@ def process_products(args):
             try:
                 cmd = ' '.join(hadoop_run_command)
                 print("Run cmd:%s" % cmd)
-                output = util.execute_cmd(cmd)
+                output = utilities.execute_cmd(cmd)
             except Exception, e:
                 log("Error running Hadoop job...")
             finally:
@@ -253,7 +252,7 @@ def process_products(args):
             output = ''
             try:
                 cmd = ' '.join(hadoop_delete_request_command1)
-                output = util.execute_cmd(cmd)
+                output = utilities.execute_cmd(cmd)
             except Exception, e:
                 log("Error deleting hadoop job request file")
             finally:
@@ -265,7 +264,7 @@ def process_products(args):
             output = ''
             try:
                 cmd = ' '.join(hadoop_delete_request_command2)
-                output = util.execute_cmd(cmd)
+                output = utilities.execute_cmd(cmd)
             except Exception, e:
                 log("Error deleting hadoop job output")
             finally:
