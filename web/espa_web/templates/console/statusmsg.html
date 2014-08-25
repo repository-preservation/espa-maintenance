@@ -83,6 +83,8 @@
 
 
 {% block scripts %}
-    CKEDITOR.replace('id_message');
+    CKEDITOR.replace('id_message', {
+        customConfig: "{% static 'js/ckeditor_status_config.js' %}"
+    });
 {% endblock %}
 
