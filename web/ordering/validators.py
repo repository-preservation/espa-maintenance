@@ -647,9 +647,6 @@ class NewOrderFilesValidator(Validator):
                                                      child_validators,
                                                      name)
 
-        if not 'input_products' in self.parameters:
-            return super(NewOrderFilesValidator, self).errors()
-
         for product in self.parameters['input_products']:
             if not isinstance(product, sensor.SensorProduct):
                 msg = list()
@@ -669,9 +666,9 @@ class NewOrderFilesValidator(Validator):
                        ' one product for processing'])
 
         if (not 'input_products' in self.parameters
-                and len(self.parameters['input_products']) > 0):
+                or len(self.parameters['input_products']) == 0):
 
-            self.add_error('files', [msg, ])
+            self.add_error('input_products', [msg, ])
 
         return super(NewOrderFilesValidator, self).errors()
 
