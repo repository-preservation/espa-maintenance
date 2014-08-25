@@ -666,7 +666,7 @@ def validate_reprojection_parameters(parms, scene, projections, ns_values,
 
         units = 'meters'
         if parms['reproject'] and parms['target_projection'] == 'lonlat':
-            units = 'meters'
+            units = 'dd'
 
         # Default to the sensor specific meters or dd equivalent
         parms['pixel_size'] = sensor.instance(scene).default_pixel_size[units]
