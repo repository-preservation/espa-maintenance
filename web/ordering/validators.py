@@ -108,7 +108,7 @@ class LandsatProductListValidator(Validator):
 
         landsat_products = list()
 
-        if not 'input_products' in self.parameters:
+        if not 'input_products' in self.parameters: 
             return super(LandsatProductListValidator, self).errors()
         else:
 
@@ -126,7 +126,8 @@ class LandsatProductListValidator(Validator):
                     msg_parts.append(" in the Landsat inventory:\n")
 
                     for lp in landsat_products:
-                        msg_parts.append("\t%s\n" % lp)
+                        
+                        msg_parts.append("\t%s\n" % lp.product_id)
 
                     msg = ''.join(msg_parts)
 
