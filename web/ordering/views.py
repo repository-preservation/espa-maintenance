@@ -1,10 +1,10 @@
 import json
 import collections
-from common import sensor
+from espa_common import sensor
 
 import django.contrib.auth
 
-from common import utilities
+from espa_common import utilities
 
 from ordering import validators
 from ordering.models import Scene

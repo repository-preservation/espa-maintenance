@@ -2,7 +2,7 @@ import datetime
 import re
 import json
 
-from common import sensor
+from espa_common import sensor
 
 from django.db import models
 from django.db import transaction

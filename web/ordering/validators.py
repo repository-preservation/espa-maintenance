@@ -2,8 +2,8 @@ from validation import Validator
 import lta
 from models import Order
 
-from common import sensor
-from common import utilities
+from espa_common import sensor
+from espa_common import utilities
 
 
 class ModisProductListValidator(Validator):
@@ -651,7 +651,7 @@ class NewOrderFilesValidator(Validator):
             if not isinstance(product, sensor.SensorProduct):
                 msg = list()
                 msg.append("parameters['input_products'] must be of type ")
-                msg.append("list(common.SensorProduct())\n")
+                msg.append("list(espa_common.SensorProduct())\n")
                 msg.append("Incorrect type value was:%s" % product)
                 raise TypeError(''.join(msg))
 

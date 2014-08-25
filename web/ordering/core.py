@@ -17,7 +17,7 @@ import json
 import datetime
 import lta
 
-import common
+import espa_common
 
 
 def frange(start, end, step):
@@ -50,9 +50,9 @@ def send_initial_email(order):
     email_msg = ''.join(m)
 
     subject = 'Processing order %s received' % order.orderid
-    return common.utilities.send_email(recipient=order.user.email,
-                                       subject=subject,
-                                       body=email_msg)
+    return espa_common.utilities.send_email(recipient=order.user.email,
+                                            subject=subject,
+                                            body=email_msg)
 
 
 def send_completion_email(email, ordernum, readyscenes=[]):
@@ -82,9 +82,9 @@ def send_completion_email(email, ordernum, readyscenes=[]):
 
     subject = 'Processing for %s complete.' % ordernum
 
-    return common.utilities.send_email(recipient=email,
-                                       subject=subject,
-                                       body=email_msg)
+    return espa_common.utilities.send_email(recipient=email,
+                                            subject=subject,
+                                            body=email_msg)
 
 
 def scenes_on_cache(input_product_list):
@@ -97,7 +97,7 @@ def scenes_on_cache(input_product_list):
     A subset of scene identifiers
     """
     ipl = input_product_list
-    return common.utilities.scenecache_client().scenes_exist(ipl)
+    return espa_common.utilities.scenecache_client().scenes_exist(ipl)
 
 
 def scenes_are_nlaps(input_product_list):
@@ -109,7 +109,8 @@ def scenes_are_nlaps(input_product_list):
     Return:
     A subset of scene identifiers
     """
-    return common.utilities.scenecache_client().is_nlaps(input_product_list)
+    client = espa_common.utilities.scenecache_client()
+    return client.is_nlaps(input_product_list)
 
 
 @transaction.atomic
@@ -146,7 +147,7 @@ def handle_submitted_landsat_products():
                   % len(landsat_products))
 
         # is cache online?
-        if not common.utilities.scenecache_is_alive():
+        if not espa_common.utilities.scenecache_is_alive():
             msg = "Scene cache could not be contacted..."
             print(msg)
             raise Exception(msg)
@@ -322,7 +323,7 @@ def handle_submitted_modis_products():
         oncache_list = list()
 
         for m in modis_products:
-            product = common.sensor.instance(m.name)
+            product = espa_common.sensor.instance(m.name)
             if product.input_exists():
                 oncache_list.append(product.product_id)
 
@@ -870,13 +871,13 @@ def load_ee_orders():
                 # TODO: This logic should not be visible at this level.
                 scene = Scene()
 
-                product = common.sensor.instance(s['sceneid'])
+                product = espa_common.sensor.instance(s['sceneid'])
 
                 sensor_type = None
 
-                if isinstance(product, common.sensor.Landsat):
+                if isinstance(product, espa_common.sensor.Landsat):
                     sensor_type = 'landsat'
-                elif isinstance(product, common.sensor.Modis):
+                elif isinstance(product, espa_common.sensor.Modis):
                     sensor_type = 'modis'
 
                 scene.sensor_type = sensor_type
