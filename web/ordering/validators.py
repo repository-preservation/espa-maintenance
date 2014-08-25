@@ -108,7 +108,7 @@ class LandsatProductListValidator(Validator):
 
         landsat_products = list()
 
-        if not 'input_products' in self.parameters: 
+        if not 'input_products' in self.parameters:
             return super(LandsatProductListValidator, self).errors()
         else:
 
@@ -126,7 +126,7 @@ class LandsatProductListValidator(Validator):
                     msg_parts.append(" in the Landsat inventory:\n")
 
                     for lp in landsat_products:
-                        
+
                         msg_parts.append("\t%s\n" % lp.product_id)
 
                     msg = ''.join(msg_parts)
@@ -244,13 +244,24 @@ class LatitudeTrueScaleValidator(Validator):
 
         if ('latitude_true_scale' in self.parameters and
                 utilities.is_number(self.parameters['latitude_true_scale'])):
+
             ts = float(self.parameters['latitude_true_scale'])
+
         else:
             self.add_error('latitude_true_scale', [msg, ])
 
         # make sure ts is either in the range of 60 to 90 or -90 to -60
-        if (ts and ((ts < 60.0 and ts > 90.0) or (ts < -90.0 and ts > -60.0))):
-            self.add_error('latitude_true_scale', [msg, ])
+        has_err = False
+        if ts is not None:
+
+            # check upper and lower bounds first
+            if ts > 90.0 or ts < -90.0:
+                has_err = True
+            elif ts > -60.0 and ts < 60.0:
+                has_err = True
+
+            if has_err == True:
+                self.add_error('latitude_true_scale', [msg, ])
 
         return super(LatitudeTrueScaleValidator, self).errors()
 
