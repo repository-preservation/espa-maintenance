@@ -34,8 +34,8 @@ from argparse import ArgumentParser
 from espa_constants import *
 from espa_logging import log
 
-# local objects and methods
-from common import utilities, settings
+# espa objects and methods
+from espa_common import utilities, settings
 
 
 # ============================================================================
@@ -181,9 +181,9 @@ def process_products(args):
                  '-file', '%s/espa-site/processing/transfer.py' % home_dir,
                  '-file', '%s/espa-site/processing/util.py' % home_dir,
                  '-file', '%s/espa-site/processing/warp.py' % home_dir,
-                 '-file', '%s/espa-site/common/sensor.py' % home_dir,
-                 '-file', '%s/espa-site/common/settings.py' % home_dir,
-                 '-file', '%s/espa-site/common/utilities.py' % home_dir,
+                 '-file', '%s/espa-site/espa_common/sensor.py' % home_dir,
+                 '-file', '%s/espa-site/espa_common/settings.py' % home_dir,
+                 '-file', '%s/espa-site/espa_common/utilities.py' % home_dir,
                  '-mapper', ('%s/espa-site/processing/cdr_ecv_mapper.py'
                              % home_dir),
                  '-cmdenv', 'ESPA_WORK_DIR=$ESPA_WORK_DIR',
