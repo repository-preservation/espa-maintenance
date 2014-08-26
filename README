@@ -3,8 +3,22 @@ License: NASA Open Source Agreement 1.3
 USGS Designation: EROS Science Processing Architecture (ESPA)
 		
 Change Notes
+Version 2.5.0 (August 27, 2014)
+        Added console application for staff personnel.
+        Added priority to Orders in conjunction with Hadoop Queueing to prevent
+        large orders from dominating all compute resources.
+        Moved espa schema file to espa-common to prevent network effects from
+        causing processing failures.
+        Added select MODIS products as customizable input products.
+        Corrected error with invalid checksum generation.
+        Multiple bug fixes relating to image reprojection and resampling.
+        Added trunk/espa_common to hold shared libs between web and processing.
+
 Version 2.4.0 (July 29, 2014)
-    
+        Transitioned to binary raster processing for science algorithms.
+        Introduced schema constrained xml metadata for all products.
+        Format conversion has been introduced.
+        Reprojected products now have properly populated metadata entries.
 
 Version 2.3.0 (May 30, 2014)
 
