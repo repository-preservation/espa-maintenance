@@ -8,103 +8,95 @@
 {% block header %}Land Science Research and Development (LSRD){% endblock %}
 {% block style %}
 
-	div#wrapper {
-		margin:auto;
-		width:800px;
-                overflow:hidden;
-	}
+	
+    h4#lsrd_offerings {
+       clear:both;
+    }
 
-        h4#lsrd_offerings {
-           clear:both;
-        }
+	
+    div.marketing_box {
+       width:29%;
+       margin:0 auto;
+       float:left;
+       margin:10px;
+       border:1px solid #d0d0d0;
+       clear:right;
+       -moz-border-radius: 5px;
+       -webkit-border-radius: 5px;
+    }
 
-	span.error {
-		color:red;
-	}
+    div.marketing_header{
+       width:100%;
+       text-align:center;
+       line-height:20px;
+       font-size:14px;
+       font-weight:bold;
+       background:#577196;
+       overflow:hidden;
+       color:white;
+    }
 
-        div.marketing_box {
-           width:29%;
-           margin:0 auto;
-           float:left;
-           margin:10px;
-           border:1px solid #d0d0d0;
-           clear:right;
-           -moz-border-radius: 5px;
-           -webkit-border-radius: 5px;
-        }
+    div.marketing_footer {
+       text-align: center;
+       line-height: 30px;
+       font-size: 14px;
+       color:white;
+       background:#577196;
+       overflow:hidden;
+    }
 
-        div.marketing_header{
-           width:100%;
-           text-align:center;
-           line-height:20px;
-           font-size:14px;
-           font-weight:bold;
-           background:#577196;
-           overflow:hidden;
-           color:white;
-        }
-
-        div.marketing_footer {
-           text-align: center;
-           line-height: 30px;
-           font-size: 14px;
-           color:white;
-           background:#577196;
-	   overflow:hidden;
-        }
-
-        div.marketing_footer a{
-            color:white;
-            font-weight:bold;
-        }
+    div.marketing_footer a{
+        color:white;
+        font-weight:bold;
+    }
 
  
-        div.marketing_content {
-            width:100%;
-            text-align:left;
-            border-top:1px solid #d0d0d0;
-            border-bottom:1px solid #d0d0d0;
-            height:250px;
-            overflow:hidden; 
-        }
+    div.marketing_content {
+        width:100%;
+        text-align:left;
+        border-top:1px solid #d0d0d0;
+        border-bottom:1px solid #d0d0d0;
+        height:250px;
+        overflow:hidden; 
+    }
 
-        div.marketing_content p{
-          padding-left:10px;
-          padding-right:10px;
-        }
+    div.marketing_content p{
+        padding-left:10px;
+        padding-right:10px;
+    }
 
-        div#opensource_box {
-            margin-top:25px;
-            padding:10px;
-            width:300px;
-            border:7px solid #577196;
-            overflow:hidden;
-            float:right;
-        }
+    div#opensource_box {
+        margin-top:25px;
+        padding:10px;
+        width:300px;
+        border:7px solid #577196;
+        overflow:hidden;
+        float:right;
+    }
 
-        div#opensource_box h3 {
-            text-align:center;
-            margin-top:10px;
-        }
+    div#opensource_box h3 {
+        text-align:center;
+        margin-top:10px;
+    }
 
-        div#logo_box {
-            margin-top:10px;
-            padding:10px;
-            width:300px;
-            height:132px;
-            overflow:hidden;
-            float:left;
-        }
+    div#logo_box {
+        margin-top:10px;
+        padding:10px;
+        width:300px;
+        height:132px;
+        overflow:hidden;
+        float:left;
+    }
 
-        div#logo_box img {
-            width:300px;
-            height:132px;
-        }
+    div#logo_box img {
+        width:300px;
+        height:132px;
+    }
 
-        .coming_soon {
-             color:yellow;
-             font-weight:bold;
-        }
+    .coming_soon {
+        color:yellow;
+        font-weight:bold;
+     }
 
 {% endblock %}
 {% endcache %}
@@ -115,22 +107,24 @@
 
 {% block content %}
 
-<div id="wrapper">
+<div class="wrapper">
 {% if display_system_message %}
     {% include "ordering/system_message.html" %}
 {% endif %}
 
 	<div id="logo_box">
            <img src="{% static 'img/lsrd_logo_color.png' %}" />
-        </div>
+      </div>
+
 	<div id="opensource_box">
             <h3>Did you know?</h3>
             <p>All LSRD software is freely available and licensed under the NASA Open Source Agreement.</p>
             <p style="text-align:center" ><a href="https://code.google.com/p/espa/">Go there now</a></p>
           
-        </div>
+      </div>
 
-        <h4 id="lsrd_offerings">Current Offerings</h4>
+      
+      <h3 class="inlineb topspace30 bottomspace20" id="lsrd_offerings">Current Offerings</h3>
         
         <div class="marketing_box">
           <div class="marketing_header" id="bulk_ordering">

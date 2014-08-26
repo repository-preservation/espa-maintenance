@@ -11,7 +11,8 @@
     <link href="{% static 'css/main.css' %}" rel="stylesheet" type="text/css" />
     <link href="{% static 'css/espa.css' %}" rel="stylesheet" type="text/css" />
 
-    
+    {% block stylesheets %}{% endblock %}
+
     <style>
     {% block style %}{% endblock %}
     </style>
@@ -22,7 +23,7 @@
 
 <body>
 
-    <div id="container">
+    <div class="container">
 
         <div id="header">
 	    <div id="usgsidentifier">
@@ -115,11 +116,11 @@
     </script>
     <script src="{% static 'js/jquery-1.10.2.min.js' %}"></script>
     <script src="{% static 'js/jquery.cookie.js' %}"></script>
+
     {% block js_files %}{% endblock %}
 
     <script type="text/javascript">
-    
-    {% block scripts%}{% endblock %}
+        {% block scripts%}{% endblock %}
     </script>
 </body>
 

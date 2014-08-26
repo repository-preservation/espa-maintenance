@@ -4,10 +4,7 @@
 {% block header %}Bulk Order Status {% endblock %}
 {% block style %}
 
-	span.error {
-		color:red;
-	}
-
+	
     div.boxbody {
         border:none;
         width:500px;
@@ -21,7 +18,6 @@
     }
 
     div.boxbody h4 {
-        
         margin-bottom:15px;
     }
 
@@ -31,7 +27,7 @@
 
 {% block content %}
 
-<div id="wrapper">
+<div class="wrapper">
 
 {% if display_system_message %}
     {% include "ordering/system_message.html" %}

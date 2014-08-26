@@ -7,22 +7,15 @@
     {% block style %}
     
     
-    
-	div#wrapper {
-		margin:auto;
-		width:800px;
-		overflow:hidden;
-	}
-
-     div#wrapper label {
+     .wrapper label {
           display:block-inline;
      }
 
-     div#outputbox label {
+     .outputbox label {
           display:block;
      }
 
-     div.formbox {
+     .formbox {
          
          margin-top:15px;
      }
@@ -35,7 +28,7 @@
     {% block content %}
     {% csrf_token %}
     
-    <div id="wrapper">
+    <div class="wrapper">
     
     <h4>Ajax Demo Page</h4>
     

@@ -1,190 +1,164 @@
 {% extends "ordering/base.html" %}
+{% load static %}
 
 {% load cache %}
 {% cache 60 new_order_html_1 %}
     {% block title %} New Bulk Order {% endblock %}
     {% block header %} New Bulk Order {% endblock %}
+
+    {% block stylesheets %} {% endblock %}
     
     {% block style %}
-    
-    
-    .tooltip { border-bottom: 1px dotted #333; position: relative; cursor: pointer; margin-left:15px; }
-    
-    /*.tooltip:hover:after {
-	content: attr(title);
-	position: absolute;
-	white-space: nowrap;
-	background: rgba(0, 0, 0, 0.85);
-	padding: 3px 7px;
-	color: #FFF; border-radius: 3px; -moz-border-radius: 3px;
-	-webkit-border-radius: 3px;
-	margin-left: 7px;
-	margin-top: -3px;
-	}
-    */
-
-	div#wrapper {
-		margin:auto;
-		width:800px;
-		overflow:hidden;
-	}
-
-        div#errorbox{
-	     margin:15px auto;
-	     border:4px solid #CC0000;
-	     width:750px;
-             overflow:hidden;
-	     color:#AA0000;
-             font-size:16px;
-             padding:15px;
-	}
         
-        div#errorbox h3 {
-            border:none;
-            padding-top:10px;
-            padding-bottom:20px;
-            padding-left:10px;
-            padding-right:10px;
-            margin:0px;
-        }
+    div#errorbox{
+        margin:15px auto;
+        border:4px solid #CC0000;
+        width:750px;
+        overflow:hidden;
+        color:#AA0000;
+        font-size:16px;
+        padding:15px;
+    }
         
-        div#errorbox h4 {
-            border:none;
-            padding:0px;
-            margin:0px;
-            line-height:1.5em;
-        }
+    div#errorbox h3 {
+        border:none;
+        padding-top:10px;
+        padding-bottom:20px;
+        padding-left:10px;
+        padding-right:10px;
+        margin:0px;
+    }
+        
+    div#errorbox h4 {
+        border:none;
+        padding:0px;
+        margin:0px;
+        line-height:1.5em;
+    }
 	
 	
-	div#errorbox td{
-	    font-size:16px;
-	    color:red;
-	    padding:5px 25px;
-	    
-	}
+    div#errorbox td{
+        font-size:16px;
+        color:red;
+        padding:5px 25px;
+    }
 	
-	div.product_box {
-	  width:650px;
+    div.product_box {
+        width:650px;
         margin:15px auto 35px auto;
         border:1px solid #d0d0d0;
         -moz-border-radius: 5px;
         -webkit-border-radius: 5px;
-	   overflow:hidden; 
-	}
+        overflow:hidden; 
+    }
 	
-	div.product_boxheader {
-           text-align:center;
-           line-height:20px;
-           font-size:14px;
-           font-weight:bold;
-           background:#577196;
-           overflow:hidden;
-           color:white;
-           margin-bottom:9px;
-           padding:2px 0px;
-	}
+    div.product_boxheader {
+        text-align:center;
+        line-height:20px;
+        font-size:14px;
+        font-weight:bold;
+        background:#577196;
+        overflow:hidden;
+        color:white;
+        margin-bottom:9px;
+        padding:2px 0px;
+    }
 	
-	div.product_boxbody {
-         height:auto;
-         padding-bottom:9px;   
-     }
+    div.product_boxbody {
+        height:auto;
+        padding-bottom:9px;   
+    }
 
-     div.product_boxbody p {
-          padding-left:10px;
-          padding-right:10px;
-     }
+    div.product_boxbody p {
+        padding-left:10px;
+        padding-right:10px;
+    }
 	
-	div.product_boxbody label{
-	    display:inline-block;	    
-	}
+    div.product_boxbody label{
+        display:inline-block;	    
+    }
 	
-	div.product_boxbody input{
-	    display:inline-block;
-	}
+    div.product_boxbody input{
+        display:inline-block;
+    }
         
-     div#order_description_productbox {
-         text-align:center;
-     }
+    div#order_description_productbox {
+        text-align:center;
+    }
         
-     #order_description {
-         width: 625px;
-         height: 100px;
-         margin-top: 10px;
-         margin: 10px auto;
-         align: center;
-     }
+    #order_description {
+        width: 625px;
+        height: 100px;
+        margin-top: 10px;
+        margin: 10px auto;
+        align: center;
+    }
+            
+    div.inputitem {
+        padding:5px;
+        text-align:left;
+        line-height:20px;
+    }
         
-        
-	div.inputitem {
-	    padding:5px;
-	    text-align:left;
-          line-height:20px;
-	}
-        
-     div.inputitem label{
-         display:inline;
-     }
+    div.inputitem label{
+        display:inline;
+    }
 	
-	div#resize_options, div#reprojection, div#scene_extents {
-	    //display:none;
-	    //visibility:hidden;
-	    height:auto;
-	    margin:10px auto;
-	    padding:10px;
-	    width:85%;
-	   
-	    border:1px solid #d0d0d0;
-           -moz-border-radius: 5px;
-           -webkit-border-radius: 5px;
-	}
+    div#resize_options, div#reprojection, div#scene_extents {
+        height:auto;
+        margin:10px auto;
+        padding:10px;
+        width:85%; 
+        border:1px solid #d0d0d0;
+        -moz-border-radius: 5px;
+        -webkit-border-radius: 5px;
+    }
 	
-	div#resample_options {
-	    //display:none;
-	    //visibility:hidden;
-	    height:auto;
-	    padding-top:20px;
-	    padding-bottom:20px;
-	    text-align:left;
-	}
+    div#resample_options {
+        height:auto;
+        padding-top:20px;
+        padding-bottom:20px;
+        text-align:left;
+    }
 	
-	input#submit {
-	    display:block;
-	    clear:both;
-	    margin:20px auto;
-	}
+    input#submit {
+        display:block;
+        clear:both;
+        margin:20px auto;
+    }
 	
 		
-	input#input_product_list {
-	    margin-left:40px;
-	}
+    input#input_product_list {
+        margin-left:40px;
+    }
 	
-	div#projection_parameters {
-	    padding:10px;
-	    height:auto;
-	    display:none;
-	    visibility:hidden;
-	}
+    div#projection_parameters {
+        padding:10px;
+        height:auto;
+        display:none;
+        visibility:hidden;
+    }
 	
-	.projection_params_txt {
-	    width:170px;
-	    margin-right:10px;
-	}
+    .projection_params_txt {
+        width:170px;
+        margin-right:10px;
+    }
 	
-	.projection_params_select {
-	    margin-right:39px;
-	    width:100px;
-	}
+    .projection_params_select {
+        margin-right:39px;
+        width:100px;
+    }
 	
-	#utm_zone_label {
-	    padding-right:10px;
-	}
+    #utm_zone_label {
+        padding-right:10px;
+    }
 
-     h5#input_product_list {
-      margin:0 auto;
-      padding:20px;
-     }
+    h5#input_product_list {
+        margin:0 auto;
+        padding:20px;
+    }
 
-     #input_product_list_box {
+    #input_product_list_box {
         width:650px;
         margin-top:40px;
         margin-bottom:15px;
@@ -193,16 +167,16 @@
         border:2px solid #d0d0d0;
         -moz-border-radius: 5px;
         -webkit-border-radius: 5px;
-	   overflow:hidden; 
+        overflow:hidden; 
      }
 
     input#input_product_list {
-       max-width:90%;
-       width:90%;
+        max-width:90%;
+        width:90%;
     }
 
     div#output_formats {
-       margin-left:27px;
+        margin-left:27px;
     }
 
     div#output_formats label{
@@ -216,8 +190,7 @@
     input.bounding_box_params {
         width:174px;
     }
-
-   
+  
     {% endblock %}
 
     {% endcache %}
@@ -233,7 +206,7 @@
           name="request_form" 
           enctype="multipart/form-data"> {% csrf_token %}
     
-    <div id="wrapper">
+    <div class="wrapper">
     
     {% if display_system_message %}
         {% include "ordering/system_message.html" %}
@@ -253,7 +226,56 @@
     
     {% cache 60 new_order_html_2 %}
 
-     <h4>Add Scenes To Process (TM/ETM+)</h4>
+    <div class="espa_lightbox" id="available_input_products">
+        <h2>ESPA Input Products & Options</h2>
+                    
+        <table>
+        <tr>
+            <th>&nbsp;</th>
+            <th>Landsat 4, 5, 7</th>
+            <th>MODIS Aqua & Terra</th>
+        </tr>
+        <tr>
+            <th>&nbsp;</th>
+            <th>TM & ETM+</th>
+            <th>09A1/GA/GQ/Q1, 13Q1/A1/A2/A3</th>
+        </tr>
+        <tr>
+            <td>Original Input Products</td>
+            <td>X</td>
+            <td>X</td>
+        </tr>
+        <tr>
+            <td>Original Input Metadata</td>
+            <td>X</td>
+            <td>&nbsp;</td>
+        </tr>
+        <tr>
+            <td>Customized Input Products</td>
+            <td>X</td>
+            <td>X</td>
+        </tr>
+        <tr>
+            <td>Climate Data Records</td>
+            <td>X</td>
+            <td>&nbsp;</td>
+        </tr>
+        <tr>
+            <td>Spectral Indices</td>
+            <td>X</td>
+            <td>&nbsp;</td>
+        </tr>
+        <tr>
+            <td>Customized Outputs</td>
+            <td>X</td>
+            <td>X</td>
+        </tr>
+        
+        </table>
+
+    </div>
+
+     <h4 class="inlineb topspace20">Add Input Products (<a href="#" class="available_input_products_open">Available Input Products</a>)</h4>
      <div class="product_box">
 	    <div class="product_boxheader">
 		Scene List
@@ -265,7 +287,7 @@
          </div>
      </div>
 		
-	<h4>Select Product Contents</h4>
+	<h4 class="inlineb">Select Product Contents</h4>
 	
 	<div class="product_box">
 	    <div class="product_boxheader">
@@ -291,6 +313,8 @@
 	    </div>
 	</div>
 	
+     <h4 class="inlineb">Additional Processing (Landsat 4, 5 and 7 Input Products Only)</h4>
+
 	<div class="product_box">
 	    <div class="product_boxheader">
 		Climate Data Records
@@ -368,7 +392,8 @@
 	</div>
 	
 	
-     <h4>Customize Outputs</h4>
+     <h4 class="inlineb">Customize Outputs</h4>
+
 	<div class="product_box">
 
 	    <div class="product_boxheader">
@@ -462,7 +487,8 @@
 	</div> <!-- End Product Box -->
 
 
-      <h4>Add Order Description</h4>
+      <h4 class="inlineb">Add Order Description</h4>
+
       <div class="product_box">
 	     <div class="product_boxheader">
 		    Order Description (optional)
@@ -482,6 +508,10 @@
 
 
 {% endcache %}
+{% endblock %}
+
+{% block js_files %}
+ <script src="{% static 'js/jquery.popupoverlay.js' %}"></script>
 {% endblock %}
     
 {% block scripts %}
@@ -551,7 +581,14 @@
            $(custom_control_options).hide(0);
 
            //hide resample options on page load
-           $(resample_options).hide(0);                   
+           $(resample_options).hide(0);    
+
+           //set the popup for the product specs
+           $('#available_input_products').popup({background: true,
+                                                 transition: 'all 0.3s',
+                                                 type: 'overlay',
+                                                 color: 'black',
+                                                 opacity: 0.5});
           
 
            /******************************************************************* 
@@ -961,12 +998,7 @@
            function update_datum() {
                $("#datum").val($("#select_datum option:selected").val());
            }
-
-      
-
-      
-
-         
+  
     {% endcache %}
     {% endblock %}  
    
