@@ -19,6 +19,8 @@ class SceneInline(admin.StackedInline):
 
 class SceneAdmin(admin.ModelAdmin):
     fields = ['name',
+              'sensor_type',
+              'job_name',
               'order',
               'status',
               'completion_date',
@@ -41,13 +43,16 @@ class SceneAdmin(admin.ModelAdmin):
                        'processing_location')
 
     list_display = ('name',
+                    'sensor_type',
                     'status',
+                    'job_name',
                     'completion_date',
                     'order',
                     )
 
     list_filter = ('status',
                    'completion_date',
+                   'sensor_type',
                    'processing_location',
                    'order',
                    )
@@ -55,6 +60,8 @@ class SceneAdmin(admin.ModelAdmin):
     search_fields = ['name',
                      'status',
                      'processing_location',
+                     'sensor_type',
+                     'job_name',
                      'order__orderid',
                      'order__user__email',
                      'order__user__first_name',
@@ -62,16 +69,16 @@ class SceneAdmin(admin.ModelAdmin):
 
 
 class OrderAdmin(admin.ModelAdmin):
-    fields = ['user', 'orderid', 'order_source', 'status',
+    fields = ['user', 'orderid', 'order_source', 'priority', 'status',
               'ee_order_id', 'order_type', ('order_date', 'completion_date'),
               'note', 'product_options', ]
 
-    list_display = ('orderid', 'user',  'status', 'order_type',
+    list_display = ('orderid', 'user',  'status', 'priority', 'order_type',
                     'order_date', 'completion_date', 'ee_order_id',
                     'order_source', 'product_options')
 
-    list_filter = ('order_date', 'completion_date', 'order_source', 'status',
-                   'order_type', 'orderid',  'user', 'user__email',
+    list_filter = ('order_date', 'completion_date', 'order_source', 'status', 
+                   'priority', 'order_type', 'orderid',  'user', 'user__email',
                    'ee_order_id')
 
     search_fields = ['user__username',
@@ -79,6 +86,7 @@ class OrderAdmin(admin.ModelAdmin):
                      'user__first_name',
                      'user__last_name',
                      'orderid',
+                     'priority',
                      'order_source',
                      'ee_order_id',
                      'status',
