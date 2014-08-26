@@ -51,10 +51,11 @@ class SceneAdmin(admin.ModelAdmin):
                     )
 
     list_filter = ('status',
+                   'order__priority',
                    'completion_date',
                    'sensor_type',
-                   'processing_location',
-                   'order',
+                   'processing_location',                   
+                   'order'
                    )
 
     search_fields = ['name',
@@ -63,6 +64,7 @@ class SceneAdmin(admin.ModelAdmin):
                      'sensor_type',
                      'job_name',
                      'order__orderid',
+                     'order__priority',
                      'order__user__email',
                      'order__user__first_name',
                      'order__user__last_name']
