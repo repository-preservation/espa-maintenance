@@ -71,12 +71,12 @@ tr.evenrow td{
 
 
 <div class='boxbody' >
-<table>
+<table class='noborder'>
 {% for order in orders %}
     <tr class="{% cycle 'oddrow' 'evenrow' %}">
-    <td><a href="{% url 'generic_order_status_detail' order.orderid %}">{{ order.orderid }}</a></td>
-    <td>{{ order.get_status_display }}</td>
-    <td> {{ order.note }}</td>
+    <td class='noborder'><a href="{% url 'generic_order_status_detail' order.orderid %}">{{ order.orderid }}</a></td>
+    <td class='noborder'>{{ order.get_status_display }}</td>
+    <td class='noborder'> {{ order.note }}</td>
     </tr> 
 {% endfor %}
 </table>

@@ -53,21 +53,21 @@ tr.evenrow td{
 <h4>Details for: {{ order.orderid }}  ({{order.get_status_display}})</h4>
 
 <div class="boxbody">
-  <table >
+  <table class='noborder'>
   {% for s in scenes %}
     {% if s.name %}
     <tr class="{% cycle 'oddrow' 'evenrow' %}">
-    <td>{{ s.name }}</td>
-    <td>{{ s.get_status_display }}</td>
+    <td class='noborder'>{{ s.name }}</td>
+    <td class='noborder'>{{ s.get_status_display }}</td>
     {% if s.note and s.note != "''" %}
-    <td>{{ s.note }}</td>
+    <td class='noborder'>{{ s.note }}</td>
     {% endif %}
     {% if s.status == 'complete'%} 
-    <td><a href="{{s.product_dload_url}}">Download</a></td>
-    <td><a href="{{s.cksum_download_url}}">Checksum</a></td>
+    <td class='noborder'><a href="{{s.product_dload_url}}">Download</a></td>
+    <td class='noborder'><a href="{{s.cksum_download_url}}">Checksum</a></td>
     {% else %}
-    <td>&nbsp;</td>
-    <td>&nbsp;</td>
+    <td class='noborder'>&nbsp;</td>
+    <td class='noborder'>&nbsp;</td>
     {% endif %}
     </tr>
     {% endif %}
