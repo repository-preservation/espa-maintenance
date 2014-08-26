@@ -12,12 +12,12 @@ ORDER_BUFFER_LENGTH = 2048
 HADOOP_TIMEOUT = 172800000  # which is 2 days
 
 # Specifies the hadoop queue to use based on priority
-# 'all' must be present as it is the default in the cron
+# 'all' must be present as it is used in the cron code to pass 'None' instead
 HADOOP_QUEUE_MAPPING = {
     'all': 'ondemand',
-    'low': 'ondemand',
-    'medium': 'ondemand',
-    'high': 'ondemand'
+    'low': 'ondemand-low',
+    'normal': 'ondemand',
+    'high': 'ondemand-high'
 }
 
 

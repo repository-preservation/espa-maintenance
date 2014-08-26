@@ -315,8 +315,8 @@ if __name__ == '__main__':
     # Add parameters
     valid_priorities = sorted(settings.HADOOP_QUEUE_MAPPING.keys())
     parser.add_argument('--priority',
-                        action='store', dest='priority', required=False,
-                        default='all', choices=valid_priorities,
+                        action='store', dest='priority', required=True,
+                        choices=valid_priorities,
                         help="only process requests with this priority:"
                              " one of (%s)" % ', '.join(valid_priorities))
 
