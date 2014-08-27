@@ -205,7 +205,7 @@ def process_products(args):
             output = ''
             try:
                 cmd = ' '.join(hadoop_store_command)
-                print("Store cmd:%s" % cmd)
+                log("Store cmd:%s" % cmd)
 
                 output = utilities.execute_cmd(cmd)
             except Exception, e:
@@ -239,7 +239,8 @@ def process_products(args):
             output = ''
             try:
                 cmd = ' '.join(hadoop_run_command)
-                print("Run cmd:%s" % cmd)
+                log("Run cmd:%s" % cmd)
+
                 output = utilities.execute_cmd(cmd)
             except Exception, e:
                 log("Error running Hadoop job...")
