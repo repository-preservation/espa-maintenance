@@ -103,10 +103,11 @@ def process_products(args):
         if scenes:
             # Figure out the name of the order file
             stamp = datetime.now()
-            espa_job_name = ('%s_%s_%s_%s_%s_%s-espa_job'
+            espa_job_name = ('%s_%s_%s_%s_%s_%s-%s-espa_job'
                              % (str(stamp.month), str(stamp.day),
                                 str(stamp.year), str(stamp.hour),
-                                str(stamp.minute), str(stamp.second)))
+                                str(stamp.minute), str(stamp.second),
+                                str(args.priority)))
 
             log(' '.join(["Found scenes to process,",
                           "generating job number:", espa_job_name]))
