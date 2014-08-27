@@ -275,7 +275,7 @@
 
     </div>
 
-     <h4 class="inlineb topspace20">Add Input Products (<a href="#" class="available_input_products_open">Available Input Products</a>)</h4>
+     <h4 class="inlineb topspace20">Add Input Products (<a href="#" id="available_input_products_open">Show Available Products</a>)</h4>
      <div class="product_box">
 	    <div class="product_boxheader">
 		Scene List
@@ -584,11 +584,12 @@
            $(resample_options).hide(0);    
 
            //set the popup for the product specs
-           $('#available_input_products').popup({background: true,
+           /*$('#available_input_products').popup({background: true,
                                                  transition: 'all 0.3s',
                                                  type: 'overlay',
                                                  color: 'black',
-                                                 opacity: 0.5});
+                                                 opacity: 0.5});*/
+           $('#available_input_products').hide(0);
           
 
            /******************************************************************* 
@@ -597,7 +598,25 @@
 
            $("input:radio[name='output_format']").filter("[value=gtiff]").click();
                 
-                
+            
+           /*******************************************************************
+               Event handling for displaying/hiding the available input product
+               box.
+           *******************************************************************/
+           $('#available_input_products_open').click(function(item) {
+               //if hidden show it & vice versa
+               if ( $('#available_input_products').is(":hidden") ) {
+                   $('#available_input_products').css({"visibility":"visible"})
+                   $('#available_input_products').show(0);
+                   $('#available_input_products_open').text("Hide Available Products");
+               } 
+               else {
+                   $('#available_input_products').hide(0);
+                   $('#available_input_products_open').text("Show Available Products");
+               } 
+           });
+
+
            /*******************************************************************
                Event handler to enable & disable the submit button.
                Only enabled if there are products and scenes selected.
