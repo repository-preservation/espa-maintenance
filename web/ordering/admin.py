@@ -73,7 +73,8 @@ class SceneAdmin(admin.ModelAdmin):
 class OrderAdmin(admin.ModelAdmin):
     fields = ['user', 'orderid', 'order_source', 'priority', 'status',
               'ee_order_id', 'order_type', ('order_date', 'completion_date'),
-              'note', 'product_options', ]
+              'note', 'product_options',
+              ('initial_email_sent', 'completion_email_sent') ]
 
     list_display = ('orderid', 'user',  'status', 'priority', 'order_type',
                     'order_date', 'completion_date', 'ee_order_id',
