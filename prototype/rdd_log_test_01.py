@@ -12,8 +12,7 @@ import rdd_log_test_02
 def test_routine():
 
     # Get the processing logger
-    logger = (rdd_logging.EspaLogger.
-              getLogger(rdd_settings.LOGGER_ALIAS['PROCESSING']))
+    logger = rdd_logging.EspaLogger.get_logger('espa.processing')
 
     # We want some debugging
     logger.setLevel(logging.WARNING)
@@ -32,11 +31,15 @@ def test_routine():
 if __name__ == '__main__':
 
     # Configure logging for this application
-    logger = rdd_logging.EspaLogger.configure('order', 'scene')
+    rdd_logging.EspaLogger.configure('espa.processing', 'order', 'scene')
+    rdd_logging.EspaLogger.configure('espa.cron.low')
+    rdd_logging.EspaLogger.configure('espa.cron.normal')
+#    rdd_logging.EspaLogger.configure('espa.cron.high')
+#    rdd_logging.EspaLogger.configure('espa.cron.all')
+    rdd_logging.EspaLogger.configure('espa.web')
 
     # Get and write to the processing logger
-    logger = (rdd_logging.EspaLogger.
-              getLogger(rdd_settings.LOGGER_ALIAS['PROCESSING']))
+    logger = (rdd_logging.EspaLogger.get_logger('espa.processing'))
     logger.debug("In Main 1")
     logger.info("In Main 1")
     logger.warning("In Main 1")

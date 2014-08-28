@@ -1,19 +1,6 @@
 
 '''
     Description:
-      This defines the names to be used for the handlers and the loggers that
-      are used by the ESPA system.
-      Each of these must be defined in the following LOG_CONFIG object.
-'''
-LOGGER_ALIAS = {
-    'CRON': 'espa.cron',
-    'PROCESSING': 'espa.processing',
-    'WEB': 'espa.web'
-}
-
-
-'''
-    Description:
       This defines the logging configuration to be provided to the python
       "logging" module.  It must conform to the defined LOGGER_ALIAS's above.
 '''
@@ -28,6 +15,27 @@ LOG_CONFIG = {
                        ' -- %(message)s'),
             'datefmt': '%Y-%m-%d %H:%M:%S'
         },
+        'espa.standard.low': {
+            'format': ('%(asctime)s.%(msecs)03d %(process)d'
+                       ' %(levelname)-8s    low  '
+                       ' %(filename)s:%(lineno)d:%(funcName)s'
+                       ' -- %(message)s'),
+            'datefmt': '%Y-%m-%d %H:%M:%S'
+        },
+        'espa.standard.normal': {
+            'format': ('%(asctime)s.%(msecs)03d %(process)d'
+                       ' %(levelname)-8s normal  '
+                       ' %(filename)s:%(lineno)d:%(funcName)s'
+                       ' -- %(message)s'),
+            'datefmt': '%Y-%m-%d %H:%M:%S'
+        },
+        'espa.standard.high': {
+            'format': ('%(asctime)s.%(msecs)03d %(process)d'
+                       ' %(levelname)-8s   high  '
+                       ' %(filename)s:%(lineno)d:%(funcName)s'
+                       ' -- %(message)s'),
+            'datefmt': '%Y-%m-%d %H:%M:%S'
+        },
         'espa.thread': {
             'format': ('%(asctime)s.%(msecs)03d %(process)d'
                        ' %(levelname)-8s'
@@ -38,10 +46,32 @@ LOG_CONFIG = {
         }
     },
     'handlers': {
-        'espa.cron': {
+        # All espa handler names need to match the espa logger names
+        'espa.cron.all': {
             'level': 'DEBUG',
             'class': 'logging.FileHandler',
             'formatter': 'espa.standard',
+            'filename': '/tmp/espa_cron.log',
+            'mode': 'a'
+        },
+        'espa.cron.low': {
+            'level': 'DEBUG',
+            'class': 'logging.FileHandler',
+            'formatter': 'espa.standard.low',
+            'filename': '/tmp/espa_cron.log',
+            'mode': 'a'
+        },
+        'espa.cron.normal': {
+            'level': 'DEBUG',
+            'class': 'logging.FileHandler',
+            'formatter': 'espa.standard.normal',
+            'filename': '/tmp/espa_cron.log',
+            'mode': 'a'
+        },
+        'espa.cron.high': {
+            'level': 'DEBUG',
+            'class': 'logging.FileHandler',
+            'formatter': 'espa.standard.high',
             'filename': '/tmp/espa_cron.log',
             'mode': 'a'
         },
@@ -61,10 +91,25 @@ LOG_CONFIG = {
         }
     },
     'loggers': {
-        'espa.cron': {
+        'espa.cron.all': {
             'level': 'INFO',
             'propagate': False,
-            'handlers': ['espa.cron']
+            'handlers': ['espa.cron.all']
+        },
+        'espa.cron.low': {
+            'level': 'INFO',
+            'propagate': False,
+            'handlers': ['espa.cron.low']
+        },
+        'espa.cron.normal': {
+            'level': 'INFO',
+            'propagate': False,
+            'handlers': ['espa.cron.normal']
+        },
+        'espa.cron.high': {
+            'level': 'INFO',
+            'propagate': False,
+            'handlers': ['espa.cron.high']
         },
         'espa.processing': {
             'level': 'INFO',
