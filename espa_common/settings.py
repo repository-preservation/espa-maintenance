@@ -209,10 +209,142 @@ CACHE_KEYS = {
 LOGGING DEFINITIONS
 '''
 
-LOGGING_CONFIG = {}
-
-LOGGER_ALIAS = {
-    'PROCESSING': 'processing',
-    'WEB': 'web',
-    'CRON': 'cron'
+LOGGER_CONFIG = {
+    'version': 1,
+    'disable_existing_loggers': True,
+    'formatters': {
+        'espa.standard': {
+            # Used by the processing and web systems
+            'format': ('%(asctime)s.%(msecs)03d %(process)d'
+                       ' %(levelname)-8s'
+                       ' %(filename)s:%(lineno)d:%(funcName)s'
+                       ' -- %(message)s'),
+            'datefmt': '%Y-%m-%d %H:%M:%S'
+        },
+        'espa.standard.low': {
+            # Provided so 'low' is added to the log message
+            'format': ('%(asctime)s.%(msecs)03d %(process)d'
+                       ' %(levelname)-8s    low '
+                       ' %(filename)s:%(lineno)d:%(funcName)s'
+                       ' -- %(message)s'),
+            'datefmt': '%Y-%m-%d %H:%M:%S'
+        },
+        'espa.standard.normal': {
+            # Provided so 'normal' is added to the log message
+            'format': ('%(asctime)s.%(msecs)03d %(process)d'
+                       ' %(levelname)-8s normal '
+                       ' %(filename)s:%(lineno)d:%(funcName)s'
+                       ' -- %(message)s'),
+            'datefmt': '%Y-%m-%d %H:%M:%S'
+        },
+        'espa.standard.high': {
+            # Provided so 'high' is added to the log message
+            'format': ('%(asctime)s.%(msecs)03d %(process)d'
+                       ' %(levelname)-8s   high '
+                       ' %(filename)s:%(lineno)d:%(funcName)s'
+                       ' -- %(message)s'),
+            'datefmt': '%Y-%m-%d %H:%M:%S'
+        },
+        'espa.thread': {
+            # An example for threading, not currently used
+            'format': ('%(asctime)s.%(msecs)03d %(process)d'
+                       ' %(levelname)-8s'
+                       ' %(filename)s:%(lineno)d:%(funcName)s'
+                       ' %(thread)d'
+                       ' -- %(message)s'),
+            'datefmt': '%Y-%m-%d %H:%M:%S'
+        }
+    },
+    'handlers': {
+        # All espa.* handler names need to match the espa.* logger names
+        'espa.cron.all': {
+            'level': 'DEBUG',
+            'class': 'logging.FileHandler',
+            'formatter': 'espa.standard',
+            'filename': '/tmp/espa_cron.log',
+            'mode': 'a'
+        },
+        'espa.cron.low': {
+            'level': 'DEBUG',
+            'class': 'logging.FileHandler',
+            'formatter': 'espa.standard.low',
+            'filename': '/tmp/espa_cron.log',
+            'mode': 'a'
+        },
+        'espa.cron.normal': {
+            'level': 'DEBUG',
+            'class': 'logging.FileHandler',
+            'formatter': 'espa.standard.normal',
+            'filename': '/tmp/espa_cron.log',
+            'mode': 'a'
+        },
+        'espa.cron.high': {
+            'level': 'DEBUG',
+            'class': 'logging.FileHandler',
+            'formatter': 'espa.standard.high',
+            'filename': '/tmp/espa_cron.log',
+            'mode': 'a'
+        },
+        'espa.processing': {
+            'level': 'DEBUG',
+            'class': 'logging.FileHandler',
+            'formatter': 'espa.standard',
+            'filename': '/tmp/espa_processing.log',
+            'mode': 'a'
+        },
+        'espa.web': {
+            'level': 'DEBUG',
+            'class': 'logging.FileHandler',
+            'formatter': 'espa.standard',
+            'filename': '/tmp/espa_web.log',
+            'mode': 'a'
+        }
+    },
+    'loggers': {
+        # All espa.* logger names need to match the espa.* handler names
+        # All espa.cron.<priority> must match the priority levels defined in
+        # settings.HADOOP_QUEUE_MAPPING above
+        'espa.cron.all': {
+            # To be used by the 'all' cron
+            'level': 'INFO',
+            'propagate': False,
+            'handlers': ['espa.cron.all']
+        },
+        'espa.cron.low': {
+            # To be used by the 'low' cron
+            'level': 'INFO',
+            'propagate': False,
+            'handlers': ['espa.cron.low']
+        },
+        'espa.cron.normal': {
+            # To be used by the 'normal' cron
+            'level': 'INFO',
+            'propagate': False,
+            'handlers': ['espa.cron.normal']
+        },
+        'espa.cron.high': {
+            # To be used by the 'high' cron
+            'level': 'INFO',
+            'propagate': False,
+            'handlers': ['espa.cron.high']
+        },
+        'espa.processing': {
+            # To be used by the processing system
+            'level': 'INFO',
+            'propagate': False,
+            'handlers': ['espa.processing']
+        },
+        'espa.web': {
+            # To be used by the web system
+            'level': 'INFO',
+            'propagate': False,
+            'handlers': ['espa.web']
+        },
+        'django.request': {
+            # To be used by django
+            'level': 'ERROR',
+            'propagate': False,
+            'handlers': ['espa.web'],
+        }
+    }
 }
