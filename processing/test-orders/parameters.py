@@ -6,8 +6,11 @@ import logging
 import json
 from argparse import ArgumentParser
 
-# from espa/common
-import sensor
+# imports from espa/espa_common
+try:
+    import sensor
+except:
+    from espa_common import sensor
 
 
 # Exceptions - TODO TODO TODO This should be else-where
@@ -73,13 +76,14 @@ class Parameters(dict):
             TODO TODO TODO
         '''
 
+        logger = logging.getLogger()
+
         if not self.valid_options:
             msg = "You must specify the valid options in the sub-class"
             raise DeveloperViolation(msg)
 
         if option not in self.valid_options.keys():
-            msg = "[%s] is not a valid option" % option
-            raise OptionViolation(msg)
+            logger.warning("[%s] is not a valid option" % option)
 
     def _find_required_parameters(self, parameters):
         '''
