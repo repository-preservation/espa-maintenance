@@ -28,7 +28,11 @@ import traceback
 from espa_constants import EXIT_FAILURE
 from espa_constants import EXIT_SUCCESS
 
-from espa_logging import log
+# imports from espa/espa_common
+try:
+    from espa_logging import EspaLogging
+except:
+    from espa_common.espa_logging import EspaLogging
 
 
 # ============================================================================
@@ -39,6 +43,11 @@ def determine_order_disposition():
       along with sending the initial emails out to the users after their
       order has been accepted.
     '''
+
+    # Configure and get the logger for this task
+    logger_name = 'espa.cron'
+    EspaLogging.configure(logger_name)
+    logger = EspaLogging.get_logger(logger_name)
 
     rpcurl = os.environ.get('ESPA_XMLRPC')
     server = None
@@ -62,14 +71,10 @@ def determine_order_disposition():
             raise Exception(msg)
 
     except xmlrpclib.ProtocolError, e:
-        log("A protocol error occurred: %s" % str(e))
-        tb = traceback.format_exc()
-        log(tb)
+        logger.exception("A protocol error occurred")
 
     except Exception, e:
-        log("An error occurred finalizing orders: %s" % str(e))
-        tb = traceback.format_exc()
-        log(tb)
+        logger.exception("An error occurred finalizing orders")
 
     finally:
         server = None
@@ -90,7 +95,7 @@ if __name__ == '__main__':
         if (env_var not in os.environ or os.environ.get(env_var) is None
                 or len(os.environ.get(env_var)) < 1):
 
-            log("$%s is not defined... exiting" % env_var)
+            print("$%s is not defined... exiting" % env_var)
             sys.exit(EXIT_FAILURE)
 
     determine_order_disposition()

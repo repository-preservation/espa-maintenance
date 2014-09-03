@@ -25,10 +25,10 @@ from matplotlib import pyplot as mpl_plot
 from matplotlib import dates as mpl_dates
 from matplotlib.ticker import MaxNLocator, AutoMinorLocator
 import numpy as np
+import logging
 
 # espa-common objects and methods
 from espa_constants import *
-from espa_logging import log, set_debug, debug
 
 
 # Setup the default colors
@@ -226,6 +226,8 @@ def scp_transfer_file(source_host, source_file,
         file must be a directory.  ***No checking is performed in this code***
     '''
 
+    logger = logging.getLogger(__name__)
+
     cmd = ['scp', '-q', '-o', 'StrictHostKeyChecking=no', '-c', 'arcfour',
            '-C']
 
@@ -247,11 +249,12 @@ def scp_transfer_file(source_host, source_file,
     try:
         output = execute_cmd(cmd)
     except Exception, e:
-        log(output)
-        log("Error: Failed to transfer data")
+        if len(output) > 0:
+            logger.info(output)
+        logger.error("Failed to transfer data")
         raise e
 
-    log("Transfer complete - SCP")
+    logger.info("Transfer complete - SCP")
 # END - scp_transfer_file
 
 
@@ -423,6 +426,8 @@ def generate_sensor_stats(stat_name, stat_files):
       Combines all the stat files for one sensor into one csv file.
     '''
 
+    logger = logging.getLogger(__name__)
+
     stats = dict()
 
     # Fix the output filename
@@ -437,15 +442,15 @@ def generate_sensor_stats(stat_name, stat_files):
     stat_data = list()
     # Process through and create records
     for filename, obj in stats.items():
-        debug(filename)
+        logger.debug(filename)
         # Figure out the date for stats record
         (year, month, day_of_month, sensor) = get_ymds_from_filename(filename)
         date = '%04d-%02d-%02d' % (int(year), int(month), int(day_of_month))
-        debug(date)
+        logger.debug(date)
 
         line = '%s,%s,%s,%s,%s' % (date, obj['minimum'], obj['maximum'],
                                    obj['mean'], obj['stddev'])
-        debug(line)
+        logger.debug(line)
 
         stat_data.append(line)
 
@@ -492,6 +497,8 @@ def generate_plot(plot_name, subjects, band_type, stats, plot_type="Value"):
     Description:
       Builds a plot and then generates a png formatted image of the plot.
     '''
+
+    logger = logging.getLogger(__name__)
 
     # Test for a valid plot_type parameter
     # For us 'Range' mean min, max, and mean
@@ -550,7 +557,7 @@ def generate_plot(plot_name, subjects, band_type, stats, plot_type="Value"):
     # Convert the list of stats read from the file into a list of stats
     # organized by the sensor and contains a python date element
     for filename, obj in stats.items():
-        debug(filename)
+        logger.debug(filename)
         # Figure out the date for plotting
         (year, month, day_of_month, sensor) = \
             get_ymds_from_filename(filename)
@@ -635,14 +642,14 @@ def generate_plot(plot_name, subjects, band_type, stats, plot_type="Value"):
 
     # Adjust the day range to help move them from the edge of the plot
     date_diff = plot_date_max - plot_date_min
-    debug(date_diff.days)
+    logger.debug(date_diff.days)
     for increment in range(0, int(date_diff.days/365) + 1):
         # Add 5 days to each end of the range for each year
         # With a minimum of 5 days added to each end of the range
         plot_date_min -= TIME_DELTA_5_DAYS
         plot_date_max += TIME_DELTA_5_DAYS
-    debug(plot_date_min)
-    debug(plot_date_max)
+    logger.debug(plot_date_min)
+    logger.debug(plot_date_max)
 
     # X Axis details
     min_plot.xaxis.set_major_locator(auto_date_locator)
@@ -708,11 +715,13 @@ def generate_plots(plot_name, stat_files, band_type):
       generate a plot for each statistic
     '''
 
+    logger = logging.getLogger(__name__)
+
     stats = dict()
 
     # Read each file into a dictionary
     for stat_file in stat_files:
-        debug(stat_file)
+        logger.debug(stat_file)
         stats[stat_file] = \
             dict((key, value) for(key, value) in read_stats(stat_file))
 
@@ -1035,6 +1044,8 @@ def process(args):
 
     global SENSOR_COLORS, BG_COLOR, MARKER, MARKER_SIZE
 
+    logger = logging.getLogger(__name__)
+
     # Override the colors if they were specified
     SENSOR_COLORS['Terra'] = args.terra_color
     SENSOR_COLORS['Aqua'] = args.aqua_color
@@ -1060,9 +1071,10 @@ def process(args):
     try:
         output = execute_cmd(cmd)
     except Exception, e:
-        log("Failed retrieving stats from online cache")
-        log(output)
-        raise Exception(str(e)), None, sys.exc_info()[2]
+        if len(output) > 0:
+            logger.info(output)
+        logger.error("Failed retrieving stats from online cache")
+        raise
 
     # Change to the statistics directory
     current_directory = os.getcwd()
@@ -1075,8 +1087,8 @@ def process(args):
         lpcs_files = '*'
         remote_lpcs_directory = '%s/%s' % (args.order_directory,
                                            local_work_directory)
-        log("Creating lpcs_statistics directory %s on %s"
-            % (remote_lpcs_directory, args.source_host))
+        logger.info("Creating lpcs_statistics directory %s on %s"
+                    % (remote_lpcs_directory, args.source_host))
         cmd = ' '.join(['ssh', '-q', '-o', 'StrictHostKeyChecking=no',
                         args.source_host,
                         'mkdir', '-p', remote_lpcs_directory])
@@ -1084,14 +1096,15 @@ def process(args):
         try:
             output = execute_cmd(cmd)
         except Exception, e:
-            log(output)
-            raise Exception(str(e)), None, sys.exc_info()[2]
+            if len(output) > 0:
+                logger.error(output)
+            raise
 
         # Transfer the lpcs plot and statistic files
         scp_transfer_file('localhost', lpcs_files, args.source_host,
                           remote_lpcs_directory)
 
-        log("Verifying statistics transfers")
+        logger.info("Verifying statistics transfers")
         # NOTE - Re-purposing the lpcs_files variable
         lpcs_files = glob.glob(lpcs_files)
         for lpcs_file in lpcs_files:
@@ -1103,8 +1116,9 @@ def process(args):
             try:
                 local_cksum_value = execute_cmd(cmd)
             except Exception, e:
-                log(local_cksum_value)
-                raise Exception(str(e)), None, sys.exc_info()[2]
+                if len(local_cksum_value) > 0:
+                    logger.error(local_cksum_value)
+                raise
 
             # Generate a remote checksum value
             remote_file = os.path.join(remote_lpcs_directory, lpcs_file)
@@ -1113,8 +1127,9 @@ def process(args):
             try:
                 remote_cksum_value = execute_cmd(cmd)
             except Exception, e:
-                log(remote_cksum_value)
-                raise Exception(str(e)), None, sys.exc_info()[2]
+                if len(remote_cksum_value) > 0:
+                    logger.error(remote_cksum_value)
+                raise
 
             # Checksum validation
             if local_cksum_value.split()[0] != remote_cksum_value.split()[0]:
@@ -1128,7 +1143,7 @@ def process(args):
         if not args.keep:
             shutil.rmtree(local_work_directory)
 
-    log("Plot Processing Complete")
+    logger.info("Plot Processing Complete")
 # END - process
 
 
@@ -1136,8 +1151,8 @@ def process(args):
 if __name__ == '__main__':
     '''
     Description:
-      Read parameters from the command line and build a JSON dictionary from
-      them.  Pass the JSON dictionary to the process routine.
+      Grab the command line options, setup the logging and call the main
+      process routine.
     '''
 
     # Build the command line argument parser
@@ -1146,18 +1161,27 @@ if __name__ == '__main__':
     # Parse the command line arguments
     args = parser.parse_args()
 
-    # Setup debug
-    set_debug(args.debug)
+    log_level = logging.INFO
+    if args.debug:
+        log_level = logging.DEBUG
+
+    # TODO TODO TODO - need to specify a file ????
+    logging.basicConfig(format=('%(asctime)s.%(msecs)03d %(process)d'
+                                ' %(levelname)-8s'
+                                ' %(filename)s:%(lineno)d:'
+                                '%(funcName)s -- %(message)s'),
+                        datefmt='%Y-%m-%d %H:%M:%S',
+                        level=log_level)
+
+    logger = logging.getLogger(__name__)
 
     try:
-        # Call the main processing routine
+        # Process the specified order
         process(args)
     except Exception, e:
-        log("Error: %s" % str(e))
-        tb = traceback.format_exc()
-        log("Traceback: [%s]" % tb)
         if hasattr(e, 'output'):
-            log("Error: Output [%s]" % e.output)
+            logger.error("Output [%s]" % e.output)
+        logger.exception("Processing failed")
         sys.exit(EXIT_FAILURE)
 
     sys.exit(EXIT_SUCCESS)

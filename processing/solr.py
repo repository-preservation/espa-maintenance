@@ -16,7 +16,12 @@ from cStringIO import StringIO
 
 # espa-common objects and methods
 from espa_constants import *
-from espa_logging import log, debug
+
+# imports from espa/espa_common
+try:
+    from espa_logging import EspaLogging
+except:
+    from espa_common.espa_logging import EspaLogging
 
 
 # ============================================================================
@@ -27,8 +32,10 @@ def do_solr_index(metadata, scene, solr_filename, collection_name,
       Creates the solr index file from the metadata
     '''
 
-    log("Executing create_solr_index() for %s using collection %s "
-        % (scene, collection_name))
+    logger = EspaLogging.get_logger('espa.processing')
+
+    logger.info("Executing create_solr_index() for %s using collection %s "
+                % (scene, collection_name))
 
     # deal with the landsat metadata fieldname changes
     if 'CORNER_UL_LAT_PRODUCT' in metadata:

@@ -28,11 +28,20 @@ from datetime import datetime
 
 # espa-common objects and methods
 from espa_constants import *
-from espa_logging import log
+
+# imports from espa/espa_common
+try:
+    from espa_logging import EspaLogging
+except:
+    from espa_common.espa_logging import EspaLogging
+
+try:
+    import settings
+except:
+    from espa_common import settings
 
 # local objects and methods
 import util
-import settings
 
 
 # ============================================================================
@@ -44,6 +53,11 @@ def run_orders():
       and updates the status in the database through the xmlrpc service.
     '''
 
+    # Configure and get the logger for this task
+    logger_name = 'espa.cron.%s' % args.priority.lower()
+    EspaLogging.configure(logger_name)
+    logger = EspaLogging.get_logger(logger_name)
+
     rpcurl = os.environ.get('ESPA_XMLRPC')
     server = None
 
@@ -53,7 +67,7 @@ def run_orders():
 
         server = xmlrpclib.ServerProxy(rpcurl)
     else:
-        log("Missing or invalid environment variable ESPA_XMLRPC")
+        logger.info("Missing or invalid environment variable ESPA_XMLRPC")
 
     # Use the DEV_CACHE_HOSTNAME if present
     dev_cache_hostname = 'DEV_CACHE_HOSTNAME'
@@ -74,15 +88,15 @@ def run_orders():
         cache_directory = os.environ.get('DEV_CACHE_DIRECTORY')
 
     try:
-        log("Checking for orders to process...")
+        logger.info("Checking for orders to process...")
         orders = server.get_lpcs_orders_to_process()
 
         if orders:
-            log("Found orders to process:")
+            logger.info("Found orders to process:")
 
             # Process the orders
             for order in orders:
-                log("Processing order [%s]" % order)
+                logger.info("Processing order [%s]" % order)
 
                 # Build the order directory
                 order_directory = os.path.join(cache_directory, order)
@@ -103,16 +117,16 @@ def run_orders():
                     raise Exception(msg)
                 finally:
                     if len(output) > 0:
-                        log(output)
+                        logger.info(output)
 
                 # TODO TODO TODO - Needs web side implementation
                 server.update_order_status(order, 'LPCS cron driver', 'SUCC')
 
     except xmlrpclib.ProtocolError, e:
-        log("A protocol error occurred: %s" % str(e))
+        logger.exception("A protocol error occurred")
 
     except Exception, e:
-        log("Error Processing Plots: %s" % str(e))
+        logger.exception("Error Processing Plots")
 
     finally:
         server = None
@@ -135,7 +149,7 @@ if __name__ == '__main__':
         if (env_var not in os.environ or os.environ.get(env_var) is None
                 or len(os.environ.get(env_var)) < 1):
 
-            log("$%s is not defined... exiting" % env_var)
+            print("$%s is not defined... exiting" % env_var)
             sys.exit(EXIT_FAILURE)
 
     run_orders()

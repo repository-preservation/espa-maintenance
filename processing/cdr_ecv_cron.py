@@ -27,15 +27,14 @@ import json
 import xmlrpclib
 from datetime import datetime
 import urllib
-import traceback
 from argparse import ArgumentParser
 
 # espa-common objects and methods
 from espa_constants import *
-from espa_logging import log
 
-# espa objects and methods
+# imports from espa/espa_common
 from espa_common import utilities, settings
+from espa_common.espa_logging import EspaLogging as EspaLogging
 
 
 # ============================================================================
@@ -48,6 +47,11 @@ def process_products(args):
       each order through the xmlrpc service."
     '''
 
+    # Configure and get the logger for this task
+    logger_name = 'espa.cron.%s' % args.priority.lower()
+    EspaLogging.configure(logger_name)
+    logger = EspaLogging.get_logger(logger_name)
+
     rpcurl = os.environ.get('ESPA_XMLRPC')
     server = None
 
@@ -57,29 +61,29 @@ def process_products(args):
 
         server = xmlrpclib.ServerProxy(rpcurl, allow_none=True)
     else:
-        log("Missing or invalid environment variable ESPA_XMLRPC")
+        logger.warning("Missing or invalid environment variable ESPA_XMLRPC")
 
     home_dir = os.environ.get('HOME')
     hadoop_executable = "%s/bin/hadoop/bin/hadoop" % home_dir
 
     # Verify xmlrpc server
     if server is None:
-        log("xmlrpc server was None... exiting")
+        logger.critical("xmlrpc server was None... exiting")
         sys.exit(EXIT_FAILURE)
 
     user = server.get_configuration('landsatds.username')
     if len(user) == 0:
-        log("landsatds.username is not defined... exiting")
+        logger.critical("landsatds.username is not defined... exiting")
         sys.exit(EXIT_FAILURE)
 
     pw = urllib.quote(server.get_configuration('landsatds.password'))
     if len(pw) == 0:
-        log("landsatds.password is not defined... exiting")
+        logger.critical("landsatds.password is not defined... exiting")
         sys.exit(EXIT_FAILURE)
 
     host = server.get_configuration('landsatds.host')
     if len(host) == 0:
-        log("landsatds.host is not defined... exiting")
+        logger.critical("landsatds.host is not defined... exiting")
         sys.exit(EXIT_FAILURE)
 
     # adding this so we can disable on-demand processing via the admin console
@@ -94,11 +98,11 @@ def process_products(args):
     hadoop_job_queue = settings.HADOOP_QUEUE_MAPPING[args.priority]
 
     if not ondemand_enabled.lower() == 'true':
-        log("on demand disabled...")
+        logger.critical("on demand disabled... exiting")
         sys.exit(EXIT_SUCCESS)
 
     try:
-        log("Checking for scenes to process...")
+        logger.info("Checking for scenes to process...")
         scenes = server.get_scenes_to_process(args.limit, args.user, priority)
         if scenes:
             # Figure out the name of the order file
@@ -109,8 +113,8 @@ def process_products(args):
                                 str(stamp.minute), str(stamp.second),
                                 str(args.priority)))
 
-            log(' '.join(["Found scenes to process,",
-                          "generating job number:", espa_job_name]))
+            logger.info(' '.join(["Found scenes to process,",
+                                  "generating job number:", espa_job_name]))
 
             espa_job_filename = '%s%s' % (espa_job_name, '.txt')
             espa_job_filepath = os.path.join('/tmp', espa_job_filename)
@@ -135,7 +139,7 @@ def process_products(args):
                     line['options'] = options
 
                     line_entry = json.dumps(line)
-                    log(line_entry)
+                    logger.info(line_entry)
 
                     # Pad the entry so hadoop will properly split the jobs
                     filler_count = (settings.ORDER_BUFFER_LENGTH -
@@ -202,19 +206,19 @@ def process_products(args):
                                               '-rmr', hdfs_target + '-out']
 
             # ----------------------------------------------------------------
-            log("Storing request file to hdfs...")
+            logger.info("Storing request file to hdfs...")
             output = ''
             try:
                 cmd = ' '.join(hadoop_store_command)
-                log("Store cmd:%s" % cmd)
+                logger.info("Store cmd:%s" % cmd)
 
                 output = utilities.execute_cmd(cmd)
             except Exception, e:
-                log("Error storing files to HDFS... exiting")
+                logger.critical("Error storing files to HDFS... exiting")
                 sys.exit(EXIT_FAILURE)
             finally:
                 if len(output) > 0:
-                    log(output)
+                    logger.info(output)
 
             # ----------------------------------------------------------------
             # Update the scene list as queued so they don't get pulled down
@@ -226,65 +230,62 @@ def process_products(args):
                 sceneid = line['scene']
                 product_list.append((orderid, sceneid))
 
-                log("Adding scene:%s orderid:%s to queued list"
-                    % (sceneid, orderid))
+                logger.info("Adding scene:%s orderid:%s to queued list"
+                            % (sceneid, orderid))
 
             server.queue_products(product_list, 'CDR_ECV cron driver',
                                   espa_job_name)
 
-            log("Deleting local request file copy [%s]" % espa_job_filepath)
+            logger.info("Deleting local request file copy [%s]"
+                        % espa_job_filepath)
             os.unlink(espa_job_filepath)
 
             # ----------------------------------------------------------------
-            log("Running hadoop job...")
+            logger.info("Running hadoop job...")
             output = ''
             try:
                 cmd = ' '.join(hadoop_run_command)
-                log("Run cmd:%s" % cmd)
+                logger.info("Run cmd:%s" % cmd)
 
                 output = utilities.execute_cmd(cmd)
             except Exception, e:
-                log("Error running Hadoop job...")
+                logger.error("Error running Hadoop job...")
             finally:
                 if len(output) > 0:
-                    log(output)
+                    logger.info(output)
 
             # ----------------------------------------------------------------
-            log("Deleting hadoop job request file from hdfs....")
+            logger.info("Deleting hadoop job request file from hdfs....")
             output = ''
             try:
                 cmd = ' '.join(hadoop_delete_request_command1)
                 output = utilities.execute_cmd(cmd)
             except Exception, e:
-                log("Error deleting hadoop job request file")
+                logger.error("Error deleting hadoop job request file")
             finally:
                 if len(output) > 0:
-                    log(output)
+                    logger.info(output)
 
             # ----------------------------------------------------------------
-            log("Deleting hadoop job output...")
+            logger.info("Deleting hadoop job output...")
             output = ''
             try:
                 cmd = ' '.join(hadoop_delete_request_command2)
                 output = utilities.execute_cmd(cmd)
             except Exception, e:
-                log("Error deleting hadoop job output")
+                logger.error("Error deleting hadoop job output")
             finally:
                 if len(output) > 0:
-                    log(output)
+                    logger.info(output)
 
         else:
-            log("No scenes to process....")
+            logger.info("No scenes to process....")
 
     except xmlrpclib.ProtocolError, e:
-        log("A protocol error occurred: %s" % str(e))
-        tb = traceback.format_exc()
-        log(tb)
+        logger.exception("A protocol error occurred")
 
     except Exception, e:
-        log("Error Processing Scenes: %s" % str(e))
-        tb = traceback.format_exc()
-        log(tb)
+        logger.exception("Error Processing Scenes")
 
     finally:
         server = None
@@ -306,7 +307,7 @@ if __name__ == '__main__':
         if (env_var not in os.environ or os.environ.get(env_var) is None
                 or len(os.environ.get(env_var)) < 1):
 
-            log("$%s is not defined... exiting" % env_var)
+            print("$%s is not defined... exiting" % env_var)
             sys.exit(EXIT_FAILURE)
 
     # Create a command line argument parser

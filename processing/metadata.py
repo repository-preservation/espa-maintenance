@@ -16,7 +16,12 @@ from cStringIO import StringIO
 
 # espa-common objects and methods
 from espa_constants import *
-from espa_logging import log, debug
+
+# imports from espa/espa_common
+try:
+    from espa_logging import EspaLogging
+except:
+    from espa_common.espa_logging import EspaLogging
 
 
 # ============================================================================
@@ -25,6 +30,7 @@ def get_landsat_metadata(work_dir):
     Description:
       Returns the Landsat metadata as a python dictionary
     '''
+    logger = EspaLogging.get_logger('espa.processing')
 
     # Find the metadata file
     metadata_filename = ''
@@ -37,7 +43,7 @@ def get_landsat_metadata(work_dir):
 
             # Save the filename and break out of the directory loop
             metadata_filename = dir_item
-            log("Located MTL file:%s" % metadata_filename)
+            logger.info("Located MTL file:%s" % metadata_filename)
             break
 
     if metadata_filename == '':
@@ -81,7 +87,7 @@ def get_landsat_metadata(work_dir):
     # Read and add the metadata contents to the dictionary
     for line in fixed_data.split('\n'):
         line = line.strip()
-        debug(line)
+        logger.debug(line)
         if not line.startswith('END') and not line.startswith('GROUP'):
             parts = line.split('=')
             if len(parts) == 2:

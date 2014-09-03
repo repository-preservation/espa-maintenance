@@ -18,9 +18,12 @@ import calendar
 import commands
 import random
 
+# imports from espa/espa_common
+try:
+    import settings
+except:
+    from espa_common import settings
 
-# local objects and methods
-import settings
 
 # ============================================================================
 def get_logfile(orderid, sceneid):

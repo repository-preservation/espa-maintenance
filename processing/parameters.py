@@ -14,10 +14,17 @@ import os
 
 # espa-common objects and methods
 from espa_constants import *
-from espa_logging import log
 
-# imports from espa/common
-import sensor
+# imports from espa/espa_common
+try:
+    from espa_logging import EspaLogging
+except:
+    from espa_common.espa_logging import EspaLogging
+
+try:
+    import sensor
+except:
+    from espa_common import sensor
 
 
 # This contains the valid sensors and data types which are supported
@@ -442,14 +449,17 @@ def validate_reprojection_parameters(parms, scene, projections, ns_values,
       assumed that the web tier has validated them.
     '''
 
+    logger = EspaLogging.get_logger('espa.processing')
+
     # Create this and set to None if not present
     if not test_for_parameter(parms, 'projection'):
-        log("Warning: 'projection' parameter missing defaulting to None")
+        logger.warning("'projection' parameter missing defaulting to None")
         parms['projection'] = None
 
     # Create this and set to 'near' if not present
     if not test_for_parameter(parms, 'resample_method'):
-        log("Warning: 'resample_method' parameter missing defaulting to near")
+        logger.warning("'resample_method' parameter missing defaulting to"
+                       " near")
         parms['resample_method'] = 'near'
 
     # Make sure these have at least a False value
@@ -457,8 +467,8 @@ def validate_reprojection_parameters(parms, scene, projections, ns_values,
 
     for parameter in required_parameters:
         if not test_for_parameter(parms, parameter):
-            log("Warning: '%s' parameter missing defaulting to False"
-                % parameter)
+            logger.warning("'%s' parameter missing defaulting to False"
+                           % parameter)
             parms[parameter] = False
 
     if parms['reproject']:
@@ -672,8 +682,8 @@ def validate_reprojection_parameters(parms, scene, projections, ns_values,
         parms['pixel_size'] = sensor.instance(scene).default_pixel_size[units]
         parms['pixel_size_units'] = units
 
-        log("Warning: 'resize' parameter not provided but required for"
-            " reprojection or image extents"
-            " (Defaulting pixel_size(%f) and pixel_size_units(%s)"
-            % (parms['pixel_size'], parms['pixel_size_units']))
+        logger.warning("'resize' parameter not provided but required for"
+                       " reprojection or image extents"
+                       " (Defaulting pixel_size(%f) and pixel_size_units(%s)"
+                       % (parms['pixel_size'], parms['pixel_size_units']))
 # END - validate_reprojection_parameters

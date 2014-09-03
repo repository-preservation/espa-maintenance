@@ -27,7 +27,17 @@ import traceback
 
 # espa-common objects and methods
 from espa_constants import *
-from espa_logging import log, set_debug, debug
+
+# imports from espa/espa_common
+try:
+    from espa_logging import EspaLogging
+except:
+    from espa_common.espa_logging import EspaLogging
+
+try:
+    import settings
+except:
+    from espa_common import settings
 
 # local objects and methods
 import espa_exception as ee
@@ -38,7 +48,6 @@ import science
 import warp
 import statistics
 import distribution
-import settings
 
 
 # ============================================================================
@@ -90,6 +99,8 @@ def validate_parameters(parms):
       is available with the provided input parameters.
     '''
 
+    logger = EspaLogging.get_logger('espa.processing')
+
     # Test for presence of top-level parameters
     keys = ['orderid', 'scene', 'options']
     for key in keys:
@@ -117,8 +128,8 @@ def validate_parameters(parms):
 
     for key in keys:
         if not parameters.test_for_parameter(options, key):
-            log("Warning: '%s' parameter missing defaulting to False"
-                % key)
+            logger.warning("'%s' parameter missing defaulting to False"
+                           % key)
             options[key] = False
 
     # Extract information from the scene string
@@ -198,6 +209,8 @@ def process(parms):
       Provides the processing for the generation of the science products and
       then processing them through the statistics generation.
     '''
+
+    logger = EspaLogging.get_logger('espa.processing')
 
     # Validate the parameters
     validate_parameters(parms)
@@ -295,7 +308,7 @@ def process(parms):
 
     # END - Science Product Building
     else:
-        log("***NO SCIENCE PRODUCTS CHOSEN***")
+        logger.info("***NO SCIENCE PRODUCTS CHOSEN***")
 
         # Cleanup all the intermediate non-products and the science products
         # not requested
@@ -324,8 +337,8 @@ def process(parms):
                                              options['include_statistics'],
                                              sleep_seconds)
         except Exception, e:
-            log("An error occurred processing %s" % scene)
-            log("Error: %s" % str(e))
+            logger.error("An exception occurred processing %s" % scene)
+            logger.error("Exception Message: %s" % str(e))
             if attempt < max_number_of_attempts:
                 sleep(sleep_seconds)  # sleep before trying again
                 attempt += 1
@@ -359,8 +372,10 @@ if __name__ == '__main__':
     args = parser.parse_args()
     args_dict = vars(args)
 
-    # Setup debug
-    set_debug(args.debug)
+    # Configure logging
+    EspaLogging.configure('espa.processing', order='test',
+                          product='product', debug=args.debug)
+    logger = EspaLogging.get_logger('espa.processing')
 
     # Build our JSON formatted input from the command line parameters
     orderid = args_dict.pop('orderid')
@@ -376,12 +391,9 @@ if __name__ == '__main__':
     try:
         process(parms)
     except Exception, e:
-        log("An error occurred processing %s" % scene)
-        log("Error: %s" % str(e))
-        tb = traceback.format_exc()
-        log("Traceback: [%s]" % tb)
         if hasattr(e, 'output'):
-            log("Error: Output [%s]" % e.output)
+            logger.error("Output [%s]" % e.output)
+        logger.exception("Processing failed")
         sys.exit(EXIT_FAILURE)
 
     sys.exit(EXIT_SUCCESS)
