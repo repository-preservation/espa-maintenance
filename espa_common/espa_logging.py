@@ -1,4 +1,5 @@
 
+import os
 import logging
 import logging.config
 
@@ -34,8 +35,14 @@ class EspaLogging(object):
 
     @classmethod
     def configure_base_logger(cls):
-        # Setup a basic logger so that we can use it for errors
-        logging.basicConfig(level=logging.DEBUG)
+        # Setup a base logger so that we can use it for errors
+        logging.basicConfig(filename='/tmp/espa-base-logger.log',
+                            format=('%(asctime)s.%(msecs)03d %(process)d'
+                                    ' %(levelname)-8s'
+                                    ' %(filename)s:%(lineno)d:%(funcName)s'
+                                    ' -- %(message)s'),
+                            datefmt='%Y-%m-%d %H:%M:%S',
+                            level=logging.DEBUG)
 
     @classmethod
     def configure(cls, logger_name, order=None, product=None, debug=False):
@@ -96,7 +103,6 @@ class EspaLogging(object):
             for handler in loggers[logger_name]['handlers']:
                 cls.my_config['handlers'][handler] = handlers[handler].copy()
 
-                # Copy the formatter dict for the formatters we want
                 # Copy the formatter dict for the formatters we want
                 formatter_name = handlers[handler]['formatter']
                 cls.my_config['formatters'][formatter_name] = \
