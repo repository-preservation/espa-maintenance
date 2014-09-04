@@ -16,32 +16,24 @@
     Date              Programmer               Reason
     ----------------  ------------------------ -------------------------------
     Feb/2014          Ron Dilley               Initial implementation
+    Sept/2014         Ron Dilley               Updated to use espa_common and
+                                               our python logging setup
 '''
 
 import os
 import sys
-import time
 import json
 import xmlrpclib
-import subprocess
-from datetime import datetime
 
 # espa-common objects and methods
-from espa_constants import *
+from espa_constants import EXIT_FAILURE
+from espa_constants import EXIT_SUCCESS
 
 # imports from espa/espa_common
-try:
-    from espa_logging import EspaLogging
-except:
-    from espa_common.espa_logging import EspaLogging
+from espa_common import settings, utilities
+from espa_common.espa_logging import EspaLogging
 
-try:
-    import settings
-except:
-    from espa_common import settings
-
-# local objects and methods
-import util
+LOGGER_NAME = 'espa.cron.lpcs'
 
 
 # ============================================================================
@@ -53,10 +45,8 @@ def run_orders():
       and updates the status in the database through the xmlrpc service.
     '''
 
-    # Configure and get the logger for this task
-    logger_name = 'espa.cron.%s' % args.priority.lower()
-    EspaLogging.configure(logger_name)
-    logger = EspaLogging.get_logger(logger_name)
+    # Get the logger for this task
+    logger = EspaLogging.get_logger(LOGGER_NAME)
 
     rpcurl = os.environ.get('ESPA_XMLRPC')
     server = None
@@ -67,14 +57,14 @@ def run_orders():
 
         server = xmlrpclib.ServerProxy(rpcurl)
     else:
-        logger.info("Missing or invalid environment variable ESPA_XMLRPC")
+        logger.warning("Missing or invalid environment variable ESPA_XMLRPC")
 
     # Use the DEV_CACHE_HOSTNAME if present
     dev_cache_hostname = 'DEV_CACHE_HOSTNAME'
     if (dev_cache_hostname not in os.environ
             or os.environ.get(dev_cache_hostname) is None
             or len(os.environ.get(dev_cache_hostname)) < 1):
-        cache_host = util.get_cache_hostname()  # MUST USE THIS TODAY
+        cache_host = utilities.get_cache_hostname()  # MUST USE THIS TODAY
     else:
         cache_host = os.environ.get('DEV_CACHE_HOSTNAME')
 
@@ -106,7 +96,7 @@ def run_orders():
                                 '--order_directory', order_directory])
                 output = ''
                 try:
-                    output = util.execute_cmd(cmd)
+                    output = utilities.execute_cmd(cmd)
                 except Exception, e:
                     # TODO TODO TODO - Needs web side implementation
                     server.update_order_status(order, 'LPCS cron driver',
@@ -141,6 +131,10 @@ if __name__ == '__main__':
       Execute the core processing routine.
     '''
 
+    # Configure and get the logger for this task
+    EspaLogging.configure(LOGGER_NAME)
+    logger = EspaLogging.get_logger(LOGGER_NAME)
+
     # Check required variables that this script should fail on if they are not
     # defined
     required_vars = ('ESPA_XMLRPC', "ESPA_WORK_DIR", "ANC_PATH", "PATH",
@@ -149,9 +143,13 @@ if __name__ == '__main__':
         if (env_var not in os.environ or os.environ.get(env_var) is None
                 or len(os.environ.get(env_var)) < 1):
 
-            print("$%s is not defined... exiting" % env_var)
+            logger.critical("$%s is not defined... exiting" % env_var)
             sys.exit(EXIT_FAILURE)
 
-    run_orders()
+    try:
+        run_orders()
+    except Exception, e:
+        logger.exception("Processing failed")
+        sys.exit(EXIT_FAILURE)
 
     sys.exit(EXIT_SUCCESS)
