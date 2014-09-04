@@ -124,6 +124,7 @@ def process_test_order(request_file, products_file, env_vars, keep_log):
             product_name = scenes_fd.readline().strip()
             if not product_name:
                 break
+            logger.info("Product Name [%s]" % product_name)
 
             with open(request_file, 'r') as order_fd:
                 order_contents = order_fd.read()
@@ -187,8 +188,6 @@ def process_test_order(request_file, products_file, env_vars, keep_log):
                     tmp_line = \
                         tmp_line.replace("DEV_DATA_DIRECTORY",
                                          source_directory)
-#                        tmp_line.replace("DEV_DATA_DIRECTORY",
-#                                         env_vars['dev_data_dir']['value'])
                     tmp_line = \
                         tmp_line.replace("DEV_CACHE_DIRECTORY",
                                          env_vars['dev_cache_dir']['value'])
@@ -215,6 +214,7 @@ def process_test_order(request_file, products_file, env_vars, keep_log):
 
             output = ''
             try:
+                logger.info("Processing [%s]" % cmd)
                 output = execute_cmd(cmd)
                 if len(output) > 0:
                     print output

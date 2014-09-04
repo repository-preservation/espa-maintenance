@@ -12,7 +12,7 @@
         "image_extents": true,
         "include_customized_source_data": true,
         "include_source_data": false,
-        "keep_log": false,
+        "keep_log": true,
         "latitude_true_scale": null,
         "longitude_pole": null,
         "maxx": 650000.0,
@@ -37,6 +37,6 @@
         "utm_zone": 10
     },
     "orderid": "ORDER_ID",
-    "scene": "MOD09A1.A2002041.h09v04.005.2007125045728",
+    "scene": "SCENE_ID",
     "xmlrpcurl": "skip_xmlrpc"
 }
