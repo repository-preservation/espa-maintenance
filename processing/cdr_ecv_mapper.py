@@ -294,7 +294,7 @@ if __name__ == '__main__':
 
         except Exception, e:
 
-            if logger == None:
+            if logger is None:
                 logger = EspaLogging.get_logger('base')
 
             # First log the exception
