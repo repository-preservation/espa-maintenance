@@ -29,9 +29,10 @@ try:
 except:
     from espa_common.espa_logging import EspaLogging
 
-
-# local objects and methods
-import util
+try:
+    import utilities
+except:
+    from espa_common import utilities
 
 
 # ============================================================================
@@ -48,7 +49,7 @@ def copy_file_to_file(source_file, destination_file):
     # Transfer the data and raise any errors
     output = ''
     try:
-        output = util.execute_cmd(cmd)
+        output = utilities.execute_cmd(cmd)
     except Exception, e:
         logger.error("Failed to copy file")
         raise e
@@ -76,7 +77,7 @@ def remote_copy_file_to_file(source_host, source_file, destination_file):
     # Transfer the data and raise any errors
     output = ''
     try:
-        output = util.execute_cmd(cmd)
+        output = utilities.execute_cmd(cmd)
     except Exception, e:
         logger.error("Failed to copy file")
         raise e
@@ -233,7 +234,7 @@ def scp_transfer_file(source_host, source_file,
     # Transfer the data and raise any errors
     output = ''
     try:
-        output = util.execute_cmd(cmd)
+        output = utilities.execute_cmd(cmd)
     except Exception, e:
         if len(output) > 0:
             logger.info(output)
