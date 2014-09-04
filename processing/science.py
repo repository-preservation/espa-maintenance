@@ -34,6 +34,11 @@ try:
 except:
     from espa_common import settings
 
+try:
+    import utilities
+except:
+    from espa_common import utilities
+
 # local objects and methods
 import espa_exception as ee
 import parameters
@@ -195,7 +200,7 @@ def remove_products(xml_filename, products_to_remove=None):
                                   " REQUESTED", 'COMMAND:', cmd]))
 
             try:
-                output = util.execute_cmd(cmd)
+                output = utilities.execute_cmd(cmd)
             except Exception, e:
                 raise ee.ESPAException(ee.ErrorCodes.remove_products,
                                        str(e)), None, sys.exc_info()[2]
@@ -275,7 +280,7 @@ def remove_landsat_science_products(parms, xml_filename):
 
             output = ''
             try:
-                output = util.execute_cmd(cmd)
+                output = utilities.execute_cmd(cmd)
             except Exception, e:
                 raise ee.ESPAException(ee.ErrorCodes.cleanup_work_dir,
                                        str(e)), None, sys.exc_info()[2]
@@ -364,7 +369,7 @@ def build_landsat_science_products(parms):
         logger.info(' '.join(['CONVERT LPGS TO ESPA COMMAND:', cmd]))
 
         try:
-            output = util.execute_cmd(cmd)
+            output = utilities.execute_cmd(cmd)
         except Exception, e:
             raise ee.ESPAException(ee.ErrorCodes.reformat,
                                    str(e)), None, sys.exc_info()[2]
@@ -393,7 +398,7 @@ def build_landsat_science_products(parms):
 
             output = ''
             try:
-                output = util.execute_cmd(cmd)
+                output = utilities.execute_cmd(cmd)
             except Exception, e:
                 raise ee.ESPAException(ee.ErrorCodes.ledaps,
                                        str(e)), None, sys.exc_info()[2]
@@ -448,7 +453,7 @@ def build_landsat_science_products(parms):
 
             output = ''
             try:
-                output = util.execute_cmd(cmd)
+                output = utilities.execute_cmd(cmd)
             except Exception, e:
                 raise ee.ESPAException(ee.ErrorCodes.spectral_indices,
                                        str(e)), None, sys.exc_info()[2]
@@ -474,7 +479,7 @@ def build_landsat_science_products(parms):
 
             output = ''
             try:
-                output = util.execute_cmd(cmd)
+                output = utilities.execute_cmd(cmd)
             except Exception, e:
                 raise ee.ESPAException(ee.ErrorCodes.create_dem,
                                        str(e)), None, sys.exc_info()[2]
@@ -521,7 +526,7 @@ def build_landsat_science_products(parms):
 
             output = ''
             try:
-                output = util.execute_cmd(cmd)
+                output = utilities.execute_cmd(cmd)
             except Exception, e:
                 raise ee.ESPAException(ee.ErrorCodes.cfmask,
                                        str(e)), None, sys.exc_info()[2]
@@ -540,7 +545,7 @@ def build_landsat_science_products(parms):
 #
 #            logger.info(' '.join(['CREATE SWE COMMAND:', cmd]))
 #            try:
-#                output = util.execute_cmd(cmd)
+#                output = utilities.execute_cmd(cmd)
 #            except Exception, e:
 #                raise ee.ESPAException(ee.ErrorCodes.swe, str(e)), \
 #                    None, sys.exc_info()[2]
@@ -595,7 +600,7 @@ def build_modis_science_products(parms):
 
         output = ''
         try:
-            output = util.execute_cmd(cmd)
+            output = utilities.execute_cmd(cmd)
         except Exception, e:
             raise ee.ESPAException(ee.ErrorCodes.reformat, str(e)), \
                 None, sys.exc_info()[2]
