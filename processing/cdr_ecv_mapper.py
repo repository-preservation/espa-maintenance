@@ -20,7 +20,7 @@ import traceback
 from argparse import ArgumentParser
 
 # espa-common objects and methods
-from espa_constants import *
+from espa_constants import EXIT_SUCCESS
 
 # imports from espa/espa_common
 try:
@@ -56,7 +56,7 @@ def set_scene_error(sceneid, orderid, processing_location):
         except Exception, e:
             logger.critical("Failed processing xmlrpc call to"
                             " set_scene_error")
-            logger.exception("Error from an exception")
+            logger.exception("Exception encountered and follows")
 
             return False
 
@@ -64,7 +64,7 @@ def set_scene_error(sceneid, orderid, processing_location):
 
 
 # ============================================================================
-if __name__ == '__main__':
+def process(args):
     '''
     Description:
       Read all lines from STDIN and process them.  Each line is converted to
@@ -73,17 +73,10 @@ if __name__ == '__main__':
       After validation the generation of cdr_ecv products is performed.
     '''
 
-    # Grab our only command line parameter
-    parser = ArgumentParser(
-        description="Processes a list of scenes from stdin")
-    parser.add_argument('--keep-log', action='store_true', dest='keep_log',
-                        default=False, help="keep the generated log file")
-    args = parser.parse_args()
+    # Initially set to the base logger
+    logger = EspaLogging.get_logger('base')
 
     processing_location = socket.gethostname()
-
-    EspaLogging.configure_base_logger()
-    logger = None
 
     # Process each line from stdin
     for line in sys.stdin:
@@ -110,7 +103,7 @@ if __name__ == '__main__':
             if parameters.test_for_parameter(options, 'debug'):
                 debug = options['debug']
 
-            # Configure and get the logger for this task
+            # Configure and get the logger for this order request
             EspaLogging.configure('espa.processing', order=orderid,
                                   product=sceneid, debug=debug)
             logger = EspaLogging.get_logger('espa.processing')
@@ -203,6 +196,9 @@ if __name__ == '__main__':
             if not scene_keep_log:
                 EspaLogging.delete_logger_file('espa.processing')
 
+            # Reset back to the base logger
+            logger = EspaLogging.get_logger('base')
+
         except ee.ESPAException, e:
 
             # First log the exception
@@ -286,21 +282,19 @@ if __name__ == '__main__':
                             EspaLogging. \
                                 delete_logger_file('espa.processing')
                         except Exception, e:
-                            logger.exception("Exception encountered and"
-                                             " follows")
+                            logger.exception("Exception encountered"
+                                             " stacktrace follows")
 
                 except Exception, e:
                     logger.exception("Exception encountered and follows")
+            # END - if server is not None
 
         except Exception, e:
-
-            if logger is None:
-                logger = EspaLogging.get_logger('base')
 
             # First log the exception
             if hasattr(e, 'output'):
                 logger.error("Output [%s]" % e.output)
-            logger.exception("Exception encountered and follows")
+            logger.exception("Exception encountered stacktrace follows")
 
             if server is not None:
 
@@ -313,10 +307,35 @@ if __name__ == '__main__':
                             EspaLogging. \
                                 delete_logger_file('espa.processing')
                         except Exception, e:
-                            logger.exception("Exception encountered and"
-                                             " follows")
+                            logger.exception("Exception encountered"
+                                             " stacktrace follows")
                 except Exception, e:
-                    logger.exception("Exception encountered and follows")
+                    logger.exception("Exception encountered stacktrace"
+                                     " follows")
     # END - for line in STDIN
+
+
+# ============================================================================
+if __name__ == '__main__':
+    '''
+    Description:
+        Some parameter and logging setup, then call the process routine.
+    '''
+
+    # Grab our only command line parameter
+    parser = ArgumentParser(
+        description="Processes a list of scenes from stdin")
+    parser.add_argument('--keep-log', action='store_true', dest='keep_log',
+                        default=False, help="keep the generated log file")
+    args = parser.parse_args()
+
+    EspaLogging.configure_base_logger()
+    # Initially set to the base logger
+    logger = EspaLogging.get_logger('base')
+
+    try:
+        process(args)
+    except Exception, e:
+        logger.exception("Processing failed stacktrace follows")
 
     sys.exit(EXIT_SUCCESS)
