@@ -285,6 +285,13 @@ LOGGER_CONFIG = {
             'filename': '/tmp/espa_cron.log',
             'mode': 'a'
         },
+        'espa.cron.lpcs': {
+            'level': 'DEBUG',
+            'class': 'logging.FileHandler',
+            'formatter': 'espa.standard',
+            'filename': '/tmp/espa_lpcs_cron.log',
+            'mode': 'a'
+        },
         'espa.processing': {
             'level': 'DEBUG',
             'class': 'logging.FileHandler',
@@ -327,6 +334,12 @@ LOGGER_CONFIG = {
             'level': 'INFO',
             'propagate': False,
             'handlers': ['espa.cron.high']
+        },
+        'espa.cron.lpcs': {
+            # To be used by the 'lpcs' cron
+            'level': 'INFO',
+            'propagate': False,
+            'handlers': ['espa.cron.lpcs']
         },
         'espa.processing': {
             # To be used by the processing system
