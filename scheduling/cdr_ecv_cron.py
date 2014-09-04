@@ -15,10 +15,12 @@
     HISTORY:
 
     Date              Programmer               Reason
-    ----------------  ------------------------ --------------------------------
-    09/12/2013        David V. Hill            Initial addition of this header.
+    ----------------  ------------------------ -------------------------------
+    09/12/2013        David V. Hill            Initial implementation
     Jan/2014          Ron Dilley               Updated for recent processing
                                                enhancements.
+    Sept/2014         Ron Dilley               Updated to use espa_common and
+                                               our python logging setup
 '''
 
 import os
@@ -30,11 +32,14 @@ import urllib
 from argparse import ArgumentParser
 
 # espa-common objects and methods
-from espa_constants import *
+from espa_constants import EXIT_FAILURE
+from espa_constants import EXIT_SUCCESS
 
 # imports from espa/espa_common
 from espa_common import utilities, settings
 from espa_common.espa_logging import EspaLogging as EspaLogging
+
+LOGGER_NAME = 'espa.cron'
 
 
 # ============================================================================
@@ -47,10 +52,8 @@ def process_products(args):
       each order through the xmlrpc service."
     '''
 
-    # Configure and get the logger for this task
-    logger_name = 'espa.cron.%s' % args.priority.lower()
-    EspaLogging.configure(logger_name)
-    logger = EspaLogging.get_logger(logger_name)
+    # Get the logger for this task
+    logger = EspaLogging.get_logger(LOGGER_NAME)
 
     rpcurl = os.environ.get('ESPA_XMLRPC')
     server = None
@@ -299,16 +302,7 @@ if __name__ == '__main__':
       Execute the core processing routine.
     '''
 
-    # Check required variables that this script should fail on if they are not
-    # defined
-    required_vars = ['ESPA_XMLRPC', 'ESPA_WORK_DIR', 'ANC_PATH', 'PATH',
-                     'HOME']
-    for env_var in required_vars:
-        if (env_var not in os.environ or os.environ.get(env_var) is None
-                or len(os.environ.get(env_var)) < 1):
-
-            print("$%s is not defined... exiting" % env_var)
-            sys.exit(EXIT_FAILURE)
+    global LOGGER_NAME
 
     # Create a command line argument parser
     description = ("Builds and kicks-off hadoop jobs for the espa processing"
@@ -336,7 +330,27 @@ if __name__ == '__main__':
     # Parse the command line arguments
     args = parser.parse_args()
 
+    # Configure and get the logger for this task
+    LOGGER_NAME = '.'.join([LOGGER_NAME, args.priority.lower()])
+    EspaLogging.configure(logger_name)
+    logger = EspaLogging.get_logger(logger_name)
+
+    # Check required variables that this script should fail on if they are not
+    # defined
+    required_vars = ['ESPA_XMLRPC', 'ESPA_WORK_DIR', 'ANC_PATH', 'PATH',
+                     'HOME']
+    for env_var in required_vars:
+        if (env_var not in os.environ or os.environ.get(env_var) is None
+                or len(os.environ.get(env_var)) < 1):
+
+            logger.critical("$%s is not defined... exiting" % env_var)
+            sys.exit(EXIT_FAILURE)
+
     # Setup and submit products to hadoop for processing
-    process_products(args)
+    try:
+        process_products(args)
+    except Exception, e:
+        logger.exception("Processing failed")
+        sys.exit(EXIT_FAILURE)
 
     sys.exit(EXIT_SUCCESS)
