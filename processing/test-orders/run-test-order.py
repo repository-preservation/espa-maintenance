@@ -15,9 +15,24 @@ import os
 import sys
 import logging
 import json
-import subprocess
+import commands
 from cStringIO import StringIO
 from argparse import ArgumentParser
+
+try:
+    import settings
+except:
+    from espa_common import settings
+
+try:
+    import sensor
+except:
+    from espa_common import sensor
+
+try:
+    import utilities
+except:
+    from espa_common import utilities
 
 import parameters
 
@@ -51,6 +66,43 @@ def build_argument_parser():
 
 
 # ============================================================================
+def execute_cmd(cmd):
+    '''
+    Description:
+      Execute a command line and return the terminal output or raise an
+      exception
+
+    Returns:
+        output - The stdout and/or stderr from the executed command.
+    '''
+
+    output = ''
+
+    (status, output) = commands.getstatusoutput(cmd)
+
+    if status < 0:
+        message = "Application terminated by signal [%s]" % cmd
+        if len(output) > 0:
+            message = ' Stdout/Stderr is: '.join([message, output])
+        raise Exception(message)
+
+    if status != 0:
+        message = "Application failed to execute [%s]" % cmd
+        if len(output) > 0:
+            message = ' Stdout/Stderr is: '.join([message, output])
+        raise Exception(message)
+
+    if os.WEXITSTATUS(status) != 0:
+        message = "Application [%s] returned error code [%d]" \
+                  % (cmd, os.WEXITSTATUS(status))
+        if len(output) > 0:
+            message = ' Stdout/Stderr is: '.join([message, output])
+        raise Exception(message)
+
+    return output
+
+
+# ============================================================================
 def process_test_order(request_file, products_file, env_vars, keep_log):
     '''
     Description:
@@ -64,6 +116,7 @@ def process_test_order(request_file, products_file, env_vars, keep_log):
     order_id = request_file.split('.json')[0]
 
     have_error = False
+    status = True
     error_msg = ''
 
     with open(products_file, 'r') as scenes_fd:
@@ -87,9 +140,11 @@ def process_test_order(request_file, products_file, env_vars, keep_log):
 
                     # Update the order for the developer
                     tmp = product_name[:3]
+                    source_host = 'localhost'
                     is_modis = False
                     if tmp == 'MOD' or tmp == 'MYD':
                         is_modis = True
+                        source_host = settings.MODIS_INPUT_HOSTNAME
 
                     if not is_modis:
                         product_path = ('%s/%s%s'
@@ -102,13 +157,38 @@ def process_test_order(request_file, products_file, env_vars, keep_log):
                             have_error = True
                             break
 
+                        source_directory = env_vars['dev_data_dir']['value']
+
+                    else:
+                        if tmp == 'MOD':
+                            base_source_path = settings.TERRA_BASE_SOURCE_PATH
+                        else:
+                            base_source_path = settings.AQUA_BASE_SOURCE_PATH
+
+                        short_name = sensor.instance(product_name).short_name
+                        version = sensor.instance(product_name).version
+                        archive_date = utilities.date_from_doy(
+                            sensor.instance(product_name).year,
+                            sensor.instance(product_name).doy)
+                        xxx = '%s.%s.%s' % (str(archive_date.year).zfill(4), str(archive_date.month).zfill(2), str(archive_date.day).zfill(2))
+
+                        source_directory = ('%s/%s.%s/%s'
+                                            % (base_source_path,
+                                               short_name,
+                                               version,
+                                               xxx))
+
+
                     tmp_line = tmp_line.replace('\n', '')
 
                     tmp_line = tmp_line.replace("ORDER_ID", order_id)
                     tmp_line = tmp_line.replace("SCENE_ID", product_name)
+                    tmp_line = tmp_line.replace("SRC_HOST", source_host)
                     tmp_line = \
                         tmp_line.replace("DEV_DATA_DIRECTORY",
-                                         env_vars['dev_data_dir']['value'])
+                                         source_directory)
+#                        tmp_line.replace("DEV_DATA_DIRECTORY",
+#                                         env_vars['dev_data_dir']['value'])
                     tmp_line = \
                         tmp_line.replace("DEV_CACHE_DIRECTORY",
                                          env_vars['dev_cache_dir']['value'])
@@ -117,57 +197,33 @@ def process_test_order(request_file, products_file, env_vars, keep_log):
 
                     # Validate again, since we modified it
                     parms = parameters.instance(json.loads(tmp_line))
-                    print json.dumps(parms, indent=4, sort_keys=True)
+                    logger.info(json.dumps(parms, indent=4, sort_keys=True))
 
                 # END - with tmp_order
             # END - with request_file
-        # END - while (1)
-    # END - with products_file
 
-    if have_error:
-        print error_msg
-        return False
+            if have_error:
+                logger.error(error_msg)
+                return False
 
-    keep_log_str = ''
-    if keep_log:
-        keep_log_str = '--keep-log'
+            keep_log_str = ''
+            if keep_log:
+                keep_log_str = '--keep-log'
 
-    cmd = ("cd ..; cat test-orders/%s | ./cdr_ecv_mapper.py %s"
-           % (tmp_order, keep_log_str))
+            cmd = ("cd ..; cat test-orders/%s | ./cdr_ecv_mapper.py %s"
+                   % (tmp_order, keep_log_str))
 
-    output = ''
-    proc = None
-    status = True
-    try:
-        proc = subprocess.Popen(cmd, stdin=subprocess.PIPE,
-                                stdout=subprocess.PIPE,
-                                stderr=subprocess.STDOUT, shell=True)
-        output = proc.communicate()[0]
-        if len(output) > 0:
-            print output
-
-        if proc.returncode < 0:
-            print "Application terminated by signal [%s]" % cmd
-            status = False
-
-        elif proc.returncode != 0:
-            print "Application failed to execute [%s]" % cmd
-            status = False
-
-        else:
-            application_exitcode = proc.returncode >> 8
-            if application_exitcode != 0:
-                print "Application [%s] returned error code [%d]" \
-                    % (cmd, application_exitcode)
+            output = ''
+            try:
+                output = execute_cmd(cmd)
+                if len(output) > 0:
+                    print output
+            except Exception, e:
+                logger.exception("Processing failed")
                 status = False
 
-    except Exception, e:
-        print str(e)
-        status = False
-
-    finally:
-        del proc
-        proc = None
+        # END - while (1)
+    # END - with products_file
 
     os.unlink(tmp_order)
 
