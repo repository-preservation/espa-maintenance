@@ -17,7 +17,6 @@ History:
 import os
 import sys
 import glob
-import traceback
 from time import sleep
 from argparse import ArgumentParser
 
@@ -34,6 +33,11 @@ try:
     import settings
 except:
     from espa_common import settings
+
+try:
+    import utilities
+except:
+    from espa_common import utilities
 
 # local objects and methods
 import espa_exception as ee
@@ -121,7 +125,7 @@ def tar_product(product_full_path, product_files):
 
     output = ''
     try:
-        output = util.execute_cmd(cmd)
+        output = utilities.execute_cmd(cmd)
     except Exception, e:
         raise ee.ESPAException(ee.ErrorCodes.packaging_product,
                                str(e)), None, sys.exc_info()[2]
@@ -143,7 +147,7 @@ def gzip_product(product_full_path):
 
     output = ''
     try:
-        output = util.execute_cmd(cmd)
+        output = utilities.execute_cmd(cmd)
     except Exception, e:
         raise ee.ESPAException(ee.ErrorCodes.packaging_product,
                                str(e)), None, sys.exc_info()[2]
@@ -208,7 +212,7 @@ def package_product(source_directory, destination_directory, product_name):
         output = ''
         cmd = ' '.join(['tar', '-tf', product_full_path])
         try:
-            output = util.execute_cmd(cmd)
+            output = utilities.execute_cmd(cmd)
         except Exception, e:
             raise ee.ESPAException(ee.ErrorCodes.packaging_product,
                                    str(e)), None, sys.exc_info()[2]
@@ -220,7 +224,7 @@ def package_product(source_directory, destination_directory, product_name):
         cksum_output = ''
         cmd = ' '.join(['cksum', product_full_path])
         try:
-            cksum_output = util.execute_cmd(cmd)
+            cksum_output = utilities.execute_cmd(cmd)
         except Exception, e:
             if len(cksum_output) > 0:
                 logger.info(cksum_output)
@@ -289,7 +293,7 @@ def distribute_product(destination_host, destination_directory,
     output = ''
     try:
         logger.debug(' '.join(["mkdir cmd:", cmd]))
-        output = util.execute_cmd(cmd)
+        output = utilities.execute_cmd(cmd)
     except Exception, e:
         raise ee.ESPAException(ee.ErrorCodes.packaging_product,
                                str(e)), None, sys.exc_info()[2]
@@ -314,7 +318,7 @@ def distribute_product(destination_host, destination_directory,
     output = ''
     try:
         logger.debug(' '.join(["rm remote file cmd:", cmd]))
-        output = util.execute_cmd(cmd)
+        output = utilities.execute_cmd(cmd)
     except Exception, e:
         raise ee.ESPAException(ee.ErrorCodes.packaging_product,
                                str(e)), None, sys.exc_info()[2]
@@ -340,7 +344,7 @@ def distribute_product(destination_host, destination_directory,
                     destination_host, 'cksum', destination_product_file])
     try:
         logger.debug(' '.join(["ssh cmd:", cmd]))
-        cksum_value = util.execute_cmd(cmd)
+        cksum_value = utilities.execute_cmd(cmd)
     except Exception, e:
         if len(cksum_value) > 0:
             logger.error(cksum_value)
@@ -353,7 +357,8 @@ def distribute_product(destination_host, destination_directory,
 
 # ============================================================================
 def distribute_statistics(scene, work_directory,
-                          destination_host, destination_directory):
+                          destination_host, destination_directory,
+                          destination_username, destination_pw):
     '''
     Description:
       Transfers the statistics to the specified directory on the destination
@@ -388,7 +393,7 @@ def distribute_statistics(scene, work_directory,
         output = ''
         try:
             logger.debug(' '.join(["mkdir cmd:", cmd]))
-            output = util.execute_cmd(cmd)
+            output = utilities.execute_cmd(cmd)
         except Exception, e:
             raise ee.ESPAException(ee.ErrorCodes.packaging_product,
                                    str(e)), None, sys.exc_info()[2]
@@ -403,7 +408,7 @@ def distribute_statistics(scene, work_directory,
         output = ''
         try:
             logger.debug(' '.join(["rm remote stats cmd:", cmd]))
-            output = util.execute_cmd(cmd)
+            output = utilities.execute_cmd(cmd)
         except Exception, e:
             raise ee.ESPAException(ee.ErrorCodes.packaging_product,
                                    str(e)), None, sys.exc_info()[2]
@@ -412,8 +417,10 @@ def distribute_statistics(scene, work_directory,
                 logger.info(output)
 
         # Transfer the stats files
-        transfer.scp_transfer_file('localhost', stats_files, destination_host,
-                                   stats_directory)
+        transfer.transfer_file('localhost', stats_files, destination_host,
+                               stats_directory,
+                               destination_username=destination_username,
+                               destination_pw=destination_pw)
 
         logger.info("Verifying statistics transfers")
         # NOTE - Re-purposing the stats_files variable
@@ -426,7 +433,7 @@ def distribute_statistics(scene, work_directory,
             cmd = ' '.join(['cksum', file_name])
             try:
                 logger.debug(' '.join(["cksum cmd:", cmd]))
-                local_cksum_value = util.execute_cmd(cmd)
+                local_cksum_value = utilities.execute_cmd(cmd)
             except Exception, e:
                 if len(local_cksum_value) > 0:
                     logger.error(local_cksum_value)
@@ -438,7 +445,7 @@ def distribute_statistics(scene, work_directory,
             cmd = ' '.join(['ssh', '-q', '-o', 'StrictHostKeyChecking=no',
                             destination_host, 'cksum', remote_file])
             try:
-                remote_cksum_value = util.execute_cmd(cmd)
+                remote_cksum_value = utilities.execute_cmd(cmd)
             except Exception, e:
                 if len(remote_cksum_value) > 0:
                     logger.error(remote_cksum_value)
@@ -535,7 +542,8 @@ def deliver_product(scene, work_directory, package_directory, product_name,
         while True:
             try:
                 distribute_statistics(scene, work_directory,
-                                      destination_host, destination_directory)
+                                      destination_host, destination_directory,
+                                      destination_username, destination_pw)
             except Exception, e:
                 logger.error("An exception occurred processing %s"
                              % product_name)
