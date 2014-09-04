@@ -27,10 +27,14 @@ try:
 except:
     from espa_common.espa_logging import EspaLogging
 
+try:
+    import utilities
+except:
+    from espa_common import utilities
+
 # local objects and methods
 import espa_exception as ee
 import transfer
-import util
 
 
 espa_base_working_dir_envvar = 'ESPA_WORK_DIR'
@@ -76,7 +80,7 @@ def untar_data(source_file, destination_directory):
     # Unpack the data and raise any errors
     output = ''
     try:
-        output = util.execute_cmd(cmd)
+        output = utilities.execute_cmd(cmd)
     except Exception, e:
         logger.error("Failed to unpack data")
         raise e
