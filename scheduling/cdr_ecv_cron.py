@@ -36,7 +36,7 @@ from espa_constants import EXIT_FAILURE
 from espa_constants import EXIT_SUCCESS
 
 # imports from espa/espa_common
-from espa_common import utilities, settings
+from espa_common import settings, utilities
 from espa_common.espa_logging import EspaLogging as EspaLogging
 
 LOGGER_NAME = 'espa.cron'
@@ -64,30 +64,30 @@ def process_products(args):
 
         server = xmlrpclib.ServerProxy(rpcurl, allow_none=True)
     else:
-        logger.warning("Missing or invalid environment variable ESPA_XMLRPC")
+        raise Exception("Missing or invalid environment variable ESPA_XMLRPC")
 
     home_dir = os.environ.get('HOME')
     hadoop_executable = "%s/bin/hadoop/bin/hadoop" % home_dir
 
     # Verify xmlrpc server
     if server is None:
-        logger.critical("xmlrpc server was None... exiting")
-        sys.exit(EXIT_FAILURE)
+        msg = "xmlrpc server was None... exiting"
+        raise Exception(msg)
 
     user = server.get_configuration('landsatds.username')
     if len(user) == 0:
-        logger.critical("landsatds.username is not defined... exiting")
-        sys.exit(EXIT_FAILURE)
+        msg = "landsatds.username is not defined... exiting"
+        raise Exception(msg)
 
     pw = urllib.quote(server.get_configuration('landsatds.password'))
     if len(pw) == 0:
-        logger.critical("landsatds.password is not defined... exiting")
-        sys.exit(EXIT_FAILURE)
+        msg = "landsatds.password is not defined... exiting"
+        raise Exception(msg)
 
     host = server.get_configuration('landsatds.host')
     if len(host) == 0:
-        logger.critical("landsatds.host is not defined... exiting")
-        sys.exit(EXIT_FAILURE)
+        msg = "landsatds.host is not defined... exiting"
+        raise Exception(msg)
 
     # adding this so we can disable on-demand processing via the admin console
     ondemand_enabled = server.get_configuration('ondemand_enabled')
@@ -101,8 +101,8 @@ def process_products(args):
     hadoop_job_queue = settings.HADOOP_QUEUE_MAPPING[args.priority]
 
     if not ondemand_enabled.lower() == 'true':
-        logger.critical("on demand disabled... exiting")
-        sys.exit(EXIT_SUCCESS)
+        msg = "on demand disabled... exiting"
+        raise Exception(msg)
 
     try:
         logger.info("Checking for scenes to process...")
@@ -217,8 +217,8 @@ def process_products(args):
 
                 output = utilities.execute_cmd(cmd)
             except Exception, e:
-                logger.critical("Error storing files to HDFS... exiting")
-                sys.exit(EXIT_FAILURE)
+                msg = "Error storing files to HDFS... exiting"
+                raise Exception(msg)
             finally:
                 if len(output) > 0:
                     logger.info(output)
@@ -252,7 +252,7 @@ def process_products(args):
 
                 output = utilities.execute_cmd(cmd)
             except Exception, e:
-                logger.error("Error running Hadoop job...")
+                logger.exception("Error running Hadoop job...")
             finally:
                 if len(output) > 0:
                     logger.info(output)
@@ -264,7 +264,7 @@ def process_products(args):
                 cmd = ' '.join(hadoop_delete_request_command1)
                 output = utilities.execute_cmd(cmd)
             except Exception, e:
-                logger.error("Error deleting hadoop job request file")
+                logger.exception("Error deleting hadoop job request file")
             finally:
                 if len(output) > 0:
                     logger.info(output)
@@ -276,7 +276,7 @@ def process_products(args):
                 cmd = ' '.join(hadoop_delete_request_command2)
                 output = utilities.execute_cmd(cmd)
             except Exception, e:
-                logger.error("Error deleting hadoop job output")
+                logger.exception("Error deleting hadoop job output")
             finally:
                 if len(output) > 0:
                     logger.info(output)
