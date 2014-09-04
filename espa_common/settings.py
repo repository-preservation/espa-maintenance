@@ -211,7 +211,7 @@ LOGGING DEFINITIONS
 
 LOGGER_CONFIG = {
     'version': 1,
-    'disable_existing_loggers': True,
+    'disable_existing_loggers': False,
     'formatters': {
         'espa.standard': {
             # Used by the processing and web systems
