@@ -16,6 +16,7 @@ class EspaLoggerException(Exception):
 
 class EspaLogging(object):
     my_config = None
+    basic_logger_configured = False
 
     @classmethod
     def check_logger_configured(cls, logger_name):
@@ -34,15 +35,21 @@ class EspaLogging(object):
             raise EspaLoggerException(msg)
 
     @classmethod
-    def configure_base_logger(cls):
-        # Setup a base logger so that we can use it for errors
-        logging.basicConfig(filename='/tmp/espa-base-logger.log',
-                            format=('%(asctime)s.%(msecs)03d %(process)d'
-                                    ' %(levelname)-8s'
-                                    ' %(filename)s:%(lineno)d:%(funcName)s'
-                                    ' -- %(message)s'),
-                            datefmt='%Y-%m-%d %H:%M:%S',
-                            level=logging.DEBUG)
+    def configure_base_logger(cls,
+                              filename='/tmp/espa-base-logger.log',
+                              format=('%(asctime)s.%(msecs)03d %(process)d'
+                                      ' %(levelname)-8s'
+                                      ' %(filename)s:%(lineno)d:%(funcName)s'
+                                      ' -- %(message)s'),
+                              datefmt='%Y-%m-%d %H:%M:%S',
+                              level=logging.DEBUG):
+
+        if not cls.basic_logger_configured:
+            # Setup a base logger so that we can use it for errors
+            logging.basicConfig(filename=filename, format=format,
+                                datefmt=datefmt, level=level)
+
+            cls.basic_logger_configured = True
 
     @classmethod
     def configure(cls, logger_name, order=None, product=None, debug=False):

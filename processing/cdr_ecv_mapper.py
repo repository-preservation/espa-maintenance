@@ -329,7 +329,7 @@ if __name__ == '__main__':
                         default=False, help="keep the generated log file")
     args = parser.parse_args()
 
-    EspaLogging.configure_base_logger()
+    EspaLogging.configure_base_logger(filename='/tmp/espa-cdr_ecv_mapper.log')
     # Initially set to the base logger
     logger = EspaLogging.get_logger('base')
 
