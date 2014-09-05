@@ -26,6 +26,7 @@ from smtplib import SMTP
 import settings
 
 
+# ============================================================================
 def scenecache_is_alive(url='http://edclpdsftp.cr.usgs.gov:50000/RPC2'):
     """Determine if the specified url has an http server
     that accepts POST calls
@@ -48,6 +49,7 @@ def scenecache_is_alive(url='http://edclpdsftp.cr.usgs.gov:50000/RPC2'):
         return False
 
 
+# ============================================================================
 def scenecache_client():
     """Return an xmlrpc proxy to the caller for the scene cache
 
@@ -62,6 +64,7 @@ def scenecache_client():
         raise RuntimeError(msg)
 
 
+# ============================================================================
 def date_from_doy(year, doy):
     '''Returns a python date object given a year and day of year'''
 
@@ -74,6 +77,7 @@ def date_from_doy(year, doy):
         return d
 
 
+# ============================================================================
 def is_number(s):
     '''Determines if a string value is a float or int.
 
@@ -89,16 +93,6 @@ def is_number(s):
         return True
     except ValueError:
         return False
-
-
-# ============================================================================
-def get_logfile(orderid, sceneid):
-    '''
-    Description:
-      Returns the full path and name of the log file to use
-    '''
-
-    return '%s/%s-%s-jobdebug.txt' % (settings.LOGFILE_PATH, orderid, sceneid)
 
 
 # ============================================================================
