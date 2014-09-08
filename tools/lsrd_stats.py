@@ -37,6 +37,9 @@
 #                                                   as the outdir name has changed in lsrd_ondemand_metrics
 #                                                   pig script
 # 010               05-01-2014      Adam Dosch      Cleaning up dotfile temp cred mess and db_connect fuction
+# 011               09-08-2014      Adam Dosch      Updating unique users query to use a substring index
+#                                                   since our email field does not get populated in the
+#                                                   DB anymore since 2.5.0 release
 #
 #########################################################################################
 
@@ -634,7 +637,7 @@ def main():
 	# Total number of unique on-demand users
 	#----------------------------------------------
 	
-	SQL = "select COUNT(DISTINCT(email)) from ordering_order where email like '%\@%' and ordering_order.order_source = '" + source + "'"
+	SQL = "select COUNT(DISTINCT(substring_index(orderid,'-',1))) from ordering_order where ordering_order.order_source = '" + source + "'"
 	
 	cursor.execute(SQL)
     

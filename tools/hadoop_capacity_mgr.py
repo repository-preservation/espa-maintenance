@@ -197,9 +197,9 @@ def performActions(args):
 # refresh dfs/mradmin services
 def refreshService(service):
     
-    retval = commands.getstatus(HADOOP_HOME + "/bin/hadoop " + service + " -refreshQueues")
+    #retval = commands.getstatus(HADOOP_HOME + "/bin/hadoop " + service + " -refreshQueues")
     #retval = commands.getstatus("/usr/bin/uptime")
-    #(retval, output) = commands.getstatusoutput("/usr/bin/uptime")
+    (retval, output) = commands.getstatusoutput("/usr/bin/uptime")
     
     if verbose:
         print "refresh status: ", retval
@@ -225,6 +225,7 @@ def loadCapValues():
         
     except Exception, e:
         print "Error: ", e
+        sys.exit(err_code['err_prelim'])
     
     for prop in configfile.findall('property'):
         
@@ -254,6 +255,7 @@ def getQueueCapacity(queueName="all"):
         configfile = tree.getroot()
     except Exception, e:
         print "Error: ", e
+        sys.exit(err_code['err_general'])
 
     capTotal = 0
 
@@ -300,7 +302,7 @@ def validateHadoopConfigs(hadoopHomeEnvVar):
     
     # Get the location of the capacity-scheduler.xml config file from mapred-site.xml:
     #
-    #   mapred.capacitytaskscheduler.allocation.file:  /home/espa/bin/hadoop/conf/capacity-scheduler.xml
+    #   mapred.capacitytaskscheduler.allocation.file:  HADOOP_HOME/conf/capacity-scheduler.xml
 
 
     # These are the config files and options we need:
@@ -308,6 +310,7 @@ def validateHadoopConfigs(hadoopHomeEnvVar):
     # capacity-scheduler.xml:
     #
     #   mapred.capacity-scheduler.queue.<queuename>.capacity
+    #   mapred.capacity-scheduler.queue.<queuename>,maximum-capacity
     #   mapred.capacity-scheduler.queue.<queuename>.supports-priority
     #   mapred.capacity-scheduler.queue.<queuename>.minimum-user-limit-percent
     #   mapred.capacity-scheduler.queue.<queuename>.user-limit-factor
@@ -336,7 +339,6 @@ def validateHadoopConfigs(hadoopHomeEnvVar):
                 if verbose:
                     print "analyzing", configFile
 
-                    
                 tree = xml.parse(fullConfigFile)
     
                 configfile = tree.getroot()
@@ -375,7 +377,7 @@ def validateHadoopConfigs(hadoopHomeEnvVar):
             sys.exit(err_code['err_valconf'])
 
 def printCapacitySummary(listOfQueues, slots):
-    currentCapacity = getQueueCapacity(queueName=listOfQueues)
+    currentCapacity = getQueueCapacity(queueName=listOfQueues)  
     
     print "-" * 80
     print
@@ -384,9 +386,11 @@ def printCapacitySummary(listOfQueues, slots):
     print " Total queue capacity: %s%%" % currentCapacity
     print
     
-    for queue, capacity in queueCapPercentageToSlotCount(listOfQueues).iteritems():
-        print "   - Capacity for '%s': %s%%" % (queue, capacity)
-        print "   - Slot capacity for '%s': %s" % (queue, float(float(slots) * (float(capacity)/float(100))))
+    for [curqueue,curcap],[maxqueue,maxcap] in zip(queueCapPercentageToSlotCount(listOfQueues).iteritems(), queueCapPercentageToSlotCount(listOfQueues, captype="maximum").iteritems()):
+        print "   - Capacity for '%s': %s%%" % (curqueue, curcap)
+        print "   - Slot capacity for '%s': %s" % (curqueue, float(float(slots) * (float(curcap)/float(100))))
+        print "   - Max Capacity for '%s': %s%%" % (maxqueue, maxcap)
+        print "   - Max slot capacity for '%s': %s" % (maxqueue, float(float(slots) * (float(maxcap)/float(100))))
         print
     
     print "-" * 80
@@ -426,11 +430,21 @@ def performSelection(headingMsg, selectionMsg, selectionOptions, inputType=int):
     
     return selection
 
-def queueCapPercentageToSlotCount(listOfQueues):
+def queueCapPercentageToSlotCount(listOfQueues, captype="defined"):
+    """
+    Returns capacity queue slot count from calculated percentage.  Can have a 
+    captype of 'defined' (e.g. capacity) or 'maximum' (e.g. maximum-capacity) to return
+    
+    """
     queueSlots = {}
     
+    if captype == "maximum":  
+        capacity = "maximum-capacity"
+    else:
+        capacity = "capacity"
+    
     for queue in listOfQueues:
-        queueSlots[queue] = hadoopConfigs["mapred.capacity-scheduler.queue." + queue + ".capacity"]
+        queueSlots[queue] = hadoopConfigs["mapred.capacity-scheduler.queue." + queue + "." + capacity]
     
     return queueSlots
 
@@ -474,7 +488,7 @@ def main():
     
     # Option(s) for: list of nodes/hosts to apply action and config change to
     #parser.add_argument("-n", "--nodes", action="store", dest="nodes", help="List of comma separated nodes/hosts to apply action and configuration change to")
-    
+    parser.add_argument("-p", "--print", action="store", dest="nodes", help="Prints out current Hadoop cluster queues capacities")
     # Parse those options!
     args = parser.parse_args()
 
