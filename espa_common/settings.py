@@ -126,11 +126,18 @@ LOGFILE_PATH = '/tmp'
 
 
 ##############################################################################
+# Used by plotting.py
+PLOT_BG_COLOR = '#f3f3f3'  # A light gray
+PLOT_MARKER = (1, 3, 0)    # Better circle than 'o'
+PLOT_MARKER_SIZE = 5.0     # A good size for the circle or diamond
+
+
+##############################################################################
 # Used by statistics.py
 
 # Band type data ranges.  They are intended to be used for removing outliers
 # from the data before statistics generation
-# Must match DATA_MAX_Y and DATA_MIN_Y values in plot.py
+# Must match DATA_MAX_Y and DATA_MIN_Y values in plotting.py
 # The types must match the types in cdr_ecv.py and modis.py
 BAND_TYPE_STAT_RANGES = {
     'SR': {
