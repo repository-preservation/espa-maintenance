@@ -3,7 +3,7 @@
         "destination_directory": "DEV_CACHE_DIRECTORY/LPCS-UTM-2",
         "destination_host": "localhost",
         "keep_log": true,
-        "source_directory": "DEV_CACHE_DIRECTORY",
+        "source_directory": "DEV_CACHE_DIRECTORY/LPCS-UTM-2",
         "source_host": "localhost"
     },
     "orderid": "LPCS-UTM-2",
