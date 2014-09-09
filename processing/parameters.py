@@ -423,8 +423,11 @@ def convert_to_command_line_options(parms):
       executables that will be called.
     '''
 
-    cmd_line = ['--orderid', '\"%s\"' % parms['orderid'],
-                '--scene', '\"%s\"' % parms['scene']]
+    cmd_line = ['--orderid', '\"%s\"' % parms['orderid']]
+    if test_for_parameter(parms, 'scene'):
+        cmd_line.extend(['--scene', '\"%s\"' % parms['scene']])
+    if test_for_parameter(parms, 'product_type'):
+        cmd_line.extend(['--product_type', '\"%s\"' % parms['product_type']])
 
     for (key, value) in parms['options'].items():
         if value is True:
