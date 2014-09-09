@@ -147,34 +147,25 @@ def process(args):
                 raise ValueError("Invalid Output format %s"
                                  % options['output_format'])
 
-            # -----------------------------------------------------------------
+            # ----------------------------------------------------------------
             # NOTE:
             #   The first thing process does is validate the input parameters
-            # -----------------------------------------------------------------
-
-            # Generate the command line that can be used with the specified
-            # application
-            cmd_line_options = \
-                parameters.convert_to_command_line_options(parms)
+            # ----------------------------------------------------------------
 
             destination_product_file = 'ERROR'
             destination_cksum_file = 'ERROR'
             # Process the landsat sensors
             if sensor in parameters.valid_landsat_sensors:
-                logger.info("Processing cdr_ecv with [%s]"
-                            % ' '.join(cmd_line_options))
                 (destination_product_file, destination_cksum_file) = \
                     cdr_ecv.process(parms)
             # Process the modis sensors
             elif sensor in parameters.valid_modis_sensors:
-                logger.info("Processing modis with [%s]"
-                            % ' '.join(cmd_line_options))
                 (destination_product_file, destination_cksum_file) = \
                     modis.process(parms)
 
-            # -----------------------------------------------------------------
+            # ----------------------------------------------------------------
             # NOTE: Else process using another sensors processor
-            # -----------------------------------------------------------------
+            # ----------------------------------------------------------------
 
             # Everything was successfull so mark the scene complete
             if server is not None:
