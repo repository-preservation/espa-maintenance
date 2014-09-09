@@ -15,7 +15,6 @@ import os
 import sys
 import logging
 import json
-import commands
 from cStringIO import StringIO
 from argparse import ArgumentParser
 
@@ -66,43 +65,6 @@ def build_argument_parser():
 
 
 # ============================================================================
-def execute_cmd(cmd):
-    '''
-    Description:
-      Execute a command line and return the terminal output or raise an
-      exception
-
-    Returns:
-        output - The stdout and/or stderr from the executed command.
-    '''
-
-    output = ''
-
-    (status, output) = commands.getstatusoutput(cmd)
-
-    if status < 0:
-        message = "Application terminated by signal [%s]" % cmd
-        if len(output) > 0:
-            message = ' Stdout/Stderr is: '.join([message, output])
-        raise Exception(message)
-
-    if status != 0:
-        message = "Application failed to execute [%s]" % cmd
-        if len(output) > 0:
-            message = ' Stdout/Stderr is: '.join([message, output])
-        raise Exception(message)
-
-    if os.WEXITSTATUS(status) != 0:
-        message = "Application [%s] returned error code [%d]" \
-                  % (cmd, os.WEXITSTATUS(status))
-        if len(output) > 0:
-            message = ' Stdout/Stderr is: '.join([message, output])
-        raise Exception(message)
-
-    return output
-
-
-# ============================================================================
 def process_test_order(request_file, products_file, env_vars, keep_log):
     '''
     Description:
@@ -132,8 +94,8 @@ def process_test_order(request_file, products_file, env_vars, keep_log):
                     raise Exception("Order file [%s] is empty" % request_file)
 
                 # Validate using our parameter object
-                #order = parameters.instance(json.loads(order_contents))
-                #print json.dumps(order, indent=4, sort_keys=True)
+                # order = parameters.instance(json.loads(order_contents))
+                # print json.dumps(order, indent=4, sort_keys=True)
 
                 with open(tmp_order, 'w') as tmp_fd:
 
@@ -171,7 +133,9 @@ def process_test_order(request_file, products_file, env_vars, keep_log):
                         archive_date = utilities.date_from_doy(
                             sensor.instance(product_name).year,
                             sensor.instance(product_name).doy)
-                        xxx = '%s.%s.%s' % (str(archive_date.year).zfill(4), str(archive_date.month).zfill(2), str(archive_date.day).zfill(2))
+                        xxx = '%s.%s.%s' % (str(archive_date.year).zfill(4),
+                                            str(archive_date.month).zfill(2),
+                                            str(archive_date.day).zfill(2))
 
                         source_directory = ('%s/%s.%s/%s'
                                             % (base_source_path,
@@ -179,9 +143,7 @@ def process_test_order(request_file, products_file, env_vars, keep_log):
                                                version,
                                                xxx))
 
-
                     tmp_line = tmp_line.replace('\n', '')
-
                     tmp_line = tmp_line.replace("ORDER_ID", order_id)
                     tmp_line = tmp_line.replace("SCENE_ID", product_name)
                     tmp_line = tmp_line.replace("SRC_HOST", source_host)
@@ -215,7 +177,7 @@ def process_test_order(request_file, products_file, env_vars, keep_log):
             output = ''
             try:
                 logger.info("Processing [%s]" % cmd)
-                output = execute_cmd(cmd)
+                output = utilities.execute_cmd(cmd)
                 if len(output) > 0:
                     print output
             except Exception, e:
