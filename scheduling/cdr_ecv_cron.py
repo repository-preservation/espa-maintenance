@@ -106,7 +106,9 @@ def process_products(args):
 
     try:
         logger.info("Checking for scenes to process...")
-        scenes = server.get_scenes_to_process(args.limit, args.user, priority)
+        scenes = server.get_scenes_to_process(args.limit, args.user, priority,
+                                              product_types=['landsat',
+                                                             'modis'])
         if scenes:
             # Figure out the name of the order file
             stamp = datetime.now()
@@ -189,6 +191,8 @@ def process_products(args):
                  '-file', '%s/espa-site/processing/transfer.py' % home_dir,
                  '-file', '%s/espa-site/processing/util.py' % home_dir,
                  '-file', '%s/espa-site/processing/warp.py' % home_dir,
+                 '-file', ('%s/espa-site/espa_common/espa_logging.py'
+                           % home_dir),
                  '-file', '%s/espa-site/espa_common/sensor.py' % home_dir,
                  '-file', '%s/espa-site/espa_common/settings.py' % home_dir,
                  '-file', '%s/espa-site/espa_common/utilities.py' % home_dir,
