@@ -61,6 +61,7 @@ def build_argument_parser():
 
     # Parameters
     parameters.add_debug_parameter(parser)
+    parameters.add_keep_log_parameter(parser)
 
     parameters.add_orderid_parameter(parser)
 
@@ -208,6 +209,14 @@ def process(parms):
 
     # Validate the parameters
     validate_parameters(parms)
+
+    # Build the modis command line
+    cmd = [os.path.basename(__file__)]
+    cmd_line_options = \
+        parameters.convert_to_command_line_options(parms)
+    cmd.extend(cmd_line_options)
+    cmd = ' '.join(cmd)
+    logger.info("MODIS COMMAND LINE [%s]" % cmd)
 
     scene = parms['scene']
 
