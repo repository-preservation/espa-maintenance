@@ -15,9 +15,6 @@ import sys
 import glob
 import shutil
 import datetime
-import calendar
-import subprocess
-import traceback
 from cStringIO import StringIO
 from argparse import ArgumentParser
 from collections import defaultdict
@@ -25,11 +22,32 @@ from matplotlib import pyplot as mpl_plot
 from matplotlib import dates as mpl_dates
 from matplotlib.ticker import MaxNLocator, AutoMinorLocator
 import numpy as np
-import logging
 
 # espa-common objects and methods
-from espa_constants import *
+from espa_constants import EXIT_SUCCESS
+from espa_constants import EXIT_FAILURE
 
+# imports from espa/espa_common
+try:
+    from espa_logging import EspaLogging
+except:
+    from espa_common.espa_logging import EspaLogging
+
+try:
+    import settings
+except:
+    from espa_common import settings
+
+try:
+    import utilities
+except:
+    from espa_common import utilities
+
+# import local modules
+import parameters
+import transfer
+import staging
+import distribution as dist
 
 # Setup the default colors
 # Can override them from the command line
@@ -173,92 +191,6 @@ BAND_TYPE_DATA_RANGES = {
 
 
 # ============================================================================
-def execute_cmd(cmd):
-    '''
-    Description:
-      Execute a command line and return SUCCESS or ERROR
-
-    Returns:
-        output - The stdout and/or stderr from the executed command.
-    '''
-
-    output = ''
-    proc = None
-    try:
-        proc = subprocess.Popen(cmd, stdin=subprocess.PIPE,
-                                stdout=subprocess.PIPE,
-                                stderr=subprocess.STDOUT, shell=True)
-        output = proc.communicate()[0]
-
-        if proc.returncode < 0:
-            message = "Application terminated by signal [%s]" % cmd
-            raise Exception(message)
-
-        if proc.returncode != 0:
-            message = "Application failed to execute [%s]" % cmd
-            raise Exception(message)
-
-        application_exitcode = proc.returncode >> 8
-        if application_exitcode != 0:
-            message = "Application [%s] returned error code [%d]" \
-                % (cmd, application_exitcode)
-            raise Exception(message)
-
-    finally:
-        del proc
-
-    return output
-# END - execute_cmd
-
-
-# =============================================================================
-def scp_transfer_file(source_host, source_file,
-                      destination_host, destination_file):
-    '''
-    Description:
-      Using SCP transfer a file from a source location to a destination
-      location.
-
-    Note:
-      - It is assumed ssh has been setup for access between the localhost
-        and destination system
-      - If wild cards are to be used with the source, then the destination
-        file must be a directory.  ***No checking is performed in this code***
-    '''
-
-    logger = logging.getLogger(__name__)
-
-    cmd = ['scp', '-q', '-o', 'StrictHostKeyChecking=no', '-c', 'arcfour',
-           '-C']
-
-    # Build the source portion of the command
-    # Single quote the source to allow for wild cards
-    if source_host == 'localhost':
-        cmd.append(source_file)
-    elif source_host != destination_host:
-        # Build the SCP command line
-        cmd.append("'%s:%s'" % (source_host, source_file))
-
-    # Build the destination portion of the command
-    cmd.append('%s:%s' % (destination_host, destination_file))
-
-    cmd = ' '.join(cmd)
-
-    # Transfer the data and raise any errors
-    output = ''
-    try:
-        output = execute_cmd(cmd)
-    except Exception, e:
-        if len(output) > 0:
-            logger.info(output)
-        logger.error("Failed to transfer data")
-        raise e
-
-    logger.info("Transfer complete - SCP")
-# END - scp_transfer_file
-
-
-# ============================================================================
 def build_argument_parser():
     '''
     Description:
@@ -273,21 +205,59 @@ def build_argument_parser():
                         action='store_true', dest='debug', default=False,
                         help="turn debug logging on")
 
+    parser.add_argument('--keep_log',
+                        action='store_true', dest='keep_log', default=False,
+                        help="keep the log file")
+
+    parser.add_argument('--orderid',
+                        action='store', dest='orderid', default='',
+                        help="orderid to process")
+
+    parser.add_argument('--product_type',
+                        action='store', dest='product_type', default='plot',
+                        help="the type of product to process")
+
     parser.add_argument('--source_host',
                         action='store', dest='source_host',
                         default='localhost',
                         help="hostname where the order resides")
 
-    parser.add_argument('--order_directory',
-                        action='store', dest='order_directory',
+    parser.add_argument('--source_user',
+                        action='store', dest='source_user',
+                        default='localhost',
+                        help="username to use on the source host")
+
+    parser.add_argument('--source_pw',
+                        action='store', dest='source_pw',
+                        default='localhost',
+                        help="password to use")
+
+    parser.add_argument('--source_directory',
+                        action='store', dest='source_directory',
                         required=True,
                         help="directory on the source host where the order"
                              " resides")
 
-    parser.add_argument('--stats_directory',
-                        action='store', dest='stats_directory',
-                        default=os.curdir,
-                        help="directory containing the statistics")
+    parser.add_argument('--destination_host',
+                        action='store', dest='destination_host',
+                        default='localhost',
+                        help="hostname where to place the plots")
+
+    parser.add_argument('--destination_user',
+                        action='store', dest='destination_user',
+                        default='localhost',
+                        help="username to use on the destination host")
+
+    parser.add_argument('--destination_pw',
+                        action='store', dest='destination_pw',
+                        default='localhost',
+                        help="password to use")
+
+    parser.add_argument('--destination_directory',
+                        action='store', dest='destination_directory',
+                        required=True,
+                        help="directory on the destination host where to"
+                             " place the plot product")
 
     parser.add_argument('--terra_color',
                         action='store', dest='terra_color',
@@ -336,6 +306,32 @@ def build_argument_parser():
 # END - build_argument_parser
 
 
+def validate_options(options):
+
+    # Test for presence of required parameters
+    keys = ['source_host', 'source_directory',
+            'destination_host', 'destination_directory']
+    for key in keys:
+        if not parameters.test_for_parameter(options, key):
+            raise RuntimeError("Missing required input parameter [%s]" % key)
+
+    # Default these
+    if not parameters.test_for_parameter(options, 'source_username'):
+        options['source_username'] = None
+
+    if not parameters.test_for_parameter(options, 'source_pw'):
+        options['source_pw'] = None
+
+    if not parameters.test_for_parameter(options, 'destination_username'):
+        options['destination_username'] = 'localhost'
+
+    if not parameters.test_for_parameter(options, 'destination_pw'):
+        options['destination_pw'] = 'localhost'
+
+
+# END - validate_options
+
+
 # ============================================================================
 def read_stats(stat_file):
     '''
@@ -353,25 +349,6 @@ def read_stats(stat_file):
 
 
 # ============================================================================
-def get_mdom_from_ydoy(year, day_of_year):
-    '''
-    Description:
-      Determine month and day_of_month from the year and day_of_year
-    '''
-
-    # Convert DOY to month and day
-    month = 1
-    day_of_month = day_of_year
-    while month < 13:
-        month_days = calendar.monthrange(year, month)[1]
-        if day_of_month <= month_days:
-            return (month, day_of_month)
-        day_of_month -= month_days
-        month += 1
-# END - get_mdom_from_ydoy
-
-
-# ============================================================================
 def get_ymds_from_filename(filename):
     '''
     Description:
@@ -379,43 +356,39 @@ def get_ymds_from_filename(filename):
     '''
 
     year = 0
-    month = 0
-    day_of_month = 0
     sensor = 'unk'
 
     if filename.startswith('MOD'):
         date_element = filename.split('.')[1]
         year = int(date_element[1:5])
         day_of_year = int(date_element[5:8])
-        (month, day_of_month) = get_mdom_from_ydoy(year, day_of_year)
         sensor = 'Terra'
 
     elif filename.startswith('MYD'):
         date_element = filename.split('.')[1]
         year = int(date_element[1:5])
         day_of_year = int(date_element[5:8])
-        (month, day_of_month) = get_mdom_from_ydoy(year, day_of_year)
         sensor = 'Aqua'
 
     elif 'LT4' in filename:
         year = int(filename[9:13])
         day_of_year = int(filename[13:16])
-        (month, day_of_month) = get_mdom_from_ydoy(year, day_of_year)
         sensor = 'LT4'
 
     elif 'LT5' in filename:
         year = int(filename[9:13])
         day_of_year = int(filename[13:16])
-        (month, day_of_month) = get_mdom_from_ydoy(year, day_of_year)
         sensor = 'LT5'
 
     elif 'LE7' in filename:
         year = int(filename[9:13])
         day_of_year = int(filename[13:16])
-        (month, day_of_month) = get_mdom_from_ydoy(year, day_of_year)
         sensor = 'LE7'
 
-    return (year, month, day_of_month, sensor)
+    # Now that we have the year and doy we can get the month and day of month
+    date = utilities.date_from_doy(year, day_of_year)
+
+    return (year, date.month, date.day, sensor)
 # END - get_ymds_from_filename
 
 
@@ -426,7 +399,7 @@ def generate_sensor_stats(stat_name, stat_files):
       Combines all the stat files for one sensor into one csv file.
     '''
 
-    logger = logging.getLogger(__name__)
+    logger = EspaLogging.get_logger('espa.processing')
 
     stats = dict()
 
@@ -498,7 +471,7 @@ def generate_plot(plot_name, subjects, band_type, stats, plot_type="Value"):
       Builds a plot and then generates a png formatted image of the plot.
     '''
 
-    logger = logging.getLogger(__name__)
+    logger = EspaLogging.get_logger('espa.processing')
 
     # Test for a valid plot_type parameter
     # For us 'Range' mean min, max, and mean
@@ -715,7 +688,7 @@ def generate_plots(plot_name, stat_files, band_type):
       generate a plot for each statistic
     '''
 
-    logger = logging.getLogger(__name__)
+    logger = EspaLogging.get_logger('espa.processing')
 
     stats = dict()
 
@@ -1035,7 +1008,7 @@ def process_stats():
 
 
 # ============================================================================
-def process(args):
+def process(parms):
     '''
     Description:
       Retrieves the stats directory from the specified location.
@@ -1044,104 +1017,177 @@ def process(args):
 
     global SENSOR_COLORS, BG_COLOR, MARKER, MARKER_SIZE
 
-    logger = logging.getLogger(__name__)
+    logger = EspaLogging.get_logger('espa.processing')
+
+    options = parms['options']
+
+    # Validate the parameters
+    validate_options(options)
 
     # Override the colors if they were specified
-    SENSOR_COLORS['Terra'] = args.terra_color
-    SENSOR_COLORS['Aqua'] = args.aqua_color
-    SENSOR_COLORS['LT4'] = args.lt4_color
-    SENSOR_COLORS['LT5'] = args.lt5_color
-    SENSOR_COLORS['LE7'] = args.le7_color
-    BG_COLOR = args.bg_color
+    if parameters.test_for_parameter(options, 'terra_color'):
+        SENSOR_COLORS['Terra'] = options['terra_color']
+    if parameters.test_for_parameter(options, 'aqua_color'):
+        SENSOR_COLORS['Aqua'] = options['aqua_color']
+    if parameters.test_for_parameter(options, 'lt4_color'):
+        SENSOR_COLORS['LT4'] = options['lt4_color']
+    if parameters.test_for_parameter(options, 'lt5_color'):
+        SENSOR_COLORS['LT5'] = options['lt5_color']
+    if parameters.test_for_parameter(options, 'le7_color'):
+        SENSOR_COLORS['LE7'] = options['le7_color']
+    if parameters.test_for_parameter(options, 'bg_color'):
+        BG_COLOR = options['bg_color']
 
-    # Override the marker if they were specified
-    MARKER = args.marker
-    MARKER_SIZE = args.marker_size
+    # Override the marker it was specified
+    if parameters.test_for_parameter(options, 'marker'):
+        MARKER = options['marker']
+    if parameters.test_for_parameter(options, 'marker_size'):
+        MARKER_SIZE = options['marker_size']
 
-    local_work_directory = 'lpcs_statistics'
-    remote_stats_directory = os.path.join(args.order_directory, 'stats')
-    remote_location = ''.join([args.source_host, ':', remote_stats_directory])
+    # Combine the order ID with statistics to form the package name
+    package_prefix = '-'.join([parms['orderid'], 'statistics'])
 
-    # Make sure the directory does not exist
+    # Define the local directory name and the source of the statistics
+    local_work_directory = package_prefix
+    source_stat_files = os.path.join(options['source_directory'], 'stats/*')
+
+    # Make sure the local directory does not exist
     shutil.rmtree(local_work_directory, ignore_errors=True)
 
-    cmd = ' '.join(['scp', '-q', '-o', 'StrictHostKeyChecking=no',
-                    '-c', 'arcfour', '-C', '-r', remote_location,
-                    local_work_directory])
+    # Create the local work directory
     try:
-        output = execute_cmd(cmd)
+        staging.create_directory(local_work_directory)
     except Exception, e:
-        if len(output) > 0:
-            logger.info(output)
-        logger.error("Failed retrieving stats from online cache")
+        logger.error("Creating directory [%s]" % local_work_directory)
         raise
 
-    # Change to the statistics directory
+    # Transfer the files using scp (don't provide any usernames and passwords)
+    try:
+        transfer.transfer_file(options['source_host'], source_stat_files,
+                               'localhost', local_work_directory)
+    except Exception, e:
+        logger.error("Transfering statistics to local directory")
+        raise
+
+    # Change to the local work directory
     current_directory = os.getcwd()
-    os.chdir(local_work_directory)
+    product_full_path = os.path.join(current_directory, local_work_directory)
 
     try:
+        os.chdir(local_work_directory)
+
+        logger.info("Processing statistics files")
         process_stats()
 
-        # Distribute back to the online cache
-        lpcs_files = '*'
-        remote_lpcs_directory = '%s/%s' % (args.order_directory,
-                                           local_work_directory)
-        logger.info("Creating lpcs_statistics directory %s on %s"
-                    % (remote_lpcs_directory, args.source_host))
-        cmd = ' '.join(['ssh', '-q', '-o', 'StrictHostKeyChecking=no',
-                        args.source_host,
-                        'mkdir', '-p', remote_lpcs_directory])
-        output = ''
+        cksum_output = ''
+        cksum_product_filename = ''
+        # ---------------------------------------------------------------
+        # Package the product into a *.tar.gz
         try:
-            output = execute_cmd(cmd)
+            logger.info("Packaging completed product to %s.tar.gz"
+                        % product_full_path)
+
+            # Grab a listing of all the files in the directory
+            product_files = glob.glob("*")
+
+            # Tar the product files
+            logger.info("Tar'ing product files")
+            utilities.tar_files(product_full_path, product_files)
+
         except Exception, e:
-            if len(output) > 0:
-                logger.error(output)
+            logger.error("Failed tar'ing plot results")
             raise
 
-        # Transfer the lpcs plot and statistic files
-        scp_transfer_file('localhost', lpcs_files, args.source_host,
-                          remote_lpcs_directory)
+        # Change back to the previous directory
+        os.chdir(current_directory)
 
-        logger.info("Verifying statistics transfers")
-        # NOTE - Re-purposing the lpcs_files variable
-        lpcs_files = glob.glob(lpcs_files)
-        for lpcs_file in lpcs_files:
-            local_cksum_value = 'a b c'
-            remote_cksum_value = 'b c d'
+        # Stop using the full path, because we are in the directory where
+        # the checksum file exists
+        product_filename = os.path.basename(product_full_path)
+        # The product also has the '.tar' extension now
+        product_filename = '.'.join([product_filename, 'tar'])
 
-            # Generate a local checksum value
-            cmd = ' '.join(['cksum', lpcs_file])
+        # ---------------------------------------------------------------
+        # Gzip the product tar file
+        try:
+            logger.info("Gzip'ing product file")
+            utilities.gzip_files([product_filename])
+
+        except Exception, e:
+            logger.error("Failed gzip'ing plot results")
+            raise
+
+        # The product has the '.gz' extension now
+        product_filename = '.'.join([product_filename, 'gz'])
+
+        logger.info("Packaging complete")
+
+        # ---------------------------------------------------------------
+        # Generate the checksum
+        cksum_output = ''
+        try:
+            cksum_output = utilities.checksum_local_file(product_filename)
+
+        except Exception, e:
+            logger.error("Failed packaging plot results")
+            raise
+
+        # Verify that it has some contents
+        if not cksum_output:
+            raise Exception("Empty checksum output")
+
+        # Write the checksum file
+        cksum_filename = "%s.cksum" % package_prefix
+        try:
+            with open(cksum_filename, 'wb+') as cksum_fd:
+                cksum_fd.write(cksum_output)
+        except Exception, e:
+            logger.error("Error building cksum file")
+            raise
+
+        logger.info("Checksum complete")
+
+        # ---------------------------------------------------------------
+        # Distribute both files to the online cache
+
+        logger.info("Distributing %s to directory %s on %s"
+                    % (product_filename, options['destination_directory'],
+                       options['destination_host']))
+
+        # Distribute the product
+        # Attempt X times sleeping between each attempt
+        attempt = 0
+        while True:
             try:
-                local_cksum_value = execute_cmd(cmd)
+                (remote_cksum_value, destination_product_file,
+                 destination_cksum_file) = \
+                    dist.distribute_product(options['destination_host'],
+                                            options['destination_directory'],
+                                            options['destination_username'],
+                                            options['destination_pw'],
+                                            product_filename,
+                                            cksum_filename)
             except Exception, e:
-                if len(local_cksum_value) > 0:
-                    logger.error(local_cksum_value)
-                raise
+                logger.error("An exception occurred distributing %s"
+                             % product_filename)
+                logger.exception("Exception Message:")
+                if attempt < settings.MAX_DELIVERY_ATTEMPTS:
+                    sleep(sleep_seconds)  # sleep before trying again
+                    attempt += 1
+                    continue
+                else:
+                    raise
+            break
 
-            # Generate a remote checksum value
-            remote_file = os.path.join(remote_lpcs_directory, lpcs_file)
-            cmd = ' '.join(['ssh', '-q', '-o', 'StrictHostKeyChecking=no',
-                            args.source_host, 'cksum', remote_file])
-            try:
-                remote_cksum_value = execute_cmd(cmd)
-            except Exception, e:
-                if len(remote_cksum_value) > 0:
-                    logger.error(remote_cksum_value)
-                raise
+        # Checksum validation
+        if cksum_output.split()[0] != remote_cksum_value.split()[0]:
+            raise Exception("Failed checksum validation between %s and %s:%s"
+                            % (product_filename, options['destination_host'],
+                               destination_product_file))
 
-            # Checksum validation
-            if local_cksum_value.split()[0] != remote_cksum_value.split()[0]:
-                raise Exception(
-                    "Failed checksum validation between %s and %s:%s"
-                    % (lpcs_file, args.source_host, remote_file))
     finally:
         # Change back to the previous directory
         os.chdir(current_directory)
-        # Remove the local_work_directory
-        if not args.keep:
-            shutil.rmtree(local_work_directory)
 
     logger.info("Plot Processing Complete")
 # END - process
@@ -1165,15 +1211,10 @@ if __name__ == '__main__':
     if args.debug:
         log_level = logging.DEBUG
 
-    # TODO TODO TODO - need to specify a file ????
-    logging.basicConfig(format=('%(asctime)s.%(msecs)03d %(process)d'
-                                ' %(levelname)-8s'
-                                ' %(filename)s:%(lineno)d:'
-                                '%(funcName)s -- %(message)s'),
-                        datefmt='%Y-%m-%d %H:%M:%S',
-                        level=log_level)
-
-    logger = logging.getLogger(__name__)
+    # Configure logging
+    EspaLogging.configure('espa.processing', order='test',
+                          product='product', debug=args.debug)
+    logger = EspaLogging.get_logger('espa.processing')
 
     try:
         # Process the specified order
