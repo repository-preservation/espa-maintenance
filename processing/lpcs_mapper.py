@@ -134,45 +134,10 @@ def process(args):
                             logger.warning("Failed processing xmlrpc call"
                                            " to update_status to processing")
 
-            # Use the DEV_CACHE_HOSTNAME if present
-            dev_cache_hostname = 'DEV_CACHE_HOSTNAME'
-            if (dev_cache_hostname not in os.environ
-                    or os.environ.get(dev_cache_hostname) is None
-                    or len(os.environ.get(dev_cache_hostname)) < 1):
-                # MUST USE THIS TODAY
-                cache_host = utilities.get_cache_hostname()
-            else:
-                cache_host = os.environ.get('DEV_CACHE_HOSTNAME')
-
-            # Use the DEV_CACHE_DIRECTORY if present
-            dev_cache_directory = 'DEV_CACHE_DIRECTORY'
-            if (dev_cache_directory not in os.environ
-                    or os.environ.get(dev_cache_directory) is None
-                    or len(os.environ.get(dev_cache_directory)) < 1):
-                cache_directory = settings.ESPA_CACHE_DIRECTORY
-            else:
-                cache_directory = os.environ.get('DEV_CACHE_DIRECTORY')
-
-            options['source_host'] = cache_host
-            options['source_directory'] = os.path.join(cache_directory,
-                                                       orderid)
-
-            options['destination_host'] = cache_host
-            options['destination_directory'] = os.path.join(cache_directory,
-                                                            orderid)
-
-            # TODO TODO TODO
-            # Generate the command line that can be used with the specified
-            # application
-            # TODO TODO TODO
-
-            # Build the plot command line
-            cmd = ['./plot.py']
-            cmd_line_options = \
-                parameters.convert_to_command_line_options(parms)
-            cmd.extend(cmd_line_options)
-            cmd = ' '.join(cmd)
-            logger.info("Processing plot with [%s]" % cmd)
+            # ----------------------------------------------------------------
+            # NOTE:
+            #   The first thing process does is validate the input parameters
+            # ----------------------------------------------------------------
 
             # Call the plotter with the parameters
             plotter.process(parms)
