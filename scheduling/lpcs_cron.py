@@ -33,7 +33,7 @@ from espa_constants import EXIT_SUCCESS
 from espa_common import settings, utilities
 from espa_common.espa_logging import EspaLogging
 
-LOGGER_NAME = 'espa.cron.lpcs'
+LOGGER_NAME = 'espa.cron.plot'
 
 
 # ============================================================================
@@ -57,60 +57,227 @@ def run_orders():
 
         server = xmlrpclib.ServerProxy(rpcurl)
     else:
-        logger.warning("Missing or invalid environment variable ESPA_XMLRPC")
+        raise Exception("Missing or invalid environment variable ESPA_XMLRPC")
 
-    # Use the DEV_CACHE_HOSTNAME if present
-    dev_cache_hostname = 'DEV_CACHE_HOSTNAME'
-    if (dev_cache_hostname not in os.environ
-            or os.environ.get(dev_cache_hostname) is None
-            or len(os.environ.get(dev_cache_hostname)) < 1):
-        cache_host = utilities.get_cache_hostname()  # MUST USE THIS TODAY
-    else:
-        cache_host = os.environ.get('DEV_CACHE_HOSTNAME')
+    home_dir = os.environ.get('HOME')
+    hadoop_executable = "%s/bin/hadoop/bin/hadoop" % home_dir
 
-    # Use the DEV_CACHE_DIRECTORY if present
-    dev_cache_directory = 'DEV_CACHE_DIRECTORY'
-    if (dev_cache_directory not in os.environ
-            or os.environ.get(dev_cache_directory) is None
-            or len(os.environ.get(dev_cache_directory)) < 1):
-        cache_directory = settings.ESPA_CACHE_DIRECTORY
-    else:
-        cache_directory = os.environ.get('DEV_CACHE_DIRECTORY')
+    # Verify xmlrpc server
+    if server is None:
+        msg = "xmlrpc server was None... exiting"
+        raise Exception(msg)
+
+    user = server.get_configuration('landsatds.username')
+    if len(user) == 0:
+        msg = "landsatds.username is not defined... exiting"
+        raise Exception(msg)
+
+    pw = urllib.quote(server.get_configuration('landsatds.password'))
+    if len(pw) == 0:
+        msg = "landsatds.password is not defined... exiting"
+        raise Exception(msg)
+
+    host = server.get_configuration('landsatds.host')
+    if len(host) == 0:
+        msg = "landsatds.host is not defined... exiting"
+        raise Exception(msg)
+
+    # TODO TODO TODO - Should this be ondemand or something-else
+    # adding this so we can disable on-demand processing via the admin console
+    ondemand_enabled = server.get_configuration('ondemand_enabled')
+
+    # TODO TODO TODO - Will this have its own queue or just use the high queue
+    #                - determine the appropriate hadoop queue to use
+    #hadoop_job_queue = settings.HADOOP_QUEUE_MAPPING[args.priority]
+    hadoop_job_queue = 'ondemand-high'
+
+    if not ondemand_enabled.lower() == 'true':
+        msg = "on demand disabled... exiting"
+        raise Exception(msg)
 
     try:
-        logger.info("Checking for orders to process...")
-        orders = server.get_lpcs_orders_to_process()
+        logger.info("Checking for requests to process...")
+        # TODO TODO TODO add user and limits
+        orders = server.get_scenes_to_process(product_types=['plot'])
 
         if orders:
-            logger.info("Found orders to process:")
+            # Figure out the name of the job file
+            stamp = datetime.now()
+            job_name = ('%s_%s_%s_%s_%s_%s-%s-espa_job'
+                        % (str(stamp.month), str(stamp.day),
+                           str(stamp.year), str(stamp.hour),
+                           str(stamp.minute), str(stamp.second),
+                           str(args.priority)))
 
-            # Process the orders
-            for order in orders:
-                logger.info("Processing order [%s]" % order)
+            logger.info("Found requests to process:")
 
-                # Build the order directory
-                order_directory = os.path.join(cache_directory, order)
+            job_filename = '%s%s' % (job_name, '.txt')
+            job_filepath = os.path.join('/tmp', job_filename)
 
-                # Build the plot command line
-                cmd = ' '.join(['./plot.py', '--source_host', cache_host,
-                                '--order_directory', order_directory])
-                output = ''
-                try:
-                    output = utilities.execute_cmd(cmd)
-                except Exception, e:
-                    # TODO TODO TODO - Needs web side implementation
-                    server.update_order_status(order, 'LPCS cron driver',
-                                               'FAIL')
+            # Create the requests file full of all the orders requested
+            with open(job_filepath, 'w+') as job_fd:
+                for request in orders:
+                    line = json.loads(request)
 
-                    msg = ' '.join(["Error during execution of plot.py:",
-                                    str(e)])
-                    raise Exception(msg)
-                finally:
-                    if len(output) > 0:
-                        logger.info(output)
+                    (orderid, product_type, options) = (line['orderid'],
+                                                        line['product_type'],
+                                                        line['options'])
 
-                # TODO TODO TODO - Needs web side implementation
-                server.update_order_status(order, 'LPCS cron driver', 'SUCC')
+                    line['xmlrpcurl'] = rpcurl
+
+                    # Add the usernames and passwords to the options
+                    options['source_username'] = user
+                    options['destination_username'] = user
+                    options['source_pw'] = pw
+                    options['destination_pw'] = pw
+
+                    line['options'] = options
+
+                    line_entry = json.dumps(line)
+                    logger.info(line_entry)
+
+                    # Pad the entry so hadoop will properly split the jobs
+                    filler_count = (settings.ORDER_BUFFER_LENGTH -
+                                    len(line_entry))
+                    order_line = ''.join([line_entry,
+                                          ('#' * filler_count), '\n'])
+
+                    # Write out the request line
+                    job_fd.write(order_line)
+                # END - for scene
+            # END - with espa_fd
+
+            # Specify the location of the requests file on the hdfs
+            hdfs_target = 'requests/%s' % job_filename
+
+            # Define command line to store the job file in hdfs
+            hadoop_store_command = [hadoop_executable, 'dfs', '-copyFromLocal',
+                                    job_filepath, hdfs_target]
+
+            jars = os.path.join(home_dir, 'bin/hadoop/contrib/streaming',
+                                'hadoop-streaming*.jar')
+
+            # Define command line to execute the hadoop job
+            # Be careful it is possible to have conflicts between module names
+            hadoop_run_command = \
+                [hadoop_executable, 'jar', jars,
+                 '-D', 'mapred.task.timeout=%s' % settings.HADOOP_TIMEOUT,
+                 '-D', 'mapred.reduce.tasks=0',
+                 '-D', 'mapred.job.queue.name=%s' % hadoop_job_queue,
+                 '-D', 'mapred.job.name="%s"' % job_name,
+                 '-file', '%s/espa-site/processing/cdr_ecv.py' % home_dir,
+                 '-file', ('%s/espa-site/processing/cdr_ecv_mapper.py'
+                           % home_dir),
+                 '-file', '%s/espa-site/processing/modis.py' % home_dir,
+                 '-file', '%s/espa-site/processing/browse.py' % home_dir,
+                 '-file', '%s/espa-site/processing/distribution.py' % home_dir,
+                 '-file', ('%s/espa-site/processing/espa_exception.py'
+                           % home_dir),
+                 '-file', '%s/espa-site/processing/metadata.py' % home_dir,
+                 '-file', '%s/espa-site/processing/parameters.py' % home_dir,
+                 '-file', '%s/espa-site/processing/science.py' % home_dir,
+                 '-file', '%s/espa-site/processing/solr.py' % home_dir,
+                 '-file', '%s/espa-site/processing/staging.py' % home_dir,
+                 '-file', '%s/espa-site/processing/statistics.py' % home_dir,
+                 '-file', '%s/espa-site/processing/transfer.py' % home_dir,
+                 '-file', '%s/espa-site/processing/util.py' % home_dir,
+                 '-file', '%s/espa-site/processing/warp.py' % home_dir,
+                 '-file', ('%s/espa-site/espa_common/espa_logging.py'
+                           % home_dir),
+                 '-file', '%s/espa-site/espa_common/sensor.py' % home_dir,
+                 '-file', '%s/espa-site/espa_common/settings.py' % home_dir,
+                 '-file', '%s/espa-site/espa_common/utilities.py' % home_dir,
+                 '-mapper', ('%s/espa-site/processing/lpcs_mapper.py'
+                             % home_dir),
+                 '-cmdenv', 'ESPA_WORK_DIR=$ESPA_WORK_DIR',
+                 '-cmdenv', 'HOME=$HOME',
+                 '-cmdenv', 'USER=$USER',
+                 '-cmdenv', 'ANC_PATH=$ANC_PATH',
+                 '-cmdenv', 'ESUN=$ESUN',
+                 '-input', hdfs_target,
+                 '-output', hdfs_target + '-out']
+
+            # Define the executables to clean up hdfs
+            hadoop_delete_request_command1 = [hadoop_executable, 'dfs',
+                                              '-rmr', hdfs_target]
+            hadoop_delete_request_command2 = [hadoop_executable, 'dfs',
+                                              '-rmr', hdfs_target + '-out']
+
+            # ----------------------------------------------------------------
+            logger.info("Storing request file to hdfs...")
+            output = ''
+            try:
+                cmd = ' '.join(hadoop_store_command)
+                logger.info("Store cmd:%s" % cmd)
+
+                output = utilities.execute_cmd(cmd)
+            except Exception, e:
+                msg = "Error storing files to HDFS... exiting"
+                raise Exception(msg)
+            finally:
+                if len(output) > 0:
+                    logger.info(output)
+
+            # ----------------------------------------------------------------
+            # Update the scene list as queued so they don't get pulled down
+            # again now that these jobs have been stored in hdfs
+            product_list = list()
+            for scene in scenes:
+                line = json.loads(scene)
+                orderid = line['orderid']
+                product_type = line['product_type']
+                product_list.append((orderid, product_type))
+
+                logger.info("Adding product_type:%s orderid:%s to queued list"
+                            % (product_type, orderid))
+
+            server.queue_products(product_list, 'CDR_ECV cron driver',
+                                  espa_job_name)
+
+            logger.info("Deleting local request file copy [%s]"
+                        % espa_job_filepath)
+            os.unlink(espa_job_filepath)
+
+            # ----------------------------------------------------------------
+            logger.info("Running hadoop job...")
+            output = ''
+            try:
+                cmd = ' '.join(hadoop_run_command)
+                logger.info("Run cmd:%s" % cmd)
+
+                output = utilities.execute_cmd(cmd)
+            except Exception, e:
+                logger.exception("Error running Hadoop job...")
+            finally:
+                if len(output) > 0:
+                    logger.info(output)
+
+            # ----------------------------------------------------------------
+            logger.info("Deleting hadoop job request file from hdfs....")
+            output = ''
+            try:
+                cmd = ' '.join(hadoop_delete_request_command1)
+                output = utilities.execute_cmd(cmd)
+            except Exception, e:
+                logger.exception("Error deleting hadoop job request file")
+            finally:
+                if len(output) > 0:
+                    logger.info(output)
+
+            # ----------------------------------------------------------------
+            logger.info("Deleting hadoop job output...")
+            output = ''
+            try:
+                cmd = ' '.join(hadoop_delete_request_command2)
+                output = utilities.execute_cmd(cmd)
+            except Exception, e:
+                logger.exception("Error deleting hadoop job output")
+            finally:
+                if len(output) > 0:
+                    logger.info(output)
+
+        else:
+            logger.info("No requests to process:")
 
     except xmlrpclib.ProtocolError, e:
         logger.exception("A protocol error occurred")
@@ -120,7 +287,6 @@ def run_orders():
 
     finally:
         server = None
-
 # END - run_orders
 
 
