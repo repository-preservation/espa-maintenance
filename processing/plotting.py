@@ -57,12 +57,12 @@ SENSOR_COLORS['Aqua'] = '#00cccc'  # Some cyan like blue color
 SENSOR_COLORS['LT4'] = '#cc3333'  # A nice Red
 SENSOR_COLORS['LT5'] = '#0066cc'  # A nice Blue
 SENSOR_COLORS['LE7'] = '#00cc33'  # An ok Green
-BG_COLOR = '#f3f3f3'  # A light gray
+BG_COLOR = settings.PLOT_BG_COLOR
 
 # Setup the default marker
 # Can override them from the command line
-MARKER = (1, 3, 0)  # Better circle than 'o'
-MARKER_SIZE = 5.0   # A good size for the circle or diamond
+MARKER = settings.PLOT_MARKER
+MARKER_SIZE = settings.PLOT_MARKER_SIZE
 
 # Specify a base number of days to expand the plot date range
 # This helps keep data points from being placed on the plot border lines
@@ -201,64 +201,23 @@ def build_argument_parser():
     description = "Generate plots of the statistics"
     parser = ArgumentParser(description=description)
 
-    parser.add_argument('--debug',
-                        action='store_true', dest='debug', default=False,
-                        help="turn debug logging on")
+    # Debugging parameters
+    parameters.add_debug_parameter(parser)
+    parameters.add_keep_log_parameter(parser)
 
-    parser.add_argument('--keep_log',
-                        action='store_true', dest='keep_log', default=False,
-                        help="keep the log file")
+    # Standard order parameters
+    parameters.add_orderid_parameter(parser)
 
-    parser.add_argument('--orderid',
-                        action='store', dest='orderid', default='',
-                        help="orderid to process")
+    # Add the parameters required for transfering files back and forth
+    parameters.add_source_parameters(parser)
+    parameters.add_destination_parameters(parser)
 
-    parser.add_argument('--product_type',
-                        action='store', dest='product_type', default='plot',
-                        help="the type of product to process")
+    # Standard plotting parameters
+    parameters.add_std_plotting_parameters(parser, BG_COLOR,
+                                           settings.PLOT_MARKER,
+                                           settings.PLOT_MARKER_SIZE)
 
-    parser.add_argument('--source_host',
-                        action='store', dest='source_host',
-                        default='localhost',
-                        help="hostname where the order resides")
-
-    parser.add_argument('--source_user',
-                        action='store', dest='source_user',
-                        default='localhost',
-                        help="username to use on the source host")
-
-    parser.add_argument('--source_pw',
-                        action='store', dest='source_pw',
-                        default='localhost',
-                        help="password to use")
-
-    parser.add_argument('--source_directory',
-                        action='store', dest='source_directory',
-                        required=True,
-                        help="directory on the source host where the order"
-                             " resides")
-
-    parser.add_argument('--destination_host',
-                        action='store', dest='destination_host',
-                        default='localhost',
-                        help="hostname where to place the plots")
-
-    parser.add_argument('--destination_user',
-                        action='store', dest='destination_user',
-                        default='localhost',
-                        help="username to use on the destination host")
-
-    parser.add_argument('--destination_pw',
-                        action='store', dest='destination_pw',
-                        default='localhost',
-                        help="password to use")
-
-    parser.add_argument('--destination_directory',
-                        action='store', dest='destination_directory',
-                        required=True,
-                        help="directory on the destination host where to"
-                             " place the plot product")
-
+    # Add the lpcs specific parameters
     parser.add_argument('--terra_color',
                         action='store', dest='terra_color',
                         default=SENSOR_COLORS['Terra'],
@@ -284,43 +243,34 @@ def build_argument_parser():
                         default=SENSOR_COLORS['LE7'],
                         help="color specification for LE7 data")
 
-    parser.add_argument('--bg_color',
-                        action='store', dest='bg_color', default=BG_COLOR,
-                        help="color specification for plot and legend"
-                             " background")
-
-    parser.add_argument('--marker',
-                        action='store', dest='marker', default=MARKER,
-                        help="marker specification for plotted points")
-
-    parser.add_argument('--marker_size',
-                        action='store', dest='marker_size',
-                        default=MARKER_SIZE,
-                        help="marker size specification for plotted points")
-
-    parser.add_argument('--keep',
-                        action='store_true', dest='keep', default=False,
-                        help="keep the working directory")
-
     return parser
 # END - build_argument_parser
 
 
-def validate_options(options):
+def validate_parameters(parms):
 
-    # Test for presence of required parameters
-    keys = ['source_host', 'source_directory',
-            'destination_host', 'destination_directory']
-    for key in keys:
-        if not parameters.test_for_parameter(options, key):
-            raise RuntimeError("Missing required input parameter [%s]" % key)
+    # Get a local pointer to the options
+    options = parms['options']
 
     # Default these
+    if not parameters.test_for_parameter(options, 'source_host'):
+        # Use the default output host name to find the plot input
+        options['source_host'] = util.get_output_hostname
+
     if not parameters.test_for_parameter(options, 'source_username'):
         options['source_username'] = None
 
     if not parameters.test_for_parameter(options, 'source_pw'):
         options['source_pw'] = None
+
+    if not parameters.test_for_parameter(options, 'source_directory'):
+        # For plotting the source is located in the espa output
+        options['source_directory'] = \
+            os.path.join(settings.ESPA_CACHE_DIRECTORY, parms['orderid'])
+
+    if not parameters.test_for_parameter(options, 'destination_host'):
+        # For plotting the default destination is the same as the source
+        options['destination_host'] = options['source_host']
 
     if not parameters.test_for_parameter(options, 'destination_username'):
         options['destination_username'] = 'localhost'
@@ -328,8 +278,11 @@ def validate_options(options):
     if not parameters.test_for_parameter(options, 'destination_pw'):
         options['destination_pw'] = 'localhost'
 
+    if not parameters.test_for_parameter(options, 'destination_directory'):
+        # For plotting the default destination is the same as the source
+        options['destination_directory'] = options['source_directory']
 
-# END - validate_options
+# END - validate_parameters
 
 
 # ============================================================================
@@ -1022,7 +975,15 @@ def process(parms):
     options = parms['options']
 
     # Validate the parameters
-    validate_options(options)
+    validate_parameters(parms)
+
+    # Build the plotting command line
+    cmd = [os.path.basename(__file__)]
+    cmd_line_options = \
+        parameters.convert_to_command_line_options(parms)
+    cmd.extend(cmd_line_options)
+    cmd = ' '.join(cmd)
+    logger.info("PLOTTING COMMAND LINE [%s]" % cmd)
 
     # Override the colors if they were specified
     if parameters.test_for_parameter(options, 'terra_color'):
@@ -1079,7 +1040,6 @@ def process(parms):
         logger.info("Processing statistics files")
         process_stats()
 
-        cksum_output = ''
         cksum_product_filename = ''
         # ---------------------------------------------------------------
         # Package the product into a *.tar.gz
@@ -1124,23 +1084,23 @@ def process(parms):
 
         # ---------------------------------------------------------------
         # Generate the checksum
-        cksum_output = ''
+        cksum_result = ''
         try:
-            cksum_output = utilities.checksum_local_file(product_filename)
+            cksum_result = utilities.checksum_local_file(product_filename)
 
         except Exception, e:
             logger.error("Failed packaging plot results")
             raise
 
         # Verify that it has some contents
-        if not cksum_output:
+        if not cksum_result:
             raise Exception("Empty checksum output")
 
         # Write the checksum file
         cksum_filename = "%s.cksum" % package_prefix
         try:
             with open(cksum_filename, 'wb+') as cksum_fd:
-                cksum_fd.write(cksum_output)
+                cksum_fd.write(cksum_result)
         except Exception, e:
             logger.error("Error building cksum file")
             raise
@@ -1180,7 +1140,7 @@ def process(parms):
             break
 
         # Checksum validation
-        if cksum_output.split()[0] != remote_cksum_value.split()[0]:
+        if cksum_result.split()[0] != remote_cksum_value.split()[0]:
             raise Exception("Failed checksum validation between %s and %s:%s"
                             % (product_filename, options['destination_host'],
                                destination_product_file))
@@ -1201,24 +1161,33 @@ if __name__ == '__main__':
       process routine.
     '''
 
+    # Create the JSON dictionary to use
+    parms = dict()
+
     # Build the command line argument parser
     parser = build_argument_parser()
 
     # Parse the command line arguments
     args = parser.parse_args()
-
-    log_level = logging.INFO
-    if args.debug:
-        log_level = logging.DEBUG
+    args_dict = vars(args)
 
     # Configure logging
     EspaLogging.configure('espa.processing', order='test',
-                          product='product', debug=args.debug)
+                          product='plot', debug=args.debug)
     logger = EspaLogging.get_logger('espa.processing')
+
+    # Build our JSON formatted input from the command line parameters
+    orderid = args_dict.pop('orderid')
+    options = {k: args_dict[k] for k in args_dict if args_dict[k] is not None}
+
+    # Build the JSON parameters dictionary
+    parms['orderid'] = orderid
+    parms['product_type'] = 'plot'
+    parms['options'] = options
 
     try:
         # Process the specified order
-        process(args)
+        process(parms)
     except Exception, e:
         if hasattr(e, 'output'):
             logger.error("Output [%s]" % e.output)
