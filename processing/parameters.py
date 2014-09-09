@@ -61,6 +61,19 @@ def add_scene_parameter(parser):
 
 
 # ============================================================================
+def add_product_type_parameter(parser):
+    '''
+    Description:
+      Adds the product_type parameter to the command line parameters
+    '''
+
+    parser.add_argument('--product_type',
+                        action='store', dest='product_type', required=True,
+                        help="the type of product to process")
+# END - add_product_type_parameter
+
+
+# ============================================================================
 def add_work_directory_parameter(parser):
     '''
     Description:
@@ -85,6 +98,20 @@ def add_debug_parameter(parser):
                         action='store_true', dest='debug', default=False,
                         help="turn debug logging on")
 # END - add_debug_parameter
+
+
+# ============================================================================
+def add_keep_log_parameter(parser):
+    '''
+    Description:
+      Adds the keep_log parameter to the command line parameters
+    '''
+
+    parser.add_argument('--keep_log',
+                        action='store_true', dest='keep_log', default=False,
+                        help="keep the log file")
+
+# END - add_keep_log_parameter
 
 
 # ============================================================================
@@ -289,7 +316,32 @@ def add_destination_parameters(parser):
                         action='store', dest='destination_directory',
                         default=os.curdir,
                         help="directory on the destination host")
-# END - add_source_parameters
+# END - add_destination_parameters
+
+
+# ============================================================================
+def add_std_plotting_parameters(parser, bg_color, marker, marker_size):
+    '''
+    Description:
+      Adds the destination host and directory parameters to the command line
+      parameters
+    '''
+
+    parser.add_argument('--bg_color',
+                        action='store', dest='bg_color', default=bg_color,
+                        help="color specification for plot and legend"
+                             " background")
+
+    parser.add_argument('--marker',
+                        action='store', dest='marker', default=marker,
+                        help="marker specification for plotted points")
+
+    parser.add_argument('--marker_size',
+                        action='store', dest='marker_size',
+                        default=marker_size,
+                        help="marker size specification for plotted points")
+
+# END - add_std_plotting_parameters
 
 
 # ============================================================================
@@ -424,10 +476,17 @@ def convert_to_command_line_options(parms):
     '''
 
     cmd_line = ['--orderid', '\"%s\"' % parms['orderid']]
+
     if test_for_parameter(parms, 'scene'):
         cmd_line.extend(['--scene', '\"%s\"' % parms['scene']])
+
     if test_for_parameter(parms, 'product_type'):
-        cmd_line.extend(['--product_type', '\"%s\"' % parms['product_type']])
+        p_type = parms['product_type']
+        if p_type != 'plot':
+            cmd_line.extend(['--product_type', '\"%s\"' % p_type])
+        else:
+            # Plotting doesn't need this command line parameter
+            pass
 
     for (key, value) in parms['options'].items():
         if value is True:
