@@ -101,8 +101,7 @@ def process_products(args):
     hadoop_job_queue = settings.HADOOP_QUEUE_MAPPING[args.priority]
 
     if not ondemand_enabled.lower() == 'true':
-        msg = "on demand disabled... exiting"
-        raise Exception(msg)
+        raise Exception("on demand disabled... exiting")
 
     try:
         logger.info("Checking for scenes to process...")
