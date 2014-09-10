@@ -7,7 +7,18 @@ License:
 Description:
 
 History:
-  Original Development Jan/2014 by Ron Dilley, USGS/EROS
+
+    Date              Programmer               Reason
+    ----------------  ------------------------ -------------------------------
+    Jan/2014          Ron Dilley               Initial implementation
+    Sept/2014         Ron Dilley               Updated to use espa_common and
+                                               our python logging setup
+                                               Along with a bunch of cleanup
+
+Note: If this is ever expanded to process other statistics or plot generation,
+      it may be worth a look at using classes and getting the instance of the
+      class needed for generating and combining the statistics or other
+      plotting.
 '''
 
 import os
@@ -286,19 +297,19 @@ def validate_parameters(parms):
 
 
 # ============================================================================
-def read_stats(stat_file):
+def read_statistics(statistics_file):
     '''
     Description:
       Read the file contents and return as a list of key values
     '''
 
-    with open(stat_file, 'r') as stat_fd:
-        for line in stat_fd:
+    with open(statistics_file, 'r') as statistics_fd:
+        for line in statistics_fd:
             line_lower = line.strip().lower()
             parts = line_lower.split('=')
             yield(parts)
 
-# END - read_stats
+# END - read_statistics
 
 
 # ============================================================================
@@ -323,17 +334,17 @@ def get_ymds_from_filename(filename):
         day_of_year = int(date_element[5:8])
         sensor = 'Aqua'
 
-    elif 'LT4' in filename:
+    elif filename.startswith('LT4'):
         year = int(filename[9:13])
         day_of_year = int(filename[13:16])
         sensor = 'LT4'
 
-    elif 'LT5' in filename:
+    elif filename.startswith('LT5'):
         year = int(filename[9:13])
         day_of_year = int(filename[13:16])
         sensor = 'LT5'
 
-    elif 'LE7' in filename:
+    elif filename.startswith('LE7'):
         year = int(filename[9:13])
         day_of_year = int(filename[13:16])
         sensor = 'LE7'
@@ -346,7 +357,7 @@ def get_ymds_from_filename(filename):
 
 
 # ============================================================================
-def generate_sensor_stats(stat_name, stat_files):
+def generate_sensor_stats(stats_name, stats_files):
     '''
     Description:
       Combines all the stat files for one sensor into one csv file.
@@ -357,13 +368,13 @@ def generate_sensor_stats(stat_name, stat_files):
     stats = dict()
 
     # Fix the output filename
-    out_filename = stat_name.replace(' ', '_').lower()
+    out_filename = stats_name.replace(' ', '_').lower()
     out_filename = ''.join([out_filename, '_stats.csv'])
 
     # Read each file into a dictionary
-    for stat_file in stat_files:
-        stats[stat_file] = \
-            dict((key, value) for (key, value) in read_stats(stat_file))
+    for stats_file in stats_files:
+        stats[stats_file] = \
+            dict((key, value) for (key, value) in read_statistics(stats_file))
 
     stat_data = list()
     # Process through and create records
@@ -374,8 +385,8 @@ def generate_sensor_stats(stat_name, stat_files):
         date = '%04d-%02d-%02d' % (int(year), int(month), int(day_of_month))
         logger.debug(date)
 
-        line = '%s,%s,%s,%s,%s' % (date, obj['minimum'], obj['maximum'],
-                                   obj['mean'], obj['stddev'])
+        line = ','.join([date, obj['minimum'], obj['maximum'],
+                         obj['mean'], obj['stddev']])
         logger.debug(line)
 
         stat_data.append(line)
@@ -634,7 +645,7 @@ def generate_plot(plot_name, subjects, band_type, stats, plot_type="Value"):
 
 
 # ============================================================================
-def generate_plots(plot_name, stat_files, band_type):
+def generate_plots(plot_name, stats_files, band_type):
     '''
     Description:
       Gather all the information needed for plotting from the files and
@@ -646,10 +657,10 @@ def generate_plots(plot_name, stat_files, band_type):
     stats = dict()
 
     # Read each file into a dictionary
-    for stat_file in stat_files:
-        logger.debug(stat_file)
-        stats[stat_file] = \
-            dict((key, value) for(key, value) in read_stats(stat_file))
+    for stats_file in stats_files:
+        logger.debug(stats_file)
+        stats[stats_file] = \
+            dict((key, value) for(key, value) in read_statistics(stats_file))
 
     plot_subjects = ['Minimum', 'Maximum', 'Mean']
     generate_plot(plot_name, plot_subjects, band_type, stats, "Range")
@@ -1010,7 +1021,7 @@ def process(parms):
 
     # Define the local directory name and the source of the statistics
     local_work_directory = package_prefix
-    source_stat_files = os.path.join(options['source_directory'], 'stats/*')
+    source_stats_files = os.path.join(options['source_directory'], 'stats/*')
 
     # Make sure the local directory does not exist
     shutil.rmtree(local_work_directory, ignore_errors=True)
@@ -1024,7 +1035,7 @@ def process(parms):
 
     # Transfer the files using scp (don't provide any usernames and passwords)
     try:
-        transfer.transfer_file(options['source_host'], source_stat_files,
+        transfer.transfer_file(options['source_host'], source_stats_files,
                                'localhost', local_work_directory)
     except Exception, e:
         logger.error("Transfering statistics to local directory")
@@ -1182,11 +1193,11 @@ if __name__ == '__main__':
 
     # Build the JSON parameters dictionary
     parms['orderid'] = orderid
-    parms['product_type'] = 'plot'
+    parms['product_type'] = 'plot'  # Always the 'plot' type
     parms['options'] = options
 
     try:
-        # Process the specified order
+        # Process the specified orders plots
         process(parms)
     except Exception, e:
         if hasattr(e, 'output'):
