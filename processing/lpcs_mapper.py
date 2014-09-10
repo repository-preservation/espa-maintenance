@@ -8,7 +8,14 @@ Description:
   Read all lines from STDIN and process them.
 
 History:
-  Created Jan/2014 by Ron Dilley, USGS/EROS
+
+    Date              Programmer               Reason
+    ----------------  ------------------------ -------------------------------
+    Jan/2014          Ron Dilley               Initial implementation
+    Sept/2014         Ron Dilley               Updated to use espa_common and
+                                               our python logging setup
+                                               Updated to use Hadoop
+
 '''
 
 import os
@@ -39,7 +46,7 @@ import plotting as plotter
 
 
 # ============================================================================
-def set_scene_error(product_type, orderid, processing_location):
+def set_scene_error(server, product_type, orderid, processing_location):
 
     logger = EspaLogging.get_logger('espa.processing')
     logged_contents = EspaLogging.read_logger_file('espa.processing')
@@ -154,7 +161,7 @@ def process(args):
             if server is not None:
 
                 try:
-                    status = set_scene_error(product_type, orderid,
+                    status = set_scene_error(server, product_type, orderid,
                                              processing_location)
                     if status and not mapper_keep_log:
                         try:
