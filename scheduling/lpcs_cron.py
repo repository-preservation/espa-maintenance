@@ -170,7 +170,7 @@ def process_plot_requests():
                  '-D', 'mapred.job.queue.name=%s' % hadoop_job_queue,
                  '-D', 'mapred.job.name="%s"' % job_name,
                  '-file', '%s/espa-site/processing/cdr_ecv.py' % home_dir,
-                 '-file', ('%s/espa-site/processing/cdr_ecv_mapper.py'
+                 '-file', ('%s/espa-site/processing/lpcs_mapper.py'
                            % home_dir),
                  '-file', '%s/espa-site/processing/modis.py' % home_dir,
                  '-file', '%s/espa-site/processing/browse.py' % home_dir,
