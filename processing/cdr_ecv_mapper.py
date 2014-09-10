@@ -28,16 +28,20 @@ try:
 except:
     from espa_common.espa_logging import EspaLogging
 
+try:
+    import sensor
+except:
+    from espa_common import sensor
+
 # local objects and methods
 import espa_exception as ee
 import parameters
-import util
 import cdr_ecv
 import modis
 
 
 # ============================================================================
-def set_scene_error(sceneid, orderid, processing_location):
+def set_scene_error(server, sceneid, orderid, processing_location):
 
     logger = EspaLogging.get_logger('espa.processing')
     logged_contents = EspaLogging.read_logger_file('espa.processing')
@@ -117,8 +121,7 @@ def process(args):
 
             logger.info("Processing %s:%s" % (orderid, sceneid))
 
-            sensor = util.get_sensor(parms['scene'])
-
+            sensor_name = sensor.instance(parms['scene']).sensor_name
             # Update the status in the database
             if parameters.test_for_parameter(parms, 'xmlrpcurl'):
                 if parms['xmlrpcurl'] != 'skip_xmlrpc':
@@ -132,8 +135,8 @@ def process(args):
                                            " to update_status to processing")
 
             # Make sure we can process the sensor
-            if sensor not in parameters.valid_sensors:
-                raise ValueError("Invalid Sensor %s" % sensor)
+            if sensor_name not in parameters.valid_sensors:
+                raise ValueError("Invalid Sensor %s" % sensor_name)
 
             # Make sure we have a valid output format
             if not parameters.test_for_parameter(options, 'output_format'):
@@ -155,11 +158,11 @@ def process(args):
             destination_product_file = 'ERROR'
             destination_cksum_file = 'ERROR'
             # Process the landsat sensors
-            if sensor in parameters.valid_landsat_sensors:
+            if sensor_name in parameters.valid_landsat_sensors:
                 (destination_product_file, destination_cksum_file) = \
                     cdr_ecv.process(parms)
             # Process the modis sensors
-            elif sensor in parameters.valid_modis_sensors:
+            elif sensor_name in parameters.valid_modis_sensors:
                 (destination_product_file, destination_cksum_file) = \
                     modis.process(parms)
 
@@ -213,13 +216,13 @@ def process(args):
                             or (e.error_code ==
                                 ee.ErrorCodes.creating_output_dir)):
 
-                        status = set_scene_error(sceneid, orderid,
+                        status = set_scene_error(server, sceneid, orderid,
                                                  processing_location)
 
                     elif (e.error_code == ee.ErrorCodes.staging_data
                           or e.error_code == ee.ErrorCodes.unpacking):
 
-                        status = set_scene_error(sceneid, orderid,
+                        status = set_scene_error(server, sceneid, orderid,
                                                  processing_location)
 
                     elif (e.error_code == ee.ErrorCodes.metadata
@@ -235,22 +238,22 @@ def process(args):
                           or e.error_code == ee.ErrorCodes.cleanup_work_dir
                           or e.error_code == ee.ErrorCodes.remove_products):
 
-                        status = set_scene_error(sceneid, orderid,
+                        status = set_scene_error(server, sceneid, orderid,
                                                  processing_location)
 
                     elif e.error_code == ee.ErrorCodes.warping:
 
-                        status = set_scene_error(sceneid, orderid,
+                        status = set_scene_error(server, sceneid, orderid,
                                                  processing_location)
 
                     elif e.error_code == ee.ErrorCodes.reformat:
 
-                        status = set_scene_error(sceneid, orderid,
+                        status = set_scene_error(server, sceneid, orderid,
                                                  processing_location)
 
                     elif e.error_code == ee.ErrorCodes.statistics:
 
-                        status = set_scene_error(sceneid, orderid,
+                        status = set_scene_error(server, sceneid, orderid,
                                                  processing_location)
 
                     elif (e.error_code == ee.ErrorCodes.packaging_product
@@ -259,12 +262,12 @@ def process(args):
                           or (e.error_code ==
                               ee.ErrorCodes.verifying_checksum)):
 
-                        status = set_scene_error(sceneid, orderid,
+                        status = set_scene_error(server, sceneid, orderid,
                                                  processing_location)
 
                     else:
                         # Catch all remaining errors
-                        status = set_scene_error(sceneid, orderid,
+                        status = set_scene_error(server, sceneid, orderid,
                                                  processing_location)
 
                     if status and not scene_keep_log:
@@ -290,7 +293,7 @@ def process(args):
             if server is not None:
 
                 try:
-                    status = set_scene_error(sceneid, orderid,
+                    status = set_scene_error(server, sceneid, orderid,
                                              processing_location)
                     if status and not scene_keep_log:
                         try:
