@@ -4,7 +4,7 @@
     FILE: lpcs_cron.py
 
     PURPOSE: Queries the xmlrpc service to find orders that need to be
-             processed and builds/executes a plot.py job to process them.
+             processed and then builds/executes a Hadoop job to process them.
 
     PROJECT: Land Satellites Data Systems Science Research and Development
              (LSRD) at the USGS EROS
@@ -18,6 +18,7 @@
     Feb/2014          Ron Dilley               Initial implementation
     Sept/2014         Ron Dilley               Updated to use espa_common and
                                                our python logging setup
+                                               Updated to use Hadoop
 '''
 
 import os
@@ -37,7 +38,7 @@ LOGGER_NAME = 'espa.cron.plot'
 
 
 # ============================================================================
-def run_orders():
+def process_plot_requests():
     '''
     Description:
       Queries the xmlrpc service to see if there are any scenes that need to
@@ -82,23 +83,26 @@ def run_orders():
         msg = "landsatds.host is not defined... exiting"
         raise Exception(msg)
 
-    # TODO TODO TODO - Should this be ondemand or something-else
-    # adding this so we can disable on-demand processing via the admin console
+    # Use ondemand_enabled to determine if we should be processing or not
     ondemand_enabled = server.get_configuration('ondemand_enabled')
 
-    # TODO TODO TODO - Will this have its own queue or just use the high queue
-    #                - determine the appropriate hadoop queue to use
-    #hadoop_job_queue = settings.HADOOP_QUEUE_MAPPING[args.priority]
-    hadoop_job_queue = 'ondemand-high'
+    # Plotting doesn't request by priority but we may want to change the
+    # queue it uses
+    priority = args.priority
+    if priority == 'all':
+        priority = 'high'  # If all was specified default to the high queue
+
+    # Use the high queue for now if it is determined later that we need a more
+    # specialized queue, one will need to be created.
+    hadoop_job_queue = settings.HADOOP_QUEUE_MAPPING[priority]
 
     if not ondemand_enabled.lower() == 'true':
-        msg = "on demand disabled... exiting"
-        raise Exception(msg)
+        raise Exception("on demand disabled... exiting")
 
     try:
         logger.info("Checking for requests to process...")
-        # TODO TODO TODO add user and limits
-        orders = server.get_scenes_to_process(product_types=['plot'])
+        orders = server.get_scenes_to_process(args.limit, args.user,
+                                              product_types=['plot'])
 
         if orders:
             # Figure out the name of the job file
@@ -107,7 +111,7 @@ def run_orders():
                         % (str(stamp.month), str(stamp.day),
                            str(stamp.year), str(stamp.hour),
                            str(stamp.minute), str(stamp.second),
-                           str(args.priority)))
+                           str(priority)))
 
             logger.info("Found requests to process:")
 
@@ -287,7 +291,7 @@ def run_orders():
 
     finally:
         server = None
-# END - run_orders
+# END - process_plot_requests
 
 
 # ============================================================================
@@ -296,6 +300,32 @@ if __name__ == '__main__':
     Description:
       Execute the core processing routine.
     '''
+
+    # Create a command line argument parser
+    description = ("Builds and kicks-off hadoop jobs for the espa processing"
+                   " system (to process plot requests)")
+    parser = ArgumentParser(description=description)
+
+    # Add parameters
+    valid_priorities = sorted(settings.HADOOP_QUEUE_MAPPING.keys())
+    parser.add_argument('--priority',
+                        action='store', dest='priority', required=True,
+                        choices=valid_priorities,
+                        help="only process requests with this priority:"
+                             " one of (%s)" % ', '.join(valid_priorities))
+
+    parser.add_argument('--limit',
+                        action='store', dest='limit', required=False,
+                        default='500',
+                        help="specify the max number of requests to process")
+
+    parser.add_argument('--user',
+                        action='store', dest='user', required=False,
+                        default=None,
+                        help="only process requests for the specified user")
+
+    # Parse the command line arguments
+    args = parser.parse_args()
 
     # Configure and get the logger for this task
     EspaLogging.configure(LOGGER_NAME)
@@ -313,7 +343,7 @@ if __name__ == '__main__':
             sys.exit(EXIT_FAILURE)
 
     try:
-        run_orders()
+        process_plot_requests(args)
     except Exception, e:
         logger.exception("Processing failed")
         sys.exit(EXIT_FAILURE)
