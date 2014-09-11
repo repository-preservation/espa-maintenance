@@ -42,6 +42,9 @@
 #  010		07-02-2014	Adam Dosch		Redoing deployment to check for symlink of espa-site vs making a dir
 #							then doing soft-links.  A better approach to combat broken links or
 #							massive change for webroot.
+#  011		09-10-2014	Adam Dosch		Updating mode host tier lookup information since we created a new tst env
+#							Adding --force-checkout-from-releases and --force-checkout-from-testing
+#							arguments to force code checkout from one area vs checkout map
 #
 #############################################################################################################################
 
@@ -67,6 +70,7 @@ SVN_BASE="/svn"
 
 SVN_TAGAREA=""
 
+
 CHECKOUT_TYPE="co"
 
 declare RELEASE
@@ -87,10 +91,14 @@ declare VERBOSE=1
 
 declare DELETE_PRIOR_RELEASES=1
 
+declare FORCE_CHECKOUT_RELEASES
+
+declare FORCE_CHECKOUT_TESTING
+
 function print_usage
 {
    echo
-   echo " Usage: $0 --mode=[prod|tst|devel] --tier=[app|maintenance|processing|all]  --release=<espa-n.n.n-release> [-v|--verbose] [-d|--delete-prior-releases]"
+   echo " Usage: $0 --mode=[prod|tst|devel] --tier=[app|maintenance|processing|all]  --release=<espa-n.n.n-release> [-v|--verbose] [-d|--delete-prior-releases] [--force-checkout-from-releases|--force-checkout-from-testing]"
    echo
 
    exit 1
@@ -149,6 +157,7 @@ function write_stdout
 function set_checkout
 {
    # $1 -> mode
+
    case $1 in
      "prod")
         SVN_TAGAREA="/releases"
@@ -163,6 +172,17 @@ function set_checkout
         CHECKOUT_TYPE="co"
         ;;
    esac
+
+   # Override
+   if [ ! -z $FORCE_CHECKOUT_TESTING ]; then
+      [[ $VERBOSE -eq 0 ]] && write_stdout "${MODE}" "Overriding default SVN_TAGREA of '$SVN_TAGAREA' to '/testing'"
+      SVN_TAGAREA="/testing"
+   fi
+
+   if [ ! -z $FORCE_CHECKOUT_RELEASES ]; then
+      [[ $VERBOSE -eq 0 ]] && write_stdout "${MODE}" "Overriding default SVN_TAGREA of '$SVN_TAGAREA' to '/releases'"
+      SVN_TAGAREA="/releases"
+   fi
 }
 
 function set_user
@@ -173,7 +193,7 @@ function set_user
         DEPLOYUSER="espa"
         ;;
      "tst")
-        DEPLOYUSER="espadev"
+        DEPLOYUSER="espatst"
         ;;
      *)
         DEPLOYUSER="espadev"
@@ -207,13 +227,13 @@ function deploy_tier
 
    declare -A tierhosts
 
-   tierhosts[tst-app]="l8srlscp13"
+   tierhosts[tst-app]="l8srlscp17"
    tierhosts[tst-maintenance]="l8srlscp01"
    tierhosts[tst-processing]="l8srlscp08"
 
-   tierhosts[devel-app]="l8srlscp16"
-   tierhosts[devel-maintenance]="l8srlscp16"
-   tierhosts[devel-processing]="l8srlscp16"
+   tierhosts[devel-app]="l8srlscp13"
+   tierhosts[devel-maintenance]="l8srlscp01"
+   tierhosts[devel-processing]="l8srlscp24"
    
    tierhosts[prod-app]="l8srlscp14"
    tierhosts[prod-maintenance]="l8srlscp01"
@@ -347,6 +367,24 @@ if [ $# -ge 2 -a $# -le 5 ]; then
             ;;
          -d|--delete-prior-releases)
             DELETE_PRIOR_RELEASES=0
+            ;;
+         --force-checkout-from-releases)
+	    FORCE_CHECKOUT_RELEASES=1
+
+            if [ ! -z $FORCE_CHECKOUT_TESTING ]; then
+               echo
+               echo -e "\nError: Cannot have --force-checkout-from-releases and --force-checkout-from-testing set at the same time"
+               print_usage
+            fi
+            ;;
+         --force-checkout-from-testing)
+	    FORCE_CHECKOUT_TESTING=1
+
+            if [ ! -z $FORCE_CHECKOUT_RELEASES ]; then
+               echo
+               echo -e "\nError: Cannot have --force-checkout-from-releases and --force-checkout-from-testing set at the same time"
+               print_usage
+            fi
             ;;
          *)
             echo
