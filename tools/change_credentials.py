@@ -48,6 +48,7 @@
 #                                                   Removing some debugging code.
 #  006          09-11-2014      Adam Dosch          Adding 'espatst' as a valid username
 #                                                   argument
+#                                                   Adding fix for homedir in crontab gen
 #
 ##########################################################################################
 
@@ -142,7 +143,7 @@ def send_email(sender, recipient, subject, body):
     smtp.sendmail(sender, recipient, msg.as_string())
     smtp.quit()
 
-def update_crontab(frequency, backDate=True):
+def update_crontab(frequency, user, backDate=True):
     """
     Update crontab to schedule new cron entry for next password change for account.
     
@@ -178,7 +179,7 @@ def update_crontab(frequency, backDate=True):
         if "change_credentials.py" in cronline:
             (month, day) = datetime.datetime.strftime(datetime.datetime.now() + datetime.timedelta(days=newfrequency), "%m|%d").split("|")
             
-            data[idx] = "00 05 %s %s * /usr/local/bin/python /home/%s/espa-site/tools/change_credentials.py -u %s -f %s\n" % (day, month, "espa", "espa", 60)
+            data[idx] = "00 05 %s %s * /usr/local/bin/python /home/%s/espa-site/tools/change_credentials.py -u %s -f %s\n" % (day, month, user, user, 60)
     
     # Re-write out new temp file with any crontab updates we did above
     try:
@@ -451,7 +452,7 @@ def main():
     
     
     # Lastly, regardless of success or not, let's set up the next cron job
-    update_crontab(args.frequency)
+    update_crontab(args.frequency, username)
     
 if __name__ == '__main__':
     main()
