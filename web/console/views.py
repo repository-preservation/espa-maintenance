@@ -1,3 +1,5 @@
+import time
+
 from django.contrib.auth.models import User
 from django.contrib.messages.views import SuccessMessageMixin
 from django.core.urlresolvers import reverse
@@ -77,5 +79,13 @@ class StatusMessage(SuccessMessageMixin, FormView):
         display, created = Configuration.objects.get_or_create(key="display_system_message")
         display.value = form.cleaned_data['display']
         display.save()
+
+        date_updated, created = Configuration.objects.get_or_create(key="system_message_updated_date")
+        date_updated.value = time.strftime('%a %b %d %Y %X')
+        date_updated.save()
+
+        username, created = Configuration.objects.get_or_create(key="system_message_updated_by")
+        username.value = self.request.user.username
+        username.save()
         
         return super(StatusMessage, self).form_valid(form)
