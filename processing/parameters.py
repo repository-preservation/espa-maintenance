@@ -346,8 +346,8 @@ def add_std_plotting_parameters(parser, bg_color, marker, marker_size):
 
 # ============================================================================
 def add_reprojection_parameters(parser, projection_values, ns_values,
-                                pixel_size_units, resample_methods,
-                                datum_values):
+                                pixel_size_units, image_extents_units,
+                                resample_methods, datum_values):
     '''
     Description:
       Adds the reprojection parameters to the command line parameters
@@ -427,6 +427,13 @@ def add_reprojection_parameters(parser, projection_values, ns_values,
                         action='store_true', dest='image_extents',
                         default=False,
                         help="specify desired output image extents")
+    parser.add_argument('--image_extents_units',
+                        action='store', dest='image_extents_units',
+                        choices=pixel_size_units,
+                        help=("units image extents are specified in:"
+                              " one of (%s)"
+                              % ', '.join(image_extents_units)))
+
     parser.add_argument('--minx',
                         action='store', dest='minx',
                         help="minimum X for the image extent")
