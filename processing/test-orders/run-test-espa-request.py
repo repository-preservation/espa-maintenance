@@ -86,6 +86,8 @@ def process_test_order(request_file, products_file, env_vars, keep_log):
             product_name = scenes_fd.readline().strip()
             if not product_name:
                 break
+            if product_name.startswith('#'):
+                break
             logger.info("Product Name [%s]" % product_name)
 
             with open(request_file, 'r') as order_fd:
