@@ -10,6 +10,7 @@
         "false_easting": null,
         "false_northing": null,
         "image_extents": true,
+        "image_extents_units": "meters",
         "include_customized_source_data": true,
         "include_source_data": false,
         "keep_log": true,

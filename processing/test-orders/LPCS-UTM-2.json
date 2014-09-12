@@ -8,6 +8,7 @@
         "false_easting": null,
         "false_northing": null,
         "image_extents": true,
+        "image_extents_units": "meters",
         "include_cfmask": false,
         "include_customized_source_data": true,
         "include_dswe": false,
