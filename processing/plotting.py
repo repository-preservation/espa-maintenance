@@ -444,10 +444,6 @@ def generate_plot(plot_name, subjects, band_type, stats, plot_type="Value"):
                  % plot_type)
         raise ValueError(error)
 
-    # Configuration for the dates
-    auto_date_locator = mpl_dates.AutoDateLocator()
-    auto_date_formatter = mpl_dates.AutoDateFormatter(auto_date_locator)
-
     # Create the subplot objects
     fig = mpl_plot.figure()
 
@@ -587,11 +583,22 @@ def generate_plot(plot_name, subjects, band_type, stats, plot_type="Value"):
         plot_date_max += TIME_DELTA_5_DAYS
     logger.debug(plot_date_min)
     logger.debug(plot_date_max)
+    logger.debug((plot_date_max - plot_date_min).days)
+
+    # Configuration for the dates
+    auto_date_locator = mpl_dates.AutoDateLocator()
+
+    days_spanned = (plot_date_max - plot_date_min).days
+    if days_spanned > 10 and days_spanned < 30:
+        # I don't know why, but setting them to 9 works for us
+        # Some other values also work, but as far as I am concerned the
+        # AutoDateLocator is BROKEN!!!!!
+        auto_date_locator = mpl_dates.AutoDateLocator(minticks=9, maxticks=9)
+    auto_date_formatter = mpl_dates.AutoDateFormatter(auto_date_locator)
 
     # X Axis details
     min_plot.xaxis.set_major_locator(auto_date_locator)
     min_plot.xaxis.set_major_formatter(auto_date_formatter)
-    min_plot.xaxis.set_minor_locator(auto_date_locator)
 
     # X Axis - Limits - Determine the date range of the to-be-displayed data
     min_plot.set_xlim(plot_date_min, plot_date_max)
@@ -711,7 +718,7 @@ def process_band_type(sensor_info, band_type):
     if sensor_count > 1:
         generate_plots("Multi Sensor %s" % band_type,
                        multi_sensor_files, band_type)
-    elif sensor_count == 1:
+    elif sensor_count == 1 and len(multi_sensor_files) > 1:
         generate_plots("%s %s" % (single_sensor_name, band_type),
                        multi_sensor_files, band_type)
     # Else do not plot
@@ -748,43 +755,43 @@ SR_SWIR_MODIS_B5_SENSOR_INFO = \
 SR_SWIR1_SENSOR_INFO = [('LT4*_sr_band5.stats', L4_SATELLITE_NAME),
                         ('LT5*_sr_band5.stats', L5_SATELLITE_NAME),
                         ('LE7*_sr_band5.stats', L7_SATELLITE_NAME),
-                        ('MOD*sur_refl*6.stats', TERRA_SATELLITE_NAME),
-                        ('MYD*sur_refl*6.stats', AQUA_SATELLITE_NAME)]
+                        ('MOD*sur_refl_b06*.stats', TERRA_SATELLITE_NAME),
+                        ('MYD*sur_refl_b06*.stats', AQUA_SATELLITE_NAME)]
 
 # MODIS SR band 7 maps to Landsat SR band 7
 SR_SWIR2_SENSOR_INFO = [('LT4*_sr_band7.stats', L4_SATELLITE_NAME),
                         ('LT5*_sr_band7.stats', L5_SATELLITE_NAME),
                         ('LE7*_sr_band7.stats', L7_SATELLITE_NAME),
-                        ('MOD*sur_refl*7.stats', TERRA_SATELLITE_NAME),
-                        ('MYD*sur_refl*7.stats', AQUA_SATELLITE_NAME)]
+                        ('MOD*sur_refl_b07*.stats', TERRA_SATELLITE_NAME),
+                        ('MYD*sur_refl_b07*.stats', AQUA_SATELLITE_NAME)]
 
 # MODIS SR band 3 maps to Landsat SR band 1
 SR_BLUE_SENSOR_INFO = [('LT4*_sr_band1.stats', L4_SATELLITE_NAME),
                        ('LT5*_sr_band1.stats', L5_SATELLITE_NAME),
                        ('LE7*_sr_band1.stats', L7_SATELLITE_NAME),
-                       ('MOD*sur_refl*3.stats', TERRA_SATELLITE_NAME),
-                       ('MYD*sur_refl*3.stats', AQUA_SATELLITE_NAME)]
+                       ('MOD*sur_refl_b03*.stats', TERRA_SATELLITE_NAME),
+                       ('MYD*sur_refl_b03*.stats', AQUA_SATELLITE_NAME)]
 
 # MODIS SR band 4 maps to Landsat SR band 2
 SR_GREEN_SENSOR_INFO = [('LT4*_sr_band2.stats', L4_SATELLITE_NAME),
                         ('LT5*_sr_band2.stats', L5_SATELLITE_NAME),
                         ('LE7*_sr_band2.stats', L7_SATELLITE_NAME),
-                        ('MOD*sur_refl*4.stats', TERRA_SATELLITE_NAME),
-                        ('MYD*sur_refl*4.stats', AQUA_SATELLITE_NAME)]
+                        ('MOD*sur_refl_b04*.stats', TERRA_SATELLITE_NAME),
+                        ('MYD*sur_refl_b04*.stats', AQUA_SATELLITE_NAME)]
 
 # MODIS SR band 1 maps to Landsat SR band 3
 SR_RED_SENSOR_INFO = [('LT4*_sr_band3.stats', L4_SATELLITE_NAME),
                       ('LT5*_sr_band3.stats', L5_SATELLITE_NAME),
                       ('LE7*_sr_band3.stats', L7_SATELLITE_NAME),
-                      ('MOD*sur_refl*1.stats', TERRA_SATELLITE_NAME),
-                      ('MYD*sur_refl*1.stats', AQUA_SATELLITE_NAME)]
+                      ('MOD*sur_refl_b01*.stats', TERRA_SATELLITE_NAME),
+                      ('MYD*sur_refl_b01*.stats', AQUA_SATELLITE_NAME)]
 
 # MODIS SR band 2 maps to Landsat SR band 4
 SR_NIR_SENSOR_INFO = [('LT4*_sr_band4.stats', L4_SATELLITE_NAME),
                       ('LT5*_sr_band4.stats', L5_SATELLITE_NAME),
                       ('LE7*_sr_band4.stats', L7_SATELLITE_NAME),
-                      ('MOD*sur_refl*2.stats', TERRA_SATELLITE_NAME),
-                      ('MYD*sur_refl*2.stats', AQUA_SATELLITE_NAME)]
+                      ('MOD*sur_refl_b02*.stats', TERRA_SATELLITE_NAME),
+                      ('MYD*sur_refl_b02*.stats', AQUA_SATELLITE_NAME)]
 
 # ----------------------------------------------------------------------------
 # Only Landsat TOA band 6 files
