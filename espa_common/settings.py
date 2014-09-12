@@ -139,6 +139,8 @@ PLOT_MARKER_SIZE = 5.0     # A good size for the circle or diamond
 # from the data before statistics generation
 # Must match DATA_MAX_Y and DATA_MIN_Y values in plotting.py
 # The types must match the types in cdr_ecv.py and modis.py
+# Note: These are also defined in such away that the fill values are also
+#       excluded.
 BAND_TYPE_STAT_RANGES = {
     'SR': {
         'UPPER_BOUND': 10000,
