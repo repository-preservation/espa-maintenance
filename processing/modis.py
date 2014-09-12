@@ -113,6 +113,7 @@ def validate_parameters(parms):
                                                 warp.valid_projections,
                                                 warp.valid_ns,
                                                 warp.valid_pixel_size_units,
+                                                warp.valid_image_extents_units,
                                                 warp.valid_resample_methods,
                                                 warp.valid_datums)
 
@@ -263,7 +264,8 @@ def process(parms):
         xml_filename = science.build_modis_science_products(parms)
 
         # Reproject the data for each science product, but only if necessary
-        if (options['reproject'] or options['resize']
+        if (options['reproject']
+                or options['resize']
                 or options['image_extents']
                 or options['projection'] is not None):
 

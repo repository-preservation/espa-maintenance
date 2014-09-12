@@ -500,8 +500,8 @@ def convert_to_command_line_options(parms):
 
 # ============================================================================
 def validate_reprojection_parameters(parms, scene, projections, ns_values,
-                                     pixel_size_units, resample_methods,
-                                     datum_values):
+                                     pixel_size_units, image_extents_units,
+                                     resample_methods, datum_values):
     '''
     Description:
       Perform a check on the possible reprojection parameters
@@ -688,6 +688,14 @@ def validate_reprojection_parameters(parms, scene, projections, ns_values,
 
     # ------------------------------------------------------------------------
     if parms['image_extents']:
+        if not test_for_parameter(parms, 'image_extents_units'):
+            raise RuntimeError("Missing image_extents_units parameter")
+        else:
+            if parms['image_extents_units'] not in image_extents_units:
+                raise ValueError("Invalid image_extents_units [%s]:"
+                                 " Argument must be one of (%s)"
+                                 % (parms['image_extents_units'],
+                                    ', '.join(image_extents_units)))
         if not test_for_parameter(parms, 'minx'):
             raise RuntimeError("Missing minx parameter")
         else:
@@ -710,6 +718,7 @@ def validate_reprojection_parameters(parms, scene, projections, ns_values,
         parms['miny'] = None
         parms['maxx'] = None
         parms['maxy'] = None
+        parms['image_extents_units'] = None
 
     # ------------------------------------------------------------------------
     if parms['resize']:
