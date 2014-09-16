@@ -108,6 +108,15 @@ BAND_TYPE_DATA_RANGES = {
         'DISPLAY_MIN': 0.0,
         'MAX_N_LOCATORS': 12
     },
+    'SR Thermal': {
+        'DATA_MAX': 1000.0,
+        'DATA_MIN': 0.0,
+        'SCALE_MAX': 1.0,
+        'SCALE_MIN': 0.0,
+        'DISPLAY_MAX': 1.0,
+        'DISPLAY_MIN': 0.0,
+        'MAX_N_LOCATORS': 12
+    },
     'TOA': {
         'DATA_MAX': 10000.0,
         'DATA_MIN': 0.0,
@@ -454,10 +463,16 @@ def generate_plot(plot_name, subjects, band_type, stats, plot_type="Value"):
 
     # Determine which ranges to use for scaling the data before plotting
     use_data_range = ''
-    for range_type in BAND_TYPE_DATA_RANGES:
-        if band_type.startswith(range_type):
-            use_data_range = range_type
-            break
+    if (band_type == 'SR Thermal'):
+        use_data_range = 'SR Thermal'
+    else:
+        for range_type in BAND_TYPE_DATA_RANGES:
+            if band_type.startswith(range_type):
+                use_data_range = range_type
+                break
+    logger.info("Using use_data_range [%s] for band_type [%s]"
+                % (use_data_range, band_type))
+
     # Make sure the band_type has been coded (help the developer)
     if use_data_range == '':
         raise ValueError("Error unable to determine 'use_data_range'")

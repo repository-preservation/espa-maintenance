@@ -150,6 +150,10 @@ BAND_TYPE_STAT_RANGES = {
         'UPPER_BOUND': 10000,
         'LOWER_BOUND': 0
     },
+    'TOA_Thermal': {
+        'UPPER_BOUND': 1000,
+        'LOWER_BOUND': 0
+    },
     'INDEX': {
         'UPPER_BOUND': 10000,
         'LOWER_BOUND': -1000
@@ -165,7 +169,7 @@ BAND_TYPE_STAT_RANGES = {
 }
 
 '''Resolves system-wide identification of sensor name based on three letter
- prefix
+   prefix
 '''
 SENSOR_NAMES = {
     'LE7': 'etm',

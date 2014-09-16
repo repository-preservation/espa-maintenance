@@ -59,8 +59,13 @@ def get_statistics(file_name, band_type):
     elif band_type == 'EMIS':
         data_type = np.uint8
 
+    # Figure out the multiplier to use for the data
+    multiplier = 1.0
+    if band_type == 'TOA_Thermal':
+        multiplier = 0.1  # Convert thermal back to kelvin
+
     # Load the image data into memory
-    input_data = np.fromfile(file_name, dtype=data_type)
+    input_data = (np.fromfile(file_name, dtype=data_type) * multiplier)
 
     # Get the data bounds
     upper_bound = settings.BAND_TYPE_STAT_RANGES[band_type]['UPPER_BOUND']
@@ -164,12 +169,19 @@ if __name__ == '__main__':
       It only provides stats for landsat and modis data.
     '''
 
+    # Configure logging
+    EspaLogging.configure('espa.processing', order='test',
+                          product='statistics')
+    logger = EspaLogging.get_logger('espa.processing')
+
     # Hold the wild card strings in a type based dictionary
     files_to_search_for = dict()
 
     # Landsat files
     files_to_search_for['SR'] = ['*_sr_band[0-9].img']
-    files_to_search_for['TOA'] = ['*_toa_band[0-9].img']
+    files_to_search_for['TOA'] = ['*_toa_band[0-5].img',
+                                  '*_toa_band[7-9].img']
+    files_to_search_for['TOA_Thermal'] = ['*_toa_band6.img']
     files_to_search_for['INDEX'] = ['*_nbr.img', '*_nbr2.img', '*_ndmi.img',
                                     '*_ndvi.img', '*_evi.img', '*_savi.img',
                                     '*_msavi.img']
