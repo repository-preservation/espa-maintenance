@@ -45,6 +45,7 @@
 #  011		09-10-2014	Adam Dosch		Updating mode host tier lookup information since we created a new tst env
 #							Adding --force-checkout-from-releases and --force-checkout-from-testing
 #							arguments to force code checkout from one area vs checkout map
+#  012		09-16-2014	Adam Dosch		Updating devel environment to pull from trunk by default
 #
 #############################################################################################################################
 
@@ -168,7 +169,7 @@ function set_checkout
         CHECKOUT_TYPE="co"
         ;;
      *)
-        SVN_TAGAREA="/testing"
+        SVN_TAGAREA="/trunk"
         CHECKOUT_TYPE="co"
         ;;
    esac
