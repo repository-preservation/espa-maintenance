@@ -42,18 +42,34 @@ class RequestHandler(SimpleXMLRPCRequestHandler):
 
 
 # ============================================================================
-def get_lpcs_orders_to_process():
+# Called from the crons
+def get_configuration(config_item):
+    if config_item == 'landsatds.username':
+        return 'dev_username'
+    elif config_item == 'landsatds.password':
+        return 'dev_password'
+    elif config_item == 'landsatds.host':
+        return 'localhost'
+    elif config_item == 'ondemand_enabled':
+        return 'true'
 
-    results = []
-    try:
-        results.append('LPCS-UTM-2')
-        # TODO TODO TODO - ????Do we need to return more than the order ID????
-        return results
-    finally:
-        del results
+    return ''
 
 
 # ============================================================================
+# Called from the crons
+def get_scenes_to_process(limit, user, priority, product_types):
+    return True
+
+
+# ============================================================================
+# Called from the crons
+def queue_products(product_list, processing_location, job_name):
+    return True
+
+
+# ============================================================================
+# Called from the mappers
 def update_status(sceneid, orderid, module, status):
     with open("xmlrpc_server.log", "a") as fd:
         fd.write("Scene [%s] Order [%s] Received [%s] From [%s]"
@@ -62,10 +78,16 @@ def update_status(sceneid, orderid, module, status):
 
 
 # ============================================================================
-def set_scene_error(sceneid, orderid, module, status):
+# Called from the mappers
+def set_scene_error(product_type,
+                    orderid,
+                    processing_location,
+                    logged_contents):
     with open("xmlrpc_server.log", "a") as fd:
-        fd.write("Scene [%s] Order [%s] Received [%s] From [%s]"
-                 % (sceneid, orderid, status, module))
+        fd.write("Product Type [%s] Order ID [%s]"
+                 " Processing Location [%s] Logged Contents [%s]"
+                 % (product_type, orderid, processing_location,
+                    logged_contents))
     return True
 
 
