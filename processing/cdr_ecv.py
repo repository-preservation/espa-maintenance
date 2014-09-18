@@ -300,9 +300,7 @@ def process(parms):
             # Landsat files
             # The types must match the types in settings.py
             files_to_search_for['SR'] = ['*_sr_band[0-9].img']
-            files_to_search_for['TOA'] = ['*_toa_band[0-5].img',
-                                          '*_toa_band[7-9].img']
-            files_to_search_for['TOA_Thermal'] = ['*_toa_band6.img']
+            files_to_search_for['TOA'] = ['*_toa_band[0-9].img']
             files_to_search_for['INDEX'] = ['*_nbr.img', '*_nbr2.img',
                                             '*_ndmi.img', '*_ndvi.img',
                                             '*_evi.img', '*_savi.img',
