@@ -37,6 +37,9 @@ except:
 import parameters
 
 
+MASTER_PLOT_FILE = 'master-plot.json'
+
+
 # ============================================================================
 def build_argument_parser():
     '''
@@ -53,16 +56,16 @@ def build_argument_parser():
                         action='store_true', dest='keep_log', default=False,
                         help="keep the log file")
 
-    parser.add_argument('--request-file',
-                        action='store', dest='request_file', required=True,
-                        help="file containing request specifics")
+    parser.add_argument('--order-id',
+                        action='store', dest='order_id', required=True,
+                        help="order_id to plot")
 
     return parser
 # END - build_argument_parser
 
 
 # ============================================================================
-def process_test_order(request_file, env_vars, keep_log):
+def process_test_order(order_id, env_vars, keep_log):
     '''
     Description:
       Process the test order file.
@@ -70,16 +73,16 @@ def process_test_order(request_file, env_vars, keep_log):
 
     logger = logging.getLogger(__name__)
 
-    tmp_order = 'tmp-' + request_file
+    tmp_order = 'tmp-' + MASTER_PLOT_FILE
 
     have_error = False
     status = True
     error_msg = ''
 
-    with open(request_file, 'r') as order_fd:
+    with open(MASTER_PLOT_FILE, 'r') as order_fd:
         order_contents = order_fd.read()
         if not order_contents:
-            raise Exception("Order file [%s] is empty" % request_file)
+            raise Exception("Order file [%s] is empty" % MASTER_PLOT_FILE)
 
         # Validate using our parameter object
         # order = parameters.instance(json.loads(order_contents))
@@ -97,6 +100,7 @@ def process_test_order(request_file, env_vars, keep_log):
             tmp_line = \
                 tmp_line.replace("DEV_CACHE_DIRECTORY",
                                  env_vars['dev_cache_dir']['value'])
+            tmp_line = tmp_line.replace("ORDER_ID", order_id)
 
             tmp_fd.write(tmp_line)
 
@@ -105,7 +109,7 @@ def process_test_order(request_file, env_vars, keep_log):
 #            logger.info(json.dumps(parms, indent=4, sort_keys=True))
 
         # END - with tmp_order
-    # END - with request_file
+    # END - with MASTER_PLOT_FILE
 
     if have_error:
         logger.error(error_msg)
@@ -122,15 +126,16 @@ def process_test_order(request_file, env_vars, keep_log):
     try:
         logger.info("Processing [%s]" % cmd)
         output = utilities.execute_cmd(cmd)
+
+    except Exception, e:
+        raise
+
+    finally:
         if len(output) > 0:
             print output
-    except Exception, e:
-        logger.exception("Processing failed")
-        status = False
 
     os.unlink(tmp_order)
-
-    return status
+# END - process_test_order
 
 
 # ============================================================================
@@ -177,16 +182,15 @@ if __name__ == '__main__':
     # Parse the command line arguments
     args = parser.parse_args()
 
-    if not os.path.isfile(args.request_file):
-        logger.critical("Request file [%s] does not exist" % args.request_file)
-        sys.exit(1)
-
     # Avoid the creation of the *.pyc files
     os.environ['PYTHONDONTWRITEBYTECODE'] = '1'
 
-    if not process_test_order(args.request_file, env_vars, args.keep_log):
-        logger.critical("Request file (%s) failed to process"
-                        % args.request_file)
+    try:
+        process_test_order(args.order_id, env_vars, args.keep_log)
+    except Exception, e:
+        logger.exception("Plot request for order [%s] failed to process"
+                         % args.order_id)
+        # Terminate FAILURE
         sys.exit(1)
 
     # Terminate SUCCESS
