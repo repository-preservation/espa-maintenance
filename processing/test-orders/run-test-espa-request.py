@@ -15,7 +15,6 @@ import os
 import sys
 import logging
 import json
-from cStringIO import StringIO
 from argparse import ArgumentParser
 
 try:
