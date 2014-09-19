@@ -101,8 +101,8 @@ def process_plot_requests():
 
     try:
         logger.info("Checking for requests to process...")
-        orders = server.get_scenes_to_process(args.limit, args.user,
-                                              product_types=['plot'])
+        orders = server.get_scenes_to_process(args.limit, args.user, None,
+                                              ['plot'])
 
         if orders:
             # Figure out the name of the job file
