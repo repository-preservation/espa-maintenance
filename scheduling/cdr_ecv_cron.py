@@ -39,6 +39,7 @@ from espa_constants import EXIT_SUCCESS
 from espa_common import settings, utilities
 from espa_common.espa_logging import EspaLogging as EspaLogging
 
+
 LOGGER_NAME = 'espa.cron'
 
 
@@ -53,7 +54,8 @@ def process_products(args):
     '''
 
     # Get the logger for this task
-    logger = EspaLogging.get_logger(LOGGER_NAME)
+    logger_name = '.'.join([LOGGER_NAME, args.priority.lower()])
+    logger = EspaLogging.get_logger(logger_name)
 
     rpcurl = os.environ.get('ESPA_XMLRPC')
     server = None
@@ -106,8 +108,7 @@ def process_products(args):
     try:
         logger.info("Checking for scenes to process...")
         scenes = server.get_scenes_to_process(args.limit, args.user, priority,
-                                              product_types=['landsat',
-                                                             'modis'])
+                                              ['landsat', 'modis'])
         if scenes:
             # Figure out the name of the order file
             stamp = datetime.now()
@@ -305,8 +306,6 @@ if __name__ == '__main__':
       Execute the core processing routine.
     '''
 
-    global LOGGER_NAME
-
     # Create a command line argument parser
     description = ("Builds and kicks-off hadoop jobs for the espa processing"
                    " system (to process product requests)")
@@ -334,7 +333,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     # Configure and get the logger for this task
-    LOGGER_NAME = '.'.join([LOGGER_NAME, args.priority.lower()])
+    logger_name = '.'.join([LOGGER_NAME, args.priority.lower()])
     EspaLogging.configure(logger_name)
     logger = EspaLogging.get_logger(logger_name)
 
