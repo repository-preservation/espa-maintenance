@@ -173,6 +173,7 @@ class Order(models.Model):
         '''
         o = {}
         o['image_extents'] = False     # modify image extents (subset or frame)
+        o['coordinate_units'] = 'dd'   #what units are the coords in?  
         o['minx'] = None               #
         o['miny'] = None               #
         o['maxx'] = None               #
@@ -396,13 +397,14 @@ class Scene(models.Model):
 
     SENSOR_PRODUCT = (
         ('landsat', 'Landsat'),
-        ('modis', 'Modis')
+        ('modis', 'Modis'),
+        ('plot', 'Plotting and Statistics')
     )
 
     #scene file name, with no suffix
     name = models.CharField(max_length=256, db_index=True)
 
-    #flags scene as either landsat or modis
+    #flags product as either landsat, modis or plot
     sensor_type = models.CharField(max_length=50,
                                    choices=SENSOR_PRODUCT,
                                    db_index=True)
