@@ -42,6 +42,24 @@ class StatusMessage(SuccessMessageMixin, FormView):
 
         return super(StatusMessage, self).post(request, *args, **kwargs)
 
+    def get_context_data(self, **kwargs):
+        context = super(StatusMessage, self).get_context_data(**kwargs)
+
+        try:
+            update_date = Configuration.objects.get(key="system_message_updated_date")
+            context['update_date'] = update_date.value
+        except Configuration.DoesNotExist:
+            context['update_date'] = 'n/a'
+
+        try:
+            updated_by = Configuration.objects.get(key="system_message_updated_by")
+            context['updated_by'] = updated_by.value
+        except Configuration.DoesNotExist:
+            context['updated_by'] = 'n/a'
+
+        return context
+
+
     def get_initial(self):
         return_data = {}
         try:

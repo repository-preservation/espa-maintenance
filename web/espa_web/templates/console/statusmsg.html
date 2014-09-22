@@ -6,7 +6,10 @@
 {% block header %} Console - System Message Editor {% endblock %}
 
 {% block style %}
-    .messages { color: red }
+    .messages { 
+        color: red;
+        list-style-type: none;
+    }
 
     input#id_title {
         width:790px;
@@ -73,6 +76,12 @@
         </div>
 
     </form>
+
+    <div class='box-margin'></div>
+    <div>
+        Last updated: {{ update_date }} <br />
+        Updated by: {{ updated_by }}
+    </div>
 
 </div>
 {% endblock %}
