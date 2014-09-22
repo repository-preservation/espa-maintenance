@@ -21,11 +21,20 @@ import json
 from time import sleep
 from datetime import datetime
 from argparse import ArgumentParser
-import traceback
 
 # espa-common objects and methods
 from espa_constants import *
-from espa_logging import log, set_debug, debug
+
+# imports from espa/espa_common
+try:
+    from espa_logging import EspaLogging
+except:
+    from espa_common.espa_logging import EspaLogging
+
+try:
+    import settings
+except:
+    from espa_common import settings
 
 # local objects and methods
 import espa_exception as ee
@@ -37,7 +46,6 @@ import science
 import warp
 import statistics
 import distribution
-import settings
 
 
 # ============================================================================
@@ -53,6 +61,7 @@ def build_argument_parser():
 
     # Parameters
     parameters.add_debug_parameter(parser)
+    parameters.add_keep_log_parameter(parser)
 
     parameters.add_orderid_parameter(parser)
 
@@ -87,6 +96,8 @@ def validate_parameters(parms):
       is available with the provided input parameters.
     '''
 
+    logger = EspaLogging.get_logger('espa.processing')
+
     # Test for presence of top-level parameters
     keys = ['orderid', 'scene', 'options']
     for key in keys:
@@ -102,6 +113,7 @@ def validate_parameters(parms):
                                                 warp.valid_projections,
                                                 warp.valid_ns,
                                                 warp.valid_pixel_size_units,
+                                                warp.valid_image_extents_units,
                                                 warp.valid_resample_methods,
                                                 warp.valid_datums)
 
@@ -110,8 +122,7 @@ def validate_parameters(parms):
 
     for key in keys:
         if not parameters.test_for_parameter(options, key):
-            log("Warning: '%s' parameter missing defaulting to False"
-                % key)
+            logger.warning("'%s' parameter missing defaulting to False" % key)
             options[key] = False
 
     # Extract information from the scene string
@@ -195,8 +206,18 @@ def process(parms):
       then processing them through the statistics generation.
     '''
 
+    logger = EspaLogging.get_logger('espa.processing')
+
     # Validate the parameters
     validate_parameters(parms)
+
+    # Build the modis command line
+    cmd = [os.path.basename(__file__)]
+    cmd_line_options = \
+        parameters.convert_to_command_line_options(parms)
+    cmd.extend(cmd_line_options)
+    cmd = ' '.join(cmd)
+    logger.info("MODIS COMMAND LINE [%s]" % cmd)
 
     scene = parms['scene']
 
@@ -218,7 +239,7 @@ def process(parms):
                                         options['source_host'],
                                         options['source_directory'],
                                         stage_directory)
-    log(filename)
+    logger.info(filename)
 
     # Force these parameters to false if not provided
     required_includes = ['include_customized_source_data',
@@ -226,8 +247,8 @@ def process(parms):
 
     for parameter in required_includes:
         if not parameters.test_for_parameter(options, parameter):
-            log("Warning: '%s' parameter missing defaulting to False"
-                % parameter)
+            logger.warning("'%s' parameter missing defaulting to False"
+                           % parameter)
             options[parameter] = False
 
     # Copy the staged data to the work directory
@@ -243,7 +264,8 @@ def process(parms):
         xml_filename = science.build_modis_science_products(parms)
 
         # Reproject the data for each science product, but only if necessary
-        if (options['reproject'] or options['resize']
+        if (options['reproject']
+                or options['resize']
                 or options['image_extents']
                 or options['projection'] is not None):
 
@@ -276,7 +298,7 @@ def process(parms):
 
     # END - Customized Source Data
     else:
-        log("***NO CUSTOIMIZED PRODUCTS CHOSEN***")
+        logger.info("***NO CUSTOIMIZED PRODUCTS CHOSEN***")
 
     # Deliver the product files
     # Attempt X times sleeping between each attempt
@@ -300,8 +322,8 @@ def process(parms):
                                              options['include_statistics'],
                                              sleep_seconds)
         except Exception, e:
-            log("An error occurred processing %s" % scene)
-            log("Error: %s" % str(e))
+            logger.error("An exception occurred processing %s" % scene)
+            logger.error("Exception Message: %s" % str(e))
             if attempt < max_number_of_attempts:
                 sleep(sleep_seconds)  # sleep before trying again
                 attempt += 1
@@ -335,8 +357,10 @@ if __name__ == '__main__':
     args = parser.parse_args()
     args_dict = vars(args)
 
-    # Setup debug
-    set_debug(args.debug)
+    # Configure logging
+    EspaLogging.configure('espa.processing', order='test',
+                          product='product', debug=args.debug)
+    logger = EspaLogging.get_logger('espa.processing')
 
     # Build our JSON formatted input from the command line parameters
     orderid = args_dict.pop('orderid')
@@ -352,12 +376,9 @@ if __name__ == '__main__':
     try:
         process(parms)
     except Exception, e:
-        log("An error occurred processing %s" % scene)
-        log("Error: %s" % str(e))
-        tb = traceback.format_exc()
-        log("Traceback: [%s]" % tb)
         if hasattr(e, 'output'):
-            log("Error: Output [%s]" % e.output)
+            logger.error("Output [%s]" % e.output)
+        logger.exception("Processing failed")
         sys.exit(EXIT_FAILURE)
 
     sys.exit(EXIT_SUCCESS)

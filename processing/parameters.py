@@ -14,10 +14,17 @@ import os
 
 # espa-common objects and methods
 from espa_constants import *
-from espa_logging import log
 
-# imports from espa/common
-import sensor
+# imports from espa/espa_common
+try:
+    from espa_logging import EspaLogging
+except:
+    from espa_common.espa_logging import EspaLogging
+
+try:
+    import sensor
+except:
+    from espa_common import sensor
 
 
 # This contains the valid sensors and data types which are supported
@@ -54,6 +61,19 @@ def add_scene_parameter(parser):
 
 
 # ============================================================================
+def add_product_type_parameter(parser):
+    '''
+    Description:
+      Adds the product_type parameter to the command line parameters
+    '''
+
+    parser.add_argument('--product_type',
+                        action='store', dest='product_type', required=True,
+                        help="the type of product to process")
+# END - add_product_type_parameter
+
+
+# ============================================================================
 def add_work_directory_parameter(parser):
     '''
     Description:
@@ -78,6 +98,20 @@ def add_debug_parameter(parser):
                         action='store_true', dest='debug', default=False,
                         help="turn debug logging on")
 # END - add_debug_parameter
+
+
+# ============================================================================
+def add_keep_log_parameter(parser):
+    '''
+    Description:
+      Adds the keep_log parameter to the command line parameters
+    '''
+
+    parser.add_argument('--keep_log',
+                        action='store_true', dest='keep_log', default=False,
+                        help="keep the log file")
+
+# END - add_keep_log_parameter
 
 
 # ============================================================================
@@ -282,13 +316,38 @@ def add_destination_parameters(parser):
                         action='store', dest='destination_directory',
                         default=os.curdir,
                         help="directory on the destination host")
-# END - add_source_parameters
+# END - add_destination_parameters
+
+
+# ============================================================================
+def add_std_plotting_parameters(parser, bg_color, marker, marker_size):
+    '''
+    Description:
+      Adds the destination host and directory parameters to the command line
+      parameters
+    '''
+
+    parser.add_argument('--bg_color',
+                        action='store', dest='bg_color', default=bg_color,
+                        help="color specification for plot and legend"
+                             " background")
+
+    parser.add_argument('--marker',
+                        action='store', dest='marker', default=marker,
+                        help="marker specification for plotted points")
+
+    parser.add_argument('--marker_size',
+                        action='store', dest='marker_size',
+                        default=marker_size,
+                        help="marker size specification for plotted points")
+
+# END - add_std_plotting_parameters
 
 
 # ============================================================================
 def add_reprojection_parameters(parser, projection_values, ns_values,
-                                pixel_size_units, resample_methods,
-                                datum_values):
+                                pixel_size_units, image_extents_units,
+                                resample_methods, datum_values):
     '''
     Description:
       Adds the reprojection parameters to the command line parameters
@@ -368,6 +427,13 @@ def add_reprojection_parameters(parser, projection_values, ns_values,
                         action='store_true', dest='image_extents',
                         default=False,
                         help="specify desired output image extents")
+    parser.add_argument('--image_extents_units',
+                        action='store', dest='image_extents_units',
+                        choices=pixel_size_units,
+                        help=("units image extents are specified in:"
+                              " one of (%s)"
+                              % ', '.join(image_extents_units)))
+
     parser.add_argument('--minx',
                         action='store', dest='minx',
                         help="minimum X for the image extent")
@@ -416,8 +482,18 @@ def convert_to_command_line_options(parms):
       executables that will be called.
     '''
 
-    cmd_line = ['--orderid', '\"%s\"' % parms['orderid'],
-                '--scene', '\"%s\"' % parms['scene']]
+    cmd_line = ['--orderid', '\"%s\"' % parms['orderid']]
+
+    if test_for_parameter(parms, 'scene'):
+        cmd_line.extend(['--scene', '\"%s\"' % parms['scene']])
+
+    if test_for_parameter(parms, 'product_type'):
+        p_type = parms['product_type']
+        if p_type != 'plot':
+            cmd_line.extend(['--product_type', '\"%s\"' % p_type])
+        else:
+            # Plotting doesn't need this command line parameter
+            pass
 
     for (key, value) in parms['options'].items():
         if value is True:
@@ -431,8 +507,8 @@ def convert_to_command_line_options(parms):
 
 # ============================================================================
 def validate_reprojection_parameters(parms, scene, projections, ns_values,
-                                     pixel_size_units, resample_methods,
-                                     datum_values):
+                                     pixel_size_units, image_extents_units,
+                                     resample_methods, datum_values):
     '''
     Description:
       Perform a check on the possible reprojection parameters
@@ -442,14 +518,17 @@ def validate_reprojection_parameters(parms, scene, projections, ns_values,
       assumed that the web tier has validated them.
     '''
 
+    logger = EspaLogging.get_logger('espa.processing')
+
     # Create this and set to None if not present
     if not test_for_parameter(parms, 'projection'):
-        log("Warning: 'projection' parameter missing defaulting to None")
+        logger.warning("'projection' parameter missing defaulting to None")
         parms['projection'] = None
 
     # Create this and set to 'near' if not present
     if not test_for_parameter(parms, 'resample_method'):
-        log("Warning: 'resample_method' parameter missing defaulting to near")
+        logger.warning("'resample_method' parameter missing defaulting to"
+                       " near")
         parms['resample_method'] = 'near'
 
     # Make sure these have at least a False value
@@ -457,8 +536,8 @@ def validate_reprojection_parameters(parms, scene, projections, ns_values,
 
     for parameter in required_parameters:
         if not test_for_parameter(parms, parameter):
-            log("Warning: '%s' parameter missing defaulting to False"
-                % parameter)
+            logger.warning("'%s' parameter missing defaulting to False"
+                           % parameter)
             parms[parameter] = False
 
     if parms['reproject']:
@@ -616,6 +695,14 @@ def validate_reprojection_parameters(parms, scene, projections, ns_values,
 
     # ------------------------------------------------------------------------
     if parms['image_extents']:
+        if not test_for_parameter(parms, 'image_extents_units'):
+            raise RuntimeError("Missing image_extents_units parameter")
+        else:
+            if parms['image_extents_units'] not in image_extents_units:
+                raise ValueError("Invalid image_extents_units [%s]:"
+                                 " Argument must be one of (%s)"
+                                 % (parms['image_extents_units'],
+                                    ', '.join(image_extents_units)))
         if not test_for_parameter(parms, 'minx'):
             raise RuntimeError("Missing minx parameter")
         else:
@@ -638,6 +725,7 @@ def validate_reprojection_parameters(parms, scene, projections, ns_values,
         parms['miny'] = None
         parms['maxx'] = None
         parms['maxy'] = None
+        parms['image_extents_units'] = None
 
     # ------------------------------------------------------------------------
     if parms['resize']:
@@ -672,8 +760,8 @@ def validate_reprojection_parameters(parms, scene, projections, ns_values,
         parms['pixel_size'] = sensor.instance(scene).default_pixel_size[units]
         parms['pixel_size_units'] = units
 
-        log("Warning: 'resize' parameter not provided but required for"
-            " reprojection or image extents"
-            " (Defaulting pixel_size(%f) and pixel_size_units(%s)"
-            % (parms['pixel_size'], parms['pixel_size_units']))
+        logger.warning("'resize' parameter not provided but required for"
+                       " reprojection or image extents"
+                       " (Defaulting pixel_size(%f) and pixel_size_units(%s)"
+                       % (parms['pixel_size'], parms['pixel_size_units']))
 # END - validate_reprojection_parameters

@@ -22,10 +22,17 @@ import urllib2
 
 # espa-common objects and methods
 from espa_constants import *
-from espa_logging import log
 
-# local objects and methods
-import util
+# imports from espa/espa_common
+try:
+    from espa_logging import EspaLogging
+except:
+    from espa_common.espa_logging import EspaLogging
+
+try:
+    import utilities
+except:
+    from espa_common import utilities
 
 
 # ============================================================================
@@ -35,20 +42,22 @@ def copy_file_to_file(source_file, destination_file):
       Use unix 'cp' to copy a file from one place to another on the localhost.
     '''
 
+    logger = EspaLogging.get_logger('espa.processing')
+
     cmd = ' '.join(['cp', source_file, destination_file])
 
     # Transfer the data and raise any errors
     output = ''
     try:
-        output = util.execute_cmd(cmd)
+        output = utilities.execute_cmd(cmd)
     except Exception, e:
-        log("Error: Failed to copy file")
+        logger.error("Failed to copy file")
         raise e
     finally:
         if len(output) > 0:
-            log(output)
+            logger.info(output)
 
-    log("Transfer complete - CP")
+    logger.info("Transfer complete - CP")
 # END - copy_file_to_directory
 
 
@@ -60,21 +69,23 @@ def remote_copy_file_to_file(source_host, source_file, destination_file):
       machine using ssh.
     '''
 
+    logger = EspaLogging.get_logger('espa.processing')
+
     cmd = ' '.join(['ssh', '-q', '-o', 'StrictHostKeyChecking=no',
                     source_host, 'cp', source_file, destination_file])
 
     # Transfer the data and raise any errors
     output = ''
     try:
-        output = util.execute_cmd(cmd)
+        output = utilities.execute_cmd(cmd)
     except Exception, e:
-        log("Error: Failed to copy file")
+        logger.error("Failed to copy file")
         raise e
     finally:
         if len(output) > 0:
-            log(output)
+            logger.info(output)
 
-    log("Transfer complete - SSH-CP")
+    logger.info("Transfer complete - SSH-CP")
 # END - remote_copy_file_to_directory
 
 
@@ -101,6 +112,8 @@ def ftp_from_remote_location(username, pw, host, remotefile, localfile):
     Errors: Raises Exception() in the event of error
     '''
 
+    logger = EspaLogging.get_logger('espa.processing')
+
     # Make sure the src_file is absolute, otherwise ftp will choke
     if not remotefile.startswith('/'):
         remotefile = ''.join(['/', remotefile])
@@ -109,7 +122,7 @@ def ftp_from_remote_location(username, pw, host, remotefile, localfile):
 
     url = 'ftp://%s/%s' % (host, remotefile)
 
-    log("Transferring file from %s to %s" % (url, localfile))
+    logger.info("Transferring file from %s to %s" % (url, localfile))
     ftp = None
     try:
         with open(localfile, 'wb') as loc_file:
@@ -125,7 +138,7 @@ def ftp_from_remote_location(username, pw, host, remotefile, localfile):
         if ftp:
             ftp.quit()
 
-    log("Transfer complete - FTP")
+    logger.info("Transfer complete - FTP")
 # END - ftp_from_remote_location
 
 
@@ -152,19 +165,21 @@ def ftp_to_remote_location(username, pw, localfile, host, remotefile):
     Errors: Raises Exception() in the event of error
     '''
 
+    logger = EspaLogging.get_logger('espa.processing')
+
     # Make sure the src_file is absolute, otherwise ftp will choke
     if not remotefile.startswith('/'):
         remotefile = ''.join(['/', remotefile])
 
     pw = urllib.unquote(pw)
 
-    log("Transferring file from %s to %s"
-        % (localfile, 'ftp://%s/%s' % (host, remotefile)))
+    logger.info("Transferring file from %s to %s"
+                % (localfile, 'ftp://%s/%s' % (host, remotefile)))
 
     ftp = None
 
     try:
-        log("Logging into %s with %s:%s" % (host, username, pw))
+        logger.info("Logging in to %s with %s:%s" % (host, username, pw))
         ftp = ftplib.FTP(host, user=username, passwd=pw, timeout=60)
         with open(localfile, 'rb') as tmp_fd:
             ftp.storbinary(' '.join(['STOR', remotefile]), tmp_fd, 1024)
@@ -172,7 +187,7 @@ def ftp_to_remote_location(username, pw, localfile, host, remotefile):
         if ftp:
             ftp.quit()
 
-    log("Transfer complete - FTP")
+    logger.info("Transfer complete - FTP")
 # END - ftp_to_remote_location
 
 
@@ -191,9 +206,11 @@ def scp_transfer_file(source_host, source_file,
         file must be a directory.  ***No checking is performed in this code***
     '''
 
+    logger = EspaLogging.get_logger('espa.processing')
+
     if source_host == destination_host:
-        msg = "Error: source and destination host match unable to scp"
-        log(msg)
+        msg = "source and destination host match unable to scp"
+        logger.error(msg)
         raise Exception(msg)
 
     cmd = ['scp', '-q', '-o', 'StrictHostKeyChecking=no', '-c', 'arcfour',
@@ -217,13 +234,14 @@ def scp_transfer_file(source_host, source_file,
     # Transfer the data and raise any errors
     output = ''
     try:
-        output = util.execute_cmd(cmd)
+        output = utilities.execute_cmd(cmd)
     except Exception, e:
-        log(output)
-        log("Error: Failed to transfer data")
+        if len(output) > 0:
+            logger.info(output)
+        logger.error("Failed to transfer data")
         raise e
 
-    log("Transfer complete - SCP")
+    logger.info("Transfer complete - SCP")
 # END - scp_transfer_file
 
 
@@ -241,8 +259,10 @@ def http_transfer_file(source_host, source_file, destination_file):
 
     global BLOCK_SIZE
 
+    logger = EspaLogging.get_logger('espa.processing')
+
     url_path = 'http://%s/%s' % (source_host, source_file)
-    log(url_path)
+    logger.info(url_path)
 
     url = urllib2.urlopen(url_path)
 
@@ -262,7 +282,7 @@ def http_transfer_file(source_host, source_file, destination_file):
     if retrieved_bytes != file_size:
         raise Exception("Transfer Failed - HTTP")
     else:
-        log("Transfer complete - HTTP")
+        logger.info("Transfer complete - HTTP")
 # END - scp_transfer_file
 
 
@@ -282,8 +302,11 @@ def transfer_file(source_host, source_file,
 
     '''
 
-    log("Transfering [%s:%s] to [%s:%s]"
-        % (source_host, source_file, destination_host, destination_file))
+    logger = EspaLogging.get_logger('espa.processing')
+
+    logger.info("Transfering [%s:%s] to [%s:%s]"
+                % (source_host, source_file,
+                   destination_host, destination_file))
 
     # If both source and destination are localhost we can just copy the data
     if source_host == 'localhost' and destination_host == 'localhost':
@@ -303,8 +326,8 @@ def transfer_file(source_host, source_file,
                                      source_file, destination_file)
             return
         except Exception, e:
-            log("Warning: FTP failures will attempt transfer using SCP")
-            log("FTP Errors: %s" % str(e))
+            logger.warning("FTP failures will attempt transfer using SCP")
+            logger.warning("FTP Errors: %s" % str(e))
 
     elif destination_username is not None and destination_pw is not None:
         try:
@@ -313,8 +336,8 @@ def transfer_file(source_host, source_file,
                                    destination_file)
             return
         except Exception, e:
-            log("Warning: FTP failures will attempt transfer using SCP")
-            log("FTP Errors: %s" % str(e))
+            logger.warning("FTP failures will attempt transfer using SCP")
+            logger.warning("FTP Errors: %s" % str(e))
 
     # As a last resort try SCP
     scp_transfer_file(source_host, source_file,

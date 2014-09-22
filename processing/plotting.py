@@ -7,7 +7,18 @@ License:
 Description:
 
 History:
-  Original Development Jan/2014 by Ron Dilley, USGS/EROS
+
+    Date              Programmer               Reason
+    ----------------  ------------------------ -------------------------------
+    Jan/2014          Ron Dilley               Initial implementation
+    Sept/2014         Ron Dilley               Updated to use espa_common and
+                                               our python logging setup
+                                               Along with a bunch of cleanup
+
+Note: If this is ever expanded to process other statistics or plot generation,
+      it may be worth a look at using classes and getting the instance of the
+      class needed for generating and combining the statistics or other
+      plotting.
 '''
 
 import os
@@ -15,9 +26,6 @@ import sys
 import glob
 import shutil
 import datetime
-import calendar
-import subprocess
-import traceback
 from cStringIO import StringIO
 from argparse import ArgumentParser
 from collections import defaultdict
@@ -27,9 +35,30 @@ from matplotlib.ticker import MaxNLocator, AutoMinorLocator
 import numpy as np
 
 # espa-common objects and methods
-from espa_constants import *
-from espa_logging import log, set_debug, debug
+from espa_constants import EXIT_SUCCESS
+from espa_constants import EXIT_FAILURE
 
+# imports from espa/espa_common
+try:
+    from espa_logging import EspaLogging
+except:
+    from espa_common.espa_logging import EspaLogging
+
+try:
+    import settings
+except:
+    from espa_common import settings
+
+try:
+    import utilities
+except:
+    from espa_common import utilities
+
+# import local modules
+import parameters
+import transfer
+import staging
+import distribution as dist
 
 # Setup the default colors
 # Can override them from the command line
@@ -39,12 +68,12 @@ SENSOR_COLORS['Aqua'] = '#00cccc'  # Some cyan like blue color
 SENSOR_COLORS['LT4'] = '#cc3333'  # A nice Red
 SENSOR_COLORS['LT5'] = '#0066cc'  # A nice Blue
 SENSOR_COLORS['LE7'] = '#00cc33'  # An ok Green
-BG_COLOR = '#f3f3f3'  # A light gray
+BG_COLOR = settings.PLOT_BG_COLOR
 
 # Setup the default marker
 # Can override them from the command line
-MARKER = (1, 3, 0)  # Better circle than 'o'
-MARKER_SIZE = 5.0   # A good size for the circle or diamond
+MARKER = settings.PLOT_MARKER
+MARKER_SIZE = settings.PLOT_MARKER_SIZE
 
 # Specify a base number of days to expand the plot date range
 # This helps keep data points from being placed on the plot border lines
@@ -173,89 +202,6 @@ BAND_TYPE_DATA_RANGES = {
 
 
 # ============================================================================
-def execute_cmd(cmd):
-    '''
-    Description:
-      Execute a command line and return SUCCESS or ERROR
-
-    Returns:
-        output - The stdout and/or stderr from the executed command.
-    '''
-
-    output = ''
-    proc = None
-    try:
-        proc = subprocess.Popen(cmd, stdin=subprocess.PIPE,
-                                stdout=subprocess.PIPE,
-                                stderr=subprocess.STDOUT, shell=True)
-        output = proc.communicate()[0]
-
-        if proc.returncode < 0:
-            message = "Application terminated by signal [%s]" % cmd
-            raise Exception(message)
-
-        if proc.returncode != 0:
-            message = "Application failed to execute [%s]" % cmd
-            raise Exception(message)
-
-        application_exitcode = proc.returncode >> 8
-        if application_exitcode != 0:
-            message = "Application [%s] returned error code [%d]" \
-                % (cmd, application_exitcode)
-            raise Exception(message)
-
-    finally:
-        del proc
-
-    return output
-# END - execute_cmd
-
-
-# =============================================================================
-def scp_transfer_file(source_host, source_file,
-                      destination_host, destination_file):
-    '''
-    Description:
-      Using SCP transfer a file from a source location to a destination
-      location.
-
-    Note:
-      - It is assumed ssh has been setup for access between the localhost
-        and destination system
-      - If wild cards are to be used with the source, then the destination
-        file must be a directory.  ***No checking is performed in this code***
-    '''
-
-    cmd = ['scp', '-q', '-o', 'StrictHostKeyChecking=no', '-c', 'arcfour',
-           '-C']
-
-    # Build the source portion of the command
-    # Single quote the source to allow for wild cards
-    if source_host == 'localhost':
-        cmd.append(source_file)
-    elif source_host != destination_host:
-        # Build the SCP command line
-        cmd.append("'%s:%s'" % (source_host, source_file))
-
-    # Build the destination portion of the command
-    cmd.append('%s:%s' % (destination_host, destination_file))
-
-    cmd = ' '.join(cmd)
-
-    # Transfer the data and raise any errors
-    output = ''
-    try:
-        output = execute_cmd(cmd)
-    except Exception, e:
-        log(output)
-        log("Error: Failed to transfer data")
-        raise e
-
-    log("Transfer complete - SCP")
-# END - scp_transfer_file
-
-
-# ============================================================================
 def build_argument_parser():
     '''
     Description:
@@ -266,26 +212,23 @@ def build_argument_parser():
     description = "Generate plots of the statistics"
     parser = ArgumentParser(description=description)
 
-    parser.add_argument('--debug',
-                        action='store_true', dest='debug', default=False,
-                        help="turn debug logging on")
+    # Debugging parameters
+    parameters.add_debug_parameter(parser)
+    parameters.add_keep_log_parameter(parser)
 
-    parser.add_argument('--source_host',
-                        action='store', dest='source_host',
-                        default='localhost',
-                        help="hostname where the order resides")
+    # Standard order parameters
+    parameters.add_orderid_parameter(parser)
 
-    parser.add_argument('--order_directory',
-                        action='store', dest='order_directory',
-                        required=True,
-                        help="directory on the source host where the order"
-                             " resides")
+    # Add the parameters required for transfering files back and forth
+    parameters.add_source_parameters(parser)
+    parameters.add_destination_parameters(parser)
 
-    parser.add_argument('--stats_directory',
-                        action='store', dest='stats_directory',
-                        default=os.curdir,
-                        help="directory containing the statistics")
+    # Standard plotting parameters
+    parameters.add_std_plotting_parameters(parser, BG_COLOR,
+                                           settings.PLOT_MARKER,
+                                           settings.PLOT_MARKER_SIZE)
 
+    # Add the lpcs specific parameters
     parser.add_argument('--terra_color',
                         action='store', dest='terra_color',
                         default=SENSOR_COLORS['Terra'],
@@ -311,61 +254,62 @@ def build_argument_parser():
                         default=SENSOR_COLORS['LE7'],
                         help="color specification for LE7 data")
 
-    parser.add_argument('--bg_color',
-                        action='store', dest='bg_color', default=BG_COLOR,
-                        help="color specification for plot and legend"
-                             " background")
-
-    parser.add_argument('--marker',
-                        action='store', dest='marker', default=MARKER,
-                        help="marker specification for plotted points")
-
-    parser.add_argument('--marker_size',
-                        action='store', dest='marker_size',
-                        default=MARKER_SIZE,
-                        help="marker size specification for plotted points")
-
-    parser.add_argument('--keep',
-                        action='store_true', dest='keep', default=False,
-                        help="keep the working directory")
-
     return parser
 # END - build_argument_parser
 
 
+def validate_parameters(parms):
+
+    # Get a local pointer to the options
+    options = parms['options']
+
+    # Default these
+    if not parameters.test_for_parameter(options, 'source_host'):
+        # Use the default output host name to find the plot input
+        options['source_host'] = util.get_output_hostname
+
+    if not parameters.test_for_parameter(options, 'source_username'):
+        options['source_username'] = None
+
+    if not parameters.test_for_parameter(options, 'source_pw'):
+        options['source_pw'] = None
+
+    if not parameters.test_for_parameter(options, 'source_directory'):
+        # For plotting the source is located in the espa output
+        options['source_directory'] = \
+            os.path.join(settings.ESPA_CACHE_DIRECTORY, parms['orderid'])
+
+    if not parameters.test_for_parameter(options, 'destination_host'):
+        # For plotting the default destination is the same as the source
+        options['destination_host'] = options['source_host']
+
+    if not parameters.test_for_parameter(options, 'destination_username'):
+        options['destination_username'] = 'localhost'
+
+    if not parameters.test_for_parameter(options, 'destination_pw'):
+        options['destination_pw'] = 'localhost'
+
+    if not parameters.test_for_parameter(options, 'destination_directory'):
+        # For plotting the default destination is the same as the source
+        options['destination_directory'] = options['source_directory']
+
+# END - validate_parameters
+
+
 # ============================================================================
-def read_stats(stat_file):
+def read_statistics(statistics_file):
     '''
     Description:
       Read the file contents and return as a list of key values
     '''
 
-    with open(stat_file, 'r') as stat_fd:
-        for line in stat_fd:
+    with open(statistics_file, 'r') as statistics_fd:
+        for line in statistics_fd:
             line_lower = line.strip().lower()
             parts = line_lower.split('=')
             yield(parts)
 
-# END - read_stats
-
-
-# ============================================================================
-def get_mdom_from_ydoy(year, day_of_year):
-    '''
-    Description:
-      Determine month and day_of_month from the year and day_of_year
-    '''
-
-    # Convert DOY to month and day
-    month = 1
-    day_of_month = day_of_year
-    while month < 13:
-        month_days = calendar.monthrange(year, month)[1]
-        if day_of_month <= month_days:
-            return (month, day_of_month)
-        day_of_month -= month_days
-        month += 1
-# END - get_mdom_from_ydoy
+# END - read_statistics
 
 
 # ============================================================================
@@ -376,76 +320,74 @@ def get_ymds_from_filename(filename):
     '''
 
     year = 0
-    month = 0
-    day_of_month = 0
     sensor = 'unk'
 
     if filename.startswith('MOD'):
         date_element = filename.split('.')[1]
         year = int(date_element[1:5])
         day_of_year = int(date_element[5:8])
-        (month, day_of_month) = get_mdom_from_ydoy(year, day_of_year)
         sensor = 'Terra'
 
     elif filename.startswith('MYD'):
         date_element = filename.split('.')[1]
         year = int(date_element[1:5])
         day_of_year = int(date_element[5:8])
-        (month, day_of_month) = get_mdom_from_ydoy(year, day_of_year)
         sensor = 'Aqua'
 
-    elif 'LT4' in filename:
+    elif filename.startswith('LT4'):
         year = int(filename[9:13])
         day_of_year = int(filename[13:16])
-        (month, day_of_month) = get_mdom_from_ydoy(year, day_of_year)
         sensor = 'LT4'
 
-    elif 'LT5' in filename:
+    elif filename.startswith('LT5'):
         year = int(filename[9:13])
         day_of_year = int(filename[13:16])
-        (month, day_of_month) = get_mdom_from_ydoy(year, day_of_year)
         sensor = 'LT5'
 
-    elif 'LE7' in filename:
+    elif filename.startswith('LE7'):
         year = int(filename[9:13])
         day_of_year = int(filename[13:16])
-        (month, day_of_month) = get_mdom_from_ydoy(year, day_of_year)
         sensor = 'LE7'
 
-    return (year, month, day_of_month, sensor)
+    # Now that we have the year and doy we can get the month and day of month
+    date = utilities.date_from_doy(year, day_of_year)
+
+    return (year, date.month, date.day, sensor)
 # END - get_ymds_from_filename
 
 
 # ============================================================================
-def generate_sensor_stats(stat_name, stat_files):
+def generate_sensor_stats(stats_name, stats_files):
     '''
     Description:
       Combines all the stat files for one sensor into one csv file.
     '''
 
+    logger = EspaLogging.get_logger('espa.processing')
+
     stats = dict()
 
     # Fix the output filename
-    out_filename = stat_name.replace(' ', '_').lower()
+    out_filename = stats_name.replace(' ', '_').lower()
     out_filename = ''.join([out_filename, '_stats.csv'])
 
     # Read each file into a dictionary
-    for stat_file in stat_files:
-        stats[stat_file] = \
-            dict((key, value) for (key, value) in read_stats(stat_file))
+    for stats_file in stats_files:
+        stats[stats_file] = \
+            dict((key, value) for (key, value) in read_statistics(stats_file))
 
     stat_data = list()
     # Process through and create records
     for filename, obj in stats.items():
-        debug(filename)
+        logger.debug(filename)
         # Figure out the date for stats record
         (year, month, day_of_month, sensor) = get_ymds_from_filename(filename)
         date = '%04d-%02d-%02d' % (int(year), int(month), int(day_of_month))
-        debug(date)
+        logger.debug(date)
 
-        line = '%s,%s,%s,%s,%s' % (date, obj['minimum'], obj['maximum'],
-                                   obj['mean'], obj['stddev'])
-        debug(line)
+        line = ','.join([date, obj['minimum'], obj['maximum'],
+                         obj['mean'], obj['stddev']])
+        logger.debug(line)
 
         stat_data.append(line)
 
@@ -493,16 +435,14 @@ def generate_plot(plot_name, subjects, band_type, stats, plot_type="Value"):
       Builds a plot and then generates a png formatted image of the plot.
     '''
 
+    logger = EspaLogging.get_logger('espa.processing')
+
     # Test for a valid plot_type parameter
     # For us 'Range' mean min, max, and mean
     if plot_type not in ('Range', 'Value'):
         error = ("Error plot_type='%s' must be one of ('Range', 'Value')"
                  % plot_type)
         raise ValueError(error)
-
-    # Configuration for the dates
-    auto_date_locator = mpl_dates.AutoDateLocator()
-    auto_date_formatter = mpl_dates.AutoDateFormatter(auto_date_locator)
 
     # Create the subplot objects
     fig = mpl_plot.figure()
@@ -518,6 +458,9 @@ def generate_plot(plot_name, subjects, band_type, stats, plot_type="Value"):
         if band_type.startswith(range_type):
             use_data_range = range_type
             break
+    logger.info("Using use_data_range [%s] for band_type [%s]"
+                % (use_data_range, band_type))
+
     # Make sure the band_type has been coded (help the developer)
     if use_data_range == '':
         raise ValueError("Error unable to determine 'use_data_range'")
@@ -550,7 +493,7 @@ def generate_plot(plot_name, subjects, band_type, stats, plot_type="Value"):
     # Convert the list of stats read from the file into a list of stats
     # organized by the sensor and contains a python date element
     for filename, obj in stats.items():
-        debug(filename)
+        logger.debug(filename)
         # Figure out the date for plotting
         (year, month, day_of_month, sensor) = \
             get_ymds_from_filename(filename)
@@ -635,19 +578,30 @@ def generate_plot(plot_name, subjects, band_type, stats, plot_type="Value"):
 
     # Adjust the day range to help move them from the edge of the plot
     date_diff = plot_date_max - plot_date_min
-    debug(date_diff.days)
+    logger.debug(date_diff.days)
     for increment in range(0, int(date_diff.days/365) + 1):
         # Add 5 days to each end of the range for each year
         # With a minimum of 5 days added to each end of the range
         plot_date_min -= TIME_DELTA_5_DAYS
         plot_date_max += TIME_DELTA_5_DAYS
-    debug(plot_date_min)
-    debug(plot_date_max)
+    logger.debug(plot_date_min)
+    logger.debug(plot_date_max)
+    logger.debug((plot_date_max - plot_date_min).days)
+
+    # Configuration for the dates
+    auto_date_locator = mpl_dates.AutoDateLocator()
+
+    days_spanned = (plot_date_max - plot_date_min).days
+    if days_spanned > 10 and days_spanned < 30:
+        # I don't know why, but setting them to 9 works for us
+        # Some other values also work, but as far as I am concerned the
+        # AutoDateLocator is BROKEN!!!!!
+        auto_date_locator = mpl_dates.AutoDateLocator(minticks=9, maxticks=9)
+    auto_date_formatter = mpl_dates.AutoDateFormatter(auto_date_locator)
 
     # X Axis details
     min_plot.xaxis.set_major_locator(auto_date_locator)
     min_plot.xaxis.set_major_formatter(auto_date_formatter)
-    min_plot.xaxis.set_minor_locator(auto_date_locator)
 
     # X Axis - Limits - Determine the date range of the to-be-displayed data
     min_plot.set_xlim(plot_date_min, plot_date_max)
@@ -701,20 +655,22 @@ def generate_plot(plot_name, subjects, band_type, stats, plot_type="Value"):
 
 
 # ============================================================================
-def generate_plots(plot_name, stat_files, band_type):
+def generate_plots(plot_name, stats_files, band_type):
     '''
     Description:
       Gather all the information needed for plotting from the files and
       generate a plot for each statistic
     '''
 
+    logger = EspaLogging.get_logger('espa.processing')
+
     stats = dict()
 
     # Read each file into a dictionary
-    for stat_file in stat_files:
-        debug(stat_file)
-        stats[stat_file] = \
-            dict((key, value) for(key, value) in read_stats(stat_file))
+    for stats_file in stats_files:
+        logger.debug(stats_file)
+        stats[stats_file] = \
+            dict((key, value) for(key, value) in read_statistics(stats_file))
 
     plot_subjects = ['Minimum', 'Maximum', 'Mean']
     generate_plot(plot_name, plot_subjects, band_type, stats, "Range")
@@ -765,7 +721,7 @@ def process_band_type(sensor_info, band_type):
     if sensor_count > 1:
         generate_plots("Multi Sensor %s" % band_type,
                        multi_sensor_files, band_type)
-    elif sensor_count == 1:
+    elif sensor_count == 1 and len(multi_sensor_files) > 1:
         generate_plots("%s %s" % (single_sensor_name, band_type),
                        multi_sensor_files, band_type)
     # Else do not plot
@@ -802,43 +758,43 @@ SR_SWIR_MODIS_B5_SENSOR_INFO = \
 SR_SWIR1_SENSOR_INFO = [('LT4*_sr_band5.stats', L4_SATELLITE_NAME),
                         ('LT5*_sr_band5.stats', L5_SATELLITE_NAME),
                         ('LE7*_sr_band5.stats', L7_SATELLITE_NAME),
-                        ('MOD*sur_refl*6.stats', TERRA_SATELLITE_NAME),
-                        ('MYD*sur_refl*6.stats', AQUA_SATELLITE_NAME)]
+                        ('MOD*sur_refl_b06*.stats', TERRA_SATELLITE_NAME),
+                        ('MYD*sur_refl_b06*.stats', AQUA_SATELLITE_NAME)]
 
 # MODIS SR band 7 maps to Landsat SR band 7
 SR_SWIR2_SENSOR_INFO = [('LT4*_sr_band7.stats', L4_SATELLITE_NAME),
                         ('LT5*_sr_band7.stats', L5_SATELLITE_NAME),
                         ('LE7*_sr_band7.stats', L7_SATELLITE_NAME),
-                        ('MOD*sur_refl*7.stats', TERRA_SATELLITE_NAME),
-                        ('MYD*sur_refl*7.stats', AQUA_SATELLITE_NAME)]
+                        ('MOD*sur_refl_b07*.stats', TERRA_SATELLITE_NAME),
+                        ('MYD*sur_refl_b07*.stats', AQUA_SATELLITE_NAME)]
 
 # MODIS SR band 3 maps to Landsat SR band 1
 SR_BLUE_SENSOR_INFO = [('LT4*_sr_band1.stats', L4_SATELLITE_NAME),
                        ('LT5*_sr_band1.stats', L5_SATELLITE_NAME),
                        ('LE7*_sr_band1.stats', L7_SATELLITE_NAME),
-                       ('MOD*sur_refl*3.stats', TERRA_SATELLITE_NAME),
-                       ('MYD*sur_refl*3.stats', AQUA_SATELLITE_NAME)]
+                       ('MOD*sur_refl_b03*.stats', TERRA_SATELLITE_NAME),
+                       ('MYD*sur_refl_b03*.stats', AQUA_SATELLITE_NAME)]
 
 # MODIS SR band 4 maps to Landsat SR band 2
 SR_GREEN_SENSOR_INFO = [('LT4*_sr_band2.stats', L4_SATELLITE_NAME),
                         ('LT5*_sr_band2.stats', L5_SATELLITE_NAME),
                         ('LE7*_sr_band2.stats', L7_SATELLITE_NAME),
-                        ('MOD*sur_refl*4.stats', TERRA_SATELLITE_NAME),
-                        ('MYD*sur_refl*4.stats', AQUA_SATELLITE_NAME)]
+                        ('MOD*sur_refl_b04*.stats', TERRA_SATELLITE_NAME),
+                        ('MYD*sur_refl_b04*.stats', AQUA_SATELLITE_NAME)]
 
 # MODIS SR band 1 maps to Landsat SR band 3
 SR_RED_SENSOR_INFO = [('LT4*_sr_band3.stats', L4_SATELLITE_NAME),
                       ('LT5*_sr_band3.stats', L5_SATELLITE_NAME),
                       ('LE7*_sr_band3.stats', L7_SATELLITE_NAME),
-                      ('MOD*sur_refl*1.stats', TERRA_SATELLITE_NAME),
-                      ('MYD*sur_refl*1.stats', AQUA_SATELLITE_NAME)]
+                      ('MOD*sur_refl_b01*.stats', TERRA_SATELLITE_NAME),
+                      ('MYD*sur_refl_b01*.stats', AQUA_SATELLITE_NAME)]
 
 # MODIS SR band 2 maps to Landsat SR band 4
 SR_NIR_SENSOR_INFO = [('LT4*_sr_band4.stats', L4_SATELLITE_NAME),
                       ('LT5*_sr_band4.stats', L5_SATELLITE_NAME),
                       ('LE7*_sr_band4.stats', L7_SATELLITE_NAME),
-                      ('MOD*sur_refl*2.stats', TERRA_SATELLITE_NAME),
-                      ('MYD*sur_refl*2.stats', AQUA_SATELLITE_NAME)]
+                      ('MOD*sur_refl_b02*.stats', TERRA_SATELLITE_NAME),
+                      ('MYD*sur_refl_b02*.stats', AQUA_SATELLITE_NAME)]
 
 # ----------------------------------------------------------------------------
 # Only Landsat TOA band 6 files
@@ -1026,7 +982,7 @@ def process_stats():
 
 
 # ============================================================================
-def process(args):
+def process(parms):
     '''
     Description:
       Retrieves the stats directory from the specified location.
@@ -1035,100 +991,186 @@ def process(args):
 
     global SENSOR_COLORS, BG_COLOR, MARKER, MARKER_SIZE
 
+    logger = EspaLogging.get_logger('espa.processing')
+
+    options = parms['options']
+
+    # Validate the parameters
+    validate_parameters(parms)
+
+    # Build the plotting command line
+    cmd = [os.path.basename(__file__)]
+    cmd_line_options = \
+        parameters.convert_to_command_line_options(parms)
+    cmd.extend(cmd_line_options)
+    cmd = ' '.join(cmd)
+    logger.info("PLOTTING COMMAND LINE [%s]" % cmd)
+
     # Override the colors if they were specified
-    SENSOR_COLORS['Terra'] = args.terra_color
-    SENSOR_COLORS['Aqua'] = args.aqua_color
-    SENSOR_COLORS['LT4'] = args.lt4_color
-    SENSOR_COLORS['LT5'] = args.lt5_color
-    SENSOR_COLORS['LE7'] = args.le7_color
-    BG_COLOR = args.bg_color
+    if parameters.test_for_parameter(options, 'terra_color'):
+        SENSOR_COLORS['Terra'] = options['terra_color']
+    if parameters.test_for_parameter(options, 'aqua_color'):
+        SENSOR_COLORS['Aqua'] = options['aqua_color']
+    if parameters.test_for_parameter(options, 'lt4_color'):
+        SENSOR_COLORS['LT4'] = options['lt4_color']
+    if parameters.test_for_parameter(options, 'lt5_color'):
+        SENSOR_COLORS['LT5'] = options['lt5_color']
+    if parameters.test_for_parameter(options, 'le7_color'):
+        SENSOR_COLORS['LE7'] = options['le7_color']
+    if parameters.test_for_parameter(options, 'bg_color'):
+        BG_COLOR = options['bg_color']
 
-    # Override the marker if they were specified
-    MARKER = args.marker
-    MARKER_SIZE = args.marker_size
+    # Override the marker it was specified
+    if parameters.test_for_parameter(options, 'marker'):
+        MARKER = options['marker']
+    if parameters.test_for_parameter(options, 'marker_size'):
+        MARKER_SIZE = options['marker_size']
 
-    local_work_directory = 'lpcs_statistics'
-    remote_stats_directory = os.path.join(args.order_directory, 'stats')
-    remote_location = ''.join([args.source_host, ':', remote_stats_directory])
+    # Combine the order ID with statistics to form the package name
+    package_prefix = '-'.join([parms['orderid'], 'statistics'])
 
-    # Make sure the directory does not exist
+    # Define the local directory name and the source of the statistics
+    local_work_directory = package_prefix
+    source_stats_files = os.path.join(options['source_directory'], 'stats/*')
+
+    # Make sure the local directory does not exist
     shutil.rmtree(local_work_directory, ignore_errors=True)
 
-    cmd = ' '.join(['scp', '-q', '-o', 'StrictHostKeyChecking=no',
-                    '-c', 'arcfour', '-C', '-r', remote_location,
-                    local_work_directory])
+    # Create the local work directory
     try:
-        output = execute_cmd(cmd)
+        staging.create_directory(local_work_directory)
     except Exception, e:
-        log("Failed retrieving stats from online cache")
-        log(output)
-        raise Exception(str(e)), None, sys.exc_info()[2]
+        logger.error("Creating directory [%s]" % local_work_directory)
+        raise
 
-    # Change to the statistics directory
+    # Transfer the files using scp (don't provide any usernames and passwords)
+    try:
+        transfer.transfer_file(options['source_host'], source_stats_files,
+                               'localhost', local_work_directory)
+    except Exception, e:
+        logger.error("Transfering statistics to local directory")
+        raise
+
+    # Change to the local work directory
     current_directory = os.getcwd()
-    os.chdir(local_work_directory)
+    product_full_path = os.path.join(current_directory, local_work_directory)
 
     try:
+        os.chdir(local_work_directory)
+
+        logger.info("Processing statistics files")
         process_stats()
 
-        # Distribute back to the online cache
-        lpcs_files = '*'
-        remote_lpcs_directory = '%s/%s' % (args.order_directory,
-                                           local_work_directory)
-        log("Creating lpcs_statistics directory %s on %s"
-            % (remote_lpcs_directory, args.source_host))
-        cmd = ' '.join(['ssh', '-q', '-o', 'StrictHostKeyChecking=no',
-                        args.source_host,
-                        'mkdir', '-p', remote_lpcs_directory])
-        output = ''
+        cksum_product_filename = ''
+        # ---------------------------------------------------------------
+        # Package the product into a *.tar.gz
         try:
-            output = execute_cmd(cmd)
+            logger.info("Packaging completed product to %s.tar.gz"
+                        % product_full_path)
+
+            # Grab a listing of all the files in the directory
+            product_files = glob.glob("*")
+
+            # Tar the product files
+            logger.info("Tar'ing product files")
+            utilities.tar_files(product_full_path, product_files)
+
         except Exception, e:
-            log(output)
-            raise Exception(str(e)), None, sys.exc_info()[2]
+            logger.error("Failed tar'ing plot results")
+            raise
 
-        # Transfer the lpcs plot and statistic files
-        scp_transfer_file('localhost', lpcs_files, args.source_host,
-                          remote_lpcs_directory)
+        # Change back to the previous directory
+        os.chdir(current_directory)
 
-        log("Verifying statistics transfers")
-        # NOTE - Re-purposing the lpcs_files variable
-        lpcs_files = glob.glob(lpcs_files)
-        for lpcs_file in lpcs_files:
-            local_cksum_value = 'a b c'
-            remote_cksum_value = 'b c d'
+        # Stop using the full path, because we are in the directory where
+        # the checksum file exists
+        product_filename = os.path.basename(product_full_path)
+        # The product also has the '.tar' extension now
+        product_filename = '.'.join([product_filename, 'tar'])
 
-            # Generate a local checksum value
-            cmd = ' '.join(['cksum', lpcs_file])
+        # ---------------------------------------------------------------
+        # Gzip the product tar file
+        try:
+            logger.info("Gzip'ing product file")
+            utilities.gzip_files([product_filename])
+
+        except Exception, e:
+            logger.error("Failed gzip'ing plot results")
+            raise
+
+        # The product has the '.gz' extension now
+        product_filename = '.'.join([product_filename, 'gz'])
+
+        logger.info("Packaging complete")
+
+        # ---------------------------------------------------------------
+        # Generate the checksum
+        cksum_result = ''
+        try:
+            cksum_result = utilities.checksum_local_file(product_filename)
+
+        except Exception, e:
+            logger.error("Failed packaging plot results")
+            raise
+
+        # Verify that it has some contents
+        if not cksum_result:
+            raise Exception("Empty checksum output")
+
+        # Write the checksum file
+        cksum_filename = "%s.cksum" % package_prefix
+        try:
+            with open(cksum_filename, 'wb+') as cksum_fd:
+                cksum_fd.write(cksum_result)
+        except Exception, e:
+            logger.error("Error building cksum file")
+            raise
+
+        logger.info("Checksum complete")
+
+        # ---------------------------------------------------------------
+        # Distribute both files to the online cache
+
+        logger.info("Distributing %s to directory %s on %s"
+                    % (product_filename, options['destination_directory'],
+                       options['destination_host']))
+
+        # Distribute the product
+        # Attempt X times sleeping between each attempt
+        attempt = 0
+        while True:
             try:
-                local_cksum_value = execute_cmd(cmd)
+                (remote_cksum_value, destination_product_file,
+                 destination_cksum_file) = \
+                    dist.distribute_product(options['destination_host'],
+                                            options['destination_directory'],
+                                            options['destination_username'],
+                                            options['destination_pw'],
+                                            product_filename,
+                                            cksum_filename)
             except Exception, e:
-                log(local_cksum_value)
-                raise Exception(str(e)), None, sys.exc_info()[2]
+                logger.error("An exception occurred distributing %s"
+                             % product_filename)
+                logger.exception("Exception Message:")
+                if attempt < settings.MAX_DELIVERY_ATTEMPTS:
+                    sleep(sleep_seconds)  # sleep before trying again
+                    attempt += 1
+                    continue
+                else:
+                    raise
+            break
 
-            # Generate a remote checksum value
-            remote_file = os.path.join(remote_lpcs_directory, lpcs_file)
-            cmd = ' '.join(['ssh', '-q', '-o', 'StrictHostKeyChecking=no',
-                            args.source_host, 'cksum', remote_file])
-            try:
-                remote_cksum_value = execute_cmd(cmd)
-            except Exception, e:
-                log(remote_cksum_value)
-                raise Exception(str(e)), None, sys.exc_info()[2]
+        # Checksum validation
+        if cksum_result.split()[0] != remote_cksum_value.split()[0]:
+            raise Exception("Failed checksum validation between %s and %s:%s"
+                            % (product_filename, options['destination_host'],
+                               destination_product_file))
 
-            # Checksum validation
-            if local_cksum_value.split()[0] != remote_cksum_value.split()[0]:
-                raise Exception(
-                    "Failed checksum validation between %s and %s:%s"
-                    % (lpcs_file, args.source_host, remote_file))
     finally:
         # Change back to the previous directory
         os.chdir(current_directory)
-        # Remove the local_work_directory
-        if not args.keep:
-            shutil.rmtree(local_work_directory)
 
-    log("Plot Processing Complete")
+    logger.info("Plot Processing Complete")
 # END - process
 
 
@@ -1136,28 +1178,41 @@ def process(args):
 if __name__ == '__main__':
     '''
     Description:
-      Read parameters from the command line and build a JSON dictionary from
-      them.  Pass the JSON dictionary to the process routine.
+      Grab the command line options, setup the logging and call the main
+      process routine.
     '''
+
+    # Create the JSON dictionary to use
+    parms = dict()
 
     # Build the command line argument parser
     parser = build_argument_parser()
 
     # Parse the command line arguments
     args = parser.parse_args()
+    args_dict = vars(args)
 
-    # Setup debug
-    set_debug(args.debug)
+    # Configure logging
+    EspaLogging.configure('espa.processing', order='test',
+                          product='plot', debug=args.debug)
+    logger = EspaLogging.get_logger('espa.processing')
+
+    # Build our JSON formatted input from the command line parameters
+    orderid = args_dict.pop('orderid')
+    options = {k: args_dict[k] for k in args_dict if args_dict[k] is not None}
+
+    # Build the JSON parameters dictionary
+    parms['orderid'] = orderid
+    parms['product_type'] = 'plot'  # Always the 'plot' type
+    parms['options'] = options
 
     try:
-        # Call the main processing routine
-        process(args)
+        # Process the specified orders plots
+        process(parms)
     except Exception, e:
-        log("Error: %s" % str(e))
-        tb = traceback.format_exc()
-        log("Traceback: [%s]" % tb)
         if hasattr(e, 'output'):
-            log("Error: Output [%s]" % e.output)
+            logger.error("Output [%s]" % e.output)
+        logger.exception("Processing failed")
         sys.exit(EXIT_FAILURE)
 
     sys.exit(EXIT_SUCCESS)

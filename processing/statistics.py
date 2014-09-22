@@ -16,17 +16,25 @@ import os
 import sys
 import glob
 import errno
-import traceback
 from cStringIO import StringIO
 import numpy as np
 
 # espa-common objects and methods
 from espa_constants import *
-from espa_logging import log
+
+# imports from espa/espa_common
+try:
+    from espa_logging import EspaLogging
+except:
+    from espa_common.espa_logging import EspaLogging
+
+try:
+    import settings
+except:
+    from espa_common import settings
 
 # local objects and methods
 import espa_exception as ee
-import settings
 
 
 # ============================================================================
@@ -84,6 +92,8 @@ def generate_statistics(work_directory, files_to_search_for):
       product if we need statistics.
     '''
 
+    logger = EspaLogging.get_logger('espa.processing')
+
     # Change to the working directory
     current_directory = os.getcwd()
     os.chdir(work_directory)
@@ -111,7 +121,7 @@ def generate_statistics(work_directory, files_to_search_for):
             for band_type in file_names:
                 for file_name in file_names[band_type]:
 
-                    log("Generating statistics for: %s" % file_name)
+                    logger.info("Generating statistics for: %s" % file_name)
 
                     (minimum, maximum,
                      mean, stddev) = get_statistics(file_name, band_type)
@@ -154,6 +164,11 @@ if __name__ == '__main__':
       It only provides stats for landsat and modis data.
     '''
 
+    # Configure logging
+    EspaLogging.configure('espa.processing', order='test',
+                          product='statistics')
+    logger = EspaLogging.get_logger('espa.processing')
+
     # Hold the wild card strings in a type based dictionary
     files_to_search_for = dict()
 
@@ -174,11 +189,9 @@ if __name__ == '__main__':
     try:
         generate_statistics('.', files_to_search_for)
     except Exception, e:
-        log("Error: %s" % str(e))
-        tb = traceback.format_exc()
-        log("Traceback: [%s]" % tb)
         if hasattr(e, 'output'):
-            log("Error: Output [%s]" % e.output)
+            logger.error("Output [%s]" % e.output)
+        logger.exception("Processing failed")
         sys.exit(EXIT_FAILURE)
 
     sys.exit(EXIT_SUCCESS)

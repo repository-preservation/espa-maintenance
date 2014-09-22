@@ -17,6 +17,8 @@
     ----------------  ------------------------ --------------------------------
     ??/??/????        David V. Hill            Initial implementation.
     Aug/2014          Ron Dilley               Made operational for cron
+    Sept/2014         Ron Dilley               Updated to use espa_common and
+                                               our python logging setup
 '''
 
 import os
@@ -28,7 +30,10 @@ import traceback
 from espa_constants import EXIT_FAILURE
 from espa_constants import EXIT_SUCCESS
 
-from espa_logging import log
+# imports from espa/espa_common
+from espa_common.espa_logging import EspaLogging
+
+LOGGER_NAME = 'espa.cron'
 
 
 # ============================================================================
@@ -39,6 +44,9 @@ def determine_order_disposition():
       along with sending the initial emails out to the users after their
       order has been accepted.
     '''
+
+    # Get the logger for this task
+    logger = EspaLogging.get_logger(LOGGER_NAME)
 
     rpcurl = os.environ.get('ESPA_XMLRPC')
     server = None
@@ -62,14 +70,10 @@ def determine_order_disposition():
             raise Exception(msg)
 
     except xmlrpclib.ProtocolError, e:
-        log("A protocol error occurred: %s" % str(e))
-        tb = traceback.format_exc()
-        log(tb)
+        logger.exception("A protocol error occurred")
 
     except Exception, e:
-        log("An error occurred finalizing orders: %s" % str(e))
-        tb = traceback.format_exc()
-        log(tb)
+        logger.exception("An error occurred finalizing orders")
 
     finally:
         server = None
@@ -83,6 +87,10 @@ if __name__ == '__main__':
       Execute the order disposition determination routine.
     '''
 
+    # Configure and get the logger for this task
+    EspaLogging.configure(LOGGER_NAME)
+    logger = EspaLogging.get_logger(LOGGER_NAME)
+
     # Check required variables that this script should fail on if they are not
     # defined
     required_vars = ['ESPA_XMLRPC']
@@ -90,9 +98,13 @@ if __name__ == '__main__':
         if (env_var not in os.environ or os.environ.get(env_var) is None
                 or len(os.environ.get(env_var)) < 1):
 
-            log("$%s is not defined... exiting" % env_var)
+            logger.critical("$%s is not defined... exiting" % env_var)
             sys.exit(EXIT_FAILURE)
 
-    determine_order_disposition()
+    try:
+        determine_order_disposition()
+    except Exception, e:
+        logger.exception("Processing failed")
+        sys.exit(EXIT_FAILURE)
 
     sys.exit(EXIT_SUCCESS)

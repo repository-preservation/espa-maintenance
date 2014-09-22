@@ -126,12 +126,21 @@ LOGFILE_PATH = '/tmp'
 
 
 ##############################################################################
+# Used by plotting.py
+PLOT_BG_COLOR = '#f3f3f3'  # A light gray
+PLOT_MARKER = (1, 3, 0)    # Better circle than 'o'
+PLOT_MARKER_SIZE = 5.0     # A good size for the circle or diamond
+
+
+##############################################################################
 # Used by statistics.py
 
 # Band type data ranges.  They are intended to be used for removing outliers
 # from the data before statistics generation
-# Must match DATA_MAX_Y and DATA_MIN_Y values in plot.py
+# Must match DATA_MAX_Y and DATA_MIN_Y values in plotting.py
 # The types must match the types in cdr_ecv.py and modis.py
+# Note: These are also defined in such away that the fill values are also
+#       excluded.
 BAND_TYPE_STAT_RANGES = {
     'SR': {
         'UPPER_BOUND': 10000,
@@ -156,7 +165,7 @@ BAND_TYPE_STAT_RANGES = {
 }
 
 '''Resolves system-wide identification of sensor name based on three letter
- prefix
+   prefix
 '''
 SENSOR_NAMES = {
     'LE7': 'etm',
@@ -211,7 +220,7 @@ LOGGING DEFINITIONS
 
 LOGGER_CONFIG = {
     'version': 1,
-    'disable_existing_loggers': True,
+    'disable_existing_loggers': False,
     'formatters': {
         'espa.standard': {
             # Used by the processing and web systems
@@ -285,6 +294,13 @@ LOGGER_CONFIG = {
             'filename': '/tmp/espa_cron.log',
             'mode': 'a'
         },
+        'espa.cron.lpcs': {
+            'level': 'DEBUG',
+            'class': 'logging.FileHandler',
+            'formatter': 'espa.standard',
+            'filename': '/tmp/espa_lpcs_cron.log',
+            'mode': 'a'
+        },
         'espa.processing': {
             'level': 'DEBUG',
             'class': 'logging.FileHandler',
@@ -327,6 +343,12 @@ LOGGER_CONFIG = {
             'level': 'INFO',
             'propagate': False,
             'handlers': ['espa.cron.high']
+        },
+        'espa.cron.lpcs': {
+            # To be used by the 'lpcs' cron
+            'level': 'INFO',
+            'propagate': False,
+            'handlers': ['espa.cron.lpcs']
         },
         'espa.processing': {
             # To be used by the processing system

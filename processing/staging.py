@@ -20,12 +20,21 @@ import glob
 
 # espa-common objects and methods
 from espa_constants import *
-from espa_logging import log
+
+# imports from espa/espa_common
+try:
+    from espa_logging import EspaLogging
+except:
+    from espa_common.espa_logging import EspaLogging
+
+try:
+    import utilities
+except:
+    from espa_common import utilities
 
 # local objects and methods
 import espa_exception as ee
 import transfer
-import util
 
 
 espa_base_working_dir_envvar = 'ESPA_WORK_DIR'
@@ -59,21 +68,25 @@ def untar_data(source_file, destination_directory):
       Works with '*.tar.gz' and '*.tar' files.
     '''
 
+    logger = EspaLogging.get_logger('espa.processing')
+
     # If both source and destination are localhost we can just copy the data
     cmd = ' '.join(['tar', '--directory', destination_directory,
                     '-xvf', source_file])
 
-    log("Unpacking [%s] to [%s]" % (source_file, destination_directory))
+    logger.info("Unpacking [%s] to [%s]"
+                % (source_file, destination_directory))
 
     # Unpack the data and raise any errors
     output = ''
     try:
-        output = util.execute_cmd(cmd)
+        output = utilities.execute_cmd(cmd)
     except Exception, e:
-        log("Error: Failed to unpack data")
+        logger.error("Failed to unpack data")
         raise e
     finally:
-        log(output)
+        if len(output) > 0:
+            logger.info(output)
 # END - untar_data
 
 
@@ -88,11 +101,13 @@ def initialize_processing_directory(orderid, scene):
 
     global espa_base_working_dir_envvar
 
+    logger = EspaLogging.get_logger('espa.processing')
+
     order_directory = ''
 
     if espa_base_working_dir_envvar not in os.environ:
-        log("Warning: Environment variable $%s is not defined" %
-            espa_working_dir_var)
+        logger.warning("Environment variable $%s is not defined"
+                       % espa_working_dir_var)
     else:
         order_directory = os.environ.get(espa_base_working_dir_envvar)
 

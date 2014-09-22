@@ -22,7 +22,22 @@ from argparse import ArgumentParser
 
 # espa-common objects and methods
 from espa_constants import *
-from espa_logging import log, set_debug, debug
+
+# imports from espa/espa_common
+try:
+    from espa_logging import EspaLogging
+except:
+    from espa_common.espa_logging import EspaLogging
+
+try:
+    import settings
+except:
+    from espa_common import settings
+
+try:
+    import utilities
+except:
+    from espa_common import utilities
 
 # local objects and methods
 import espa_exception as ee
@@ -33,7 +48,6 @@ import metadata_api
 import solr
 # We do not offer browse products for the time being.
 # import browse
-import settings
 
 
 # Define all of the non-product files that need to be removed before product
@@ -105,11 +119,13 @@ def validate_landsat_parameters(parms):
       is available with the provided input parameters.
     '''
 
+    logger = EspaLogging.get_logger('espa.processing')
+
     # Test for presence of top-level parameters
     keys = ['scene', 'options']
     for key in keys:
         if not parameters.test_for_parameter(parms, key):
-            log("Error: Missing parameter %s" % key)
+            logger.error("Missing parameter %s" % key)
             return ERROR
 
     # Access to the options parameters
@@ -128,24 +144,25 @@ def validate_landsat_parameters(parms):
 
     for parameter in required_includes:
         if not parameters.test_for_parameter(options, parameter):
-            log("Warning: '%s' parameter missing defaulting to False"
-                % parameter)
+            logger.warning("'%s' parameter missing defaulting to False"
+                           % parameter)
             options[parameter] = False
 
     # Determine if browse was requested and specify the default resolution if
     # a resolution was not specified
     if options['include_sr_browse']:
         if not parameters.test_for_parameter(options, 'browse_resolution'):
-            log("Warning: 'browse_resolution' parameter missing defaulting"
-                " to %d" % settings.DEFAULT_BROWSE_RESOLUTION)
+            logger.warning("'browse_resolution' parameter missing"
+                           " defaulting to %d"
+                           % settings.DEFAULT_BROWSE_RESOLUTION)
             options['browse_resolution'] = settings.DEFAULT_BROWSE_RESOLUTION
 
     # Determine if SOLR was requested and specify the default collection name
     # if a collection name was not specified
     if options['include_solr_index']:
         if not parameters.test_for_parameter(options, 'collection_name'):
-            log("Warning: 'collection_name' parameter missing defaulting"
-                " to %s" % settings.DEFAULT_SOLR_COLLECTION_NAME)
+            logger.warning("'collection_name' parameter missing defaulting"
+                           " to %s" % settings.DEFAULT_SOLR_COLLECTION_NAME)
             options['collection_name'] = settings.DEFAULT_SOLR_COLLECTION_NAME
 # END - validate_landsat_parameters
 
@@ -157,6 +174,8 @@ def remove_products(xml_filename, products_to_remove=None):
       Remove the specified products from the XML file.  The file is read into
       memory, processed, and written back out with out the specified products.
     '''
+
+    logger = EspaLogging.get_logger('espa.processing')
 
     if products_to_remove is not None:
         espa_xml = metadata_api.parse(xml_filename, silence=True)
@@ -177,16 +196,17 @@ def remove_products(xml_filename, products_to_remove=None):
         if len(file_names) > 0:
 
             cmd = ' '.join(['rm', '-rf'] + file_names)
-            log(' '.join(['REMOVING INTERMEDIATE PRODUCTS NOT REQUESTED',
-                          'COMMAND:', cmd]))
+            logger.info(' '.join(["REMOVING INTERMEDIATE PRODUCTS NOT"
+                                  " REQUESTED", 'COMMAND:', cmd]))
 
             try:
-                output = util.execute_cmd(cmd)
+                output = utilities.execute_cmd(cmd)
             except Exception, e:
                 raise ee.ESPAException(ee.ErrorCodes.remove_products,
                                        str(e)), None, sys.exc_info()[2]
             finally:
-                log(output)
+                if len(output) > 0:
+                    logger.info(output)
 
             # Remove them from the XML by creating a new list of all the others
             bands.band[:] = [band for band in bands.band
@@ -209,7 +229,8 @@ def remove_products(xml_filename, products_to_remove=None):
                 raise ee.ESPAException(ee.ErrorCodes.remove_products,
                                        str(e)), None, sys.exc_info()[2]
             finally:
-                log(output)
+                if len(output) > 0:
+                    logger.info(output)
         # END - if file_names
 
         # Cleanup
@@ -227,6 +248,8 @@ def remove_landsat_science_products(parms, xml_filename):
       landsat science products that were generated, but not requested.
       Remove them from the system and the metadata.xml file.
     '''
+
+    logger = EspaLogging.get_logger('espa.processing')
 
     # Keep a local options variable
     options = parms['options']
@@ -253,17 +276,17 @@ def remove_landsat_science_products(parms, xml_filename):
 
         if len(non_products) > 0:
             cmd = ' '.join(['rm', '-rf'] + non_products)
-            log(' '.join(['REMOVING INTERMEDIATE DATA COMMAND:', cmd]))
+            logger.info(' '.join(['REMOVING INTERMEDIATE DATA COMMAND:', cmd]))
 
             output = ''
             try:
-                output = util.execute_cmd(cmd)
+                output = utilities.execute_cmd(cmd)
             except Exception, e:
                 raise ee.ESPAException(ee.ErrorCodes.cleanup_work_dir,
                                        str(e)), None, sys.exc_info()[2]
             finally:
                 if len(output) > 0:
-                    log(output)
+                    logger.info(output)
 
         if xml_filename is not None:
             # Remove generated products that were not requested
@@ -306,6 +329,8 @@ def build_landsat_science_products(parms):
       Build all the requested science products for Landsat data.
     '''
 
+    logger = EspaLogging.get_logger('espa.processing')
+
     # Keep a local options for those apps that only need a few things
     options = parms['options']
     scene = parms['scene']
@@ -341,16 +366,16 @@ def build_landsat_science_products(parms):
             cmd.append('--del_src_files')
 
         cmd = ' '.join(cmd)
-        log(' '.join(['CONVERT LPGS TO ESPA COMMAND:', cmd]))
+        logger.info(' '.join(['CONVERT LPGS TO ESPA COMMAND:', cmd]))
 
         try:
-            output = util.execute_cmd(cmd)
+            output = utilities.execute_cmd(cmd)
         except Exception, e:
             raise ee.ESPAException(ee.ErrorCodes.reformat,
                                    str(e)), None, sys.exc_info()[2]
         finally:
             if len(output) > 0:
-                log(output)
+                logger.info(output)
 
         # --------------------------------------------------------------------
         # Generate LEDAPS products SR, TOA, TH
@@ -369,17 +394,17 @@ def build_landsat_science_products(parms):
                 or options['include_dswe']):
 
             cmd = ' '.join(['do_ledaps.py', '--xml', xml_filename])
-            log(' '.join(['LEDAPS COMMAND:', cmd]))
+            logger.info(' '.join(['LEDAPS COMMAND:', cmd]))
 
             output = ''
             try:
-                output = util.execute_cmd(cmd)
+                output = utilities.execute_cmd(cmd)
             except Exception, e:
                 raise ee.ESPAException(ee.ErrorCodes.ledaps,
                                        str(e)), None, sys.exc_info()[2]
             finally:
                 if len(output) > 0:
-                    log(output)
+                    logger.info(output)
 
         # --------------------------------------------------------------------
         # Generate SR browse product
@@ -424,17 +449,17 @@ def build_landsat_science_products(parms):
                 cmd.append('--evi')
 
             cmd = ' '.join(cmd)
-            log(' '.join(['SPECTRAL INDICES COMMAND:', cmd]))
+            logger.info(' '.join(['SPECTRAL INDICES COMMAND:', cmd]))
 
             output = ''
             try:
-                output = util.execute_cmd(cmd)
+                output = utilities.execute_cmd(cmd)
             except Exception, e:
                 raise ee.ESPAException(ee.ErrorCodes.spectral_indices,
                                        str(e)), None, sys.exc_info()[2]
             finally:
                 if len(output) > 0:
-                    log(output)
+                    logger.info(output)
         # END - if indices
 
         # --------------------------------------------------------------------
@@ -450,17 +475,17 @@ def build_landsat_science_products(parms):
                             '--metafile', metadata_filename,
                             '--demfile', dem_filename])
 
-            log(' '.join(['CREATE DEM COMMAND:', cmd]))
+            logger.info(' '.join(['CREATE DEM COMMAND:', cmd]))
 
             output = ''
             try:
-                output = util.execute_cmd(cmd)
+                output = utilities.execute_cmd(cmd)
             except Exception, e:
                 raise ee.ESPAException(ee.ErrorCodes.create_dem,
                                        str(e)), None, sys.exc_info()[2]
             finally:
                 if len(output) > 0:
-                    log(output)
+                    logger.info(output)
 
         # --------------------------------------------------------------------
         # Generate SOLR index
@@ -497,17 +522,17 @@ def build_landsat_science_products(parms):
             cmd = ' '.join(['cfmask', '--verbose', '--max_cloud_pixels',
                             settings.CFMASK_MAX_CLOUD_PIXELS,
                             '--xml', xml_filename])
-            log(' '.join(['CREATE CFMASK COMMAND:', cmd]))
+            logger.info(' '.join(['CREATE CFMASK COMMAND:', cmd]))
 
             output = ''
             try:
-                output = util.execute_cmd(cmd)
+                output = utilities.execute_cmd(cmd)
             except Exception, e:
                 raise ee.ESPAException(ee.ErrorCodes.cfmask,
                                        str(e)), None, sys.exc_info()[2]
             finally:
                 if len(output) > 0:
-                    log(output)
+                    logger.info(output)
 
 #        # --------------------------------------------------------------------
 #        # Generate Surface Water Extent product
@@ -518,15 +543,15 @@ def build_landsat_science_products(parms):
 #                            '--reflectance', sr_filename,
 #                            '--dem', dem_filename])
 #
-#            log(' '.join(['CREATE SWE COMMAND:', cmd]))
+#            logger.info(' '.join(['CREATE SWE COMMAND:', cmd]))
 #            try:
-#                output = util.execute_cmd(cmd)
+#                output = utilities.execute_cmd(cmd)
 #            except Exception, e:
 #                raise ee.ESPAException(ee.ErrorCodes.swe, str(e)), \
 #                    None, sys.exc_info()[2]
 #            finally:
 #                if len(output) > 0:
-#                    log(output)
+#                    logger.info(output)
 
     finally:
         # Change back to the previous directory
@@ -546,6 +571,8 @@ def build_modis_science_products(parms):
       We get science products as the input, so the only thing really happening
       here is generating a customized product for the statistics generation.
     '''
+
+    logger = EspaLogging.get_logger('espa.processing')
 
     # Keep a local options for those apps that only need a few things
     options = parms['options']
@@ -569,17 +596,17 @@ def build_modis_science_products(parms):
             cmd.append('--del_src_files')
 
         cmd = ' '.join(cmd)
-        log(' '.join(['CONVERT MODIS TO ESPA COMMAND:', cmd]))
+        logger.info(' '.join(['CONVERT MODIS TO ESPA COMMAND:', cmd]))
 
         output = ''
         try:
-            output = util.execute_cmd(cmd)
+            output = utilities.execute_cmd(cmd)
         except Exception, e:
             raise ee.ESPAException(ee.ErrorCodes.reformat, str(e)), \
                 None, sys.exc_info()[2]
         finally:
             if len(output) > 0:
-                log(output)
+                logger.info(output)
 
     finally:
         # Change back to the previous directory
@@ -604,8 +631,10 @@ if __name__ == '__main__':
     args = parser.parse_args()
     args_dict = vars(parser.parse_args())
 
-    # Setup debug
-    set_debug(args.debug)
+    # Configure the logger
+    EspaLogging.configure('espa.processing', order='test',
+                          product='product', debug=args.debug)
+    logger = EspaLogging.get_logger('espa.processing')
 
     # Build our JSON formatted input from the command line parameters
     scene = args_dict.pop('scene')
@@ -616,7 +645,7 @@ if __name__ == '__main__':
 
     sensor = util.get_sensor(scene)
     if sensor not in parameters.valid_sensors:
-        log("Error: Data sensor %s is not implemented" % sensor)
+        logger.error("Data sensor %s is not implemented" % sensor)
         sys.exit(EXIT_FAILURE)
 
     json_parms['options'] = options
@@ -629,11 +658,9 @@ if __name__ == '__main__':
         # elif sensor in parameters.valid_OTHER_sensors:
         #    build_OTHER_science_products(parms)
     except Exception, e:
-        log("Error: %s" % str(e))
-        tb = traceback.format_exc()
-        log("Traceback: [%s]" % tb)
         if hasattr(e, 'output'):
-            log("Error: Output [%s]" % e.output)
+            logger.error("Output [%s]" % e.output)
+        logger.exception("Processing failed")
         sys.exit(EXIT_FAILURE)
 
     sys.exit(EXIT_SUCCESS)

@@ -18,67 +18,16 @@ import calendar
 import commands
 import random
 
+# imports from espa/espa_common
+try:
+    import settings
+except:
+    from espa_common import settings
 
-# local objects and methods
-import settings
-
-# ============================================================================
-def get_logfile(orderid, sceneid):
-    '''
-    Description:
-      Returns the full path and name of the log file to use
-    '''
-
-    return '%s/%s-%s-jobdebug.txt' % (settings.LOGFILE_PATH, orderid, sceneid)
-
-
-# ============================================================================
-def execute_cmd(cmd):
-    '''
-    Description:
-      Execute a command line and return the terminal output or raise an
-      exception
-
-    Returns:
-        output - The stdout and/or stderr from the executed command.
-    '''
-
-    output = ''
-
-    (status, output) = commands.getstatusoutput(cmd)
-
-    if status < 0:
-        message = "Application terminated by signal [%s]" % cmd
-        if len(output) > 0:
-            message = ' Stdout/Stderr is: '.join([message, output])
-        raise Exception(message)
-
-    if status != 0:
-        message = "Application failed to execute [%s]" % cmd
-        if len(output) > 0:
-            message = ' Stdout/Stderr is: '.join([message, output])
-        raise Exception(message)
-
-    if os.WEXITSTATUS(status) != 0:
-        message = "Application [%s] returned error code [%d]" \
-                  % (cmd, os.WEXITSTATUS(status))
-        if len(output) > 0:
-            message = ' Stdout/Stderr is: '.join([message, output])
-        raise Exception(message)
-
-    return output
-
-
-# ============================================================================
-def strip_zeros(value):
-    '''
-    Description:
-      Removes all leading zeros from a string
-    '''
-
-    while value.startswith('0'):
-        value = value[1:len(value)]
-    return value
+try:
+    import utilities
+except:
+    from espa_common import utilities
 
 
 # ============================================================================
@@ -87,7 +36,7 @@ def get_path(scene_name):
     Description:
       Returns the path of a given scene
     '''
-    return strip_zeros(scene_name[3:6])
+    return utilities.strip_zeros(scene_name[3:6])
 
 
 # ============================================================================
@@ -96,7 +45,7 @@ def get_row(scene_name):
     Description:
       Returns the row of a given scene
     '''
-    return strip_zeros(scene_name[6:9])
+    return utilities.strip_zeros(scene_name[6:9])
 
 
 # ============================================================================
@@ -220,43 +169,7 @@ def get_modis_archive_date(scene_name):
         day -= month_days
         month += 1
 
-    raise ValueError("Year %s does not have %s days" % (year, doy))
-
-
-# ============================================================================
-def get_cache_hostname():
-    '''
-    Description:
-      Poor mans load balancer for accessing the online cache over the private
-      network
-    '''
-
-    # 140 is here twice so the load is 2/3 + 1/3.  machines are mismatched
-    host_list = settings.ESPA_CACHE_HOST_LIST
-
-    def check_host_status(hostname):
-        cmd = "ping -q -c 1 %s" % hostname
-        output = ''
-        try:
-            output = execute_cmd(cmd)
-        except Exception, e:
-            return -1
-        return 0
-
-    def get_hostname():
-        hostname = random.choice(host_list)
-        if check_host_status(hostname) == 0:
-            return hostname
-        else:
-            for x in host_list:
-                if x == hostname:
-                    host_list.remove(x)
-            if len(host_list) > 0:
-                return get_hostname()
-            else:
-                raise Exception("No online cache hosts available...")
-
-    return get_hostname()
+    raise ValueError("Year %s does not have day %s" % (year, doy))
 
 
 # ============================================================================
@@ -273,7 +186,7 @@ def get_input_hostname(sensor):
     if sensor in ['terra', 'aqua']:
         return settings.MODIS_INPUT_HOSTNAME
 
-    return get_cache_hostname()
+    return utilities.get_cache_hostname()
 
 
 # ============================================================================
@@ -284,7 +197,7 @@ def get_output_hostname():
 
     Note:
       Today all output products use the landsat online cache which is provided
-      by get_cache_hostname.
+      by utilities.get_cache_hostname.
     '''
 
-    return get_cache_hostname()
+    return utilities.get_cache_hostname()

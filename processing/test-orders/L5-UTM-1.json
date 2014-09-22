@@ -10,7 +10,7 @@
         "false_easting": null,
         "false_northing": null,
         "image_extents": false,
-        "include_cfmask": true,
+        "include_cfmask": false,
         "include_customized_source_data": true,
         "include_dswe": false,
         "include_solr_index": false,
@@ -50,7 +50,7 @@
         "std_parallel_2": null,
         "target_projection": "utm",
         "utm_north_south": "north",
-        "utm_zone": "5"
+        "utm_zone": 5
     },
     "orderid": "ORDER_ID",
     "scene": "SCENE_ID",

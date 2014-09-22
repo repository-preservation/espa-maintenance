@@ -377,7 +377,10 @@ def get_modis_products_to_process():
 
 
 @transaction.atomic
-def get_scenes_to_process(limit=500, for_user=None, priority=None):
+def get_scenes_to_process(limit=500,
+                          for_user=None,
+                          priority=None,
+                          product_types=['landsat', 'modis']):
     '''Find scenes that are oncache and return them as properly formatted
     json per the interface description between the web and processing tier'''
 
@@ -394,9 +397,12 @@ def get_scenes_to_process(limit=500, for_user=None, priority=None):
         kwargs['order__user__username'] = for_user
 
     if priority:
-        # retrieve by specified priority
+        # retrieve by specified priority 
         kwargs['order__priority'] = priority
 
+    #filter based on what user asked for... modis, landsat or plot
+    kwargs['sensor_type'] = product_types
+    
     #products = Scene.objects.filter(status='oncache')\
     #    .order_by('order__order_date')[:limit]
 
@@ -416,6 +422,7 @@ def get_scenes_to_process(limit=500, for_user=None, priority=None):
         orderline = json.dumps({'orderid': p.order.orderid,
                                 'scene': p.name,
                                 'priority': p.order.priority,
+                                'product_type': p.sensor_type,
                                 'options': options
                                 })
 

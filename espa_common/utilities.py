@@ -13,6 +13,7 @@ History:
 '''
 
 import os
+import sys
 import datetime
 import commands
 import random
@@ -26,6 +27,7 @@ from smtplib import SMTP
 import settings
 
 
+# ============================================================================
 def scenecache_is_alive(url='http://edclpdsftp.cr.usgs.gov:50000/RPC2'):
     """Determine if the specified url has an http server
     that accepts POST calls
@@ -48,6 +50,7 @@ def scenecache_is_alive(url='http://edclpdsftp.cr.usgs.gov:50000/RPC2'):
         return False
 
 
+# ============================================================================
 def scenecache_client():
     """Return an xmlrpc proxy to the caller for the scene cache
 
@@ -62,6 +65,7 @@ def scenecache_client():
         raise RuntimeError(msg)
 
 
+# ============================================================================
 def date_from_doy(year, doy):
     '''Returns a python date object given a year and day of year'''
 
@@ -74,6 +78,7 @@ def date_from_doy(year, doy):
         return d
 
 
+# ============================================================================
 def is_number(s):
     '''Determines if a string value is a float or int.
 
@@ -89,16 +94,6 @@ def is_number(s):
         return True
     except ValueError:
         return False
-
-
-# ============================================================================
-def get_logfile(orderid, sceneid):
-    '''
-    Description:
-      Returns the full path and name of the log file to use
-    '''
-
-    return '%s/%s-%s-jobdebug.txt' % (settings.LOGFILE_PATH, orderid, sceneid)
 
 
 # ============================================================================
@@ -216,3 +211,73 @@ def validate_email(email):
     '''
     pattern = '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,4}$'
     return re.match(pattern, email.strip())
+
+
+def tar_files(tarred_full_path, file_list):
+    '''
+    Description:
+      Create a tar ball (*.tar) of the specified file(s).
+    '''
+
+    cmd = ['tar', '-cf', '%s.tar' % tarred_full_path]
+    cmd.extend(file_list)
+    cmd = ' '.join(cmd)
+
+    output = ''
+    try:
+        output = execute_cmd(cmd)
+    except Exception, e:
+        msg = "Error encountered tar'ing file(s): Stdout/Stderr:"
+        if len(output) > 0:
+            msg = ' '.join([msg, output])
+        else:
+            msg = ' '.join([msg, "NO STDOUT/STDERR"])
+        # Raise and retain the callstack
+        raise Exception(msg), None, sys.exec_info()[2]
+
+
+def gzip_files(file_list):
+    '''
+    Description:
+      Create a gzip for each of the specified file(s).
+    '''
+
+    # Force the gzip file to overwrite any previously existing attempt
+    cmd = ['gzip', '--force']
+    cmd.extend(file_list)
+    cmd = ' '.join(cmd)
+
+    output = ''
+    try:
+        output = execute_cmd(cmd)
+    except Exception, e:
+        msg = "Error encountered compressing file(s): Stdout/Stderr:"
+        if len(output) > 0:
+            msg = ' '.join([msg, output])
+        else:
+            msg = ' '.join([msg, "NO STDOUT/STDERR"])
+        # Raise and retain the callstack
+        raise Exception(msg), None, sys.exec_info()[2]
+
+
+def checksum_local_file(filename):
+    '''
+    Description:
+      Create a checksum for the specified file.
+    '''
+
+    cmd = ' '.join(['cksum', filename])
+
+    cksum_result = ''
+    try:
+        cksum_result = execute_cmd(cmd)
+    except Exception, e:
+        msg = "Error encountered generating checksum: Stdout/Stderr:"
+        if len(cksum_result) > 0:
+            msg = ' '.join([msg, cksum_result])
+        else:
+            msg = ' '.join([msg, "NO STDOUT/STDERR"])
+        # Raise and retain the callstack
+        raise Exception(msg)
+
+    return cksum_result

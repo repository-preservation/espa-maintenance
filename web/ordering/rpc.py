@@ -116,10 +116,14 @@ def _get_configuration(key):
     return Configuration().getValue(key)
 
 
-def _get_scenes_to_process(limit=None, for_user=None, priority=None):
+def _get_scenes_to_process(limit=None,
+                           for_user=None,
+                           priority=None,
+                           product_types=['landsat', 'modis']):
     return core.get_scenes_to_process(limit=limit,
                                       for_user=for_user,
-                                      priority=priority)
+                                      priority=priority,
+                                      product_types=product_types)
 
 
 def _get_data_points(tags=[]):

@@ -28,11 +28,20 @@ import glob
 
 # espa-common objects and methods
 from espa_constants import *
-from espa_logging import log, debug
+
+# imports from espa/espa_common
+try:
+    from espa_logging import EspaLogging
+except:
+    from espa_common.espa_logging import EspaLogging
+
+try:
+    import settings
+except:
+    from espa_common import settings
 
 # local objects and methods
 import util
-import settings
 
 
 # TODO - At some point in the future we should allow browse generation from
@@ -46,7 +55,9 @@ def do_sr_browse(sr_filename, scene,
       Creates a browse image from the surface relfectance file
     '''
 
-    log("Creating browse product")
+    logger = EspaLogging.get_logger('espa.processing')
+
+    logger.info("Creating browse product")
 
     browse_filename = "%s-sr-browse.tif" % scene
 
@@ -58,9 +69,10 @@ def do_sr_browse(sr_filename, scene,
            '-of', 'GTiff',
            '-sds', sr_filename, 'out.tiff']
     cmd = ' '.join(cmd)
-    log(' '.join(['Running:', cmd]))
+    logger.info(' '.join(['Running:', cmd]))
     output = util.execut_cmd(cmd)
-    log(output)
+    if len(output) > 0:
+        logger.info(output)
 
     # ------------------------------------------------------------------------
     # Scale each browse band to 8bit data range
@@ -71,23 +83,26 @@ def do_sr_browse(sr_filename, scene,
 # gdal_translate -ot Byte -scale 0 10000 0 255 -of ENVI
 # LT50460282002042EDC01_toa_band5.img browse_5.img
     cmd = ' '.join([base_translate_cmd, 'out.tiff5', 'browse.tiff5'])
-    log(' '.join(['Running:', cmd]))
+    logger.info(' '.join(['Running:', cmd]))
     output = util.execut_cmd(cmd)
-    log(output)
+    if len(output) > 0:
+        logger.info(output)
 
 # gdal_translate -ot Byte -scale 0 10000 0 255 -of ENVI
 # LT50460282002042EDC01_toa_band4.img browse_4.img
     cmd = ' '.join([base_translate_cmd, 'out.tiff4', 'browse.tiff4'])
-    log(' '.join(['Running:', cmd]))
+    logger.info(' '.join(['Running:', cmd]))
     output = util.execut_cmd(cmd)
-    log(output)
+    if len(output) > 0:
+        logger.info(output)
 
 # gdal_translate -ot Byte -scale 0 10000 0 255 -of ENVI
 # LT50460282002042EDC01_toa_band3.img browse_3.img
     cmd = ' '.join([base_translate_cmd, 'out.tiff3', 'browse.tiff3'])
-    log(' '.join(['Running:', cmd]))
+    logger.info(' '.join(['Running:', cmd]))
     output = util.execut_cmd(cmd)
-    log(output)
+    if len(output) > 0:
+        logger.info(output)
 
     # ------------------------------------------------------------------------
     # Create the 3 band composite
@@ -98,9 +113,10 @@ def do_sr_browse(sr_filename, scene,
                     '-in', 'browse.tiff4',
                     '-in', 'browse.tiff3',
                     '-out', 'final.tif'])
-    log(' '.join(['Running:', cmd]))
+    logger.info(' '.join(['Running:', cmd]))
     output = util.execut_cmd(cmd)
-    log(output)
+    if len(output) > 0:
+        logger.info(output)
 
     # ------------------------------------------------------------------------
     # Project to geographic
@@ -111,9 +127,10 @@ def do_sr_browse(sr_filename, scene,
                     '-srcnodata', '0',
                     '-t_srs', 'EPSG:4326',
                     'final.tif', 'warped.tif'])
-    log(' '.join(['Running:', cmd]))
+    logger.info(' '.join(['Running:', cmd]))
     output = util.execut_cmd(cmd)
-    log(output)
+    if len(output) > 0:
+        logger.info(output)
 
     # ------------------------------------------------------------------------
     # Resize and rename
@@ -130,9 +147,10 @@ def do_sr_browse(sr_filename, scene,
                     '-a_nodata', '-9999',
                     '-of', 'GTIFF',
                     'warped.tif', browse_filename])
-    log(' '.join(['Running:', cmd]))
+    logger.info(' '.join(['Running:', cmd]))
     output = util.execut_cmd(cmd)
-    log(output)
+    if len(output) > 0:
+        logger.info(output)
 
     # ------------------------------------------------------------------------
     # Cleanup
@@ -140,9 +158,10 @@ def do_sr_browse(sr_filename, scene,
     remove_files.extend(glob.glob('*tiff*'))
 
     cmd = ' '.join(['rm', '-rf'] + remove_files)
-    log(' '.join(['Running:', cmd]))
+    logger.info(' '.join(['Running:', cmd]))
     output = util.execut_cmd(cmd)
-    log(output)
+    if len(output) > 0:
+        logger.info(output)
 
-    log("Browse product generation complete...")
+    logger.info("Browse product generation complete...")
 # END - do_sr_browse

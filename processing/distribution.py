@@ -17,20 +17,33 @@ History:
 import os
 import sys
 import glob
-import traceback
 from time import sleep
 from argparse import ArgumentParser
 
 # espa-common objects and methods
 from espa_constants import *
-from espa_logging import log, set_debug, debug
+
+# imports from espa/espa_common
+try:
+    from espa_logging import EspaLogging
+except:
+    from espa_common.espa_logging import EspaLogging
+
+try:
+    import settings
+except:
+    from espa_common import settings
+
+try:
+    import utilities
+except:
+    from espa_common import utilities
 
 # local objects and methods
 import espa_exception as ee
 import parameters
 import util
 import transfer
-import settings
 
 
 # ============================================================================
@@ -112,13 +125,14 @@ def tar_product(product_full_path, product_files):
 
     output = ''
     try:
-        output = util.execute_cmd(cmd)
+        output = utilities.execute_cmd(cmd)
     except Exception, e:
         raise ee.ESPAException(ee.ErrorCodes.packaging_product,
                                str(e)), None, sys.exc_info()[2]
     finally:
         if len(output) > 0:
-            log(output)
+            logger = EspaLogging.get_logger('espa.processing')
+            logger.info(output)
 # END - tar_product
 
 
@@ -133,13 +147,14 @@ def gzip_product(product_full_path):
 
     output = ''
     try:
-        output = util.execute_cmd(cmd)
+        output = utilities.execute_cmd(cmd)
     except Exception, e:
         raise ee.ESPAException(ee.ErrorCodes.packaging_product,
                                str(e)), None, sys.exc_info()[2]
     finally:
         if len(output) > 0:
-            log(output)
+            logger = EspaLogging.get_logger('espa.processing')
+            logger.info(output)
 # END - gzip_product
 
 
@@ -158,6 +173,8 @@ def package_product(source_directory, destination_directory, product_name):
       cksum_value - The checksum value
     '''
 
+    logger = EspaLogging.get_logger('espa.processing')
+
     product_full_path = os.path.join(destination_directory, product_name)
 
     # Remove any old products from the destination directory
@@ -171,9 +188,8 @@ def package_product(source_directory, destination_directory, product_name):
 
     try:
         # Tar the files
-        log("Packaging completed product to %s.tar.gz" % product_full_path)
-
-        output = ''
+        logger.info("Packaging completed product to %s.tar.gz"
+                    % product_full_path)
 
         product_files = glob.glob("*")
         tar_product(product_full_path, product_files)
@@ -188,25 +204,30 @@ def package_product(source_directory, destination_directory, product_name):
         product_full_path = '%s.gz' % product_full_path
 
         # Change file permissions
-        log("Changing file permissions on %s to 0644" % (product_full_path))
+        logger.info("Changing file permissions on %s to 0644"
+                    % product_full_path)
         os.chmod(product_full_path, 0644)
 
         # Verify that the archive is good
+        output = ''
         cmd = ' '.join(['tar', '-tf', product_full_path])
         try:
-            output = util.execute_cmd(cmd)
+            output = utilities.execute_cmd(cmd)
         except Exception, e:
             raise ee.ESPAException(ee.ErrorCodes.packaging_product,
                                    str(e)), None, sys.exc_info()[2]
         finally:
-            log(output)
+            if len(output) > 0:
+                logger.info(output)
 
         # If it was good then create a checksum file
+        cksum_output = ''
         cmd = ' '.join(['cksum', product_full_path])
         try:
-            output = util.execute_cmd(cmd)
+            cksum_output = utilities.execute_cmd(cmd)
         except Exception, e:
-            log(output)
+            if len(cksum_output) > 0:
+                logger.info(cksum_output)
             raise ee.ESPAException(ee.ErrorCodes.packaging_product,
                                    str(e)), None, sys.exc_info()[2]
 
@@ -215,19 +236,25 @@ def package_product(source_directory, destination_directory, product_name):
         # Get the base filename of the file that was checksum'd
         cksum_prod_filename = os.path.basename(product_full_path)
 
-        debug("Checksum file = %s" % cksum_filename)
-        debug("Checksum'd file = %s" % cksum_prod_filename)
+        logger.debug("Checksum file = %s" % cksum_filename)
+        logger.debug("Checksum'd file = %s" % cksum_prod_filename)
 
         # Make sure they are strings
-        output = output.split()
-        cksum_value = "%s %s %s" \
-            % (str(output[0]), str(output[1]), str(cksum_prod_filename))
-        log("Generating cksum: %s" % cksum_value)
+        cksum_values = cksum_output.split()
+        cksum_value = "%s %s %s" % (str(cksum_values[0]),
+                                    str(cksum_values[1]),
+                                    str(cksum_prod_filename))
+        logger.info("Generating cksum: %s" % cksum_value)
 
         cksum_full_path = os.path.join(destination_directory, cksum_filename)
 
-        with open(cksum_full_path, 'wb+') as cksum_fd:
-            cksum_fd.write(cksum_value)
+        try:
+            with open(cksum_full_path, 'wb+') as cksum_fd:
+                cksum_fd.write(cksum_value)
+        except Exception, e:
+            raise ee.ESPAException(ee.ErrorCodes.packaging_product,
+                                   "Error building cksum file"), \
+                None, sys.exc_info()[2]
 
     finally:
         # Change back to the previous directory
@@ -255,22 +282,24 @@ def distribute_product(destination_host, destination_directory,
         and destination system
     '''
 
+    logger = EspaLogging.get_logger('espa.processing')
+
     # Create the destination directory on the destination host
-    log("Creating destination directory %s on %s"
-        % (destination_directory, destination_host))
+    logger.info("Creating destination directory %s on %s"
+                % (destination_directory, destination_host))
     cmd = ' '.join(['ssh', '-q', '-o', 'StrictHostKeyChecking=no',
                     destination_host, 'mkdir', '-p', destination_directory])
 
     output = ''
     try:
-        debug(' '.join(["mkdir cmd:", cmd]))
-        output = util.execute_cmd(cmd)
+        logger.debug(' '.join(["mkdir cmd:", cmd]))
+        output = utilities.execute_cmd(cmd)
     except Exception, e:
         raise ee.ESPAException(ee.ErrorCodes.packaging_product,
                                str(e)), None, sys.exc_info()[2]
     finally:
         if len(output) > 0:
-            log(output)
+            logger.info(output)
 
     # Figure out the destination full paths
     destination_cksum_file = '%s/%s' \
@@ -288,14 +317,14 @@ def distribute_product(destination_host, destination_directory,
                     destination_host, 'rm', '-f', remote_filename])
     output = ''
     try:
-        debug(' '.join(["rm remote file cmd:", cmd]))
-        output = util.execute_cmd(cmd)
+        logger.debug(' '.join(["rm remote file cmd:", cmd]))
+        output = utilities.execute_cmd(cmd)
     except Exception, e:
         raise ee.ESPAException(ee.ErrorCodes.packaging_product,
                                str(e)), None, sys.exc_info()[2]
     finally:
         if len(output) > 0:
-            log(output)
+            logger.info(output)
 
     # Transfer the checksum file
     transfer.transfer_file('localhost', cksum_filename, destination_host,
@@ -314,10 +343,11 @@ def distribute_product(destination_host, destination_directory,
     cmd = ' '.join(['ssh', '-q', '-o', 'StrictHostKeyChecking=no',
                     destination_host, 'cksum', destination_product_file])
     try:
-        debug(' '.join(["ssh cmd:", cmd]))
-        cksum_value = util.execute_cmd(cmd)
+        logger.debug(' '.join(["ssh cmd:", cmd]))
+        cksum_value = utilities.execute_cmd(cmd)
     except Exception, e:
-        log(cksum_value)
+        if len(cksum_value) > 0:
+            logger.error(cksum_value)
         raise ee.ESPAException(ee.ErrorCodes.packaging_product,
                                str(e)), None, sys.exc_info()[2]
 
@@ -327,7 +357,8 @@ def distribute_product(destination_host, destination_directory,
 
 # ============================================================================
 def distribute_statistics(scene, work_directory,
-                          destination_host, destination_directory):
+                          destination_host, destination_directory,
+                          destination_username, destination_pw):
     '''
     Description:
       Transfers the statistics to the specified directory on the destination
@@ -343,6 +374,8 @@ def distribute_statistics(scene, work_directory,
       - It is assumed a stats directory exists under the current directory
     '''
 
+    logger = EspaLogging.get_logger('espa.processing')
+
     # Change to the source directory
     current_directory = os.getcwd()
     os.chdir(work_directory)
@@ -352,21 +385,21 @@ def distribute_statistics(scene, work_directory,
         stats_files = ''.join(['stats/', scene, '*'])
 
         # Create the stats directory on the destination host
-        log("Creating stats directory %s on %s"
-            % (stats_directory, destination_host))
+        logger.info("Creating stats directory %s on %s"
+                    % (stats_directory, destination_host))
         cmd = ' '.join(['ssh', '-q', '-o', 'StrictHostKeyChecking=no',
                         destination_host, 'mkdir', '-p', stats_directory])
 
         output = ''
         try:
-            debug(' '.join(["mkdir cmd:", cmd]))
-            output = util.execute_cmd(cmd)
+            logger.debug(' '.join(["mkdir cmd:", cmd]))
+            output = utilities.execute_cmd(cmd)
         except Exception, e:
             raise ee.ESPAException(ee.ErrorCodes.packaging_product,
                                    str(e)), None, sys.exc_info()[2]
         finally:
             if len(output) > 0:
-                log(output)
+                logger.info(output)
 
         # Remove any pre-existing stats
         cmd = ' '.join(['ssh', '-q', '-o', 'StrictHostKeyChecking=no',
@@ -374,20 +407,22 @@ def distribute_statistics(scene, work_directory,
                         '%s/%s*' % (stats_directory, scene)])
         output = ''
         try:
-            debug(' '.join(["rm remote stats cmd:", cmd]))
-            output = util.execute_cmd(cmd)
+            logger.debug(' '.join(["rm remote stats cmd:", cmd]))
+            output = utilities.execute_cmd(cmd)
         except Exception, e:
             raise ee.ESPAException(ee.ErrorCodes.packaging_product,
                                    str(e)), None, sys.exc_info()[2]
         finally:
             if len(output) > 0:
-                log(output)
+                logger.info(output)
 
         # Transfer the stats files
-        transfer.scp_transfer_file('localhost', stats_files, destination_host,
-                                   stats_directory)
+        transfer.transfer_file('localhost', stats_files, destination_host,
+                               stats_directory,
+                               destination_username=destination_username,
+                               destination_pw=destination_pw)
 
-        log("Verifying statistics transfers")
+        logger.info("Verifying statistics transfers")
         # NOTE - Re-purposing the stats_files variable
         stats_files = glob.glob(stats_files)
         for file_name in stats_files:
@@ -397,10 +432,11 @@ def distribute_statistics(scene, work_directory,
             # Generate a local checksum value
             cmd = ' '.join(['cksum', file_name])
             try:
-                debug(' '.join(["cksum cmd:", cmd]))
-                local_cksum_value = util.execute_cmd(cmd)
+                logger.debug(' '.join(["cksum cmd:", cmd]))
+                local_cksum_value = utilities.execute_cmd(cmd)
             except Exception, e:
-                log(local_cksum_value)
+                if len(local_cksum_value) > 0:
+                    logger.error(local_cksum_value)
                 raise ee.ESPAException(ee.ErrorCodes.packaging_product,
                                        str(e)), None, sys.exc_info()[2]
 
@@ -409,9 +445,10 @@ def distribute_statistics(scene, work_directory,
             cmd = ' '.join(['ssh', '-q', '-o', 'StrictHostKeyChecking=no',
                             destination_host, 'cksum', remote_file])
             try:
-                remote_cksum_value = util.execute_cmd(cmd)
+                remote_cksum_value = utilities.execute_cmd(cmd)
             except Exception, e:
-                log(remote_cksum_value)
+                if len(remote_cksum_value) > 0:
+                    logger.error(remote_cksum_value)
                 raise ee.ESPAException(ee.ErrorCodes.packaging_product,
                                        str(e)), None, sys.exc_info()[2]
 
@@ -444,6 +481,8 @@ def deliver_product(scene, work_directory, package_directory, product_name,
         X attempts are made for each part of the delivery
     '''
 
+    logger = EspaLogging.get_logger('espa.processing')
+
     # Package the product files
     # Attempt X times sleeping between each attempt
     attempt = 0
@@ -453,8 +492,9 @@ def deliver_product(scene, work_directory, package_directory, product_name,
                 package_product(work_directory, package_directory,
                                 product_name)
         except Exception, e:
-            log("An error occurred processing %s" % product_name)
-            log("Error: %s" % str(e))
+            logger.error("An exception occurred processing %s"
+                         % product_name)
+            logger.error("Exception Message: %s" % str(e))
             if attempt < settings.MAX_PACKAGING_ATTEMPTS:
                 sleep(sleep_seconds)  # sleep before trying again
                 attempt += 1
@@ -475,8 +515,9 @@ def deliver_product(scene, work_directory, package_directory, product_name,
                                    destination_username, destination_pw,
                                    product_full_path, cksum_full_path)
         except Exception, e:
-            log("An error occurred processing %s" % product_name)
-            log("Error: %s" % str(e))
+            logger.error("An exception occurred processing %s"
+                         % product_name)
+            logger.error("Exception Message: %s" % str(e))
             if attempt < settings.MAX_DELIVERY_ATTEMPTS:
                 sleep(sleep_seconds)  # sleep before trying again
                 attempt += 1
@@ -501,10 +542,12 @@ def deliver_product(scene, work_directory, package_directory, product_name,
         while True:
             try:
                 distribute_statistics(scene, work_directory,
-                                      destination_host, destination_directory)
+                                      destination_host, destination_directory,
+                                      destination_username, destination_pw)
             except Exception, e:
-                log("An error occurred processing %s" % product_name)
-                log("Error: %s" % str(e))
+                logger.error("An exception occurred processing %s"
+                             % product_name)
+                logger.error("Exception Message: %s" % str(e))
                 if attempt < settings.MAX_DELIVERY_ATTEMPTS:
                     sleep(sleep_seconds)  # sleep before trying again
                     attempt += 1
@@ -514,10 +557,10 @@ def deliver_product(scene, work_directory, package_directory, product_name,
                                            str(e)), None, sys.exc_info()[2]
             break
 
-        log("Statistics distribution complete for %s" % product_name)
+        logger.info("Statistics distribution complete for %s" % product_name)
 
-    log("Product delivery complete for %s:%s"
-        % (destination_host, destination_product_file))
+    logger.info("Product delivery complete for %s:%s"
+                % (destination_host, destination_product_file))
 
     # Let the caller know where we put these on the destination system
     return (destination_product_file, destination_cksum_file)
@@ -538,8 +581,10 @@ if __name__ == '__main__':
     # Parse the command line arguments
     args = parser.parse_args()
 
-    # Setup debug
-    set_debug(args.debug)
+    # Configure logging
+    EspaLogging.configure('espa.processing', order='test',
+                          product='product', debug=args.debug)
+    logger = EspaLogging.get_logger('espa.processing')
 
     try:
         # Test requested routine
@@ -553,7 +598,8 @@ if __name__ == '__main__':
                             args.destination_directory, args.destination_host,
                             args.destination_pw, args.sleep_seconds)
 
-            print ("Successfully delivered product %s" % args.product_name)
+            logger.info("Successfully delivered product %s"
+                        % args.product_name)
 
         elif args.test_package_product:
             (product_full_path, cksum_full_path, cksum_value) = \
@@ -561,10 +607,11 @@ if __name__ == '__main__':
                                 args.destination_directory,
                                 args.product_name)
 
-            print ("Product Path: %s" % product_full_path)
-            print ("Checksum Path: %s" % cksum_full_path)
-            print ("Checksum Value: %s" % cksum_value)
-            print ("Successfully packaged product %s" % args.product_name)
+            logger.info("Product Path: %s" % product_full_path)
+            logger.info("Checksum Path: %s" % cksum_full_path)
+            logger.info("Checksum Value: %s" % cksum_value)
+            logger.info("Successfully packaged product %s"
+                        % args.product_name)
 
         elif args.test_distribute_product:
             (cksum_value, destination_full_path, destination_cksum_file) = \
@@ -574,14 +621,13 @@ if __name__ == '__main__':
                                    args.destination_pw,
                                    args.product_file,
                                    args.cksum_file)
-            print ("Successfully distributed product %s" % args.product_file)
+            logger.info("Successfully distributed product %s"
+                        % args.product_file)
 
     except Exception, e:
-        log("Error: %s" % str(e))
-        tb = traceback.format_exc()
-        log("Traceback: [%s]" % tb)
         if hasattr(e, 'output'):
-            log("Error: Output [%s]" % e.output)
+            logger.error("Output [%s]" % e.output)
+        logger.exception("Processing failed")
         sys.exit(EXIT_FAILURE)
 
     sys.exit(EXIT_SUCCESS)
