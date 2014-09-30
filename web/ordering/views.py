@@ -238,6 +238,7 @@ class NewOrder(AbstractView):
         return retval
 
     def _get_verified_input_product_list(self, request):
+        
         ipl = self._get_input_product_list(request)
 
         if ipl:
@@ -334,11 +335,20 @@ class NewOrder(AbstractView):
         else:
             #option_string = json.dumps(selected_options)
             #option_string = json.dumps(self._get_order_options(request))
-            option_string = json.dumps(self._get_order_options(request),
+        
+            vipl = self._get_verified_input_product_list(request)
+        
+            order_options = self._get_order_options(request)
+
+            order_type = "level2_ondemand"        
+            
+            if order_options['include_statistics'] == True:
+               vipl.append("plot")
+               order_type = "lpcs"
+               
+            option_string = json.dumps(order_options,
                                        sort_keys=True,
                                        indent=4)
-
-            vipl = self._get_verified_input_product_list(request)
 
             desc = self._get_order_description(request.POST)
 
@@ -346,6 +356,7 @@ class NewOrder(AbstractView):
                                           'espa',
                                           vipl,
                                           option_string,
+                                          order_type,
                                           note=desc
                                           )
 

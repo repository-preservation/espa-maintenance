@@ -25,6 +25,9 @@ import os
 import sys
 import json
 import xmlrpclib
+import urllib
+from datetime import datetime
+from argparse import ArgumentParser
 
 # espa-common objects and methods
 from espa_constants import EXIT_FAILURE
@@ -32,13 +35,13 @@ from espa_constants import EXIT_SUCCESS
 
 # imports from espa/espa_common
 from espa_common import settings, utilities
-from espa_common.espa_logging import EspaLogging
+from espa_common.logger_factory import EspaLogging as EspaLogging
 
 LOGGER_NAME = 'espa.cron.plot'
 
 
 # ============================================================================
-def process_plot_requests():
+def process_plot_requests(args):
     '''
     Description:
       Queries the xmlrpc service to see if there are any scenes that need to
@@ -56,7 +59,7 @@ def process_plot_requests():
     if (rpcurl is not None and rpcurl.startswith('http://')
             and len(rpcurl) > 7):
 
-        server = xmlrpclib.ServerProxy(rpcurl)
+        server = xmlrpclib.ServerProxy(rpcurl, allow_none=True)
     else:
         raise Exception("Missing or invalid environment variable ESPA_XMLRPC")
 
@@ -101,6 +104,7 @@ def process_plot_requests():
 
     try:
         logger.info("Checking for requests to process...")
+        # Plotting doesn't request by priority
         orders = server.get_scenes_to_process(args.limit, args.user, None,
                                               ['plot'])
 
@@ -149,7 +153,7 @@ def process_plot_requests():
                     # Write out the request line
                     job_fd.write(order_line)
                 # END - for scene
-            # END - with espa_fd
+            # END - with job_fd
 
             # Specify the location of the requests file on the hdfs
             hdfs_target = 'requests/%s' % job_filename
@@ -179,6 +183,7 @@ def process_plot_requests():
                            % home_dir),
                  '-file', '%s/espa-site/processing/metadata.py' % home_dir,
                  '-file', '%s/espa-site/processing/parameters.py' % home_dir,
+                 '-file', '%s/espa-site/processing/plotting.py' % home_dir,
                  '-file', '%s/espa-site/processing/science.py' % home_dir,
                  '-file', '%s/espa-site/processing/solr.py' % home_dir,
                  '-file', '%s/espa-site/processing/staging.py' % home_dir,
@@ -186,7 +191,7 @@ def process_plot_requests():
                  '-file', '%s/espa-site/processing/transfer.py' % home_dir,
                  '-file', '%s/espa-site/processing/util.py' % home_dir,
                  '-file', '%s/espa-site/processing/warp.py' % home_dir,
-                 '-file', ('%s/espa-site/espa_common/espa_logging.py'
+                 '-file', ('%s/espa-site/espa_common/logger_factory.py'
                            % home_dir),
                  '-file', '%s/espa-site/espa_common/sensor.py' % home_dir,
                  '-file', '%s/espa-site/espa_common/settings.py' % home_dir,
@@ -223,11 +228,11 @@ def process_plot_requests():
                     logger.info(output)
 
             # ----------------------------------------------------------------
-            # Update the scene list as queued so they don't get pulled down
+            # Update the orders list as queued so they don't get pulled down
             # again now that these jobs have been stored in hdfs
             product_list = list()
-            for scene in scenes:
-                line = json.loads(scene)
+            for order in orders:
+                line = json.loads(order)
                 orderid = line['orderid']
                 product_type = line['product_type']
                 product_list.append((orderid, product_type))
@@ -236,11 +241,10 @@ def process_plot_requests():
                             % (product_type, orderid))
 
             server.queue_products(product_list, 'CDR_ECV cron driver',
-                                  espa_job_name)
+                                  job_name)
 
-            logger.info("Deleting local request file copy [%s]"
-                        % espa_job_filepath)
-            os.unlink(espa_job_filepath)
+            logger.info("Deleting local request file copy [%s]" % job_filepath)
+            os.unlink(job_filepath)
 
             # ----------------------------------------------------------------
             logger.info("Running hadoop job...")

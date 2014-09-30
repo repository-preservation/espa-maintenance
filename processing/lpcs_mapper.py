@@ -31,9 +31,9 @@ from espa_constants import EXIT_SUCCESS
 
 # imports from espa/espa_common
 try:
-    from espa_logging import EspaLogging
+    from logger_factory import EspaLogging
 except:
-    from espa_common.espa_logging import EspaLogging
+    from espa_common.logger_factory import EspaLogging
 
 try:
     import utilities
@@ -106,9 +106,10 @@ def process(args):
             if not parameters.test_for_parameter(parms, 'options'):
                 raise ValueError("Error missing JSON 'options' record")
 
-            (orderid, product_type, options) = (parms['orderid'],
-                                                parms['product_type'],
-                                                parms['options'])
+            (orderid, sceneid, product_type, options) = (parms['orderid'],
+                                                         parms['scene'],
+                                                         parms['product_type'],
+                                                         parms['options'])
 
             # Figure out if debug level logging was requested
             debug = False
@@ -117,7 +118,7 @@ def process(args):
 
             # Configure and get the logger for this order request
             EspaLogging.configure('espa.processing', order=orderid,
-                                  product=product_type, debug=debug)
+                                  product=sceneid, debug=debug)
             logger = EspaLogging.get_logger('espa.processing')
 
             # If the command line option is True don't use the scene option
@@ -127,14 +128,14 @@ def process(args):
 
                 mapper_keep_log = options['keep_log']
 
-            logger.info("Processing %s:%s" % (orderid, product_type))
+            logger.info("Processing %s:%s" % (orderid, sceneid))
 
             # Update the status in the database
             if parameters.test_for_parameter(parms, 'xmlrpcurl'):
                 if parms['xmlrpcurl'] != 'skip_xmlrpc':
                     server = xmlrpclib.ServerProxy(parms['xmlrpcurl'])
                     if server is not None:
-                        status = server.update_status(product_type, orderid,
+                        status = server.update_status(sceneid, orderid,
                                                       processing_location,
                                                       'processing')
                         if not status:
@@ -147,7 +148,31 @@ def process(args):
             # ----------------------------------------------------------------
 
             # Call the plotter with the parameters
-            plotter.process(parms)
+            (destination_product_file, destination_cksum_file) = \
+                plotter.process(parms)
+
+            # Everything was successfull so mark the scene complete
+            if server is not None:
+                status = server.mark_scene_complete(sceneid, orderid,
+                                                    processing_location,
+                                                    destination_product_file,
+                                                    destination_cksum_file, "")
+                if not status:
+                    logger.warning("Failed processing xmlrpc call to"
+                                   " mark_scene_complete")
+
+            # Always log where we placed the files
+            logger.info("Delivered product to %s at location %s and cksum"
+                        " location %s" % (processing_location,
+                                          destination_product_file,
+                                          destination_cksum_file))
+
+            # Cleanup the log file
+            if not mapper_keep_log:
+                EspaLogging.delete_logger_file('espa.processing')
+
+            # Reset back to the base logger
+            logger = EspaLogging.get_logger('base')
 
         except Exception, e:
             if len(output) > 0:

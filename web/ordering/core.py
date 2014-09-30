@@ -33,19 +33,25 @@ def send_initial_email(order):
     status_url = ('%s/%s') % (status_base_url, order.user.email)
 
     m = list()
-    m.append("Thank you for your order (%s).  " % order.orderid)
-    m.append("Your order has been received and is currently ")
+    m.append("Thank you for your order.\n\n")
+    m.append("%s has been received and is currently " % order.orderid)
     m.append("being processed.  ")
-    m.append("You will receive an email notification when all units on this ")
-    m.append("order have been completed.\n\n")
-    m.append("You can check the status of your order and download already ")
-    m.append("completed scenes directly from %s\n\n" % status_url)
-    m.append("Requested scenes:\n")
+    m.append("Another email will be sent when this order is complete.\n\n")
+    m.append("You may view the status of your order and download ")
+    m.append("completed products directly from %s\n\n" % status_url)
+    m.append("Requested products\n")
+    m.append("-------------------------------------------\n")
 
     scenes = Scene.objects.filter(order__id=order.id)
 
     for s in scenes:
-        m.append("%s\n" % s.name)
+        
+        product_name = s.name
+        
+        if product_name == 'plot':
+            product_name = "Plotting & Statistics"
+            
+        m.append("%s\n" % product_name)
 
     email_msg = ''.join(m)
 
@@ -65,17 +71,21 @@ def send_completion_email(email, ordernum, readyscenes=[]):
 
     status_url = ('%s/%s') % (status_base_url, email)
     m = list()
-    m.append("Your order is now complete and can be downloaded ")
-    m.append("from %s.\n" % status_url)
+    m.append("%s is now complete and can be downloaded " % ordernum)
+    m.append("from %s.\n\n" % status_url)
     m.append("This order will remain available for 14 days.  ")
     m.append("Any data not downloaded will need to be reordered ")
-    m.append("after this time.\n")
+    m.append("after this time.\n\n")
     m.append("Please contact Customer Services at 1-800-252-4547 or ")
-    m.append("email custserv@usgs.gov with any questions.\n")
-    m.append("Your scenes\n")
+    m.append("email custserv@usgs.gov with any questions.\n\n")
+    m.append("Requested products\n")
     m.append("-------------------------------------------\n")
 
     for r in readyscenes:
+
+        if r == 'plot':
+            r = "Plotting & Statistics"
+            
         m.append("%s\n" % r)
 
     email_msg = ''.join(m)
@@ -334,8 +344,37 @@ def handle_submitted_modis_products():
         update_args = {'status': 'oncache'}
 
         Scene.objects.filter(**filter_args).update(**update_args)
+        
 
+@transaction.atomic
+def handle_submitted_plot_products():
 
+    filter_args = {'status': 'ordered', 'order_type': 'lpcs'}
+    plot_orders = Order.objects.filter(**filter_args)
+    
+    if len(plot_orders) > 0:
+
+        for order in plot_orders:
+            scene_count = order.scene_set.count()
+
+            complete_status = ['complete', 'unavailable']            
+            filter_args = {'status__in': complete_status}
+            complete_scenes = order.scene_set.filter(**filter_args).count()
+            
+            #if this is an lpcs order and there is only 1 product left that
+            #is not done, it must be the plot product.  Will verify this
+            #in next step.  Plotting cannot run unless everything else 
+            #is done.
+
+            if scene_count - complete_scenes == 1:
+                filter_args = {'status': 'submitted', 'sensor_type':'plot'}                
+                plot = order.scene_set.filter(**filter_args)
+                if len(plot) >= 1:
+                    for p in plot:
+                        p.status = 'oncache'
+                        p.save()
+                        
+                            
 @transaction.atomic
 def handle_submitted_products():
     '''
@@ -366,6 +405,7 @@ def handle_submitted_products():
     load_ee_orders()
     handle_submitted_landsat_products()
     handle_submitted_modis_products()
+    handle_submitted_plot_products()
 
 
 def get_landsat_products_to_process():
@@ -401,7 +441,7 @@ def get_scenes_to_process(limit=500,
         kwargs['order__priority'] = priority
 
     #filter based on what user asked for... modis, landsat or plot
-    kwargs['sensor_type'] = product_types
+    kwargs['sensor_type__in'] = product_types
     
     #products = Scene.objects.filter(status='oncache')\
     #    .order_by('order__order_date')[:limit]
@@ -416,6 +456,9 @@ def get_scenes_to_process(limit=500,
     results = []
 
     for p in products:
+
+        #in here, check to see if its a plot product or a normal product
+        #if plot, specify correct json options vs. product options
 
         options = json.loads(p.order.product_options)
 

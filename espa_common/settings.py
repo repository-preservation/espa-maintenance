@@ -67,10 +67,10 @@ ESPA_BASE_OUTPUT_PATH = '/data2/LSRD'
 
 
 ##############################################################################
-# Used in lpcs_cron.py
+# Used in plotting.py
 
 # Path to the completed orders
-ESPA_CACHE_DIRECTORY = '/data2/LSRD'
+ESPA_CACHE_DIRECTORY = '/data2/LSRD/orders'
 # Can override this by setting the environment variable DEV_CACHE_DIRECTORY
 
 
@@ -270,49 +270,56 @@ LOGGER_CONFIG = {
             'level': 'DEBUG',
             'class': 'logging.FileHandler',
             'formatter': 'espa.standard',
-            'filename': '/tmp/espa_cron.log',
+            'filename': '/tmp/espa-cron.log',
             'mode': 'a'
         },
         'espa.cron.low': {
             'level': 'DEBUG',
             'class': 'logging.FileHandler',
             'formatter': 'espa.standard.low',
-            'filename': '/tmp/espa_cron.log',
+            'filename': '/tmp/espa-cron.log',
             'mode': 'a'
         },
         'espa.cron.normal': {
             'level': 'DEBUG',
             'class': 'logging.FileHandler',
             'formatter': 'espa.standard.normal',
-            'filename': '/tmp/espa_cron.log',
+            'filename': '/tmp/espa-cron.log',
             'mode': 'a'
         },
         'espa.cron.high': {
             'level': 'DEBUG',
             'class': 'logging.FileHandler',
             'formatter': 'espa.standard.high',
-            'filename': '/tmp/espa_cron.log',
+            'filename': '/tmp/espa-cron.log',
             'mode': 'a'
         },
-        'espa.cron.lpcs': {
+        'espa.cron.plot': {
             'level': 'DEBUG',
             'class': 'logging.FileHandler',
             'formatter': 'espa.standard',
-            'filename': '/tmp/espa_lpcs_cron.log',
+            'filename': '/tmp/espa-plot-cron.log',
+            'mode': 'a'
+        },
+        'espa.cron.orderdisp': {
+            'level': 'DEBUG',
+            'class': 'logging.FileHandler',
+            'formatter': 'espa.standard',
+            'filename': '/tmp/espa-order-disposition-cron.log',
             'mode': 'a'
         },
         'espa.processing': {
             'level': 'DEBUG',
             'class': 'logging.FileHandler',
             'formatter': 'espa.standard',
-            'filename': '/tmp/espa_processing.log',
+            'filename': '/tmp/espa-processing.log',
             'mode': 'a'
         },
         'espa.web': {
             'level': 'DEBUG',
             'class': 'logging.FileHandler',
             'formatter': 'espa.standard',
-            'filename': '/tmp/espa_web.log',
+            'filename': '/tmp/espa-web.log',
             'mode': 'a'
         }
     },
@@ -344,11 +351,17 @@ LOGGER_CONFIG = {
             'propagate': False,
             'handlers': ['espa.cron.high']
         },
-        'espa.cron.lpcs': {
+        'espa.cron.plot': {
             # To be used by the 'lpcs' cron
             'level': 'INFO',
             'propagate': False,
-            'handlers': ['espa.cron.lpcs']
+            'handlers': ['espa.cron.plot']
+        },
+        'espa.cron.orderdisp': {
+            # To be used by the order disposition cron
+            'level': 'INFO',
+            'propagate': False,
+            'handlers': ['espa.cron.orderdisp']
         },
         'espa.processing': {
             # To be used by the processing system

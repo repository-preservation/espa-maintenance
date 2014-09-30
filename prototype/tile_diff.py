@@ -20,7 +20,7 @@ import numpy as np
 from argparse import ArgumentParser
 
 from espa_constants import *
-from espa_logging import log
+from logger_factory import log
 
 def tile_diff(tile_data_1, tile_data_2):
     return (not np.array_equal(tile_data_1, tile_data_2))

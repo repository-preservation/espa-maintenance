@@ -31,9 +31,9 @@ from espa_constants import EXIT_FAILURE
 from espa_constants import EXIT_SUCCESS
 
 # imports from espa/espa_common
-from espa_common.espa_logging import EspaLogging
+from espa_common.logger_factory import EspaLogging
 
-LOGGER_NAME = 'espa.cron'
+LOGGER_NAME = 'espa.cron.orderdisp'
 
 
 # ============================================================================

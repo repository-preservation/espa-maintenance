@@ -27,9 +27,9 @@ from espa_constants import *
 
 # imports from espa/espa_common
 try:
-    from espa_logging import EspaLogging
+    from logger_factory import EspaLogging
 except:
-    from espa_common.espa_logging import EspaLogging
+    from espa_common.logger_factory import EspaLogging
 
 try:
     import settings
@@ -79,6 +79,7 @@ def build_argument_parser():
                                            warp.valid_projections,
                                            warp.valid_ns,
                                            warp.valid_pixel_size_units,
+                                           warp.valid_image_extents_units,
                                            warp.valid_resample_methods,
                                            warp.valid_datums)
 

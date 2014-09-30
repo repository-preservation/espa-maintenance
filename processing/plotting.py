@@ -40,9 +40,9 @@ from espa_constants import EXIT_FAILURE
 
 # imports from espa/espa_common
 try:
-    from espa_logging import EspaLogging
+    from logger_factory import EspaLogging
 except:
-    from espa_common.espa_logging import EspaLogging
+    from espa_common.logger_factory import EspaLogging
 
 try:
     import settings
@@ -58,6 +58,7 @@ except:
 import parameters
 import transfer
 import staging
+import util
 import distribution as dist
 
 # Setup the default colors
@@ -266,7 +267,7 @@ def validate_parameters(parms):
     # Default these
     if not parameters.test_for_parameter(options, 'source_host'):
         # Use the default output host name to find the plot input
-        options['source_host'] = util.get_output_hostname
+        options['source_host'] = util.get_output_hostname()
 
     if not parameters.test_for_parameter(options, 'source_username'):
         options['source_username'] = None
@@ -1171,6 +1172,9 @@ def process(parms):
         os.chdir(current_directory)
 
     logger.info("Plot Processing Complete")
+
+    # Let the caller know where we put these on the destination system
+    return (destination_product_file, destination_cksum_file)
 # END - process
 
 

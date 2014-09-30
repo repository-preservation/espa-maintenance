@@ -19,9 +19,9 @@ from espa_constants import *
 
 # imports from espa/espa_common
 try:
-    from espa_logging import EspaLogging
+    from logger_factory import EspaLogging
 except:
-    from espa_common.espa_logging import EspaLogging
+    from espa_common.logger_factory import EspaLogging
 
 
 # ============================================================================

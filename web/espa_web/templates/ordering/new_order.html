@@ -191,7 +191,7 @@
         width:174px;
     }
 
-    .coordinate_unit_wrapper {
+    .image_extents_units_wrapper {
         width:400px;
     }
   
@@ -280,6 +280,7 @@
     </div>
 
      <h4 class="inlineb topspace20">Add Input Products (<a href="#" id="available_input_products_open">Show Available Products</a>)</h4>
+
      <div class="product_box">
 	    <div class="product_boxheader">
 		Scene List
@@ -342,7 +343,7 @@
 	    </div>
 	</div>
         
-        <div style="{{ optionstyle }}" class="product_box">
+     <div style="{{ optionstyle }}" class="product_box">
 	    <div class="product_boxheader">
 		Essential Climate Variables
 	    </div>
@@ -394,8 +395,7 @@
 		
 	    </div>
 	</div>
-	
-	
+
      <h4 class="inlineb">Customize Outputs</h4>
 
 	<div class="product_box">
@@ -438,15 +438,15 @@
 		
 		<div class="inputitem" id="custom_control_div">
                <input class="custom_control" type="checkbox" id="image_extents" name="image_extents">
-		    <label class="tooltip" title="Enter user defined extents for output products    (minimum X,Y maximum X,Y in meters or decimal degrees)" for="include_solr_index">Modify Image Extents</label>
+		    <label class="tooltip" title="Enter user defined extents for output products (minimum X,Y maximum X,Y in meters or decimal degrees)" for="include_solr_index">Modify Image Extents</label>
 		
 		    <div class="custom_control_options" id="scene_extents">
 
                  <div class="inputitem" id="box_units">
-                     <input class="coordinate_units coordinate_unit_dd" type="radio" name="coordinate_unit" value="dd" />
-                     <label class="coordinate_units coordinate_unit_dd">Decimal Degrees</label>
-                     <input class="coordinate_units coordinate_unit_meters" id="coord_unit_meters" type="radio" name="coordinate_unit" value="meters" />
-                     <label class="coordinate_units coordinate_unit_meters">Meters</label>
+                     <input class="image_extents_units image_extents_units_dd" type="radio" name="image_extents_units" value="dd" />
+                     <label class="image_extents_units image_extents_units_dd">Decimal Degrees</label>
+                     <input class="image_extents_units image_extents_units_meters" type="radio" name="image_extents_units" value="meters" />
+                     <label class="image_extents_units image_extents_units_meters">Meters</label>
                  </div>
 
 		      <div class="inputitem" id="minx_div">
@@ -495,6 +495,20 @@
 
 	    </div> <!-- End Product Box Body -->
 	</div> <!-- End Product Box -->
+
+
+      <!-- Include statistics -->
+      <div class="product_box">
+	    <div class="product_boxheader">
+		Intercomparison &amp; Statistics
+	    </div>
+	    <div class="product_boxbody">
+		<div class="inputitem">
+               <input class="product" type="checkbox" id="include_statistics" name="include_statistics"></input>
+		    <label class="tooltip" title="Generate Intercomparision Statistics and Plots" for="include_statistics">Plot Output Product Statistics</label>
+           </div>
+	    </div>
+	</div>
 
       <h4 class="inlineb">Add Order Description</h4>
 
@@ -561,9 +575,9 @@
        var input_product_list = "#input_product_list";
 
        var image_extents = $("#image_extents");
-       var coordinate_units = $(".coordinate_units");
-       var coordinate_unit_dd = $(".coordinate_unit_dd");
-       var coordinate_unit_meters = $(".coordinate_unit_meters");
+       var image_extents_units = $(".image_extents_units");
+       var image_extents_units_dd = $(".image_extents_units_dd");
+       var image_extents_units_meters = $(".image_extents_units_meters");
        var minx = $("#minx");
        var miny = $("#miny");
        var maxx = $("#maxx");
@@ -705,9 +719,9 @@
            });
 
            /*******************************************************************
-               Updates the coordinate units when they've been clicked
+               Updates the image extents units when they've been clicked
            *******************************************************************/
-           $(coordinate_units).click(function(item) {
+           $(image_extents_units).click(function(item) {
                update_bounding_box_placeholders(item.target.value);
            });
 
@@ -766,14 +780,14 @@
                               
                //make sure dd is selected if the projection is lonlat
                if ( $("#target_projection").val() == "lonlat") {
-                   $("input:radio[name='coordinate_unit'][value='dd']").click();
+                   $("input:radio[name='image_extents_units'][value='dd']").click();
                }
-               else if ( $("input:radio[name='coordinate_unit']:checked").val() ==  undefined ) {
+               else if ( $("input:radio[name='image_extents_unit']:checked").val() ==  undefined ) {
                    if ( $("#target_projection").val() == "lonlat") {
-                       $("input:radio[name='coordinate_unit'][value='dd']").click();
+                       $("input:radio[name='image_extents_units'][value='dd']").click();
                    }    
                    else {
-                       $("input:radio[name='coordinate_unit'][value='meters']").click();
+                       $("input:radio[name='image_extents_units'][value='meters']").click();
                    }
                }
                
@@ -965,8 +979,8 @@
                $("#select_pixel_size_units").val("meters");                  //force pixel size units to meters
                update_pixelsize_units(meters);
                //update_bounding_box_placeholders(meters);
-               update_available_coordinate_units([meters, decimal_degrees]);
-               $("input:radio[name='coordinate_unit'][value='meters']").click();
+               update_available_extents_units([meters, decimal_degrees]);
+               $("input:radio[name='image_extents_units'][value='meters']").click();
                update_datum();                                               //set hidden input field for initial value
 		    break;
 
@@ -976,8 +990,8 @@
 	           $("#projection_parameters").css("visibility", "visible");
                  $("#select_pixel_size_units").val("meters");                  //force pixel size units to meters
                  update_pixelsize_units(meters);
-                 update_available_coordinate_units([meters, decimal_degrees]);
-                 $("input:radio[name='coordinate_unit'][value='meters']").click();
+                 update_available_extents_units([meters, decimal_degrees]);
+                 $("input:radio[name='image_extents_units'][value='meters']").click();
                  $("#target_projection").val("sinu");
 		      break;
 
@@ -987,8 +1001,8 @@
 	             $("#projection_parameters").css("visibility", "visible");
                   $("#select_pixel_size_units").val("meters");                  //force pixel size units to meters
                   update_pixelsize_units(meters);
-                  update_available_coordinate_units([meters, decimal_degrees]);
-                  $("input:radio[name='coordinate_unit'][value='meters']").click();
+                  update_available_extents_units([meters, decimal_degrees]);
+                  $("input:radio[name='image_extents_units'][value='meters']").click();
                   $("#target_projection").val("ps");
 		       break;
 
@@ -999,8 +1013,8 @@
                 $("#target_projection").val("utm");
                 $("#select_pixel_size_units").val("meters");                  //force pixel size units to meters
                 update_pixelsize_units(meters);
-                update_available_coordinate_units([meters, decimal_degrees]);
-                $("input:radio[name='coordinate_unit'][value='meters']").click();
+                update_available_extents_units([meters, decimal_degrees]);
+                $("input:radio[name='image_extents_units'][value='meters']").click();
                 update_utm_params();                                          //update hidden input field
                 break;
 	    
@@ -1012,8 +1026,8 @@
                 $("#target_projection").val("lonlat");
                 $("#select_pixel_size_units").val("dd");                      //force pixel size units to dd
                 update_pixelsize_units(decimal_degrees);
-                update_available_coordinate_units([decimal_degrees]);
-                $("input:radio[name='coordinate_unit'][value='dd']").click();
+                update_available_extents_units([decimal_degrees]);
+                $("input:radio[name='image_extents_units'][value='dd']").click();
 		     break;
 	       
            default:
@@ -1023,7 +1037,7 @@
                $("#target_projection").val("aea");
                $("#select_pixel_size_units").val("meters");                  //force pixel size units to meters
                update_pixelsize_units(meters);
-               update_available_coordinate_units([meters, decimal_degrees]);
+               update_available_extents_units([meters, decimal_degrees]);
                update_datum();                                               //set hidden input field for initial value
 		    break;
            }
@@ -1049,18 +1063,18 @@
 
 
            /*******************************************************************
-             Shows/hides the available coordinate units 
+             Shows/hides the available image_extents units 
            *******************************************************************/
-           function update_available_coordinate_units(available_units) {
+           function update_available_extents_units(available_units) {
                //coord_unit_dd, coord_unit_meters
-               $(coordinate_units).hide();
+               $(image_extents_units).hide();
 
                if (available_units.indexOf(decimal_degrees) != -1) {
-                   $(coordinate_unit_dd).show();
+                   $(image_extents_units_dd).show();
                }
                
                if (available_units.indexOf(meters) != -1) {
-                   $(coordinate_unit_meters).show();
+                   $(image_extents_units_meters).show();
                }
            }
 

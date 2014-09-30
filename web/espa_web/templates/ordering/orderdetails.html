@@ -57,7 +57,13 @@ tr.evenrow td{
   {% for s in scenes %}
     {% if s.name %}
     <tr class="{% cycle 'oddrow' 'evenrow' %}">
+
+    {% if s.name == 'plot' %}
+    <td class='noborder'>Plotting & Statistics</td>
+    {% else %}
     <td class='noborder'>{{ s.name }}</td>
+    {% endif %}
+
     <td class='noborder'>{{ s.get_status_display }}</td>
     {% if s.note and s.note != "''" %}
     <td class='noborder'>{{ s.note }}</td>

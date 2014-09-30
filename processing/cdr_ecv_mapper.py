@@ -16,7 +16,6 @@ import sys
 import socket
 import json
 import xmlrpclib
-import traceback
 from argparse import ArgumentParser
 
 # espa-common objects and methods
@@ -24,9 +23,9 @@ from espa_constants import EXIT_SUCCESS
 
 # imports from espa/espa_common
 try:
-    from espa_logging import EspaLogging
+    from logger_factory import EspaLogging
 except:
-    from espa_common.espa_logging import EspaLogging
+    from espa_common.logger_factory import EspaLogging
 
 try:
     import sensor
@@ -38,6 +37,7 @@ import espa_exception as ee
 import parameters
 import cdr_ecv
 import modis
+import staging
 
 
 # ============================================================================
@@ -157,14 +157,23 @@ def process(args):
 
             destination_product_file = 'ERROR'
             destination_cksum_file = 'ERROR'
-            # Process the landsat sensors
-            if sensor_name in parameters.valid_landsat_sensors:
-                (destination_product_file, destination_cksum_file) = \
-                    cdr_ecv.process(parms)
-            # Process the modis sensors
-            elif sensor_name in parameters.valid_modis_sensors:
-                (destination_product_file, destination_cksum_file) = \
-                    modis.process(parms)
+            try:
+                # Process the landsat sensors
+                if sensor_name in parameters.valid_landsat_sensors:
+                    (destination_product_file, destination_cksum_file) = \
+                        cdr_ecv.process(parms)
+                # Process the modis sensors
+                elif sensor_name in parameters.valid_modis_sensors:
+                    (destination_product_file, destination_cksum_file) = \
+                        modis.process(parms)
+            finally:
+                if not scene_keep_log:
+                    # Cleanup processing directory by calling the
+                    # initialization routine again
+                    (scene_directory, stage_directory,
+                     work_directory, package_directory) = \
+                        staging.initialize_processing_directory(orderid,
+                                                                sceneid)
 
             # ----------------------------------------------------------------
             # NOTE: Else process using another sensors processor

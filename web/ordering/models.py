@@ -135,6 +135,7 @@ class Order(models.Model):
         o['include_sr_evi'] = False           # enhanced vegetation
         o['include_solr_index'] = False       # solr search index record
         o['include_cfmask'] = False           # (deprecated)
+        o['include_statistics'] = False       # should we do stats & plots?
 
         return o
 
@@ -173,7 +174,7 @@ class Order(models.Model):
         '''
         o = {}
         o['image_extents'] = False     # modify image extents (subset or frame)
-        o['coordinate_units'] = 'dd'   #what units are the coords in?  
+        o['image_extents_units'] = None#what units are the coords in?  
         o['minx'] = None               #
         o['miny'] = None               #
         o['maxx'] = None               #
@@ -311,6 +312,7 @@ class Order(models.Model):
                         order_source,
                         scene_list,
                         option_string,
+                        order_type,
                         note=''):
         '''Places a new espa order in the database
 
@@ -347,7 +349,7 @@ class Order(models.Model):
         order.note = note
         order.status = 'ordered'
         order.order_source = order_source
-        order.order_type = 'level2_ondemand'
+        order.order_type = order_type
         order.order_date = datetime.datetime.now()
         order.product_options = option_string
         order.priority = priority
@@ -355,13 +357,14 @@ class Order(models.Model):
 
         # save the scenes for the order
         for s in set(scene_list):
-            product = sensor.instance(s)
 
             sensor_type = None
-
-            if isinstance(product, sensor.Landsat):
+            
+            if s == 'plot':
+                sensor_type = 'plot'
+            elif isinstance(sensor.instance(s), sensor.Landsat):
                 sensor_type = 'landsat'
-            elif isinstance(product, sensor.Modis):
+            elif isinstance(sensor.instance(s), sensor.Modis):
                 sensor_type = 'modis'
 
             scene = Scene()
