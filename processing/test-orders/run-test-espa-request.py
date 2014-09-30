@@ -51,13 +51,9 @@ def build_argument_parser():
                         action='store_true', dest='keep_log', default=False,
                         help="keep the log file")
 
-    parser.add_argument('--request-file',
-                        action='store', dest='request_file', required=True,
-                        help="file containing request specifics")
-
-    parser.add_argument('--products-file',
-                        action='store', dest='products_file', required=True,
-                        help="file containing products to process")
+    parser.add_argument('--request',
+                        action='store', dest='request', required=True,
+                        help="request to process")
 
     return parser
 # END - build_argument_parser
@@ -94,11 +90,14 @@ def process_test_order(request_file, products_file, env_vars, keep_log):
                 if not order_contents:
                     raise Exception("Order file [%s] is empty" % request_file)
 
+                logger.info("Processing Request File [%s]" % request_file)
                 # Validate using our parameter object
                 # order = parameters.instance(json.loads(order_contents))
                 # print json.dumps(order, indent=4, sort_keys=True)
 
                 with open(tmp_order, 'w') as tmp_fd:
+
+                    logger.info("Creating [%s]" % tmp_order)
 
                     tmp_line = order_contents
 
@@ -115,6 +114,7 @@ def process_test_order(request_file, products_file, env_vars, keep_log):
                                         % (env_vars['dev_data_dir']['value'],
                                            product_name, '.tar.gz'))
 
+                        logger.info("Using Product Path [%s]" % product_path)
                         if not os.path.isfile(product_path):
                             error_msg = ("Missing product data (%s)"
                                          % product_path)
@@ -205,7 +205,7 @@ if __name__ == '__main__':
                                 ' %(filename)s:%(lineno)d:%(funcName)s'
                                 ' -- %(message)s'),
                         datefmt='%Y-%m-%d %H:%M:%S',
-                        level=logging.INFO)
+                        level=logging.DEBUG)
 
     logger = logging.getLogger(__name__)
 
@@ -237,22 +237,23 @@ if __name__ == '__main__':
     # Parse the command line arguments
     args = parser.parse_args()
 
-    if not os.path.isfile(args.request_file):
-        logger.critical("Request file [%s] does not exist" % args.request_file)
+    request_file = "%s.json" % args.request
+    products_file = "%s.products" % args.request
+
+    if not os.path.isfile(request_file):
+        logger.critical("Request file [%s] does not exist" % request_file)
         sys.exit(1)
 
-    if not os.path.isfile(args.products_file):
-        logger.critical("Products file [%s] does not exist"
-                        % args.products_file)
+    if not os.path.isfile(products_file):
+        logger.critical("Products file [%s] does not exist" % products_file)
         sys.exit(1)
 
     # Avoid the creation of the *.pyc files
     os.environ['PYTHONDONTWRITEBYTECODE'] = '1'
 
-    if not process_test_order(args.request_file, args.products_file, env_vars,
+    if not process_test_order(request_file, products_file, env_vars,
                               args.keep_log):
-        logger.critical("Request file (%s) failed to process"
-                        % args.request_file)
+        logger.critical("Request [%s] failed to process" % args.request)
         sys.exit(1)
 
     # Terminate SUCCESS
