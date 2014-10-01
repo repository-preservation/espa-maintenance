@@ -1,10 +1,9 @@
-from validation import Validator
 import lta
 from models import Order
 
 from espa_common import sensor
 from espa_common import utilities
-
+from espa_common.validation import Validator
 
 class ModisProductListValidator(Validator):
     '''Validates that a scene list has been provided and it contains at
