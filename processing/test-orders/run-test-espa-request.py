@@ -91,9 +91,6 @@ def process_test_order(request_file, products_file, env_vars, keep_log):
                     raise Exception("Order file [%s] is empty" % request_file)
 
                 logger.info("Processing Request File [%s]" % request_file)
-                # Validate using our parameter object
-                # order = parameters.instance(json.loads(order_contents))
-                # print json.dumps(order, indent=4, sort_keys=True)
 
                 with open(tmp_order, 'w') as tmp_fd:
 
@@ -144,9 +141,20 @@ def process_test_order(request_file, products_file, env_vars, keep_log):
                                                version,
                                                xxx))
 
+                    sensor_name = sensor.instance(product_name).sensor_name
+                    print("Processing Sensor [%s]" % sensor_name)
+
                     tmp_line = tmp_line.replace('\n', '')
                     tmp_line = tmp_line.replace("ORDER_ID", order_id)
                     tmp_line = tmp_line.replace("SCENE_ID", product_name)
+
+                    if sensor_name in ['tm', 'etm']:
+                        tmp_line = tmp_line.replace("PRODUCT_TYPE", 'landsat')
+                    elif sensor_name in ['terra', 'aqua']:
+                        tmp_line = tmp_line.replace("PRODUCT_TYPE", 'modis')
+
+                    tmp_line = tmp_line.replace("SCENE_ID", product_name)
+
                     tmp_line = tmp_line.replace("SRC_HOST", source_host)
                     tmp_line = \
                         tmp_line.replace("DEV_DATA_DIRECTORY",
@@ -158,8 +166,8 @@ def process_test_order(request_file, products_file, env_vars, keep_log):
                     tmp_fd.write(tmp_line)
 
                     # Validate again, since we modified it
-                    parms = parameters.instance(json.loads(tmp_line))
-                    logger.info(json.dumps(parms, indent=4, sort_keys=True))
+                    #parms = parameters.instance(json.loads(tmp_line))
+                    #logger.info(json.dumps(parms, indent=4, sort_keys=True))
 
                 # END - with tmp_order
             # END - with request_file
@@ -172,7 +180,7 @@ def process_test_order(request_file, products_file, env_vars, keep_log):
             if keep_log:
                 keep_log_str = '--keep-log'
 
-            cmd = ("cd ..; cat test-orders/%s | ./cdr_ecv_mapper.py %s"
+            cmd = ("cd ..; cat test-orders/%s | ./ondemand_mapper.py %s"
                    % (tmp_order, keep_log_str))
 
             output = ''
