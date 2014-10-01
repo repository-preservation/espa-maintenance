@@ -43,7 +43,7 @@ except:
 import espa_exception as ee
 import parameters
 import staging
-import cdr_ecv
+import cdr_ecv as landsat
 import modis
 import plotting as plotter
 
@@ -172,7 +172,7 @@ def process(args):
                 # Process the landsat sensors
                 if product_type == 'landsat':
                     (destination_product_file, destination_cksum_file) = \
-                        cdr_ecv.process(parms)
+                        landsat.process(parms)
                 # Process the modis sensors
                 elif product_type == 'modis':
                     (destination_product_file, destination_cksum_file) = \
@@ -347,7 +347,7 @@ if __name__ == '__main__':
                         default=False, help="keep the generated log file")
     args = parser.parse_args()
 
-    EspaLogging.configure_base_logger(filename='/tmp/espa-cdr_ecv_mapper.log')
+    EspaLogging.configure_base_logger(filename='/tmp/espa-ondemand-mapper.log')
     # Initially set to the base logger
     logger = EspaLogging.get_logger('base')
 
