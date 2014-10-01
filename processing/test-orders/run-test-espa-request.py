@@ -55,12 +55,17 @@ def build_argument_parser():
                         action='store', dest='request', required=True,
                         help="request to process")
 
+    parser.add_argument('--plot',
+                        action='store_true', dest='plot', default=False,
+                        help="generate plots")
+
     return parser
 # END - build_argument_parser
 
 
 # ============================================================================
-def process_test_order(request_file, products_file, env_vars, keep_log):
+def process_test_order(request_file, products_file, env_vars,
+                       keep_log, plot):
     '''
     Description:
       Process the test order file.
@@ -76,125 +81,134 @@ def process_test_order(request_file, products_file, env_vars, keep_log):
     status = True
     error_msg = ''
 
-    with open(products_file, 'r') as scenes_fd:
-        while (1):
-            product_name = scenes_fd.readline().strip()
-            if not product_name:
-                break
-            if product_name.startswith('#'):
-                break
-            logger.info("Product Name [%s]" % product_name)
+    products = list()
+    if not plot:
+        with open(products_file, 'r') as scenes_fd:
+            while (1):
+                product = scenes_fd.readline().strip()
+                if not product:
+                    break
+                products.append(product)
+    else:
+        products.append('plot')
 
-            with open(request_file, 'r') as order_fd:
-                order_contents = order_fd.read()
-                if not order_contents:
-                    raise Exception("Order file [%s] is empty" % request_file)
+    for product in products:
+        logger.info("Processing Product [%s]" % product)
 
-                logger.info("Processing Request File [%s]" % request_file)
+        with open(request_file, 'r') as order_fd:
+            order_contents = order_fd.read()
+            if not order_contents:
+                raise Exception("Order file [%s] is empty" % request_file)
 
-                with open(tmp_order, 'w') as tmp_fd:
+            logger.info("Processing Request File [%s]" % request_file)
 
-                    logger.info("Creating [%s]" % tmp_order)
+            with open(tmp_order, 'w') as tmp_fd:
 
-                    tmp_line = order_contents
+                logger.info("Creating [%s]" % tmp_order)
 
-                    # Update the order for the developer
-                    tmp = product_name[:3]
-                    source_host = 'localhost'
-                    is_modis = False
-                    if tmp == 'MOD' or tmp == 'MYD':
-                        is_modis = True
-                        source_host = settings.MODIS_INPUT_HOSTNAME
+                tmp_line = order_contents
 
-                    if not is_modis:
-                        product_path = ('%s/%s%s'
-                                        % (env_vars['dev_data_dir']['value'],
-                                           product_name, '.tar.gz'))
+                # Update the order for the developer
+                tmp = product[:3]
+                source_host = 'localhost'
+                is_modis = False
+                if tmp == 'MOD' or tmp == 'MYD':
+                    is_modis = True
+                    source_host = settings.MODIS_INPUT_HOSTNAME
 
-                        logger.info("Using Product Path [%s]" % product_path)
-                        if not os.path.isfile(product_path):
-                            error_msg = ("Missing product data (%s)"
-                                         % product_path)
-                            have_error = True
-                            break
+                # for plots
+                source_directory = 'DEV_CACHE_DIRECTORY/%s' % order_id
+                if not is_modis and not plot:
+                    product_path = ('%s/%s%s'
+                                    % (env_vars['dev_data_dir']['value'],
+                                       product, '.tar.gz'))
 
-                        source_directory = env_vars['dev_data_dir']['value']
+                    logger.info("Using Product Path [%s]" % product_path)
+                    if not os.path.isfile(product_path):
+                        error_msg = ("Missing product data (%s)"
+                                     % product_path)
+                        have_error = True
+                        break
 
+                    source_directory = env_vars['dev_data_dir']['value']
+
+                elif not plot:
+                    if tmp == 'MOD':
+                        base_source_path = settings.TERRA_BASE_SOURCE_PATH
                     else:
-                        if tmp == 'MOD':
-                            base_source_path = settings.TERRA_BASE_SOURCE_PATH
-                        else:
-                            base_source_path = settings.AQUA_BASE_SOURCE_PATH
+                        base_source_path = settings.AQUA_BASE_SOURCE_PATH
 
-                        short_name = sensor.instance(product_name).short_name
-                        version = sensor.instance(product_name).version
-                        archive_date = utilities.date_from_doy(
-                            sensor.instance(product_name).year,
-                            sensor.instance(product_name).doy)
-                        xxx = '%s.%s.%s' % (str(archive_date.year).zfill(4),
-                                            str(archive_date.month).zfill(2),
-                                            str(archive_date.day).zfill(2))
+                    short_name = sensor.instance(product).short_name
+                    version = sensor.instance(product).version
+                    archive_date = utilities.date_from_doy(
+                        sensor.instance(product).year,
+                        sensor.instance(product).doy)
+                    xxx = '%s.%s.%s' % (str(archive_date.year).zfill(4),
+                                        str(archive_date.month).zfill(2),
+                                        str(archive_date.day).zfill(2))
 
-                        source_directory = ('%s/%s.%s/%s'
-                                            % (base_source_path,
-                                               short_name,
-                                               version,
-                                               xxx))
+                    source_directory = ('%s/%s.%s/%s'
+                                        % (base_source_path,
+                                           short_name,
+                                           version,
+                                           xxx))
 
-                    sensor_name = sensor.instance(product_name).sensor_name
+                sensor_name = 'plot'
+                if not plot:
+                    sensor_name = sensor.instance(product).sensor_name
                     print("Processing Sensor [%s]" % sensor_name)
+                else:
+                    print("Processing Plot Request")
 
-                    tmp_line = tmp_line.replace('\n', '')
-                    tmp_line = tmp_line.replace("ORDER_ID", order_id)
-                    tmp_line = tmp_line.replace("SCENE_ID", product_name)
+                tmp_line = tmp_line.replace('\n', '')
+                tmp_line = tmp_line.replace("ORDER_ID", order_id)
+                tmp_line = tmp_line.replace("SCENE_ID", product)
 
-                    if sensor_name in ['tm', 'etm']:
-                        tmp_line = tmp_line.replace("PRODUCT_TYPE", 'landsat')
-                    elif sensor_name in ['terra', 'aqua']:
-                        tmp_line = tmp_line.replace("PRODUCT_TYPE", 'modis')
+                if sensor_name in ['tm', 'etm']:
+                    tmp_line = tmp_line.replace("PRODUCT_TYPE", 'landsat')
+                elif sensor_name in ['terra', 'aqua']:
+                    tmp_line = tmp_line.replace("PRODUCT_TYPE", 'modis')
+                else:
+                    tmp_line = tmp_line.replace("PRODUCT_TYPE", 'plot')
 
-                    tmp_line = tmp_line.replace("SCENE_ID", product_name)
+                tmp_line = tmp_line.replace("SRC_HOST", source_host)
+                tmp_line = \
+                    tmp_line.replace("DEV_DATA_DIRECTORY",
+                                     source_directory)
+                tmp_line = \
+                    tmp_line.replace("DEV_CACHE_DIRECTORY",
+                                     env_vars['dev_cache_dir']['value'])
 
-                    tmp_line = tmp_line.replace("SRC_HOST", source_host)
-                    tmp_line = \
-                        tmp_line.replace("DEV_DATA_DIRECTORY",
-                                         source_directory)
-                    tmp_line = \
-                        tmp_line.replace("DEV_CACHE_DIRECTORY",
-                                         env_vars['dev_cache_dir']['value'])
+                print tmp_line
+                tmp_fd.write(tmp_line)
 
-                    tmp_fd.write(tmp_line)
+                # Validate again, since we modified it
+                #parms = parameters.instance(json.loads(tmp_line))
+                #logger.info(json.dumps(parms, indent=4, sort_keys=True))
 
-                    # Validate again, since we modified it
-                    #parms = parameters.instance(json.loads(tmp_line))
-                    #logger.info(json.dumps(parms, indent=4, sort_keys=True))
+            # END - with tmp_order
+        # END - with request_file
 
-                # END - with tmp_order
-            # END - with request_file
+        if have_error:
+            logger.error(error_msg)
+            return False
 
-            if have_error:
-                logger.error(error_msg)
-                return False
+        keep_log_str = ''
+        if keep_log:
+            keep_log_str = '--keep-log'
 
-            keep_log_str = ''
-            if keep_log:
-                keep_log_str = '--keep-log'
+        cmd = ("cd ..; cat test-orders/%s | ./ondemand_mapper.py %s"
+               % (tmp_order, keep_log_str))
 
-            cmd = ("cd ..; cat test-orders/%s | ./ondemand_mapper.py %s"
-                   % (tmp_order, keep_log_str))
-
-            output = ''
-            try:
-                logger.info("Processing [%s]" % cmd)
-                output = utilities.execute_cmd(cmd)
-                if len(output) > 0:
-                    print output
-            except Exception, e:
-                logger.exception("Processing failed")
-                status = False
-
-        # END - while (1)
-    # END - with products_file
+        output = ''
+        try:
+            logger.info("Processing [%s]" % cmd)
+            output = utilities.execute_cmd(cmd)
+            if len(output) > 0:
+                print output
+        except Exception, e:
+            logger.exception("Processing failed")
+            status = False
 
     os.unlink(tmp_order)
 
@@ -246,21 +260,24 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     request_file = "%s.json" % args.request
-    products_file = "%s.products" % args.request
-
     if not os.path.isfile(request_file):
         logger.critical("Request file [%s] does not exist" % request_file)
         sys.exit(1)
 
-    if not os.path.isfile(products_file):
-        logger.critical("Products file [%s] does not exist" % products_file)
-        sys.exit(1)
+    products_file = None
+    if not args.plot:
+        products_file = "%s.products" % args.request
+
+        if not os.path.isfile(products_file):
+            logger.critical("Products file [%s] does not exist"
+                            % products_file)
+            sys.exit(1)
 
     # Avoid the creation of the *.pyc files
     os.environ['PYTHONDONTWRITEBYTECODE'] = '1'
 
     if not process_test_order(request_file, products_file, env_vars,
-                              args.keep_log):
+                              args.keep_log, args.plot):
         logger.critical("Request [%s] failed to process" % args.request)
         sys.exit(1)
 
