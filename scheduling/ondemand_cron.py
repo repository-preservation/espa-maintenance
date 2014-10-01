@@ -43,7 +43,7 @@ from espa_common.logger_factory import EspaLogging as EspaLogging
 
 
 # ============================================================================
-def process_requests(args, logger_name):
+def process_requests(args, logger_name, queue_priority, request_priority):
     '''
     Description:
       Queries the xmlrpc service to see if there are any requests that need
@@ -91,20 +91,6 @@ def process_requests(args, logger_name):
 
     # Use ondemand_enabled to determine if we should be processing or not
     ondemand_enabled = server.get_configuration('ondemand_enabled')
-
-    # Determine the appropriate priority value to request
-    queue_priority = args.priority
-    request_priority = queue_priority
-    if 'plot' in args.product_types:
-        if queue_priority == 'all':
-            # If all was specified default to high queue
-            queue_priority = 'high'
-        # The request priority is always None for plotting to get all of them
-        request_priority = None
-    else:
-        if request_priority == 'all':
-            # We need to use a value of None to get all of them
-            request_priority = None
 
     # Determine the appropriate hadoop queue to use
     hadoop_job_queue = settings.HADOOP_QUEUE_MAPPING[queue_priority]
@@ -375,9 +361,23 @@ if __name__ == '__main__':
             logger.critical("$%s is not defined... exiting" % env_var)
             sys.exit(EXIT_FAILURE)
 
+    # Determine the appropriate priority value to use for the queue and request
+    queue_priority = args.priority.lower()
+    request_priority = queue_priority
+    if 'plot' in args.product_types:
+        if queue_priority == 'all':
+            # If all was specified default to high queue
+            queue_priority = 'high'
+        # The request priority is always None for plotting to get all of them
+        request_priority = None
+    else:
+        if request_priority == 'all':
+            # We need to use a value of None to get all of them
+            request_priority = None
+
     # Setup and submit products to hadoop for processing
     try:
-        process_requests(args, logger_name)
+        process_requests(args, logger_name, queue_priority, request_priority)
     except Exception, e:
         logger.exception("Processing failed")
         sys.exit(EXIT_FAILURE)
