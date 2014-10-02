@@ -737,18 +737,15 @@ def update_order_if_complete(order):
                     sent = send_completion_email(order_email,
                                                  o.orderid,
                                                  readyscenes=scene_names)
+
+                    if sent is None:
+                        raise Exception("Completion email not sent")
+                    else:
+                        o.completion_email_sent = datetime.datetime.now()
+                        o.save()
             except Exception, e:
                 msg = "Error calling send_completion_email:%s" % e
                 print(msg)
-                raise Exception(msg)
-
-            if sent:
-                o.completion_email_sent = datetime.datetime.now()
-                o.save()
-            else:
-                msg = "Could not send completion email to %s for order: %s" % \
-                    (o.user.email, o.orderid)
-
                 raise Exception(msg)
 
 
