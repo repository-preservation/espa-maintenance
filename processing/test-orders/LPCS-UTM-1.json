@@ -49,5 +49,6 @@
     },
     "orderid": "ORDER_ID",
     "scene": "SCENE_ID",
+    "product_type": "PRODUCT_TYPE",
     "xmlrpcurl": "skip_xmlrpc"
 }
