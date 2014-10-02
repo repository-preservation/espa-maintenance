@@ -282,7 +282,7 @@ def http_transfer_file(source_host, source_file, destination_file):
         raise Exception("Transfer Failed - HTTP")
     else:
         logger.info("Transfer complete - HTTP")
-# END - scp_transfer_file
+# END - http_transfer_file
 
 
 # ============================================================================
