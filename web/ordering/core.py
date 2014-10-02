@@ -733,9 +733,10 @@ def update_order_if_complete(order):
             order_email = o.user.email
             sent = None
             try:
-                sent = send_completion_email(order_email,
-                                             o.orderid,
-                                             readyscenes=scene_names)
+                if not o.completion_email_sent:
+                    sent = send_completion_email(order_email,
+                                                 o.orderid,
+                                                 readyscenes=scene_names)
             except Exception, e:
                 msg = "Error calling send_completion_email:%s" % e
                 print(msg)
