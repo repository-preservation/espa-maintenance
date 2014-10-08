@@ -1,7 +1,35 @@
 
+'''
+License:
+  "NASA Open Source Agreement 1.3"
+
+Description:
+  Implements the processors which generate the products the system is capable
+  of producing.
+
+History:
+  Created Oct/2014 by Ron Dilley, USGS/EROS
+
+    Date              Programmer               Reason
+    ----------------  ------------------------ -------------------------------
+    Oct/2014          Ron Dilley               Initial implementation
+                                               Most of the code was taken from
+                                               the previous implementation
+                                               code/modules.
+
+'''
+# TODO - L4, L5, L7 processors
+# TODO - Aqua, Terra processors
+# TODO - Plot processors
+# TODO - Fix l8cfmask after it has been updated to raw binary and bug fixes.
+
+
 import os
 import sys
 import shutil
+import glob
+from time import sleep
+from datetime import datetime
 
 # imports from espa/espa_common
 try:
@@ -30,14 +58,23 @@ import espa_exception as ee
 #                   ---- Might be significantly easier with more sub dicts
 import parameters
 import metadata
+import metadata_api
 import warp
 import staging
+import statistics
+import distribution
 
 
 # ===========================================================================
 class ProductProcessor(object):
 
     _logger = None
+
+    _order_dir = None
+    _product_dir = None
+    _stage_dir = None
+    _output_dir = None
+    _work_dir = None
 
     # -------------------------------------------
     def __init__(self):
@@ -144,6 +181,35 @@ class ProductProcessor(object):
                                    str(e)), None, sys.exc_info()[2]
 
     # -------------------------------------------
+    def get_product_name(self, parms):
+        '''
+        Description:
+            Build the product name from the product information and current
+            time.
+
+        Note:
+            Not implemented here.
+        '''
+
+        msg = ("[%s] Requires implementation in the child class"
+               % self.get_product_name.__name__)
+        raise NotImplementedError(msg)
+
+    # -------------------------------------------
+    def distribute_product(self, parms):
+        '''
+        Description:
+            Builds the product tar.gz file and distributes it.
+
+        Note:
+            Not implemented here.
+        '''
+
+        msg = ("[%s] Requires implementation in the child class"
+               % self.distribute_product.__name__)
+        raise NotImplementedError(msg)
+
+    # -------------------------------------------
     def process(self, parms):
         '''
         Description:
@@ -171,6 +237,8 @@ class CustomizationProcessor(ProductProcessor):
     _valid_pixel_size_units = None
     _valid_image_extents_units = None
     _valid_datums = None
+
+    _xml_filename = None
 
     # -------------------------------------------
     def __init__(self):
@@ -210,6 +278,27 @@ class CustomizationProcessor(ProductProcessor):
                                              self._valid_resample_methods,
                                              self._valid_datums)
 
+    # -------------------------------------------
+    def customize_products(self, parms):
+        '''
+        Description:
+            Performs the customization of the products.
+        '''
+
+        product_id = parms['product_id']
+        options = parms['options']
+
+        # Reproject the data for each product, but only if necessary
+        if (options['reproject']
+                or options['resize']
+                or options['image_extents']
+                or options['projection'] is not None):
+
+            # The warp method requires this parameter
+            options['work_directory'] = self._work_dir
+
+            warp.warp_espa_data(options, product_id, self._xml_filename)
+
 
 # ===========================================================================
 class CDRProcessor(CustomizationProcessor):
@@ -217,12 +306,6 @@ class CDRProcessor(CustomizationProcessor):
     Description:
         Provides the super class implementation for processing products.
     '''
-
-    _order_dir = None
-    _product_dir = None
-    _stage_dir = None
-    _output_dir = None
-    _work_dir = None
 
     # -------------------------------------------
     def __init__(self):
@@ -276,7 +359,7 @@ class CDRProcessor(CustomizationProcessor):
     def build_science_products(self, parms):
         '''
         Description:
-            Stages the input data required for the processor.
+            Build the science products requested by the user.
 
         Note:
             Not implemented here.
@@ -285,6 +368,211 @@ class CDRProcessor(CustomizationProcessor):
         msg = ("[%s] Requires implementation in the child class"
                % self.build_science_products.__name__)
         raise NotImplementedError(msg)
+
+    # -------------------------------------------
+    def cleanup_work_dir(self, parms):
+        '''
+        Description:
+            Cleanup all the intermediate non-products and the science
+            products not requested.
+
+        Note:
+            Not implemented here.
+        '''
+
+        msg = ("[%s] Requires implementation in the child class"
+               % self.cleanup_work_dir.__name__)
+        raise NotImplementedError(msg)
+
+    # -------------------------------------------
+    def remove_products_from_xml(self, parms):
+        '''
+        Description:
+            Remove the specified products from the XML file.  The file is
+            read into memory, processed, and written back out with out the
+            specified products.
+        '''
+
+        logger = self._logger
+
+        options = parms['options']
+
+        # Map order options to the products in the XML files
+        order2xml_mapping = {
+            'include_customized_source_data': ['L1T', 'L1G', 'L1GT'],
+            'include_sr': 'sr_refl',
+            'include_sr_toa': 'toa_refl',
+            'include_sr_thermal': 'toa_bt',
+            'include_cfmask': 'cfmask'
+        }
+
+        # If nothing to do just return
+        if self._xml_filename is None:
+            return
+
+        # Remove generated products that were not requested
+        products_to_remove = []
+        if not options['include_customized_source_data']:
+            products_to_remove.extend(
+                order2xml_mapping['include_customized_source_data'])
+        if not options['include_sr']:
+            products_to_remove.append(
+                order2xml_mapping['include_sr'])
+        if not options['include_sr_toa']:
+            products_to_remove.append(
+                order2xml_mapping['include_sr_toa'])
+        if not options['include_sr_thermal']:
+            products_to_remove.append(
+                order2xml_mapping['include_sr_thermal'])
+        # These both need to be false before we delete the cfmask files
+        # Because our defined SR product includes the cfmask band
+        if not options['include_cfmask'] and not options['include_sr']:
+            products_to_remove.append(
+                order2xml_mapping['include_cfmask'])
+
+        if products_to_remove is not None:
+            espa_xml = metadata_api.parse(self._xml_filename, silence=True)
+            bands = espa_xml.get_bands()
+
+            file_names = []
+
+            # Remove them from the file system first
+            for band in bands.band:
+                if band.product in products_to_remove:
+                    # Add the .img file
+                    file_names.append(band.file_name)
+                    # Add the .hdr file
+                    hdr_file_name = band.file_name.replace('.img', '.hdr')
+                    file_names.append(hdr_file_name)
+
+            # Only remove files if we found some
+            if len(file_names) > 0:
+
+                cmd = ' '.join(['rm', '-rf'] + file_names)
+                logger.info(' '.join(["REMOVING INTERMEDIATE PRODUCTS NOT"
+                                      " REQUESTED", 'COMMAND:', cmd]))
+
+                try:
+                    output = utilities.execute_cmd(cmd)
+                except Exception, e:
+                    raise ee.ESPAException(ee.ErrorCodes.remove_products,
+                                           str(e)), None, sys.exc_info()[2]
+                finally:
+                    if len(output) > 0:
+                        logger.info(output)
+
+                # Remove them from the XML by creating a new list of all the
+                # others
+                bands.band[:] = [band for band in bands.band
+                                 if band.product not in products_to_remove]
+
+                try:
+                    # Export the file with validation
+                    with open(self._xml_filename, 'w') as xml_fd:
+                        # Export to the file and specify the namespace/schema
+                        xmlns = "http://espa.cr.usgs.gov/v1.0"
+                        xmlns_xsi = "http://www.w3.org/2001/XMLSchema-instance"
+                        schema_uri = ("http://espa.cr.usgs.gov/static/schema/"
+                                      "espa_internal_metadata_v1_0.xsd")
+                        metadata_api.export(xml_fd, espa_xml,
+                                            xmlns=xmlns,
+                                            xmlns_xsi=xmlns_xsi,
+                                            schema_uri=schema_uri)
+
+                except Exception, e:
+                    raise ee.ESPAException(ee.ErrorCodes.remove_products,
+                                           str(e)), None, sys.exc_info()[2]
+                finally:
+                    if len(output) > 0:
+                        logger.info(output)
+            # END - if file_names
+
+            # Cleanup
+            del bands
+            del espa_xml
+        # END - if products_to_remove
+
+    # -------------------------------------------
+    def generate_statistics(self, parms):
+        '''
+        Description:
+            Generates statistics if required for the processor.
+
+        Note:
+            Not implemented here.
+        '''
+
+        msg = ("[%s] Requires implementation in the child class"
+               % self.generate_statistics.__name__)
+        raise NotImplementedError(msg)
+
+    # -------------------------------------------
+    def reformat_products(self, parms):
+        '''
+        Description:
+            Generates statistics if required for the processor.
+        '''
+
+        options = parms['options']
+
+        # Convert to the user requested output format or leave it in ESPA ENVI
+        # We do all of our processing using ESPA ENVI format so it can be
+        # hard-coded here
+        warp.reformat(self._xml_filename, self._work_dir, 'envi',
+                      options['output_format'])
+
+    # -------------------------------------------
+    def distribute_product(self, parms):
+        '''
+        Description:
+            Builds the product tar.gz file and distributes it.
+        '''
+
+        logger = self._logger
+
+        product_id = parms['product_id']
+        opts = parms['options']
+
+        product_name = self.get_product_name(parms)
+
+        # Deliver the product files
+        # Attempt X times sleeping between each attempt
+        sleep_seconds = settings.DEFAULT_SLEEP_SECONDS
+        max_number_of_attempts = settings.MAX_DISTRIBUTION_ATTEMPTS
+        attempt = 0
+        destination_product_file = 'ERROR'
+        destination_cksum_file = 'ERROR'
+        while True:
+            try:
+                # Deliver product will also try each of its parts three times
+                # before failing, so we pass our sleep seconds down to them
+                (destination_product_file, destination_cksum_file) = \
+                    distribution.deliver_product(product_id,
+                                                 self._work_dir,
+                                                 self._output_dir,
+                                                 product_name,
+                                                 opts['destination_host'],
+                                                 opts['destination_directory'],
+                                                 opts['destination_username'],
+                                                 opts['destination_pw'],
+                                                 opts['include_statistics'],
+                                                 sleep_seconds)
+            except Exception, e:
+                logger.error("An exception occurred processing %s" % scene)
+                logger.error("Exception Message: %s" % str(e))
+                if attempt < max_number_of_attempts:
+                    sleep(sleep_seconds)  # sleep before trying again
+                    attempt += 1
+                    # adjust for next set
+                    sleep_seconds = int(sleep_seconds * 1.5)
+                    continue
+                else:
+                    # May already be an ESPAException so don't override that
+                    raise e
+            break
+
+        # Let the caller know where we put these on the destination system
+        return (destination_product_file, destination_cksum_file)
 
     # -------------------------------------------
     def process(self, parms):
@@ -310,28 +598,34 @@ class CDRProcessor(CustomizationProcessor):
         # Build science products
         self.build_science_products(parms)
 
+        # Remove science products and intermediate data not requested
+        self.cleanup_work_dir(parms)
+
         # Customize products
-        # TODO TODO TODO
-        # self.customize_products(parms)
+        self.customize_products(parms)
 
         # Generate statistics products
-        # TODO TODO TODO
-        # self.generate_statistics(parms)
+        self.generate_statistics(parms)
 
-        # Deliver product
-        # TODO TODO TODO
+        # Reformat product
+        self.reformat_products(parms)
+
+        # Distribute product
+        (destination_product_file, destination_cksum_file) = \
+            self.distribute_product(parms)
 
         # Cleanup the processing directory to free disk space for other
         # products to process.
         # TODO TODO TODO
         # self.cleanup_processing_directory()
 
+        return (destination_product_file, destination_cksum_file)
+
 
 # ===========================================================================
 class LandsatProcessor(CDRProcessor):
 
     _metadata_filename = None
-    _xml_filename = None
 
     # -------------------------------------------
     def __init__(self):
@@ -514,6 +808,10 @@ class LandsatProcessor(CDRProcessor):
         '''
         Description:
             Returns the command line required to generate surface reflectance.
+
+        Note:
+            Provides the L4, L5, and L7 command line.  L8 processing overrides
+            this method.
         '''
 
         cmd = ' '.join(['do_ledaps.py', '--xml', self._xml_filename])
@@ -553,6 +851,10 @@ class LandsatProcessor(CDRProcessor):
         '''
         Description:
             Returns the command line required to generate cfmask.
+
+        Note:
+            Provides the L4, L5, and L7 command line.  L8 processing overrides
+            this method.
         '''
 
         logger = self._logger
@@ -610,7 +912,7 @@ class LandsatProcessor(CDRProcessor):
                 metadata.get_landsat_metadata(self._work_dir)
         except Exception, e:
             raise ee.ESPAException(ee.ErrorCodes.metadata,
-                               str(e)), None, sys.exc_info()[2]
+                                   str(e)), None, sys.exc_info()[2]
         self._metadata_filename = landsat_metadata['metadata_filename']
         del (landsat_metadata)  # Not needed anymore
 
@@ -629,14 +931,169 @@ class LandsatProcessor(CDRProcessor):
 
             self.generate_cfmask(parms)
 
-            # TODO TODO TODO
-            #self.generate_sr_browse_data(parms)
-            #self.generate_spectral_indices(parms)
-            #self.generate_dswe(parms)
+            # TODO - Today we do not do this anymore so code it back in
+            #        if/when it is required
+            # self.generate_sr_browse_data(parms)
+
+            # TODO - SI processing is not implemented for L8 yet add it for
+            #        L4, L5, and L7, after current L8 capabilities are
+            #        implemented
+            # self.generate_spectral_indices(parms)
+
+            # TODO - We do not have a finalized version of this yet, but this
+            #        is where it will go
+            # self.generate_dswe(parms)
 
         finally:
             # Change back to the previous directory
             os.chdir(current_directory)
+
+    # -------------------------------------------
+    def cleanup_work_dir(self, parms):
+        '''
+        Description:
+            Cleanup all the intermediate non-products and the science
+            products not requested.
+        '''
+
+        logger = self._logger
+
+        options = parms['options']
+
+        # Define all of the non-product files that need to be removed before
+        # product tarball generation
+        non_product_files = [
+            'lndsr.*.txt',
+            'lndcal.*.txt',
+            'LogReport*',
+            '*_MTL.txt.old',
+            '*_dem.img'
+        ]
+
+        # Define L1 source files that may need to be removed before product
+        # tarball generation
+        l1_source_files = [
+            'L*.TIF',
+            'README.GTF',
+            '*gap_mask*'
+        ]
+
+        # Define L1 source metadata files that may need to be removed before
+        # product tarball generation
+        l1_source_metadata_files = [
+            '*_MTL*',
+            '*_VER*',
+            '*_GCP*'
+        ]
+
+        # Change to the working directory
+        current_directory = os.getcwd()
+        os.chdir(self._work_dir)
+
+        try:
+            # Remove the intermediate non-product files
+            non_products = []
+            for item in non_product_files:
+                non_products.extend(glob.glob(item))
+
+            # Add level 1 source files if not requested
+            if not options['include_source_data']:
+                for item in l1_source_files:
+                    non_products.extend(glob.glob(item))
+
+            # Add metadata files if not requested
+            if (not options['include_source_metadata'] and
+                    not options['include_source_data']):
+                for item in l1_source_metadata_files:
+                    non_products.extend(glob.glob(item))
+
+            if len(non_products) > 0:
+                cmd = ' '.join(['rm', '-rf'] + non_products)
+                logger.info(' '.join(['REMOVING INTERMEDIATE DATA COMMAND:',
+                                      cmd]))
+
+                output = ''
+                try:
+                    output = utilities.execute_cmd(cmd)
+                except Exception, e:
+                    raise ee.ESPAException(ee.ErrorCodes.cleanup_work_dir,
+                                           str(e)), None, sys.exc_info()[2]
+                finally:
+                    if len(output) > 0:
+                        logger.info(output)
+
+            try:
+                self.remove_products_from_xml(parms)
+            except Exception, e:
+                raise ee.ESPAException(ee.ErrorCodes.remove_products,
+                                       str(e)), None, sys.exc_info()[2]
+
+        finally:
+            # Change back to the previous directory
+            os.chdir(current_directory)
+
+    # -------------------------------------------
+    def generate_statistics(self, parms):
+        '''
+        Description:
+            Generates statistics if required for the processor.
+
+        Note:
+            Not implemented here.
+        '''
+
+        logger = self._logger
+
+        options = parms['options']
+
+        # Generate the stats for each stat'able' science product
+        if options['include_statistics']:
+            # Hold the wild card strings in a type based dictionary
+            files_to_search_for = dict()
+
+            # Landsat files
+            # The types must match the types in settings.py
+            files_to_search_for['SR'] = ['*_sr_band[0-9].img']
+            files_to_search_for['TOA'] = ['*_toa_band[0-9].img',
+                                          '*_toa_band1[0-1].img']
+            files_to_search_for['INDEX'] = ['*_nbr.img', '*_nbr2.img',
+                                            '*_ndmi.img', '*_ndvi.img',
+                                            '*_evi.img', '*_savi.img',
+                                            '*_msavi.img']
+
+            # Generate the stats for each file
+            statistics.generate_statistics(self._work_dir,
+                                           files_to_search_for)
+
+    # -------------------------------------------
+    def get_product_name(self, parms):
+        '''
+        Description:
+            Build the product name from the product information and current
+            time.
+        '''
+
+        product_id = parms['product_id']
+
+        # Get the current time information
+        ts = datetime.today()
+
+        # Extract stuff from the product information
+        sensor_inst = sensor.instance(product_id)
+
+        sensor_code = sensor_inst.sensor_code.upper()
+        path = sensor_inst.path
+        row = sensor_inst.row
+        year = sensor_inst.year
+        doy = sensor_inst.doy
+
+        product_name = '%s%s%s%s%s-SC%s%s%s%s%s%s' \
+            % (sensor_code, path.zfill(3), row.zfill(3), year.zfill(4),
+               doy.zfill(3), str(ts.year).zfill(4), str(ts.month).zfill(2),
+               str(ts.day).zfill(2), str(ts.hour).zfill(2),
+               str(ts.minute).zfill(2), str(ts.second).zfill(2))
+
+        return product_name
 
 
 # ===========================================================================
@@ -685,6 +1142,8 @@ class LandsatOLITIRSProcessor(LandsatProcessor):
             cmd.extend(['--process_sr', 'True'])
             generate_sr = True
         else:
+            # If we do not need the SR data, then don't waste the time
+            # generating it
             cmd.extend(['--process_sr', 'False'])
 
         # Check to see if Thermal or TOA is required
@@ -718,9 +1177,9 @@ class LandsatOLITIRSProcessor(LandsatProcessor):
         if options['include_cfmask'] or options['include_sr']:
             cmd = ' '.join(['l8cfmask', '--verbose', '--max_cloud_pixels',
                             settings.CFMASK_MAX_CLOUD_PIXELS,
-                            '--mtl', self._metadata_filename])
-                            # TODO TODO TODO
-                            # '--xml', self._xml_filename])
+                            '--metadata', self._metadata_filename])
+            #                 TODO TODO TODO
+            #                 '--xml', self._xml_filename])
 
         return cmd
 
