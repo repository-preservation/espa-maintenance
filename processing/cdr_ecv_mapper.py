@@ -235,7 +235,7 @@ def process(args):
                                                  processing_location)
 
                     elif (e.error_code == ee.ErrorCodes.metadata
-                          or e.error_code == ee.ErrorCodes.ledaps
+                          or e.error_code == ee.ErrorCodes.surface_reflectance
                           or e.error_code == ee.ErrorCodes.browse
                           or e.error_code == ee.ErrorCodes.spectral_indices
                           or e.error_code == ee.ErrorCodes.create_dem
