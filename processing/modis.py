@@ -222,7 +222,7 @@ def process(parms):
     scene = parms['scene']
 
     # Create and retrieve the directories to use for processing
-    (scene_directory, stage_directory, work_directory, package_directory) = \
+    (product_directory, stage_directory, work_directory, package_directory) = \
         staging.initialize_processing_directory(parms['orderid'], scene)
 
     # Keep a local options for those apps that only need a few things
