@@ -156,15 +156,15 @@ def process_test_order(request_file, products_file, env_vars,
                 sensor_name = 'plot'
                 if not plot:
                     sensor_name = sensor.instance(product).sensor_name
-                    print("Processing Sensor [%s]" % sensor_name)
+                    logger.info("Processing Sensor [%s]" % sensor_name)
                 else:
-                    print("Processing Plot Request")
+                    logger.info("Processing Plot Request")
 
                 tmp_line = tmp_line.replace('\n', '')
                 tmp_line = tmp_line.replace("ORDER_ID", order_id)
                 tmp_line = tmp_line.replace("SCENE_ID", product)
 
-                if sensor_name in ['tm', 'etm']:
+                if sensor_name in ['tm', 'etm', 'olitirs']:
                     tmp_line = tmp_line.replace("PRODUCT_TYPE", 'landsat')
                 elif sensor_name in ['terra', 'aqua']:
                     tmp_line = tmp_line.replace("PRODUCT_TYPE", 'modis')
@@ -179,12 +179,12 @@ def process_test_order(request_file, products_file, env_vars,
                     tmp_line.replace("DEV_CACHE_DIRECTORY",
                                      env_vars['dev_cache_dir']['value'])
 
-                print tmp_line
                 tmp_fd.write(tmp_line)
 
                 # Validate again, since we modified it
+                parms = json.loads(tmp_line)
                 #parms = parameters.instance(json.loads(tmp_line))
-                #logger.info(json.dumps(parms, indent=4, sort_keys=True))
+                print(json.dumps(parms, indent=4, sort_keys=True))
 
             # END - with tmp_order
         # END - with request_file
