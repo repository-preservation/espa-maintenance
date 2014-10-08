@@ -314,7 +314,7 @@ class Landsat(SensorProduct):
             self.year,
             self.input_file_name)
 
-        #set the default pixel sizes
+        # set the default pixel sizes
         _pixels = settings.DEFAULT_PIXEL_SIZE
 
         _meters = _pixels['meters'][self.sensor_code.upper()]
@@ -337,7 +337,7 @@ class Landsat(SensorProduct):
         result = server.scenes_exist([self.product_id])
         nlaps = server.is_nlaps([self.product_id])
 
-        if self.product_id in result and not self.product_id in nlaps:
+        if self.product_id in result and self.product_id not in nlaps:
             return True
         else:
             return False
@@ -353,6 +353,11 @@ class LandsatETM(Landsat):
         super(LandsatETM, self).__init__(product_id)
 
 
+class LandsatOLITIRS(Landsat):
+    def __init__(self, product_id):
+        super(LandsatOLITIRS, self).__init__(product_id)
+
+
 def instance(product_id):
     '''
     Supported MODIS products
@@ -362,26 +367,24 @@ def instance(product_id):
     MODIS FORMAT:   MOD09GQ.A2000072.h02v09.005.2008237032813
 
     Supported LANDSAT products
-    LT4 LT5 LE7
+    LT4 LT5 LE7 LC8
 
     LANDSAT FORMAT: LE72181092013069PFS00
-
     '''
 
-    #remove known file extensions before comparison
-    #do not alter the case of the actual product_id!
+    # remove known file extensions before comparison
+    # do not alter the case of the actual product_id!
     if product_id.lower().endswith(settings.MODIS_INPUT_FILENAME_EXTENSION):
         index = product_id.lower().index(settings.MODIS_INPUT_FILENAME_EXTENSION)
-        #leave original case intact
-        product_id = product_id[0:index] 
+        # leave original case intact
+        product_id = product_id[0:index]
     elif product_id.lower().endswith(settings.LANDSAT_INPUT_FILENAME_EXTENSION):
         index = product_id.lower().index(settings.LANDSAT_INPUT_FILENAME_EXTENSION)
-        #leave original case intact
+        # leave original case intact
         product_id = product_id[0:index]
 
-    #ok to modify case here for comparison in regex
+    # ok to modify case here for comparison in regex
     _id = product_id.lower().strip()
-
 
     instances = {
         'tm': (r'^lt[4|5]\d{3}\d{3}\d{4}\d{3}[a-z]{3}[a-z0-9]{2}$',
@@ -389,6 +392,9 @@ def instance(product_id):
 
         'etm': (r'^le7\d{3}\d{3}\d{4}\d{3}\w{3}.{2}$',
                 LandsatETM),
+
+        'olitirs': (r'^lc8\d{3}\d{3}\d{4}\d{3}\w{3}.{2}$',
+                    LandsatOLITIRS),
 
         'mod09a1': (r'^mod09a1\.a\d{7}\.h\d{2}v\d{2}\.005\.\d{13}$',
                     ModisTerra09A1),
