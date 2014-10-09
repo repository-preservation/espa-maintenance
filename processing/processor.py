@@ -264,13 +264,15 @@ class CustomizationProcessor(ProductProcessor):
         # Call the base class parameter validation
         super(CustomizationProcessor, self).validate_parameters(parms)
 
+        product_id = parms['product_id']
+        options = parms['options']
+
         logger.info("Validating [CustomizationProcessor] parameters")
 
-        # TODO TODO TODO - Validate the WARP parameters here
         # TODO TODO TODO - Pull the validation here??????
         parameters. \
-            validate_reprojection_parameters(parms,
-                                             parms['product_id'],
+            validate_reprojection_parameters(options,
+                                             product_id,
                                              self._valid_projections,
                                              self._valid_ns,
                                              self._valid_pixel_size_units,
@@ -814,9 +816,43 @@ class LandsatProcessor(CDRProcessor):
             this method.
         '''
 
-        cmd = ' '.join(['do_ledaps.py', '--xml', self._xml_filename])
+        options = parms['options']
 
-        # TODO TODO TODO - Make like olitirs version
+        cmd = ['do_ledaps.py', '--xml', self._xml_filename]
+
+        execute_do_ledaps = False
+
+        # Check to see if SR is required
+        if (options['include_sr']
+                or options['include_sr_browse']
+                or options['include_sr_nbr']
+                or options['include_sr_nbr2']
+                or options['include_sr_ndvi']
+                or options['include_sr_ndmi']
+                or options['include_sr_savi']
+                or options['include_sr_msavi']
+                or options['include_sr_evi']
+                or options['include_dswe']):
+
+            cmd.extend(['--process_sr', 'True'])
+            execute_do_ledaps = True
+        else:
+            # If we do not need the SR data, then don't waste the time
+            # generating it
+            cmd.extend(['--process_sr', 'False'])
+
+        # Check to see if Thermal or TOA is required
+        if (options['include_sr_toa']
+                or options['include_sr_thermal']
+                or options['include_cfmask']):
+
+            execute_do_ledaps = True
+
+        # Only return a string if we will need to run SR processing
+        if not execute_do_ledaps:
+            cmd = None
+        else:
+            cmd = ' '.join(cmd)
 
         return cmd
 
@@ -857,8 +893,6 @@ class LandsatProcessor(CDRProcessor):
             this method.
         '''
 
-        logger = self._logger
-
         options = parms['options']
 
         cmd = None
@@ -890,6 +924,76 @@ class LandsatProcessor(CDRProcessor):
                 output = utilities.execute_cmd(cmd)
             except Exception, e:
                 raise ee.ESPAException(ee.ErrorCodes.cfmask,
+                                       str(e)), None, sys.exc_info()[2]
+            finally:
+                if len(output) > 0:
+                    logger.info(output)
+
+    # -------------------------------------------
+    def spectral_indices_command_line(self, parms):
+        '''
+        Description:
+            Returns the command line required to generate spectral indices.
+
+        Note:
+            Provides the L4, L5, and L7 command line.  L8 processing overrides
+            this method.
+        '''
+
+        options = parms['options']
+
+        cmd = None
+        if (options['include_sr_nbr']
+                or options['include_sr_nbr2']
+                or options['include_sr_ndvi']
+                or options['include_sr_ndmi']
+                or options['include_sr_savi']
+                or options['include_sr_msavi']
+                or options['include_sr_evi']):
+
+            cmd = ['do_spectral_indices.py', '--xml', self._xml_filename]
+
+            # Add the specified index options
+            if options['include_sr_nbr']:
+                cmd.append('--nbr')
+            if options['include_sr_nbr2']:
+                cmd.append('--nbr2')
+            if options['include_sr_ndvi']:
+                cmd.append('--ndvi')
+            if options['include_sr_ndmi']:
+                cmd.append('--ndmi')
+            if options['include_sr_savi']:
+                cmd.append('--savi')
+            if options['include_sr_msavi']:
+                cmd.append('--msavi')
+            if options['include_sr_evi']:
+                cmd.append('--evi')
+
+            cmd = ' '.join(cmd)
+
+        return cmd
+
+    # -------------------------------------------
+    def generate_spectral_indices(self, parms):
+        '''
+        Description:
+            Returns the command line required to generate cfmask.
+        '''
+
+        logger = self._logger
+
+        cmd = self.spectral_indices_command_line(parms)
+
+        # Only if required
+        if cmd is not None:
+
+            logger.info(' '.join(['SPECTRAL INDICES COMMAND:', cmd]))
+
+            output = ''
+            try:
+                output = utilities.execute_cmd(cmd)
+            except Exception, e:
+                raise ee.ESPAException(ee.ErrorCodes.spectral_indices,
                                        str(e)), None, sys.exc_info()[2]
             finally:
                 if len(output) > 0:
@@ -935,10 +1039,7 @@ class LandsatProcessor(CDRProcessor):
             #        if/when it is required
             # self.generate_sr_browse_data(parms)
 
-            # TODO - SI processing is not implemented for L8 yet add it for
-            #        L4, L5, and L7, after current L8 capabilities are
-            #        implemented
-            # self.generate_spectral_indices(parms)
+            self.generate_spectral_indices(parms)
 
             # TODO - We do not have a finalized version of this yet, but this
             #        is where it will go
@@ -1042,8 +1143,6 @@ class LandsatProcessor(CDRProcessor):
             Not implemented here.
         '''
 
-        logger = self._logger
-
         options = parms['options']
 
         # Generate the stats for each stat'able' science product
@@ -1119,13 +1218,11 @@ class LandsatOLITIRSProcessor(LandsatProcessor):
             Returns the command line required to generate surface reflectance.
         '''
 
-        logger = self._logger
-
         options = parms['options']
 
         cmd = ['do_l8_sr.py', '--xml', self._xml_filename]
 
-        generate_sr = False
+        execute_do_l8_sr = False
 
         # Check to see if SR is required
         if (options['include_sr']
@@ -1140,7 +1237,7 @@ class LandsatOLITIRSProcessor(LandsatProcessor):
                 or options['include_dswe']):
 
             cmd.extend(['--process_sr', 'True'])
-            generate_sr = True
+            execute_do_l8_sr = True
         else:
             # If we do not need the SR data, then don't waste the time
             # generating it
@@ -1152,10 +1249,10 @@ class LandsatOLITIRSProcessor(LandsatProcessor):
                 or options['include_cfmask']):
 
             cmd.append('--write_toa')
-            generate_sr = True
+            execute_do_l8_sr = True
 
         # Only return a string if we will need to run SR processing
-        if not generate_sr:
+        if not execute_do_l8_sr:
             cmd = None
         else:
             cmd = ' '.join(cmd)
@@ -1169,9 +1266,18 @@ class LandsatOLITIRSProcessor(LandsatProcessor):
             Returns the command line required to generate cfmask.
         '''
 
-        logger = self._logger
-
         options = parms['options']
+
+        # TODO - The l8cfmask command line will change to be similar to the
+        #        L4-7 command line.
+        # TODO - The l8cfmask command line will change to be similar to the
+        #        L4-7 command line.
+        # TODO - The l8cfmask command line will change to be similar to the
+        #        L4-7 command line.
+        # TODO - The l8cfmask command line will change to be similar to the
+        #        L4-7 command line.
+        # TODO - The l8cfmask command line will change to be similar to the
+        #        L4-7 command line.
 
         cmd = None
         if options['include_cfmask'] or options['include_sr']:
@@ -1182,6 +1288,54 @@ class LandsatOLITIRSProcessor(LandsatProcessor):
             #                 '--xml', self._xml_filename])
 
         return cmd
+
+    # -------------------------------------------
+    def spectral_indices_command_line(self, parms):
+        '''
+        Description:
+            Returns the command line required to generate spectral indices.
+        '''
+
+        options = parms['options']
+
+        # TODO - We don't know what this looks like today, so return None.
+        # TODO - We don't know what this looks like today, so return None.
+        # TODO - We don't know what this looks like today, so return None.
+        # TODO - We don't know what this looks like today, so return None.
+        # TODO - We don't know what this looks like today, so return None.
+        # TODO - We don't know what this looks like today, so return None.
+
+#        cmd = None
+#        if (options['include_sr_nbr']
+#                or options['include_sr_nbr2']
+#                or options['include_sr_ndvi']
+#                or options['include_sr_ndmi']
+#                or options['include_sr_savi']
+#                or options['include_sr_msavi']
+#                or options['include_sr_evi']):
+#
+#            cmd = ['do_spectral_indices.py', '--xml', xml_filename]
+#
+#            # Add the specified index options
+#            if options['include_sr_nbr']:
+#                cmd.append('--nbr')
+#            if options['include_sr_nbr2']:
+#                cmd.append('--nbr2')
+#            if options['include_sr_ndvi']:
+#                cmd.append('--ndvi')
+#            if options['include_sr_ndmi']:
+#                cmd.append('--ndmi')
+#            if options['include_sr_savi']:
+#                cmd.append('--savi')
+#            if options['include_sr_msavi']:
+#                cmd.append('--msavi')
+#            if options['include_sr_evi']:
+#                cmd.append('--evi')
+#
+#            cmd = ' '.join(cmd)
+#
+#        return cmd
+        return None
 
 
 # ===========================================================================
@@ -1222,10 +1376,8 @@ def get_instance(product_id):
     sensor_code = sensor.instance(product_id).sensor_code.lower()
 
     if sensor_code == 'lt4':
-        raise NotImplementedError("A LT4 processor has not been implemented")
         return LandsatTMProcessor()
     elif sensor_code == 'lt5':
-        raise NotImplementedError("A LT5 processor has not been implemented")
         return LandsatTMProcessor()
     elif sensor_code == 'le7':
         raise NotImplementedError("A LE7 processor has not been implemented")
