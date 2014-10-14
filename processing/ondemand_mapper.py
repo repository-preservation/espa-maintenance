@@ -172,16 +172,18 @@ def process(args):
             try:
                 # Process the landsat sensors
                 if product_type == 'landsat':
-                    # TODO TODO TODO - L4-7 are not converted yet.
                     # (destination_product_file, destination_cksum_file) = \
-                    #    landsat.process(parms)
+                    #     landsat.process(parms)
                     pp = processor.get_instance(product_id)
                     (destination_product_file, destination_cksum_file) = \
                         pp.process(parms)
                 # Process the modis sensors
                 elif product_type == 'modis':
+                    # (destination_product_file, destination_cksum_file) = \
+                    #     modis.process(parms)
+                    pp = processor.get_instance(product_id)
                     (destination_product_file, destination_cksum_file) = \
-                        modis.process(parms)
+                        pp.process(parms)
                 elif product_type == 'plot':
                     (destination_product_file, destination_cksum_file) = \
                         plotter.process(parms)
@@ -194,6 +196,7 @@ def process(args):
                 if not mapper_keep_log:
                     # Cleanup processing directory by calling the
                     # initialization routine again
+                    # TODO TODO TODO - Should not call this anymore, call something else
                     (scene_directory, stage_directory,
                      work_directory, package_directory) = \
                         staging.initialize_processing_directory(order_id,
