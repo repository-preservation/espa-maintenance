@@ -67,6 +67,19 @@ import distribution
 
 # ===========================================================================
 class ProductProcessor(object):
+    '''
+    Description:
+        Provides the base class for all product request processing.  It
+        performs the tasks needed by all processors.
+
+        It initializes the logger object and keeps it around for all the
+        child-classes to use.
+
+        It implements initialization of the order and product directory
+        structures.
+
+        It also implements the cleanup of the product directory.
+    '''
 
     _logger = None
 
@@ -106,6 +119,14 @@ class ProductProcessor(object):
             logger.warning("'product_id' parameter missing defaulting to"
                            " 'scene'")
             parms['product_id'] = parms['scene']
+
+        # Check out the options
+        options = parms['options']
+
+        # Default the this so the directory is not kept, it should only be
+        # present and turned on for developers
+        if not parameters.test_for_parameter(options, 'keep_directory'):
+            options['keep_directory'] = False
 
     # -------------------------------------------
     def initialize_processing_directory(self, parms):
@@ -179,6 +200,22 @@ class ProductProcessor(object):
         except Exception, e:
             raise ee.ESPAException(ee.ErrorCodes.creating_output_dir,
                                    str(e)), None, sys.exc_info()[2]
+
+    # -------------------------------------------
+    def cleanup_processing_directory(self, parms):
+        '''
+        Description:
+            Free disk space to be nice to the whole system.
+        '''
+
+        options = parms['options']
+
+        # We don't care about this failing, we just want to attempt to free
+        # disk space to be nice to the whole system.  If this processing
+        # request failed due to a processing issue.  Otherwise, with
+        # successfull processing, hadoop cleans up after itself.
+        if self._product_dir is not None and not options['keep_directory']:
+            shutil.rmtree(self._product_dir, ignore_errors=True)
 
     # -------------------------------------------
     def get_product_name(self, parms):
@@ -306,7 +343,7 @@ class CustomizationProcessor(ProductProcessor):
 class CDRProcessor(CustomizationProcessor):
     '''
     Description:
-        Provides the super class implementation for processing products.
+        Provides the super class implementation for generating CDR products.
     '''
 
     # -------------------------------------------
@@ -618,14 +655,18 @@ class CDRProcessor(CustomizationProcessor):
 
         # Cleanup the processing directory to free disk space for other
         # products to process.
-        # TODO TODO TODO
-        # self.cleanup_processing_directory()
+        self.cleanup_processing_directory(parms)
 
         return (destination_product_file, destination_cksum_file)
 
 
 # ===========================================================================
 class LandsatProcessor(CDRProcessor):
+    '''
+    Description:
+        Implements the common processing between all of the landsat
+        processors.
+    '''
 
     _metadata_filename = None
 
@@ -634,7 +675,7 @@ class LandsatProcessor(CDRProcessor):
         super(LandsatProcessor, self).__init__()
 
     # -------------------------------------------
-    # TODO TODO TODO - This may be in it's own CustomizationProcessor
+    # TODO TODO TODO - Maybe this should be in it's own CustomizationProcessor
     def validate_parameters(self, parms):
         '''
         Description:
@@ -1197,18 +1238,41 @@ class LandsatProcessor(CDRProcessor):
 
 # ===========================================================================
 class LandsatTMProcessor(LandsatProcessor):
+    '''
+    Description:
+        Implements TM specific processing.
+
+    Note:
+        Today all processing is inherited from the LandsatProcessors because
+        the TM and ETM processors are identical.
+    '''
+
     def __init__(self):
         super(LandsatTMProcessor, self).__init__()
 
 
 # ===========================================================================
 class LandsatETMProcessor(LandsatProcessor):
+    '''
+    Description:
+        Implements ETM specific processing.
+
+    Note:
+        Today all processing is inherited from the LandsatProcessors because
+        the TM and ETM processors are identical.
+    '''
+
     def __init__(self):
         super(LandsatETMProcessor, self).__init__()
 
 
 # ===========================================================================
 class LandsatOLITIRSProcessor(LandsatProcessor):
+    '''
+    Description:
+        Implements OLITIRS specific processing.
+    '''
+
     def __init__(self):
         super(LandsatOLITIRSProcessor, self).__init__()
 
