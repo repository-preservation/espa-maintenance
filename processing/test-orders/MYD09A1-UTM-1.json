@@ -9,7 +9,9 @@
         "false_easting": null,
         "false_northing": null,
         "image_extents": true,
-        "include_source_data": true,
+        "image_extents_units": "meters",
+        "include_customized_source_data": true,
+        "include_source_data": false,
         "include_statistics": true,
         "keep_directory": true,
         "keep_log": true,
@@ -33,6 +35,7 @@
         "utm_zone": 10
     },
     "orderid": "ORDER_ID",
-    "scene": "MYD09A1.A2002193.h09v04.005.2007176173153",
+    "scene": "SCENE_ID",
+    "product_type": "PRODUCT_TYPE",
     "xmlrpcurl": "skip_xmlrpc"
 }
