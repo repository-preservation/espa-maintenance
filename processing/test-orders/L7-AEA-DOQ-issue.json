@@ -26,6 +26,7 @@
         "include_sr_savi": false,
         "include_sr_thermal": false,
         "include_sr_toa": false,
+        "keep_directory": true,
         "keep_log": true,
         "latitude_true_scale": null,
         "longitude_pole": null,

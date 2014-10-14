@@ -12,6 +12,7 @@
         "image_extents": true,
         "include_customized_source_data": true,
         "include_source_data": true,
+        "keep_directory": true,
         "keep_log": true,
         "latitude_true_scale": null,
         "longitude_pole": null,

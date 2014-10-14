@@ -27,6 +27,7 @@
         "include_sr_thermal": true,
         "include_sr_toa": true,
         "include_statistics": true,
+        "keep_directory": true,
         "keep_log": true,
         "maxx": 550030.0,
         "maxy": 5100030.0,

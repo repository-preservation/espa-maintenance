@@ -13,6 +13,7 @@
         "image_extents_units": "meters",
         "include_customized_source_data": true,
         "include_source_data": false,
+        "keep_directory": true,
         "keep_log": true,
         "latitude_true_scale": null,
         "longitude_pole": null,
