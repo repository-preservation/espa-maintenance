@@ -303,12 +303,21 @@ def read_statistics(statistics_file):
       Read the file contents and return as a list of key values
     '''
 
+    found_valid = False
     with open(statistics_file, 'r') as statistics_fd:
         for line in statistics_fd:
             line_lower = line.strip().lower()
             parts = line_lower.split('=')
+            # Some files may not contain the field so detect that
+            # TODO - This can be removed after version 2.6.1
+            if parts[0] == 'valid':
+                found_valid = True
             yield(parts)
 
+    # Some files may not contain the field so report valid for them
+    # TODO - This can be removed after version 2.6.1
+    if not found_valid:
+        yield(['valid', 'yes'])
 # END - read_statistics
 
 
@@ -386,7 +395,7 @@ def generate_sensor_stats(stats_name, stats_files):
         logger.debug(date)
 
         line = ','.join([date, obj['minimum'], obj['maximum'],
-                         obj['mean'], obj['stddev']])
+                         obj['mean'], obj['stddev'], obj['valid']])
         logger.debug(line)
 
         stat_data.append(line)
@@ -395,7 +404,7 @@ def generate_sensor_stats(stats_name, stats_files):
     temp_buffer = StringIO()
 
     # Write the file header
-    temp_buffer.write('DATE,MINIMUM,MAXIMUM,MEAN,STDDEV')
+    temp_buffer.write('DATE,MINIMUM,MAXIMUM,MEAN,STDDEV,VALID')
 
     # Sort the stats into the buffer
     for line in sorted(stat_data):
@@ -671,6 +680,18 @@ def generate_plots(plot_name, stats_files, band_type):
         logger.debug(stats_file)
         stats[stats_file] = \
             dict((key, value) for(key, value) in read_statistics(stats_file))
+        if stats[stats_file]['valid'] == 'no':
+            # Remove it so we do not have it in the plot
+            logger.warning("[%s] Data is not valid:"
+                           " Will not be used for plot generation"
+                           % stats_file)
+            del stats[stats_file]
+
+    # Check if we have enough stuff to plot or not
+    if len(stats) < 2:
+        logger.warning("Not enough points to plot [%s] skipping plotting"
+                       % plot_name)
+        return
 
     plot_subjects = ['Minimum', 'Maximum', 'Mean']
     generate_plot(plot_name, plot_subjects, band_type, stats, "Range")

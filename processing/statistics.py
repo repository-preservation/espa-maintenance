@@ -70,12 +70,20 @@ def get_statistics(file_name, band_type):
                              & (input_data <= upper_bound))]
 
     # Calculate the stats
-    minimum = np.min(input_data)
-    maximum = np.max(input_data)
-    mean = np.mean(input_data)
-    stddev = np.std(input_data)
+    if input_data.size > 0:
+        minimum = np.min(input_data)
+        maximum = np.max(input_data)
+        mean = np.mean(input_data)
+        stddev = np.std(input_data)
+        valid = 'yes'
+    else:
+        minimum = -9999.0
+        maximum = -9999.0
+        mean = -9999.0
+        stddev = -9999.0
+        valid = 'no'
 
-    return (float(minimum), float(maximum), float(mean), float(stddev))
+    return (float(minimum), float(maximum), float(mean), float(stddev), valid)
 # END - get_statistics
 
 
@@ -122,8 +130,8 @@ def generate_statistics(work_directory, files_to_search_for):
 
                     logger.info("Generating statistics for: %s" % file_name)
 
-                    (minimum, maximum,
-                     mean, stddev) = get_statistics(file_name, band_type)
+                    (minimum, maximum, mean, stddev,
+                     valid) = get_statistics(file_name, band_type)
 
                     # Drop the filename extention so we can replace it with
                     # 'stats'
@@ -140,6 +148,7 @@ def generate_statistics(work_directory, files_to_search_for):
                     data_io.write("MAXIMUM=%f\n" % maximum)
                     data_io.write("MEAN=%f\n" % mean)
                     data_io.write("STDDEV=%f\n" % stddev)
+                    data_io.write("VALID=%s\n" % valid)
 
                     # Create the stats file
                     with open(stats_output_file, 'w+') as stat_fd:
