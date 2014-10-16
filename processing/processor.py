@@ -83,6 +83,8 @@ class ProductProcessor(object):
 
     _logger = None
 
+    _parms = None
+
     _order_dir = None
     _product_dir = None
     _stage_dir = None
@@ -92,7 +94,7 @@ class ProductProcessor(object):
     _build_products = False
 
     # -------------------------------------------
-    def __init__(self):
+    def __init__(self, parms):
         '''
         Description:
             Initialization for the object.
@@ -100,8 +102,18 @@ class ProductProcessor(object):
 
         self._logger = EspaLogging.get_logger('espa.processing')
 
+        # Some minor enforcement for what parms should be
+        if type(parms) is dict:
+            self._parms = parms
+        else:
+            raise Exception("parameters was of type %s, dict required"
+                            % type(parms))
+
+        # Validate the parameters
+        self.validate_parameters()
+
     # -------------------------------------------
-    def validate_parameters(self, parms):
+    def validate_parameters(self):
         '''
         Description:
             Validates the parameters required for the processor.
@@ -112,26 +124,26 @@ class ProductProcessor(object):
         # Test for presence of top-level parameters
         keys = ['orderid', 'scene', 'product_type', 'options']
         for key in keys:
-            if not parameters.test_for_parameter(parms, key):
+            if not parameters.test_for_parameter(self._parms, key):
                 raise RuntimeError("Missing required input parameter [%s]"
                                    % key)
 
         # TODO - Remove this once we have converted
-        if not parameters.test_for_parameter(parms, 'product_id'):
+        if not parameters.test_for_parameter(self._parms, 'product_id'):
             logger.warning("'product_id' parameter missing defaulting to"
                            " 'scene'")
-            parms['product_id'] = parms['scene']
+            self._parms['product_id'] = self._parms['scene']
 
-        # Check out the options
-        options = parms['options']
+        # Validate the options
+        options = self._parms['options']
 
-        # Default the this so the directory is not kept, it should only be
+        # Default this so the directory is not kept, it should only be
         # present and turned on for developers
         if not parameters.test_for_parameter(options, 'keep_directory'):
             options['keep_directory'] = False
 
     # -------------------------------------------
-    def initialize_processing_directory(self, parms):
+    def initialize_processing_directory(self):
         '''
         Description:
             Initializes the processing directory.  Creates the following
@@ -148,8 +160,8 @@ class ProductProcessor(object):
 
         logger = self._logger
 
-        order_id = parms['orderid']
-        product_id = parms['product_id']
+        product_id = self._parms['product_id']
+        order_id = self._parms['orderid']
 
         base_env_var = 'ESPA_WORK_DIR'
         base_dir = ''
@@ -204,13 +216,13 @@ class ProductProcessor(object):
                                    str(e)), None, sys.exc_info()[2]
 
     # -------------------------------------------
-    def cleanup_processing_directory(self, parms):
+    def cleanup_processing_directory(self):
         '''
         Description:
             Free disk space to be nice to the whole system.
         '''
 
-        options = parms['options']
+        options = self._parms['options']
 
         # We don't care about this failing, we just want to attempt to free
         # disk space to be nice to the whole system.  If this processing
@@ -220,7 +232,7 @@ class ProductProcessor(object):
             shutil.rmtree(self._product_dir, ignore_errors=True)
 
     # -------------------------------------------
-    def get_product_name(self, parms):
+    def get_product_name(self):
         '''
         Description:
             Build the product name from the product information and current
@@ -235,7 +247,7 @@ class ProductProcessor(object):
         raise NotImplementedError(msg)
 
     # -------------------------------------------
-    def distribute_product(self, parms):
+    def distribute_product(self):
         '''
         Description:
             Builds the product tar.gz file and distributes it.
@@ -249,7 +261,7 @@ class ProductProcessor(object):
         raise NotImplementedError(msg)
 
     # -------------------------------------------
-    def process(self, parms):
+    def process(self):
         '''
         Description:
             Generates a product through a defined process.
@@ -285,8 +297,7 @@ class CustomizationProcessor(ProductProcessor):
     _xml_filename = None
 
     # -------------------------------------------
-    def __init__(self):
-        super(CustomizationProcessor, self).__init__()
+    def __init__(self, parms):
 
         self._valid_projections = ['sinu', 'aea', 'utm', 'ps', 'lonlat']
         self._valid_ns = ['north', 'south']
@@ -296,8 +307,10 @@ class CustomizationProcessor(ProductProcessor):
         self._valid_image_extents_units = ['meters', 'dd']
         self._valid_datums = [self._WGS84, self._NAD27, self._NAD83]
 
+        super(CustomizationProcessor, self).__init__(parms)
+
     # -------------------------------------------
-    def validate_parameters(self, parms):
+    def validate_parameters(self):
         '''
         Description:
             Validates the parameters required for the processor.
@@ -306,10 +319,10 @@ class CustomizationProcessor(ProductProcessor):
         logger = self._logger
 
         # Call the base class parameter validation
-        super(CustomizationProcessor, self).validate_parameters(parms)
+        super(CustomizationProcessor, self).validate_parameters()
 
-        product_id = parms['product_id']
-        options = parms['options']
+        product_id = self._parms['product_id']
+        options = self._parms['options']
 
         logger.info("Validating [CustomizationProcessor] parameters")
 
@@ -328,7 +341,7 @@ class CustomizationProcessor(ProductProcessor):
         self._xml_filename = '.'.join([product_id, 'xml'])
 
     # -------------------------------------------
-    def customize_products(self, parms):
+    def customize_products(self):
         '''
         Description:
             Performs the customization of the products.
@@ -338,8 +351,8 @@ class CustomizationProcessor(ProductProcessor):
         if not self._build_products:
             return
 
-        product_id = parms['product_id']
-        options = parms['options']
+        product_id = self._parms['product_id']
+        options = self._parms['options']
 
         # Reproject the data for each product, but only if necessary
         if (options['reproject']
@@ -361,8 +374,8 @@ class CDRProcessor(CustomizationProcessor):
     '''
 
     # -------------------------------------------
-    def __init__(self):
-        super(CDRProcessor, self).__init__()
+    def __init__(self, parms):
+        super(CDRProcessor, self).__init__(parms)
 
     # -------------------------------------------
     def get_input_hostname(self):
@@ -391,7 +404,7 @@ class CDRProcessor(CustomizationProcessor):
         return utilities.get_cache_hostname()
 
     # -------------------------------------------
-    def get_source_directory(self, parms):
+    def get_source_directory(self):
         '''
         Description:
             Returns the source directory to use for retrieving the input data.
@@ -405,7 +418,7 @@ class CDRProcessor(CustomizationProcessor):
         raise NotImplementedError(msg)
 
     # -------------------------------------------
-    def validate_parameters(self, parms):
+    def validate_parameters(self):
         '''
         Description:
             Validates the parameters required for all processors.
@@ -414,11 +427,11 @@ class CDRProcessor(CustomizationProcessor):
         logger = self._logger
 
         # Call the base class parameter validation
-        super(CDRProcessor, self).validate_parameters(parms)
+        super(CDRProcessor, self).validate_parameters()
 
         logger.info("Validating [CDRProcessor] parameters")
 
-        options = parms['options']
+        options = self._parms['options']
 
         # Verify or set the source information
         if not parameters.test_for_parameter(options, 'source_host'):
@@ -431,7 +444,7 @@ class CDRProcessor(CustomizationProcessor):
             options['source_pw'] = None
 
         if not parameters.test_for_parameter(options, 'source_directory'):
-            options['source_directory'] = self.get_source_directory(parms)
+            options['source_directory'] = self.get_source_directory()
 
         # Verify or set the destination information
         if not parameters.test_for_parameter(options, 'destination_host'):
@@ -445,10 +458,10 @@ class CDRProcessor(CustomizationProcessor):
 
         if not parameters.test_for_parameter(options, 'destination_directory'):
             options['destination_directory'] = '%s/orders/%s' \
-                % (settings.ESPA_BASE_OUTPUT_PATH, parms['orderid'])
+                % (settings.ESPA_BASE_OUTPUT_PATH, self._parms['orderid'])
 
     # -------------------------------------------
-    def log_command_line(self, parms):
+    def log_command_line(self):
         '''
         Description:
             Builds and logs the processor command line
@@ -458,13 +471,13 @@ class CDRProcessor(CustomizationProcessor):
 
         cmd = [os.path.basename(__file__)]
         cmd_line_options = \
-            parameters.convert_to_command_line_options(parms)
+            parameters.convert_to_command_line_options(self._parms)
         cmd.extend(cmd_line_options)
         cmd = ' '.join(cmd)
         logger.info("PROCESSOR COMMAND LINE [%s]" % cmd)
 
     # -------------------------------------------
-    def stage_input_data(self, parms):
+    def stage_input_data(self):
         '''
         Description:
             Stages the input data required for the processor.
@@ -478,7 +491,7 @@ class CDRProcessor(CustomizationProcessor):
         raise NotImplementedError(msg)
 
     # -------------------------------------------
-    def build_science_products(self, parms):
+    def build_science_products(self):
         '''
         Description:
             Build the science products requested by the user.
@@ -492,7 +505,7 @@ class CDRProcessor(CustomizationProcessor):
         raise NotImplementedError(msg)
 
     # -------------------------------------------
-    def cleanup_work_dir(self, parms):
+    def cleanup_work_dir(self):
         '''
         Description:
             Cleanup all the intermediate non-products and the science
@@ -507,7 +520,7 @@ class CDRProcessor(CustomizationProcessor):
         raise NotImplementedError(msg)
 
     # -------------------------------------------
-    def remove_products_from_xml(self, parms):
+    def remove_products_from_xml(self):
         '''
         Description:
             Remove the specified products from the XML file.  The file is
@@ -517,7 +530,7 @@ class CDRProcessor(CustomizationProcessor):
 
         logger = self._logger
 
-        options = parms['options']
+        options = self._parms['options']
 
         # Map order options to the products in the XML files
         order2xml_mapping = {
@@ -615,7 +628,7 @@ class CDRProcessor(CustomizationProcessor):
         # END - if products_to_remove
 
     # -------------------------------------------
-    def generate_statistics(self, parms):
+    def generate_statistics(self):
         '''
         Description:
             Generates statistics if required for the processor.
@@ -629,7 +642,7 @@ class CDRProcessor(CustomizationProcessor):
         raise NotImplementedError(msg)
 
     # -------------------------------------------
-    def reformat_products(self, parms):
+    def reformat_products(self):
         '''
         Description:
             Reformat the customized products if required for the processor.
@@ -639,7 +652,7 @@ class CDRProcessor(CustomizationProcessor):
         if not self._build_products:
             return
 
-        options = parms['options']
+        options = self._parms['options']
 
         # Convert to the user requested output format or leave it in ESPA ENVI
         # We do all of our processing using ESPA ENVI format so it can be
@@ -648,7 +661,7 @@ class CDRProcessor(CustomizationProcessor):
                       options['output_format'])
 
     # -------------------------------------------
-    def distribute_product(self, parms):
+    def distribute_product(self):
         '''
         Description:
             Builds the product tar.gz file and distributes it.
@@ -656,10 +669,10 @@ class CDRProcessor(CustomizationProcessor):
 
         logger = self._logger
 
-        product_id = parms['product_id']
-        opts = parms['options']
+        product_id = self._parms['product_id']
+        opts = self._parms['options']
 
-        product_name = self.get_product_name(parms)
+        product_name = self.get_product_name()
 
         # Deliver the product files
         # Attempt X times sleeping between each attempt
@@ -702,7 +715,7 @@ class CDRProcessor(CustomizationProcessor):
         return (destination_product_file, destination_cksum_file)
 
     # -------------------------------------------
-    def process(self, parms):
+    def process(self):
         '''
         Description:
             Generates a product through a defined process.
@@ -710,40 +723,37 @@ class CDRProcessor(CustomizationProcessor):
 
         logger = self._logger
 
-        # Validate the parameters
-        self.validate_parameters(parms)
-
         # Log the command line that can be used for this processor
-        self.log_command_line(parms)
+        self.log_command_line()
 
         # Initialize the processing directory.
-        self.initialize_processing_directory(parms)
+        self.initialize_processing_directory()
 
         # Stage the required input data
-        self.stage_input_data(parms)
+        self.stage_input_data()
 
         # Build science products
-        self.build_science_products(parms)
+        self.build_science_products()
 
         # Remove science products and intermediate data not requested
-        self.cleanup_work_dir(parms)
+        self.cleanup_work_dir()
 
         # Customize products
-        self.customize_products(parms)
+        self.customize_products()
 
         # Generate statistics products
-        self.generate_statistics(parms)
+        self.generate_statistics()
 
         # Reformat product
-        self.reformat_products(parms)
+        self.reformat_products()
 
         # Distribute product
         (destination_product_file, destination_cksum_file) = \
-            self.distribute_product(parms)
+            self.distribute_product()
 
         # Cleanup the processing directory to free disk space for other
         # products to process.
-        self.cleanup_processing_directory(parms)
+        self.cleanup_processing_directory()
 
         return (destination_product_file, destination_cksum_file)
 
@@ -759,8 +769,8 @@ class LandsatProcessor(CDRProcessor):
     _metadata_filename = None
 
     # -------------------------------------------
-    def __init__(self):
-        super(LandsatProcessor, self).__init__()
+    def __init__(self, parms):
+        super(LandsatProcessor, self).__init__(parms)
 
     # -------------------------------------------
     def get_input_hostname(self):
@@ -772,13 +782,13 @@ class LandsatProcessor(CDRProcessor):
         return utilities.get_cache_hostname()
 
     # -------------------------------------------
-    def get_source_directory(self, parms):
+    def get_source_directory(self):
         '''
         Description:
             Returns the source directory to use for retrieving the input data.
         '''
 
-        product_id = parms['product_id']
+        product_id = self._parms['product_id']
 
         # Extract information from the product ID string
         s_instance = sensor.instance(product_id)
@@ -794,7 +804,7 @@ class LandsatProcessor(CDRProcessor):
                                    sensor_name, path, row, year)
 
     # -------------------------------------------
-    def validate_parameters(self, parms):
+    def validate_parameters(self):
         '''
         Description:
             Validates the parameters required for the processor.
@@ -803,12 +813,12 @@ class LandsatProcessor(CDRProcessor):
         logger = self._logger
 
         # Call the base class parameter validation
-        super(LandsatProcessor, self).validate_parameters(parms)
+        super(LandsatProcessor, self).validate_parameters()
 
         logger.info("Validating [LandsatProcessor] parameters")
 
-        product_id = parms['product_id']
-        options = parms['options']
+        product_id = self._parms['product_id']
+        options = self._parms['options']
 
         # Force these parameters to false if not provided
         # They are the required includes for product generation
@@ -881,14 +891,14 @@ class LandsatProcessor(CDRProcessor):
             self._build_products = True
 
     # -------------------------------------------
-    def stage_input_data(self, parms):
+    def stage_input_data(self):
         '''
         Description:
             Stages the input data required for the processor.
         '''
 
-        product_id = parms['product_id']
-        options = parms['options']
+        product_id = self._parms['product_id']
+        options = self._parms['options']
 
         # Stage the landsat data
         filename = staging.stage_landsat_data(product_id,
@@ -919,7 +929,7 @@ class LandsatProcessor(CDRProcessor):
                 None, sys.exc_info()[2]
 
     # -------------------------------------------
-    def convert_to_raw_binary(self, parms):
+    def convert_to_raw_binary(self):
         '''
         Description:
             Converts the Landsat(LPGS) input data to our internal raw binary
@@ -928,7 +938,7 @@ class LandsatProcessor(CDRProcessor):
 
         logger = self._logger
 
-        options = parms['options']
+        options = self._parms['options']
 
         # Build a command line arguments list
         cmd = ['convert_lpgs_to_espa',
@@ -952,7 +962,7 @@ class LandsatProcessor(CDRProcessor):
                 logger.info(output)
 
     # -------------------------------------------
-    def sr_command_line(self, parms):
+    def sr_command_line(self):
         '''
         Description:
             Returns the command line required to generate surface reflectance.
@@ -962,7 +972,7 @@ class LandsatProcessor(CDRProcessor):
             this method.
         '''
 
-        options = parms['options']
+        options = self._parms['options']
 
         cmd = ['do_ledaps.py', '--xml', self._xml_filename]
 
@@ -1003,7 +1013,7 @@ class LandsatProcessor(CDRProcessor):
         return cmd
 
     # -------------------------------------------
-    def generate_sr_products(self, parms):
+    def generate_sr_products(self):
         '''
         Description:
             Generates surrface reflectance products.
@@ -1011,7 +1021,7 @@ class LandsatProcessor(CDRProcessor):
 
         logger = self._logger
 
-        cmd = self.sr_command_line(parms)
+        cmd = self.sr_command_line()
 
         # Only if required
         if cmd is not None:
@@ -1029,7 +1039,7 @@ class LandsatProcessor(CDRProcessor):
                     logger.info(output)
 
     # -------------------------------------------
-    def cfmask_command_line(self, parms):
+    def cfmask_command_line(self):
         '''
         Description:
             Returns the command line required to generate cfmask.
@@ -1039,7 +1049,7 @@ class LandsatProcessor(CDRProcessor):
             this method.
         '''
 
-        options = parms['options']
+        options = self._parms['options']
 
         cmd = None
         if options['include_cfmask'] or options['include_sr']:
@@ -1050,7 +1060,7 @@ class LandsatProcessor(CDRProcessor):
         return cmd
 
     # -------------------------------------------
-    def generate_cfmask(self, parms):
+    def generate_cfmask(self):
         '''
         Description:
             Generates cfmask.
@@ -1058,7 +1068,7 @@ class LandsatProcessor(CDRProcessor):
 
         logger = self._logger
 
-        cmd = self.cfmask_command_line(parms)
+        cmd = self.cfmask_command_line()
 
         # Only if required
         if cmd is not None:
@@ -1076,7 +1086,7 @@ class LandsatProcessor(CDRProcessor):
                     logger.info(output)
 
     # -------------------------------------------
-    def spectral_indices_command_line(self, parms):
+    def spectral_indices_command_line(self):
         '''
         Description:
             Returns the command line required to generate spectral indices.
@@ -1086,7 +1096,7 @@ class LandsatProcessor(CDRProcessor):
             this method.
         '''
 
-        options = parms['options']
+        options = self._parms['options']
 
         cmd = None
         if (options['include_sr_nbr']
@@ -1120,7 +1130,7 @@ class LandsatProcessor(CDRProcessor):
         return cmd
 
     # -------------------------------------------
-    def generate_spectral_indices(self, parms):
+    def generate_spectral_indices(self):
         '''
         Description:
             Generates the requested spectral indices.
@@ -1128,7 +1138,7 @@ class LandsatProcessor(CDRProcessor):
 
         logger = self._logger
 
-        cmd = self.spectral_indices_command_line(parms)
+        cmd = self.spectral_indices_command_line()
 
         # Only if required
         if cmd is not None:
@@ -1146,7 +1156,7 @@ class LandsatProcessor(CDRProcessor):
                     logger.info(output)
 
     # -------------------------------------------
-    def build_science_products(self, parms):
+    def build_science_products(self):
         '''
         Description:
             Build the science products requested by the user.
@@ -1165,28 +1175,28 @@ class LandsatProcessor(CDRProcessor):
         os.chdir(self._work_dir)
 
         try:
-            self.convert_to_raw_binary(parms)
+            self.convert_to_raw_binary()
 
-            self.generate_sr_products(parms)
+            self.generate_sr_products()
 
-            self.generate_cfmask(parms)
+            self.generate_cfmask()
 
             # TODO - Today we do not do this anymore so code it back in
             #        if/when it is required
-            # self.generate_sr_browse_data(parms)
+            # self.generate_sr_browse_data()
 
-            self.generate_spectral_indices(parms)
+            self.generate_spectral_indices()
 
             # TODO - We do not have a finalized version of this yet, but this
             #        is where it will go
-            # self.generate_dswe(parms)
+            # self.generate_dswe()
 
         finally:
             # Change back to the previous directory
             os.chdir(current_directory)
 
     # -------------------------------------------
-    def cleanup_work_dir(self, parms):
+    def cleanup_work_dir(self):
         '''
         Description:
             Cleanup all the intermediate non-products and the science
@@ -1195,7 +1205,7 @@ class LandsatProcessor(CDRProcessor):
 
         logger = self._logger
 
-        options = parms['options']
+        options = self._parms['options']
 
         # Define all of the non-product files that need to be removed before
         # product tarball generation
@@ -1260,7 +1270,7 @@ class LandsatProcessor(CDRProcessor):
                         logger.info(output)
 
             try:
-                self.remove_products_from_xml(parms)
+                self.remove_products_from_xml()
             except Exception, e:
                 raise ee.ESPAException(ee.ErrorCodes.remove_products,
                                        str(e)), None, sys.exc_info()[2]
@@ -1270,13 +1280,13 @@ class LandsatProcessor(CDRProcessor):
             os.chdir(current_directory)
 
     # -------------------------------------------
-    def generate_statistics(self, parms):
+    def generate_statistics(self):
         '''
         Description:
             Generates statistics if required for the processor.
         '''
 
-        options = parms['options']
+        options = self._parms['options']
 
         # Nothing to do if the user did not specify anything to build
         if not self._build_products or not options['include_statistics']:
@@ -1302,14 +1312,14 @@ class LandsatProcessor(CDRProcessor):
                                        files_to_search_for)
 
     # -------------------------------------------
-    def get_product_name(self, parms):
+    def get_product_name(self):
         '''
         Description:
             Build the product name from the product information and current
             time.
         '''
 
-        product_id = parms['product_id']
+        product_id = self._parms['product_id']
 
         # Get the current time information
         ts = datetime.today()
@@ -1344,8 +1354,8 @@ class LandsatTMProcessor(LandsatProcessor):
     '''
 
     # -------------------------------------------
-    def __init__(self):
-        super(LandsatTMProcessor, self).__init__()
+    def __init__(self, parms):
+        super(LandsatTMProcessor, self).__init__(parms)
 
 
 # ===========================================================================
@@ -1360,8 +1370,8 @@ class LandsatETMProcessor(LandsatProcessor):
     '''
 
     # -------------------------------------------
-    def __init__(self):
-        super(LandsatETMProcessor, self).__init__()
+    def __init__(self, parms):
+        super(LandsatETMProcessor, self).__init__(parms)
 
 
 # ===========================================================================
@@ -1372,17 +1382,17 @@ class LandsatOLITIRSProcessor(LandsatProcessor):
     '''
 
     # -------------------------------------------
-    def __init__(self):
-        super(LandsatOLITIRSProcessor, self).__init__()
+    def __init__(self, parms):
+        super(LandsatOLITIRSProcessor, self).__init__(parms)
 
     # -------------------------------------------
-    def sr_command_line(self, parms):
+    def sr_command_line(self):
         '''
         Description:
             Returns the command line required to generate surface reflectance.
         '''
 
-        options = parms['options']
+        options = self._parms['options']
 
         cmd = ['do_l8_sr.py', '--xml', self._xml_filename]
 
@@ -1424,13 +1434,13 @@ class LandsatOLITIRSProcessor(LandsatProcessor):
         return cmd
 
     # -------------------------------------------
-    def cfmask_command_line(self, parms):
+    def cfmask_command_line(self):
         '''
         Description:
             Returns the command line required to generate cfmask.
         '''
 
-        options = parms['options']
+        options = self._parms['options']
 
         # TODO - The l8cfmask command line will change to be similar to the
         #        L4-7 command line.
@@ -1454,13 +1464,13 @@ class LandsatOLITIRSProcessor(LandsatProcessor):
         return cmd
 
     # -------------------------------------------
-    def spectral_indices_command_line(self, parms):
+    def spectral_indices_command_line(self):
         '''
         Description:
             Returns the command line required to generate spectral indices.
         '''
 
-        options = parms['options']
+        options = self._parms['options']
 
         # TODO - We don't know what this looks like today, so return None.
         # TODO - We don't know what this looks like today, so return None.
@@ -1508,8 +1518,8 @@ class ModisProcessor(CDRProcessor):
     _hdf_filename = None
 
     # -------------------------------------------
-    def __init__(self):
-        super(ModisProcessor, self).__init__()
+    def __init__(self, parms):
+        super(ModisProcessor, self).__init__(parms)
 
     # -------------------------------------------
     def get_input_hostname(self):
@@ -1521,7 +1531,7 @@ class ModisProcessor(CDRProcessor):
         return settings.MODIS_INPUT_HOSTNAME
 
     # -------------------------------------------
-    def validate_parameters(self, parms):
+    def validate_parameters(self):
         '''
         Description:
             Validates the parameters required for the processor.
@@ -1530,12 +1540,12 @@ class ModisProcessor(CDRProcessor):
         logger = self._logger
 
         # Call the base class parameter validation
-        super(ModisProcessor, self).validate_parameters(parms)
+        super(ModisProcessor, self).validate_parameters()
 
         logger.info("Validating [ModisProcessor] parameters")
 
-        product_id = parms['product_id']
-        options = parms['options']
+        product_id = self._parms['product_id']
+        options = self._parms['options']
 
         # Force these parameters to false if not provided
         # They are the required includes for product generation
@@ -1558,14 +1568,14 @@ class ModisProcessor(CDRProcessor):
             self._build_products = True
 
     # -------------------------------------------
-    def stage_input_data(self, parms):
+    def stage_input_data(self):
         '''
         Description:
             Stages the input data required for the processor.
         '''
 
-        product_id = parms['product_id']
-        options = parms['options']
+        product_id = self._parms['product_id']
+        options = self._parms['options']
 
         # Stage the landsat data
         filename = staging.stage_modis_data(product_id,
@@ -1584,7 +1594,7 @@ class ModisProcessor(CDRProcessor):
                 None, sys.exc_info()[2]
 
     # -------------------------------------------
-    def convert_to_raw_binary(self, parms):
+    def convert_to_raw_binary(self):
         '''
         Description:
             Converts the Landsat(LPGS) input data to our internal raw binary
@@ -1593,7 +1603,7 @@ class ModisProcessor(CDRProcessor):
 
         logger = self._logger
 
-        options = parms['options']
+        options = self._parms['options']
 
         # Build a command line arguments list
         cmd = ['convert_modis_to_espa',
@@ -1617,7 +1627,7 @@ class ModisProcessor(CDRProcessor):
                 logger.info(output)
 
     # -------------------------------------------
-    def build_science_products(self, parms):
+    def build_science_products(self):
         '''
         Description:
             Build the science products requested by the user.
@@ -1641,14 +1651,14 @@ class ModisProcessor(CDRProcessor):
         os.chdir(self._work_dir)
 
         try:
-            self.convert_to_raw_binary(parms)
+            self.convert_to_raw_binary()
 
         finally:
             # Change back to the previous directory
             os.chdir(current_directory)
 
     # -------------------------------------------
-    def cleanup_work_dir(self, parms):
+    def cleanup_work_dir(self):
         '''
         Description:
             Cleanup all the intermediate non-products and the science
@@ -1659,13 +1669,13 @@ class ModisProcessor(CDRProcessor):
         return
 
     # -------------------------------------------
-    def generate_statistics(self, parms):
+    def generate_statistics(self):
         '''
         Description:
             Generates statistics if required for the processor.
         '''
 
-        options = parms['options']
+        options = self._parms['options']
 
         # Nothing to do if the user did not specify anything to build
         if not self._build_products or not options['include_statistics']:
@@ -1691,14 +1701,14 @@ class ModisProcessor(CDRProcessor):
                                        files_to_search_for)
 
     # -------------------------------------------
-    def get_product_name(self, parms):
+    def get_product_name(self):
         '''
         Description:
             Build the product name from the product information and current
             time.
         '''
 
-        product_id = parms['product_id']
+        product_id = self._parms['product_id']
 
         # Get the current time information
         ts = datetime.today()
@@ -1730,17 +1740,17 @@ class ModisAQUAProcessor(ModisProcessor):
     '''
 
     # -------------------------------------------
-    def __init__(self):
-        super(ModisAQUAProcessor, self).__init__()
+    def __init__(self, parms):
+        super(ModisAQUAProcessor, self).__init__(parms)
 
     # -------------------------------------------
-    def get_source_directory(self, parms):
+    def get_source_directory(self):
         '''
         Description:
             Returns the source directory to use for retrieving the input data.
         '''
 
-        product_id = parms['product_id']
+        product_id = self._parms['product_id']
 
         # Extract information from the product ID string
         sensor_inst = sensor.instance(product_id)
@@ -1765,8 +1775,8 @@ class ModisTERRAProcessor(ModisProcessor):
     '''
 
     # -------------------------------------------
-    def __init__(self):
-        super(ModisTERRAProcessor, self).__init__()
+    def __init__(self, parms):
+        super(ModisTERRAProcessor, self).__init__(parms)
 
     # -------------------------------------------
     def get_source_directory(self, parms):
@@ -1775,7 +1785,7 @@ class ModisTERRAProcessor(ModisProcessor):
             Returns the source directory to use for retrieving the input data.
         '''
 
-        product_id = parms['product_id']
+        product_id = self._parms['product_id']
 
         # Extract information from the product ID string
         sensor_inst = sensor.instance(product_id)
@@ -1794,36 +1804,38 @@ class ModisTERRAProcessor(ModisProcessor):
 
 # ===========================================================================
 class PlotProcessor(ProductProcessor):
-    def __init__(self):
-        super(PlotProcessor, self).__init__()
+    def __init__(self, parms):
+        super(PlotProcessor, self).__init__(parms)
 
 
 # ===========================================================================
-def get_instance(product_id):
+def get_instance(parms):
     '''
     Description:
         Provides a method to retrieve the proper processor for the specified
         product.
     '''
 
+    product_id = parms['product_id']
+
     if product_id == 'plot':
         raise NotImplementedError("A PLOT processor has not been implemented")
-        return PlotProcessor()
+        return PlotProcessor(parms)
 
     sensor_code = sensor.instance(product_id).sensor_code.lower()
 
     if sensor_code == 'lt4':
-        return LandsatTMProcessor()
+        return LandsatTMProcessor(parms)
     elif sensor_code == 'lt5':
-        return LandsatTMProcessor()
+        return LandsatTMProcessor(parms)
     elif sensor_code == 'le7':
-        return LandsatETMProcessor()
+        return LandsatETMProcessor(parms)
     elif sensor_code == 'lc8':
-        return LandsatOLITIRSProcessor()
+        return LandsatOLITIRSProcessor(parms)
     elif sensor_code == 'mod':
-        return ModisTERRAProcessor()
+        return ModisTERRAProcessor(parms)
     elif sensor_code == 'myd':
-        return ModisAQUAProcessor()
+        return ModisAQUAProcessor(parms)
     else:
         msg = "A processor for [%s] has not been implemented" % product_id
         raise NotImplementedError(msg)
