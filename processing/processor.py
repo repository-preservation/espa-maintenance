@@ -20,7 +20,6 @@ History:
 '''
 # TODO - Plot processors
 # TODO - Fix l8cfmask after it has been updated to raw binary and bug fixes.
-# TODO - Fix SI after it has been updated to L8.
 
 
 import os
@@ -216,10 +215,10 @@ class ProductProcessor(object):
                                    str(e)), None, sys.exc_info()[2]
 
     # -------------------------------------------
-    def cleanup_processing_directory(self):
+    def remove_product_directory(self):
         '''
         Description:
-            Free disk space to be nice to the whole system.
+            Remove the product directory.
         '''
 
         options = self._parms['options']
@@ -265,6 +264,8 @@ class ProductProcessor(object):
         '''
         Description:
             Generates a product through a defined process.
+            This method must cleanup everything it creates by calling the
+            remove_product_directory() method.
 
         Note:
             Not implemented here.
@@ -719,6 +720,8 @@ class CDRProcessor(CustomizationProcessor):
         '''
         Description:
             Generates a product through a defined process.
+            This method must cleanup everything it creates by calling the
+            remove_product_directory() method.
         '''
 
         logger = self._logger
@@ -729,31 +732,33 @@ class CDRProcessor(CustomizationProcessor):
         # Initialize the processing directory.
         self.initialize_processing_directory()
 
-        # Stage the required input data
-        self.stage_input_data()
+        try:
+            # Stage the required input data
+            self.stage_input_data()
 
-        # Build science products
-        self.build_science_products()
+            # Build science products
+            self.build_science_products()
 
-        # Remove science products and intermediate data not requested
-        self.cleanup_work_dir()
+            # Remove science products and intermediate data not requested
+            self.cleanup_work_dir()
 
-        # Customize products
-        self.customize_products()
+            # Customize products
+            self.customize_products()
 
-        # Generate statistics products
-        self.generate_statistics()
+            # Generate statistics products
+            self.generate_statistics()
 
-        # Reformat product
-        self.reformat_products()
+            # Reformat product
+            self.reformat_products()
 
-        # Distribute product
-        (destination_product_file, destination_cksum_file) = \
-            self.distribute_product()
+            # Distribute product
+            (destination_product_file, destination_cksum_file) = \
+                self.distribute_product()
 
-        # Cleanup the processing directory to free disk space for other
-        # products to process.
-        self.cleanup_processing_directory()
+        finally:
+            # Remove the product directory
+            # Free disk space to be nice to the whole system.
+            self.remove_product_directory()
 
         return (destination_product_file, destination_cksum_file)
 
@@ -1092,8 +1097,7 @@ class LandsatProcessor(CDRProcessor):
             Returns the command line required to generate spectral indices.
 
         Note:
-            Provides the L4, L5, and L7 command line.  L8 processing overrides
-            this method.
+            Provides the L4, L5, L7, and L8 command line.
         '''
 
         options = self._parms['options']
@@ -1297,7 +1301,7 @@ class LandsatProcessor(CDRProcessor):
         # Hold the wild card strings in a type based dictionary
         files_to_search_for = dict()
 
-        # Landsat files
+        # Landsat files (Includes L4-L8)
         # The types must match the types in settings.py
         files_to_search_for['SR'] = ['*_sr_band[0-9].img']
         files_to_search_for['TOA'] = ['*_toa_band[0-9].img',
@@ -1462,54 +1466,6 @@ class LandsatOLITIRSProcessor(LandsatProcessor):
             #                 '--xml', self._xml_filename])
 
         return cmd
-
-    # -------------------------------------------
-    def spectral_indices_command_line(self):
-        '''
-        Description:
-            Returns the command line required to generate spectral indices.
-        '''
-
-        options = self._parms['options']
-
-        # TODO - We don't know what this looks like today, so return None.
-        # TODO - We don't know what this looks like today, so return None.
-        # TODO - We don't know what this looks like today, so return None.
-        # TODO - We don't know what this looks like today, so return None.
-        # TODO - We don't know what this looks like today, so return None.
-        # TODO - We don't know what this looks like today, so return None.
-
-#        cmd = None
-#        if (options['include_sr_nbr']
-#                or options['include_sr_nbr2']
-#                or options['include_sr_ndvi']
-#                or options['include_sr_ndmi']
-#                or options['include_sr_savi']
-#                or options['include_sr_msavi']
-#                or options['include_sr_evi']):
-#
-#            cmd = ['do_spectral_indices.py', '--xml', xml_filename]
-#
-#            # Add the specified index options
-#            if options['include_sr_nbr']:
-#                cmd.append('--nbr')
-#            if options['include_sr_nbr2']:
-#                cmd.append('--nbr2')
-#            if options['include_sr_ndvi']:
-#                cmd.append('--ndvi')
-#            if options['include_sr_ndmi']:
-#                cmd.append('--ndmi')
-#            if options['include_sr_savi']:
-#                cmd.append('--savi')
-#            if options['include_sr_msavi']:
-#                cmd.append('--msavi')
-#            if options['include_sr_evi']:
-#                cmd.append('--evi')
-#
-#            cmd = ' '.join(cmd)
-#
-#        return cmd
-        return None
 
 
 # ===========================================================================
