@@ -38,6 +38,9 @@ with open(ESPA_CONFIG_FILE) as file_handle:
 # set the ESPA_ENV variable correctly
 ESPA_ENV = 'dev'
 
+# ************t*************
+# NEVER CHANGE THIS TO ops IN dev OR tst UNLESS THE dev AND tst CRONS ARE OFF
+# *************************
 if "ESPA_ENV" in os.environ:
     if os.environ['ESPA_ENV'].lower() == 'ops':
         ESPA_ENV = 'ops'
@@ -207,6 +210,9 @@ LOGIN_REDIRECT_URL = 'index'
 
 # This is polluting the settings.py I know, but at the moment this is the
 # best place for this since it is needed in lta.py and in context_processors.py
+# ************t*************
+# NEVER CHANGE THIS TO ops IN dev OR tst UNLESS THE dev AND tst CRONS ARE OFF
+# *************************
 URL_FOR = lambda service_name: SERVICE_LOCATOR[ESPA_ENV][service_name]
 
 # Set up caching for Django.  Everything is pointed to our single memcache 
