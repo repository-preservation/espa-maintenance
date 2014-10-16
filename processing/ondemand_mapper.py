@@ -109,9 +109,13 @@ def process(args):
             if not parameters.test_for_parameter(parms, 'options'):
                 raise ValueError("Error missing JSON 'options' record")
 
+            # TODO scene will be replaced with product_id someday
             (order_id, product_id, product_type, options) = \
                 (parms['orderid'], parms['scene'], parms['product_type'],
                  parms['options'])
+
+            if not parameters.test_for_parameter(parms, 'product_id'):
+                parms['product_id'] = product_id
 
             # Figure out if debug level logging was requested
             debug = False
@@ -169,21 +173,22 @@ def process(args):
 
             destination_product_file = 'ERROR'
             destination_cksum_file = 'ERROR'
+            pp = None
             try:
                 # Process the landsat sensors
                 if product_type == 'landsat':
                     # (destination_product_file, destination_cksum_file) = \
                     #     landsat.process(parms)
-                    pp = processor.get_instance(product_id)
+                    pp = processor.get_instance(parms)
                     (destination_product_file, destination_cksum_file) = \
-                        pp.process(parms)
+                        pp.process()
                 # Process the modis sensors
                 elif product_type == 'modis':
                     # (destination_product_file, destination_cksum_file) = \
                     #     modis.process(parms)
-                    pp = processor.get_instance(product_id)
+                    pp = processor.get_instance(parms)
                     (destination_product_file, destination_cksum_file) = \
-                        pp.process(parms)
+                        pp.process()
                 elif product_type == 'plot':
                     (destination_product_file, destination_cksum_file) = \
                         plotter.process(parms)
@@ -196,11 +201,14 @@ def process(args):
                 if not mapper_keep_log:
                     # Cleanup processing directory by calling the
                     # initialization routine again
-                    # TODO TODO TODO - Should not call this anymore, call something else
+                    # TODO TODO TODO - Should not call this anymore,
+                    # TODO TODO TODO - call the following commented code
                     (scene_directory, stage_directory,
                      work_directory, package_directory) = \
                         staging.initialize_processing_directory(order_id,
                                                                 product_id)
+                    # if not mapper_keep_log and pp is not None:
+                    #     pp.cleanup_processing_directory()
 
             # Everything was successfull so mark the scene complete
             if server is not None:
