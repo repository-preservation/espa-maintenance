@@ -499,7 +499,7 @@ def convert_to_command_line_options(parms):
         if value is True:
             cmd_line.append('--%s' % key)
         elif value is not False and value is not None:
-            cmd_line.extend(['--%s' % key, '\"%s\"' % value])
+            cmd_line.extend(['--%s' % key, '\"%s\"' % str(value)])
 
     return cmd_line
 # END - convert_parms_to_command_line_options
