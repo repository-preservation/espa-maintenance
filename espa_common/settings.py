@@ -130,6 +130,7 @@ LOGFILE_PATH = '/tmp'
 PLOT_BG_COLOR = '#f3f3f3'  # A light gray
 PLOT_MARKER = (1, 3, 0)    # Better circle than 'o'
 PLOT_MARKER_SIZE = 5.0     # A good size for the circle or diamond
+PLOT_MARKER_EDGE_WIDTH = 0.9 # The width of the black marker border
 
 
 ##############################################################################
