@@ -469,7 +469,6 @@ def distribute_statistics(scene, work_directory,
 def deliver_product(scene, work_directory, package_directory, product_name,
                     destination_host, destination_directory,
                     destination_username, destination_pw,
-                    include_statistics=False,
                     sleep_seconds=settings.DEFAULT_SLEEP_SECONDS):
     '''
     Description:
@@ -533,30 +532,6 @@ def deliver_product(scene, work_directory, package_directory, product_name,
                                " %s and %s:%s" % (product_full_path,
                                                   destination_host,
                                                   destination_product_file))
-
-    # Distribute the statistics directory if they were generated
-    if include_statistics:
-        # Attempt X times sleeping between each attempt
-        attempt = 0
-        while True:
-            try:
-                distribute_statistics(scene, work_directory,
-                                      destination_host, destination_directory,
-                                      destination_username, destination_pw)
-            except Exception, e:
-                logger.error("An exception occurred processing %s"
-                             % product_name)
-                logger.error("Exception Message: %s" % str(e))
-                if attempt < settings.MAX_DELIVERY_ATTEMPTS:
-                    sleep(sleep_seconds)  # sleep before trying again
-                    attempt += 1
-                    continue
-                else:
-                    raise ee.ESPAException(ee.ErrorCodes.distributing_product,
-                                           str(e)), None, sys.exc_info()[2]
-            break
-
-        logger.info("Statistics distribution complete for %s" % product_name)
 
     logger.info("Product delivery complete for %s:%s"
                 % (destination_host, destination_product_file))
