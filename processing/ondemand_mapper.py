@@ -175,40 +175,18 @@ def process(args):
             destination_cksum_file = 'ERROR'
             pp = None
             try:
-                # Process the landsat sensors
-                if product_type == 'landsat':
-                    # (destination_product_file, destination_cksum_file) = \
-                    #     landsat.process(parms)
-                    pp = processor.get_instance(parms)
-                    (destination_product_file, destination_cksum_file) = \
-                        pp.process()
-                # Process the modis sensors
-                elif product_type == 'modis':
-                    # (destination_product_file, destination_cksum_file) = \
-                    #     modis.process(parms)
-                    pp = processor.get_instance(parms)
-                    (destination_product_file, destination_cksum_file) = \
-                        pp.process()
-                elif product_type == 'plot':
-                    (destination_product_file, destination_cksum_file) = \
-                        plotter.process(parms)
+                pp = processor.get_instance(parms)
+                (destination_product_file, destination_cksum_file) = \
+                    pp.process()
 
                 # ------------------------------------------------------------
                 # NOTE: Else process using another sensors processor
                 # ------------------------------------------------------------
 
             finally:
-                if not mapper_keep_log:
-                    # Cleanup processing directory by calling the
-                    # initialization routine again
-                    # TODO TODO TODO - Should not call this anymore,
-                    # TODO TODO TODO - call the following commented code
-                    (scene_directory, stage_directory,
-                     work_directory, package_directory) = \
-                        staging.initialize_processing_directory(order_id,
-                                                                product_id)
-                    # if not mapper_keep_log and pp is not None:
-                    #     pp.cleanup_processing_directory()
+                # Free disk space to be nice to the whole system.
+                if not mapper_keep_log and pp is not None:
+                    pp.remove_product_directory()
 
             # Everything was successfull so mark the scene complete
             if server is not None:
