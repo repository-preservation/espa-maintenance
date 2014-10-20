@@ -18,7 +18,6 @@ History:
                                                code/modules.
 
 '''
-# TODO - Plot processors
 # TODO - Fix l8cfmask after it has been updated to raw binary and bug fixes.
 
 
@@ -98,6 +97,8 @@ class ProductProcessor(object):
     _work_dir = None
 
     _build_products = False
+
+    _product_name = None
 
     # -------------------------------------------
     def __init__(self, parms):
@@ -342,15 +343,55 @@ class ProductProcessor(object):
     def distribute_product(self):
         '''
         Description:
-            Builds the product tar.gz file and distributes it.
-
-        Note:
-            Not implemented here.
+            Does both the packaging and dsitribution of the product using
+            the distribution module.
         '''
 
-        msg = ("[%s] Requires implementation in the child class"
-               % self.distribute_product.__name__)
-        raise NotImplementedError(msg)
+        logger = self._logger
+
+        product_id = self._parms['product_id']
+        opts = self._parms['options']
+
+        product_name = self.get_product_name()
+
+        # Deliver the product files
+        # Attempt X times sleeping between each attempt
+        sleep_seconds = settings.DEFAULT_SLEEP_SECONDS
+        max_number_of_attempts = settings.MAX_DISTRIBUTION_ATTEMPTS
+        attempt = 0
+        destination_product_file = 'ERROR'
+        destination_cksum_file = 'ERROR'
+        while True:
+            try:
+                # Deliver product will also try each of its parts three times
+                # before failing, so we pass our sleep seconds down to them
+                (destination_product_file, destination_cksum_file) = \
+                    distribution.deliver_product(product_id,
+                                                 self._work_dir,
+                                                 self._output_dir,
+                                                 product_name,
+                                                 opts['destination_host'],
+                                                 opts['destination_directory'],
+                                                 opts['destination_username'],
+                                                 opts['destination_pw'],
+                                                 sleep_seconds)
+            except Exception, e:
+                logger.error("An exception occurred processing %s"
+                             % product_id)
+                logger.error("Exception Message: %s" % str(e))
+                if attempt < max_number_of_attempts:
+                    sleep(sleep_seconds)  # sleep before trying again
+                    attempt += 1
+                    # adjust for next set
+                    sleep_seconds = int(sleep_seconds * 1.5)
+                    continue
+                else:
+                    # May already be an ESPAException so don't override that
+                    raise e
+            break
+
+        # Let the caller know where we put these on the destination system
+        return (destination_product_file, destination_cksum_file)
 
     # -------------------------------------------
     def process_product(self):
@@ -693,6 +734,55 @@ class CDRProcessor(CustomizationProcessor):
         raise NotImplementedError(msg)
 
     # -------------------------------------------
+    def distribute_statistics(self):
+        '''
+        Description:
+            Generates statistics if required for the processor.
+
+        Note:
+            Not implemented here.
+        '''
+
+        logger = self._logger
+
+        product_id = self._parms['product_id']
+        options = self._parms['options']
+
+        if options['include_statistics']:
+            # Attempt X times sleeping between each attempt
+            attempt = 0
+            sleep_seconds = settings.DEFAULT_SLEEP_SECONDS
+            product_name = self.get_product_name()
+            dest_host = options['destination_host']
+            dest_directory = options['destination_directory']
+            dest_user = options['destination_username']
+            dest_pw = options['destination_pw']
+            while True:
+                try:
+                    distribution.distribute_statistics(product_id,
+                                                       self._work_dir,
+                                                       dest_host,
+                                                       dest_directory,
+                                                       dest_user,
+                                                       dest_pw)
+                except Exception, e:
+                    logger.error("An exception occurred processing %s"
+                                 % product_name)
+                    logger.error("Exception Message: %s" % str(e))
+                    if attempt < settings.MAX_DELIVERY_ATTEMPTS:
+                        sleep(sleep_seconds)  # sleep before trying again
+                        attempt += 1
+                        continue
+                    else:
+                        e_code = ee.ErrorCodes.distributing_product
+                        raise ee.ESPAException(e_code,
+                                               str(e)), None, sys.exc_info()[2]
+                break
+
+            logger.info("Statistics distribution complete for [%s]"
+                        % product_name)
+
+    # -------------------------------------------
     def reformat_products(self):
         '''
         Description:
@@ -710,60 +800,6 @@ class CDRProcessor(CustomizationProcessor):
         # hard-coded here
         warp.reformat(self._xml_filename, self._work_dir, 'envi',
                       options['output_format'])
-
-    # -------------------------------------------
-    def distribute_product(self):
-        '''
-        Description:
-            Builds the product tar.gz file and distributes it.
-        '''
-
-        logger = self._logger
-
-        product_id = self._parms['product_id']
-        opts = self._parms['options']
-
-        product_name = self.get_product_name()
-
-        # Deliver the product files
-        # Attempt X times sleeping between each attempt
-        sleep_seconds = settings.DEFAULT_SLEEP_SECONDS
-        max_number_of_attempts = settings.MAX_DISTRIBUTION_ATTEMPTS
-        attempt = 0
-        destination_product_file = 'ERROR'
-        destination_cksum_file = 'ERROR'
-        while True:
-            try:
-                # Deliver product will also try each of its parts three times
-                # before failing, so we pass our sleep seconds down to them
-                (destination_product_file, destination_cksum_file) = \
-                    distribution.deliver_product(product_id,
-                                                 self._work_dir,
-                                                 self._output_dir,
-                                                 product_name,
-                                                 opts['destination_host'],
-                                                 opts['destination_directory'],
-                                                 opts['destination_username'],
-                                                 opts['destination_pw'],
-                                                 opts['include_statistics'],
-                                                 sleep_seconds)
-            except Exception, e:
-                logger.error("An exception occurred processing %s"
-                             % product_id)
-                logger.error("Exception Message: %s" % str(e))
-                if attempt < max_number_of_attempts:
-                    sleep(sleep_seconds)  # sleep before trying again
-                    attempt += 1
-                    # adjust for next set
-                    sleep_seconds = int(sleep_seconds * 1.5)
-                    continue
-                else:
-                    # May already be an ESPAException so don't override that
-                    raise e
-            break
-
-        # Let the caller know where we put these on the destination system
-        return (destination_product_file, destination_cksum_file)
 
     # -------------------------------------------
     def process_product(self):
@@ -788,10 +824,13 @@ class CDRProcessor(CustomizationProcessor):
         # Generate statistics products
         self.generate_statistics()
 
+        # Distribute statistics
+        self.distribute_statistics()
+
         # Reformat product
         self.reformat_products()
 
-        # Distribute product
+        # Package and deliver product
         (destination_product_file, destination_cksum_file) = \
             self.distribute_product()
 
@@ -1358,27 +1397,30 @@ class LandsatProcessor(CDRProcessor):
             time.
         '''
 
-        product_id = self._parms['product_id']
+        if self._product_name is None:
+            product_id = self._parms['product_id']
 
-        # Get the current time information
-        ts = datetime.today()
+            # Get the current time information
+            ts = datetime.datetime.today()
 
-        # Extract stuff from the product information
-        sensor_inst = sensor.instance(product_id)
+            # Extract stuff from the product information
+            sensor_inst = sensor.instance(product_id)
 
-        sensor_code = sensor_inst.sensor_code.upper()
-        path = sensor_inst.path
-        row = sensor_inst.row
-        year = sensor_inst.year
-        doy = sensor_inst.doy
+            sensor_code = sensor_inst.sensor_code.upper()
+            path = sensor_inst.path
+            row = sensor_inst.row
+            year = sensor_inst.year
+            doy = sensor_inst.doy
 
-        product_name = '%s%s%s%s%s-SC%s%s%s%s%s%s' \
-            % (sensor_code, path.zfill(3), row.zfill(3), year.zfill(4),
-               doy.zfill(3), str(ts.year).zfill(4), str(ts.month).zfill(2),
-               str(ts.day).zfill(2), str(ts.hour).zfill(2),
-               str(ts.minute).zfill(2), str(ts.second).zfill(2))
+            product_name = '%s%s%s%s%s-SC%s%s%s%s%s%s' \
+                % (sensor_code, path.zfill(3), row.zfill(3), year.zfill(4),
+                   doy.zfill(3), str(ts.year).zfill(4), str(ts.month).zfill(2),
+                   str(ts.day).zfill(2), str(ts.hour).zfill(2),
+                   str(ts.minute).zfill(2), str(ts.second).zfill(2))
 
-        return product_name
+            self._product_name = product_name
+
+        return self._product_name
 
 
 # ===========================================================================
@@ -1699,28 +1741,31 @@ class ModisProcessor(CDRProcessor):
             time.
         '''
 
-        product_id = self._parms['product_id']
+        if self._product_name is None:
+            product_id = self._parms['product_id']
 
-        # Get the current time information
-        ts = datetime.today()
+            # Get the current time information
+            ts = datetime.datetime.today()
 
-        # Extract stuff from the product information
-        sensor_inst = sensor.instance(product_id)
+            # Extract stuff from the product information
+            sensor_inst = sensor.instance(product_id)
 
-        short_name = sensor_inst.short_name.upper()
-        horizontal = sensor_inst.horizontal
-        vertical = sensor_inst.vertical
-        year = sensor_inst.year
-        doy = sensor_inst.doy
+            short_name = sensor_inst.short_name.upper()
+            horizontal = sensor_inst.horizontal
+            vertical = sensor_inst.vertical
+            year = sensor_inst.year
+            doy = sensor_inst.doy
 
-        product_name = '%sh%sv%s%s%s-SC%s%s%s%s%s%s' \
-            % (short_name, horizontal.zfill(2), vertical.zfill(2),
-               year.zfill(4), doy.zfill(3), str(ts.year).zfill(4),
-               str(ts.month).zfill(2), str(ts.day).zfill(2),
-               str(ts.hour).zfill(2), str(ts.minute).zfill(2),
-               str(ts.second).zfill(2))
+            product_name = '%sh%sv%s%s%s-SC%s%s%s%s%s%s' \
+                % (short_name, horizontal.zfill(2), vertical.zfill(2),
+                   year.zfill(4), doy.zfill(3), str(ts.year).zfill(4),
+                   str(ts.month).zfill(2), str(ts.day).zfill(2),
+                   str(ts.hour).zfill(2), str(ts.minute).zfill(2),
+                   str(ts.second).zfill(2))
 
-        return product_name
+            self._product_name = product_name
+
+        return self._product_name
 
 
 # ===========================================================================
@@ -1804,6 +1849,7 @@ class PlotProcessor(ProductProcessor):
     _bg_color = None
     _marker = None
     _marker_size = None
+    _marker_edge_width = None
 
     _time_delta_5_days = None
 
@@ -1856,13 +1902,13 @@ class PlotProcessor(ProductProcessor):
         self._sensor_colors['LT4'] = '#cc3333'  # A nice Red
         self._sensor_colors['LT5'] = '#0066cc'  # A nice Blue
         self._sensor_colors['LE7'] = '#00cc33'  # An ok Green
-        # TODO TODO TODO - Fix the L8 default color
-        self._sensor_colors['LC8'] = '#0044ff'  # An ok Blue
+        self._sensor_colors['LC8'] = '#ffbb00'  # An ok Blue
         self._bg_color = settings.PLOT_BG_COLOR
 
         # Setup the default marker
         self._marker = settings.PLOT_MARKER
         self._marker_size = float(settings.PLOT_MARKER_SIZE)
+        self._marker_edge_width = float(settings.PLOT_MARKER_EDGE_WIDTH)
 
         # Specify a base number of days to expand the plot date range. This
         # helps keep data points from being placed on the plot border lines
@@ -2289,6 +2335,10 @@ class PlotProcessor(ProductProcessor):
             self._marker_size = options['marker_size']
         else:
             options['marker_size'] = self._marker_size
+        if parameters.test_for_parameter(options, 'marker_edge_width'):
+            self._marker_edge_width = options['marker_edge_width']
+        else:
+            options['marker_edge_width'] = self._marker_edge_width
 
     # -------------------------------------------
     def read_statistics(self, statistics_file):
@@ -2579,9 +2629,10 @@ class PlotProcessor(ProductProcessor):
                 values = stddev_values
 
             # Draw the marker for these dates
-            min_plot.plot(dates, values, marker=self._marker,
+            min_plot.plot(dates, values, label=sensor, marker=self._marker,
                           color=self._sensor_colors[sensor], linestyle='-',
-                          markersize=self._marker_size, label=sensor)
+                          markersize=self._marker_size,
+                          markeredgewidth=self._marker_edge_width)
         # END - for sensor
 
         # --------------------------------------------------------------------
@@ -2644,7 +2695,7 @@ class PlotProcessor(ProductProcessor):
         # Configure the legend
         legend = mpl_plot.legend(sensors,
                                  bbox_to_anchor=(0.0, 1.01, 1.0, 0.5),
-                                 loc=3, ncol=5, mode="expand",
+                                 loc=3, ncol=6, mode="expand",
                                  borderaxespad=0.0, numpoints=1,
                                  prop={'size': 12})
 
@@ -2677,7 +2728,6 @@ class PlotProcessor(ProductProcessor):
         '''
 
         logger = self._logger
-        self._logger.info('HERE %s' % __name__)
 
         stats = dict()
 
@@ -2866,6 +2916,20 @@ class PlotProcessor(ProductProcessor):
             raise
 
     # -------------------------------------------
+    def get_product_name(self):
+        '''
+        Description:
+            Return the product name for that statistics andp lot product from
+            the product request information.
+        '''
+
+        if self._product_name is None:
+            self._product_name = '-'.join([self._parms['orderid'],
+                                           'statistics'])
+
+        return self._product_name
+
+    # -------------------------------------------
     def process_product(self):
         '''
         Description:
@@ -2879,10 +2943,9 @@ class PlotProcessor(ProductProcessor):
         # Create the combinded stats and plots
         self.process_stats()
 
-        # Distribute product
+        # Package and deliver product
         (destination_product_file, destination_cksum_file) = \
-            ('Ron', 'Dilley')
-        #    self.distribute_product()
+            self.distribute_product()
 
         return (destination_product_file, destination_cksum_file)
 
