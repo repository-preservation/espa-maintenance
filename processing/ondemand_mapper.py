@@ -42,11 +42,7 @@ except:
 # local objects and methods
 import espa_exception as ee
 import parameters
-import staging
 import processor
-import cdr_ecv as landsat
-import modis
-import plotting as plotter
 
 
 # ============================================================================
@@ -114,6 +110,7 @@ def process(args):
                 (parms['orderid'], parms['scene'], parms['product_type'],
                  parms['options'])
 
+            # If it is missing due to above TODO, then add it
             if not parameters.test_for_parameter(parms, 'product_id'):
                 parms['product_id'] = product_id
 
@@ -167,21 +164,18 @@ def process(args):
                                      % options['output_format'])
 
             # ----------------------------------------------------------------
-            # NOTE:
-            #   The first thing process does is validate the input parameters
+            # NOTE: The first thing the product processor does during
+            #       initialization is validate the input parameters.
             # ----------------------------------------------------------------
 
             destination_product_file = 'ERROR'
             destination_cksum_file = 'ERROR'
             pp = None
             try:
+                # All processors are implemented in the processor module
                 pp = processor.get_instance(parms)
                 (destination_product_file, destination_cksum_file) = \
                     pp.process()
-
-                # ------------------------------------------------------------
-                # NOTE: Else process using another sensors processor
-                # ------------------------------------------------------------
 
             finally:
                 # Free disk space to be nice to the whole system.
@@ -197,12 +191,6 @@ def process(args):
                 if not status:
                     logger.warning("Failed processing xmlrpc call to"
                                    " mark_scene_complete")
-
-            # Always log where we placed the files
-            logger.info("Delivered product to %s at location %s and cksum"
-                        " location %s" % (processing_location,
-                                          destination_product_file,
-                                          destination_cksum_file))
 
             # Cleanup the log file
             if not mapper_keep_log:

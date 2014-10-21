@@ -375,9 +375,16 @@ class ProductProcessor(object):
                                                  opts['destination_username'],
                                                  opts['destination_pw'],
                                                  sleep_seconds)
+
+                # Always log where we placed the files
+                logger.info("Delivered product to %s at location %s and cksum"
+                            " location %s" % (opts['destination_host'],
+                                              destination_product_file,
+                                              destination_cksum_file))
+
+                logger.info("*** Product Delivery Complete ***")
             except Exception, e:
-                logger.error("An exception occurred processing %s"
-                             % product_id)
+                logger.error("An exception occurred delivering the product")
                 logger.error("Exception Message: %s" % str(e))
                 if attempt < max_number_of_attempts:
                     sleep(sleep_seconds)  # sleep before trying again
@@ -765,9 +772,11 @@ class CDRProcessor(CustomizationProcessor):
                                                        dest_directory,
                                                        dest_user,
                                                        dest_pw)
+
+                    logger.info("*** Statistics Distribution Complete ***")
                 except Exception, e:
-                    logger.error("An exception occurred processing %s"
-                                 % product_name)
+                    logger.error("An exception occurred distributing"
+                                 " statistics")
                     logger.error("Exception Message: %s" % str(e))
                     if attempt < settings.MAX_DELIVERY_ATTEMPTS:
                         sleep(sleep_seconds)  # sleep before trying again
@@ -778,9 +787,6 @@ class CDRProcessor(CustomizationProcessor):
                         raise ee.ESPAException(e_code,
                                                str(e)), None, sys.exc_info()[2]
                 break
-
-            logger.info("Statistics distribution complete for [%s]"
-                        % product_name)
 
     # -------------------------------------------
     def reformat_products(self):
