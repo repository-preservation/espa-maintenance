@@ -130,7 +130,7 @@ LOGFILE_PATH = '/tmp'
 PLOT_BG_COLOR = '#f3f3f3'  # A light gray
 PLOT_MARKER = (1, 3, 0)    # Better circle than 'o'
 PLOT_MARKER_SIZE = 5.0     # A good size for the circle or diamond
-PLOT_MARKER_EDGE_WIDTH = 0.9 # The width of the black marker border
+PLOT_MARKER_EDGE_WIDTH = 0.9  # The width of the black marker border
 
 
 ##############################################################################
@@ -217,6 +217,16 @@ CACHE_KEYS = {
 
 }
 
+''' Dictionary containing retry timeouts in seconds'''
+RETRY = {
+    'missing_ledaps_aux_data': {'timeout': 60 * 60 * 24,
+                                'retry_limit': 5},
+    'ftp_timed_out': {'timeout': 60, 'retry_limit': 5},
+    'ftp_500_oops': {'timeout': 60, 'retry_limit': 5},
+    'ftp_ftplib_error_reply': {'timeout': 60, 'retry_limit': 5},
+    'network_is_unreachable': {'timeout': 120, 'retry_limit': 5},
+    'connection_timed_out': {'timeout': 60, 'retry_limit': 5}
+}
 
 '''
 LOGGING DEFINITIONS

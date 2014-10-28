@@ -16,6 +16,7 @@ from django.db import transaction
 import json
 import datetime
 import lta
+import errors
 
 import espa_common
 
@@ -45,12 +46,12 @@ def send_initial_email(order):
     scenes = Scene.objects.filter(order__id=order.id)
 
     for s in scenes:
-        
+
         product_name = s.name
-        
+
         if product_name == 'plot':
             product_name = "Plotting & Statistics"
-            
+
         m.append("%s\n" % product_name)
 
     email_msg = ''.join(m)
@@ -85,7 +86,7 @@ def send_completion_email(email, ordernum, readyscenes=[]):
 
         if r == 'plot':
             r = "Plotting & Statistics"
-            
+
         m.append("%s\n" % r)
 
     email_msg = ''.join(m)
@@ -123,6 +124,19 @@ def scenes_are_nlaps(input_product_list):
     return client.is_nlaps(input_product_list)
 
 
+@transaction.atomic
+def handle_retry_products():
+    now = datetime.datetime.now()
+    
+    filter_args = {'status': 'retry',
+                   'retry_after__lt': now}
+                   
+    update_args = {'status': 'submitted',
+                   'note': ''}
+                   
+    Scene.objects.filter(**filter_args).update(**update_args)
+    
+    
 @transaction.atomic
 def handle_onorder_landsat_products():
     filter_args = {'status': 'onorder',
@@ -344,37 +358,37 @@ def handle_submitted_modis_products():
         update_args = {'status': 'oncache'}
 
         Scene.objects.filter(**filter_args).update(**update_args)
-        
+
 
 @transaction.atomic
 def handle_submitted_plot_products():
 
     filter_args = {'status': 'ordered', 'order_type': 'lpcs'}
     plot_orders = Order.objects.filter(**filter_args)
-    
+
     if len(plot_orders) > 0:
 
         for order in plot_orders:
             scene_count = order.scene_set.count()
 
-            complete_status = ['complete', 'unavailable']            
+            complete_status = ['complete', 'unavailable']
             filter_args = {'status__in': complete_status}
             complete_scenes = order.scene_set.filter(**filter_args).count()
-            
+
             #if this is an lpcs order and there is only 1 product left that
             #is not done, it must be the plot product.  Will verify this
-            #in next step.  Plotting cannot run unless everything else 
+            #in next step.  Plotting cannot run unless everything else
             #is done.
 
             if scene_count - complete_scenes == 1:
-                filter_args = {'status': 'submitted', 'sensor_type':'plot'}                
+                filter_args = {'status': 'submitted', 'sensor_type': 'plot'}
                 plot = order.scene_set.filter(**filter_args)
                 if len(plot) >= 1:
                     for p in plot:
                         p.status = 'oncache'
                         p.save()
-                        
-                            
+
+
 @transaction.atomic
 def handle_submitted_products():
     '''
@@ -437,12 +451,12 @@ def get_scenes_to_process(limit=500,
         kwargs['order__user__username'] = for_user
 
     if priority:
-        # retrieve by specified priority 
+        # retrieve by specified priority
         kwargs['order__priority'] = priority
 
     #filter based on what user asked for... modis, landsat or plot
     kwargs['sensor_type__in'] = product_types
-    
+
     #products = Scene.objects.filter(status='oncache')\
     #    .order_by('order__order_date')[:limit]
 
@@ -560,10 +574,43 @@ def set_scene_error(name, orderid, processing_loc, error):
     o = Order.objects.get(orderid=orderid)
     s = Scene.objects.get(name=name, order__id=o.id)
     if s:
-        s.status = 'error'
-        s.processing_location = processing_loc
-        s.log_file_contents = error
-        s.save()
+        #attempt to determine the disposition of this error
+        resolution = errors.resolve(error)
+        if resolution is not None:
+            if resolution.status == 'submitted':
+                s.status = 'submitted'
+                s.note = ''
+                s.save()
+            elif resolution.status == 'unavailable':
+                set_scene_unavailable(name,
+                                      orderid,
+                                      processing_loc,
+                                      error,
+                                      resolution.reason)
+            elif resolution.status == 'retry':
+                try:
+                    set_product_retry(name,
+                                      orderid,
+                                      processing_loc,
+                                      error,
+                                      resolution.reason,
+                                      resolution.extra['retry_after'],
+                                      resolution.extra['retry_limit'])
+                except Exception, e:
+                    s.status = 'error'
+                    s.processing_location = processing_loc
+                    s.log_file_contents = error
+                    s.save()
+
+                    if settings.DEBUG:
+                        print("Exception setting product[%s] to retry:%s"
+                              % (name, e))
+        else:
+            s.status = 'error'
+            s.processing_location = processing_loc
+            s.log_file_contents = error
+            s.save()
+
         return True
     else:
         #something went wrong, don't clean up other disk.
@@ -571,6 +618,36 @@ def set_scene_error(name, orderid, processing_loc, error):
             print("Scene[%s] not found in Order[%s]" % (name, orderid))
 
         return False
+
+
+@transaction.atomic
+def set_product_retry(name,
+                      orderid,
+                      processing_loc,
+                      error,
+                      note,
+                      retry_after,
+                      retry_limit=None):
+    '''Sets a product to retry status'''
+
+    o = Order.objects.get(orderid=orderid)
+    s = Scene.objects.get(name=name, order__id=o.id)
+    if s:
+
+        #if a new retry limit has been provided, update the db and use it
+        if retry_limit is not None:
+            s.retry_limit = retry_limit
+
+        if s.retry_count + 1 < s.retry_limit:
+            s.status = 'retry'
+            s.retry_count = s.retry_count + 1
+            s.retry_after = retry_after
+            s.error = error
+            s.processing_loc = processing_loc
+            s.note = note
+            s.save()
+        else:
+            raise Exception("Retry limit exceeded")
 
 
 @transaction.atomic
@@ -773,6 +850,7 @@ def send_initial_emails():
             o.initial_email_sent = datetime.datetime.now()
             o.save()
 
+
 @transaction.atomic
 def load_ee_orders():
     ''' Loads all the available orders from lta into
@@ -960,6 +1038,7 @@ def handle_orders():
     '''Logic handler for how we accept orders + products into the system'''
     send_initial_emails()
     handle_onorder_landsat_products()
+    handle_retry_products()
     handle_submitted_products()
     finalize_orders()
 

@@ -5,6 +5,7 @@ from espa_common import sensor
 from espa_common import utilities
 from espa_common.validation import Validator
 
+
 class ModisProductListValidator(Validator):
     '''Validates that a scene list has been provided and it contains at
     least one scene to process'''
@@ -259,7 +260,7 @@ class LatitudeTrueScaleValidator(Validator):
             elif ts > -60.0 and ts < 60.0:
                 has_err = True
 
-            if has_err == True:
+            if has_err is True:
                 self.add_error('latitude_true_scale', [msg, ])
 
         return super(LatitudeTrueScaleValidator, self).errors()

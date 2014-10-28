@@ -109,7 +109,7 @@ class Orders(object):
     # raises LimitViolation, PolicyViolation, ValidationError, SubmissionError,
     #        DuplicateOrder
     @staticmethod
-    def place(user_name, input_products, product_options, opts=[]):
+    def place_order(user_name, input_products, product_options, opts=[]):
         ''' place documentation '''
         
         if not 'skip_metrics' in opts:

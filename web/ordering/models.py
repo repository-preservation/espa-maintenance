@@ -173,12 +173,12 @@ class Order(models.Model):
         Dictionary populated with default subsettings/framing options
         '''
         o = {}
-        o['image_extents'] = False     # modify image extents (subset or frame)
-        o['image_extents_units'] = None#what units are the coords in?  
-        o['minx'] = None               #
-        o['miny'] = None               #
-        o['maxx'] = None               #
-        o['maxy'] = None               #
+        o['image_extents'] = False       # modify image extent(subset or frame)
+        o['image_extents_units'] = None  # what units are the coords in?
+        o['minx'] = None                 #
+        o['miny'] = None                 #
+        o['maxx'] = None                 #
+        o['maxy'] = None                 #
         return o
 
     @staticmethod
@@ -359,7 +359,7 @@ class Order(models.Model):
         for s in set(scene_list):
 
             sensor_type = None
-            
+
             if s == 'plot':
                 sensor_type = 'plot'
             elif isinstance(sensor.instance(s), sensor.Landsat):
@@ -393,7 +393,7 @@ class Scene(models.Model):
         ('queued', 'Queued'),
         ('processing', 'Processing'),
         ('complete', 'Complete'),
-        ('purged', 'Purged'),
+        ('retry', 'Retry'),
         ('unavailable', 'Unavailable'),
         ('error', 'Error')
     )
@@ -460,6 +460,25 @@ class Scene(models.Model):
     #Final contents of log file... should be put added when scene is marked
     #complete.
     log_file_contents = models.TextField('log_file', blank=True, null=True)
+
+    #If the status is 'retry', after what date should the retry occur?
+    retry_after = models.DateTimeField('retry_after',
+                                       blank=True,
+                                       null=True,
+                                       db_index=True)
+
+    #max number of retries before moving to error status
+    #default to 5
+    retry_limit = models.IntegerField(max_length=3,
+                                      blank=True,
+                                      null=True,
+                                      default=5)
+
+    #current number of retries, initialized to 0
+    retry_count = models.IntegerField(max_length=3,
+                                      blank=True,
+                                      null=True,
+                                      default=0)
 
     @staticmethod
     def sceneid_is_sane(sceneid):

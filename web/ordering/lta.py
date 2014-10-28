@@ -7,7 +7,6 @@ import urllib2
 import collections
 import xml.etree.ElementTree as xml
 
-
 __author__ = "David V. Hill"
 
 
@@ -241,6 +240,7 @@ class OrderWrapperServiceClient(LTAService):
                 status = True
             else:
                 status = False
+
             retval[s.text] = status
 
         return retval
@@ -429,6 +429,51 @@ class OrderWrapperServiceClient(LTAService):
                     retval['lta_order_id'] = scene.find(order_number_elem).text
 
         return retval
+
+    def get_download_url(self, contact_id, product_list):
+        ''' Returns a list of named tuples containing the product id,
+        product status, product code, sensor name, and (conditionally) a
+        one time use download url to obtain the product.  The download url
+        is only populated if the status of the product is returned
+        as 'available'
+
+        Keyword args:
+        contact_id The id of the user requesting the product urls
+        product_list A list of products to generate a download url for
+
+        Returns:
+        A list() of named tuples containing the values:
+            - product_id
+            - product_status
+            - product_code
+            - sensor_name
+            - dload_url
+        '''
+         # build service url
+        request_url = "%s/%s" % (self.url, 'downloadSceneList')
+
+        # build the request body
+        sb = StringIO()
+        sb.write(self.xml_header)
+        sb.write("<downloadSceneList ")
+        sb.write("xmlns='http://earthexplorer.usgs.gov/schema/downloadSceneList' ")
+        sb.write("xmlns:xsi='http://www.w3.org/2001/XMLSchema-instance' ")
+        sb.write("xsi:schemaLocation='http://earthexplorer.usgs.gov/schema/downloadSceneList ")
+        sb.write("http://earthexplorer.usgs.gov/EE/downloadSceneList.xsd'>")
+
+        sb.write("<contactId>%s</contactId>" % contact_id)
+
+        for product in product_list:
+            sb.write("<scene>")
+            sb.write("<sceneId>%s</sceneId>" % product.strip())
+            sb.write("<sensor>%s</sensor>" % self.get_sensor_name(product))
+            sb.write("</scene>")
+
+        sb.write("</downloadSceneList>")
+
+        request_body = sb.getvalue()
+
+        pass
 
 
 class OrderUpdateServiceClient(LTAService):

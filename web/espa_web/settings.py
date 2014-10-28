@@ -31,6 +31,7 @@ if not os.path.exists(ESPA_CONFIG_FILE):
                     % ESPA_CONFIG_FILE)
 
 config = ConfigParser.RawConfigParser()
+
 with open(ESPA_CONFIG_FILE) as file_handle:
     config.readfp(file_handle)
 
@@ -243,3 +244,5 @@ else:
 
 # cache timeouts by usage (in seconds)
 SYSTEM_MESSAGE_CACHE_TIMEOUT = 60
+
+
