@@ -49,6 +49,7 @@
 #  006          09-11-2014      Adam Dosch          Adding 'espatst' as a valid username
 #                                                   argument
 #                                                   Adding fix for homedir in crontab gen
+#  007          11-01-2014      Adam Dosch          Fixing credentials stomping updates
 #
 ##########################################################################################
 
@@ -421,14 +422,14 @@ def main():
         
         # Successful *NIX password change, lets update DB
         try:
-            sql = "update " + TABLE + " as oc set oc.value = '" + np + "' where oc.key like '%.password'"
+            sql = "update " + TABLE + " as oc set oc.value = '" + np + "' where oc.key like 'land%.password'"
             
             cursor.execute(sql)
             
             db_conn.commit()
             
             #body = "Successfully updated password for user '%s' to '%s' in database '%s'" % (username, np, creds["d"])
-            body = "Successfully updated password for user '%s' in database '%s' on %s.  To see new credentials, go to: https://%s.cr.usgs.gov/admin" % (username, creds["d"], platform.node(), username)
+            body = "Successfully updated password for user '%s' in database '%s' on %s." % (username, creds["d"], platform.node())
             
             send_email(email_from, email_to, email_subject + " - Success", body)
             
