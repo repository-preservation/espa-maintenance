@@ -90,7 +90,9 @@ def process_test_order(request_file, products_file, env_vars,
                     break
                 products.append(product)
     else:
-        products.append('plot')
+        products = ['plot']
+
+    logger.info("Processing Products [%s]" % ', '.join(products))
 
     for product in products:
         logger.info("Processing Product [%s]" % product)
