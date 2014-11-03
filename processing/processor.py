@@ -18,7 +18,6 @@ History:
                                                code/modules.
 
 '''
-# TODO - Fix l8cfmask after it has been updated to raw binary and bug fixes.
 
 
 import os
@@ -1529,24 +1528,11 @@ class LandsatOLITIRSProcessor(LandsatProcessor):
 
         options = self._parms['options']
 
-        # TODO - The l8cfmask command line will change to be similar to the
-        #        L4-7 command line.
-        # TODO - The l8cfmask command line will change to be similar to the
-        #        L4-7 command line.
-        # TODO - The l8cfmask command line will change to be similar to the
-        #        L4-7 command line.
-        # TODO - The l8cfmask command line will change to be similar to the
-        #        L4-7 command line.
-        # TODO - The l8cfmask command line will change to be similar to the
-        #        L4-7 command line.
-
         cmd = None
         if options['include_cfmask'] or options['include_sr']:
             cmd = ' '.join(['l8cfmask', '--verbose', '--max_cloud_pixels',
                             settings.CFMASK_MAX_CLOUD_PIXELS,
-                            '--metadata', self._metadata_filename])
-            #                 TODO TODO TODO
-            #                 '--xml', self._xml_filename])
+                             '--xml', self._xml_filename])
 
         return cmd
 
