@@ -55,6 +55,10 @@ def build_argument_parser():
                         action='store', dest='request', required=True,
                         help="request to process")
 
+    parser.add_argument('--master',
+                        action='store_true', dest='master', default=False,
+                        help="use the master products file")
+
     parser.add_argument('--plot',
                         action='store_true', dest='plot', default=False,
                         help="generate plots")
@@ -284,9 +288,13 @@ if __name__ == '__main__':
     if not args.plot:
         products_file = "%s.products" % args.request
 
+        if args.master:
+            # Use the master file instead
+            products_file = "%s.master.products" % args.request
+
         if not os.path.isfile(products_file):
-            logger.critical("Products file [%s] does not exist"
-                            % products_file)
+            logger.critical("No products file exists for [%s]"
+                            % args.request)
             sys.exit(1)
 
     # Avoid the creation of the *.pyc files
