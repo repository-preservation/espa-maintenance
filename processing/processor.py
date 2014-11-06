@@ -2402,7 +2402,7 @@ class PlotProcessor(ProductProcessor):
         # month
         date = utilities.date_from_doy(year, day_of_year)
 
-        return (year, date.month, date.day, sensor)
+        return (year, date.month, date.day, day_of_year, sensor)
 
     # -------------------------------------------
     def combine_sensor_stats(self, stats_name, stats_files):
@@ -2430,13 +2430,14 @@ class PlotProcessor(ProductProcessor):
         for filename, obj in stats.items():
             logger.debug(filename)
             # Figure out the date for stats record
-            (year, month, day_of_month, sensor) = \
+            (year, month, day_of_month, day_of_year, sensor) = \
                 self.get_ymds_from_filename(filename)
             date = ('%04d-%02d-%02d'
                     % (int(year), int(month), int(day_of_month)))
             logger.debug(date)
 
-            line = ','.join([date, obj['minimum'], obj['maximum'],
+            line = ','.join([date, '%03d' % day_of_year,
+                             obj['minimum'], obj['maximum'],
                              obj['mean'], obj['stddev'], obj['valid']])
             logger.debug(line)
 
@@ -2446,7 +2447,7 @@ class PlotProcessor(ProductProcessor):
         temp_buffer = StringIO()
 
         # Write the file header
-        temp_buffer.write('DATE,MINIMUM,MAXIMUM,MEAN,STDDEV,VALID')
+        temp_buffer.write('DATE,DOY,MINIMUM,MAXIMUM,MEAN,STDDEV,VALID')
 
         # Sort the stats into the buffer
         for line in sorted(stat_data):
@@ -2546,8 +2547,9 @@ class PlotProcessor(ProductProcessor):
         for filename, obj in stats.items():
             logger.debug(filename)
             # Figure out the date for plotting
-            (year, month, day_of_month, sensor) = \
+            (year, month, day_of_month, day_of_year, sensor) = \
                 self.get_ymds_from_filename(filename)
+            # day_of_year isn't used, but need a var because it is returned
 
             date = datetime.date(year, month, day_of_month)
             min_value = float(obj['minimum'])
