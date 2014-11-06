@@ -59,13 +59,21 @@ def build_argument_parser():
                         action='store_true', dest='plot', default=False,
                         help="generate plots")
 
+    parser.add_argument('--pre',
+                        action='store_true', dest='pre', default=False,
+                        help="use a -PRE order suffix")
+
+    parser.add_argument('--post',
+                        action='store_true', dest='post', default=False,
+                        help="use a -POST order suffix")
+
     return parser
 # END - build_argument_parser
 
 
 # ============================================================================
 def process_test_order(request_file, products_file, env_vars,
-                       keep_log, plot):
+                       keep_log, plot, pre, post):
     '''
     Description:
       Process the test order file.
@@ -76,6 +84,12 @@ def process_test_order(request_file, products_file, env_vars,
     tmp_order = 'tmp-' + request_file
 
     order_id = request_file.split('.json')[0]
+
+    if pre:
+        order_id = ''.join([order_id, '-PRE'])
+
+    if post:
+        order_id = ''.join([order_id, '-POST'])
 
     have_error = False
     status = True
@@ -279,7 +293,7 @@ if __name__ == '__main__':
     os.environ['PYTHONDONTWRITEBYTECODE'] = '1'
 
     if not process_test_order(request_file, products_file, env_vars,
-                              args.keep_log, args.plot):
+                              args.keep_log, args.plot, args.pre, args.post):
         logger.critical("Request [%s] failed to process" % args.request)
         sys.exit(1)
 
