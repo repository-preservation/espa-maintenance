@@ -1532,7 +1532,7 @@ class LandsatOLITIRSProcessor(LandsatProcessor):
         if options['include_cfmask'] or options['include_sr']:
             cmd = ' '.join(['l8cfmask', '--verbose', '--max_cloud_pixels',
                             settings.CFMASK_MAX_CLOUD_PIXELS,
-                             '--xml', self._xml_filename])
+                            '--xml', self._xml_filename])
 
         return cmd
 
