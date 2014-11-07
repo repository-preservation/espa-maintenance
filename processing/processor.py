@@ -2622,11 +2622,39 @@ class PlotProcessor(ProductProcessor):
             if lower_subject == 'stddev':
                 values = stddev_values
 
-            # Draw the marker for these dates
-            min_plot.plot(dates, values, label=sensor, marker=self._marker,
-                          color=self._sensor_colors[sensor], linestyle='-',
-                          markersize=self._marker_size,
-                          markeredgewidth=self._marker_edge_width)
+            # Process through the data and plot segments of the data
+            # (i.e. skip drawing lines between same date items)
+            data_count = len(dates)
+            x_data = list()
+            y_data = list()
+            for index in range(data_count):
+                x_data.append(dates[index])
+                y_data.append(values[index])
+
+                if index < (data_count - 1):
+                    if dates[index] == dates[index+1]:
+                        # Draw the markers for this segment of the dates
+                        min_plot.plot(x_data, y_data, label=sensor,
+                                      marker=self._marker,
+                                      color=self._sensor_colors[sensor],
+                                      linestyle='-',
+                                      markersize=self._marker_size,
+                                      markeredgewidth=self._marker_edge_width)
+                        x_data = list()
+                        y_data = list()
+
+            if len(x_data) > 0:
+                # Draw the markers for the final segment of the dates
+                min_plot.plot(x_data, y_data, label=sensor,
+                              marker=self._marker,
+                              color=self._sensor_colors[sensor],
+                              linestyle='-',
+                              markersize=self._marker_size,
+                              markeredgewidth=self._marker_edge_width)
+
+            # Cleanup the x and y data memory
+            del x_data
+            del y_data
         # END - for sensor
 
         # --------------------------------------------------------------------
