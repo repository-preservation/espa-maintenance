@@ -40,6 +40,8 @@
 # 011               09-08-2014      Adam Dosch      Updating unique users query to use a substring index
 #                                                   since our email field does not get populated in the
 #                                                   DB anymore since 2.5.0 release
+# 012               11-07-2014      Adam Dosch      Updated queries to distinguish USGS vs. non-USGS better 
+#                                                   and added to distribution list
 #
 #########################################################################################
 
@@ -91,7 +93,7 @@ verbose = False
 # E-mail Recipients/Subject
 email_from = 'espa@espa.cr.usgs.gov'
 #email_from = 'espa'
-email_to = ['adosch@usgs.gov','jenkerson@usgs.gov']
+email_to = ['adosch@usgs.gov','jenkerson@usgs.gov','lowen@usgs.gov']
 #email_to = ['adosch@usgs.gov']
 
 email_subject = "LSRD Monthly Statitics"
@@ -524,7 +526,7 @@ def main():
 	# Number of total scenes ordered in a month are USGS
 	#----------------------------------------------
     
-	SQL = "select COUNT(*) as usgs_scene_orders from ordering_scene inner join  ordering_order on ordering_scene.order_id = ordering_order.id where ordering_order.order_date like \'" + giveLastMonthDate() + "-%\' and ordering_order.email like \'%@usgs.gov\' and ordering_order.order_source = '" + source + "';"
+	SQL = "select COUNT(*) as usgs_scene_orders from ordering_scene inner join  ordering_order on ordering_scene.order_id = ordering_order.id where ordering_order.order_date like \'" + giveLastMonthDate() + "-%\' and ordering_order.orderid like \'%@usgs.gov-%\' and ordering_order.order_source = '" + source + "';"
 	
 	cursor.execute(SQL)
 	
@@ -545,7 +547,7 @@ def main():
 	# Number of total scenes ordered in a month are non-USGS
 	#----------------------------------------------
     
-	SQL = "select COUNT(*) as usgs_scene_orders from ordering_scene inner join  ordering_order on ordering_scene.order_id = ordering_order.id where ordering_order.order_date like \'" + giveLastMonthDate() + "-%\' and ordering_order.email not like \'%@usgs.gov\' and ordering_order.order_source = '" + source + "';"
+	SQL = "select COUNT(*) as usgs_scene_orders from ordering_scene inner join  ordering_order on ordering_scene.order_id = ordering_order.id where ordering_order.order_date like \'" + giveLastMonthDate() + "-%\' and ordering_order.orderid not like \'%@usgs.gov-%\' and ordering_order.order_source = '" + source + "';"
     
 	cursor.execute(SQL)
 	
@@ -595,7 +597,7 @@ def main():
 	# Number of total orders placed in a month are USGS
 	#----------------------------------------------
     
-	SQL = "select COUNT(*) from ordering_order where order_date like \'" + giveLastMonthDate() + "-%\' and email like \'%@usgs.gov\' and ordering_order.order_source = '" + source + "'"
+	SQL = "select COUNT(*) from ordering_order where order_date like \'" + giveLastMonthDate() + "-%\' and orderid like \'%@usgs.gov-%\' and ordering_order.order_source = '" + source + "'"
 	
 	cursor.execute(SQL)
 	
@@ -616,7 +618,7 @@ def main():
 	# Number of total orders placed in a month are non-USGS
 	#----------------------------------------------
 	
-	SQL = "select COUNT(*) from ordering_order where order_date like \'" + giveLastMonthDate() + "-%\' and email not like \'%@usgs.gov\' and ordering_order.order_source = '" + source + "'"
+	SQL = "select COUNT(*) from ordering_order where order_date like \'" + giveLastMonthDate() + "-%\' and orderid not like \'%@usgs.gov-%\' and ordering_order.order_source = '" + source + "'"
 	
 	cursor.execute(SQL)
 	
