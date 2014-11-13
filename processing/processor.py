@@ -57,8 +57,6 @@ except:
 
 # local objects and methods
 import espa_exception as ee
-# import validators ---- THIS SEEMS TOO COMPLEX TO USE??????
-#                   ---- Might be significantly easier with more sub dicts
 import parameters
 import metadata
 import metadata_api
