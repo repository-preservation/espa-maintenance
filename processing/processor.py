@@ -117,20 +117,6 @@ class ProductProcessor(object):
         self.validate_parameters()
 
     # -------------------------------------------
-    def get_input_hostname(self):
-        '''
-        Description:
-            Returns the hostname to use for retrieving the input data.
-
-        Note:
-            Not implemented here.
-        '''
-
-        msg = ("[%s] Requires implementation in the child class"
-               % self.get_input_hostname.__name__)
-        raise NotImplementedError(msg)
-
-    # -------------------------------------------
     def get_output_hostname(self):
         '''
         Description:
@@ -186,17 +172,8 @@ class ProductProcessor(object):
             options['keep_directory'] = False
 
         # Verify or set the source information
-        if not parameters.test_for_parameter(options, 'source_host'):
-            options['source_host'] = self.get_input_hostname()
-
-        if not parameters.test_for_parameter(options, 'source_username'):
-            options['source_username'] = None
-
-        if not parameters.test_for_parameter(options, 'source_pw'):
-            options['source_pw'] = None
-
-        if not parameters.test_for_parameter(options, 'source_directory'):
-            options['source_directory'] = self.get_source_directory()
+        if not parameters.test_for_parameter(options, 'download_url'):
+            options['download_url'] = None
 
         # Verify or set the destination information
         if not parameters.test_for_parameter(options, 'destination_host'):
@@ -553,14 +530,9 @@ class CDRProcessor(CustomizationProcessor):
         '''
         Description:
             Returns the source directory to use for retrieving the input data.
-
-        Note:
-            Not implemented here.
         '''
 
-        msg = ("[%s] Requires implementation in the child class"
-               % self.get_source_directory.__name__)
-        raise NotImplementedError(msg)
+        return None
 
     # -------------------------------------------
     def validate_parameters(self):
@@ -855,37 +827,6 @@ class LandsatProcessor(CDRProcessor):
         super(LandsatProcessor, self).__init__(parms)
 
     # -------------------------------------------
-    def get_input_hostname(self):
-        '''
-        Description:
-            Returns the hostname to use for retrieving the input data.
-        '''
-
-        return utilities.get_cache_hostname()
-
-    # -------------------------------------------
-    def get_source_directory(self):
-        '''
-        Description:
-            Returns the source directory to use for retrieving the input data.
-        '''
-
-        product_id = self._parms['product_id']
-
-        # Extract information from the product ID string
-        s_instance = sensor.instance(product_id)
-
-        sensor_name = s_instance.sensor_name.lower()
-        path = s_instance.path
-        row = s_instance.row
-        year = s_instance.year
-
-        del s_instance
-
-        return '%s/%s/%s/%s/%s' % (settings.LANDSAT_BASE_SOURCE_PATH,
-                                   sensor_name, path, row, year)
-
-    # -------------------------------------------
     def validate_parameters(self):
         '''
         Description:
@@ -982,19 +923,20 @@ class LandsatProcessor(CDRProcessor):
         product_id = self._parms['product_id']
         options = self._parms['options']
 
-        # Stage the landsat data
-        filename = staging.stage_landsat_data(product_id,
-                                              options['source_host'],
-                                              options['source_directory'],
-                                              'localhost',
-                                              self._stage_dir,
-                                              options['source_username'],
-                                              options['source_pw'])
+        destination_file = '%s/%s.tar.gz' % (self._stage_dir, product_id)
+
+        # Download the source data
+        try:
+            transfer.download_file_url(options['download_url'],
+                                       destination_file)
+        except Exception, e:
+            raise ee.ESPAException(ee.ErrorCodes.staging_data, str(e)), \
+                None, sys.exc_info()[2]
 
         # Un-tar the input data to the work directory
         try:
-            staging.untar_data(filename, self._work_dir)
-            os.unlink(filename)
+            staging.untar_data(destination_file, self._work_dir)
+            os.unlink(destination_file)
 
             # Figure out the metadata filename
             try:
@@ -1545,15 +1487,6 @@ class ModisProcessor(CDRProcessor):
         super(ModisProcessor, self).__init__(parms)
 
     # -------------------------------------------
-    def get_input_hostname(self):
-        '''
-        Description:
-            Returns the hostname to use for retrieving the input data.
-        '''
-
-        return settings.MODIS_INPUT_HOSTNAME
-
-    # -------------------------------------------
     def validate_parameters(self):
         '''
         Description:
@@ -1600,18 +1533,22 @@ class ModisProcessor(CDRProcessor):
         product_id = self._parms['product_id']
         options = self._parms['options']
 
-        # Stage the landsat data
-        filename = staging.stage_modis_data(product_id,
-                                            options['source_host'],
-                                            options['source_directory'],
-                                            self._stage_dir)
+        destination_file = '%s/%s.hdf' % (self._stage_dir, product_id)
 
-        self._hdf_filename = os.path.basename(filename)
+        # Download the source data
+        try:
+            transfer.download_file_url(options['download_url'],
+                                       destination_file)
+        except Exception, e:
+            raise ee.ESPAException(ee.ErrorCodes.staging_data, str(e)), \
+                None, sys.exc_info()[2]
+
+        self._hdf_filename = os.path.basename(destination_file)
 
         # Copy the staged data to the work directory
         try:
-            transfer.copy_file_to_file(filename, self._work_dir)
-            os.unlink(filename)
+            transfer.copy_file_to_file(destination_file, self._work_dir)
+            os.unlink(destination_file)
         except Exception, e:
             raise ee.ESPAException(ee.ErrorCodes.unpacking, str(e)), \
                 None, sys.exc_info()[2]
@@ -1769,29 +1706,6 @@ class ModisAQUAProcessor(ModisProcessor):
     def __init__(self, parms):
         super(ModisAQUAProcessor, self).__init__(parms)
 
-    # -------------------------------------------
-    def get_source_directory(self):
-        '''
-        Description:
-            Returns the source directory to use for retrieving the input data.
-        '''
-
-        product_id = self._parms['product_id']
-
-        # Extract information from the product ID string
-        sensor_inst = sensor.instance(product_id)
-
-        short_name = sensor_inst.short_name
-        version = sensor_inst.version
-        year = sensor_inst.year
-        doy = sensor_inst.doy
-        archive_date = utilities.date_from_doy(year, doy).strftime("%Y.%m.%d")
-
-        del sensor_inst
-
-        return '%s/%s.%s/%s' % (settings.AQUA_BASE_SOURCE_PATH,
-                                short_name, version, archive_date)
-
 
 # ===========================================================================
 class ModisTERRAProcessor(ModisProcessor):
@@ -1803,29 +1717,6 @@ class ModisTERRAProcessor(ModisProcessor):
     # -------------------------------------------
     def __init__(self, parms):
         super(ModisTERRAProcessor, self).__init__(parms)
-
-    # -------------------------------------------
-    def get_source_directory(self, parms):
-        '''
-        Description:
-            Returns the source directory to use for retrieving the input data.
-        '''
-
-        product_id = self._parms['product_id']
-
-        # Extract information from the product ID string
-        sensor_inst = sensor.instance(product_id)
-
-        short_name = sensor_inst.short_name
-        version = sensor_inst.version
-        year = sensor_inst.year
-        doy = sensor_inst.doy
-        archive_date = utilities.date_from_doy(year, doy).strftime("%Y.%m.%d")
-
-        del sensor_inst
-
-        return '%s/%s.%s/%s' % (settings.TERRA_BASE_SOURCE_PATH,
-                                short_name, version, archive_date)
 
 
 # ===========================================================================
@@ -2251,7 +2142,7 @@ class PlotProcessor(ProductProcessor):
         super(PlotProcessor, self).__init__(parms)
 
     # -------------------------------------------
-    def get_input_hostname(self):
+    def get_statistics_hostname(self):
         '''
         Description:
             Returns the hostname to use for retrieving the input data.
@@ -2260,7 +2151,7 @@ class PlotProcessor(ProductProcessor):
         return utilities.get_cache_hostname()
 
     # -------------------------------------------
-    def get_source_directory(self):
+    def get_statistics_directory(self):
         '''
         Description:
             Returns the source directory to use for retrieving the input data.
@@ -2285,6 +2176,13 @@ class PlotProcessor(ProductProcessor):
         logger.info("Validating [PlotProcessor] parameters")
 
         options = self._parms['options']
+
+        # Statistics input location information
+        if not parameters.test_for_parameter(options, 'statistics_host'):
+            options['statistics_host'] = self.get_statistics_hostname()
+
+        if not parameters.test_for_parameter(options, 'statistics_directory'):
+            options['statistics_directory'] = self.get_statistics_directory()
 
         # Override the colors if they were specified
         if parameters.test_for_parameter(options, 'terra_color'):
@@ -2922,24 +2820,24 @@ class PlotProcessor(ProductProcessor):
         product_id = self._parms['product_id']
         options = self._parms['options']
 
-        source_stats_files = os.path.join(options['source_directory'],
+        source_stats_files = os.path.join(options['statistics_directory'],
                                           'stats/*')
 
         # Transfer the files using scp
         # (don't provide any usernames and passwords)
         try:
-            transfer.transfer_file(options['source_host'], source_stats_files,
+            transfer.transfer_file(options['statistics_host'],
+                                   source_stats_files,
                                    'localhost', self._work_dir)
-
         except Exception, e:
-            logger.error("Transfering statistics to local directory")
-            raise
+            raise ee.ESPAException(ee.ErrorCodes.staging_data, str(e)), \
+                None, sys.exc_info()[2]
 
     # -------------------------------------------
     def get_product_name(self):
         '''
         Description:
-            Return the product name for that statistics andp lot product from
+            Return the product name for that statistics and plot product from
             the product request information.
         '''
 
