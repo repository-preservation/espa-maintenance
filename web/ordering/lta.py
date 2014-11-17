@@ -1,9 +1,9 @@
 from cStringIO import StringIO
 from django.conf import settings
 from suds.client import Client as SoapClient
-from ordering.models import Scene
+from espa_common import sensor
 
-import urllib2
+import requests
 import collections
 import xml.etree.ElementTree as xml
 
@@ -31,30 +31,6 @@ class LTAService(object):
         A url to contact the desired service
         '''
         return settings.URL_FOR(service_name)
-
-    def get_product_code(self, sceneid):
-        ''' Returns the proper product code given the sensor code
-
-        Keyword args:
-        sceneid The scene name to find the product code for
-
-        Returns:
-        string 'T273' for LT4 & LT5
-        string 'T272' for LE7 prior to day 151 of year 2003 (SLC ON)
-        string 'T271' for LE7 after day 151 of year 2003 (SLC OFF)
-        '''
-
-        if not Scene.sceneid_is_sane(sceneid):
-            return ''
-
-        ''' returns the proper product code (e.g. T273) given a scene id '''
-        if sceneid.startswith('LT5') or sceneid.startswith('LT4'):
-            return 'T273'
-        elif sceneid.startswith('LE7'):
-            if int(sceneid[9:13]) >= 2003 and int(sceneid[13:16]) >= 151:
-                return 'T271'
-            else:
-                return 'T272'
 
 
 class RegistrationServiceClient(LTAService):
@@ -94,16 +70,14 @@ class RegistrationServiceClient(LTAService):
 
         # build a named tuple for the return value
         userinfo = collections.namedtuple('UserInfo',
-                                          'email',
-                                          'first_name',
-                                          'last_name')
+                                          ['email', 'first_name', 'last_name'])
 
         info = self.client.service.getUserInfo(username, pw).contactAddress
 
         userinfo.email = info.email
         userinfo.first_name = info.firstName
         userinfo.last_name = info.lastName
-
+         
         return userinfo
 
     def get_username(self, contactid):
@@ -136,32 +110,6 @@ class OrderWrapperServiceClient(LTAService):
         super(OrderWrapperServiceClient, self).__init__(*args, **kwargs)
         self.url = self.get_url("orderservice")
 
-    def get_sensor_name(self, sceneid):
-        ''' returns the EE sensor name (e.g. 'LANDSAT_ETM') given a scene id
-
-        Keyword args:
-        sceneid Name of the scene to find the EE sensor code for
-
-        Returns:
-        string 'LANDSAT_TM' for code LT4 & LT5
-        string 'LANDSAT_ETM_PLUS' for LE7 with scan line corrector
-        string 'LANDSAT_ETM_SLC_OFF' for LE7 with scan line corrector turned on
-        None if the sensor cannot be determined
-        '''
-
-        sensor = ''
-
-        code = self.get_product_code(sceneid)
-
-        if code == "T273":
-            sensor = "LANDSAT_TM"
-        elif code == "T272":
-            sensor = "LANDSAT_ETM_PLUS"
-        elif code == "T271":
-            sensor = "LANDSAT_ETM_SLC_OFF"
-        else:
-            sensor = None
-        return sensor
 
     def verify_scenes(self, scene_list):
         ''' Checks to make sure the scene list is valid, where valid means
@@ -190,15 +138,20 @@ class OrderWrapperServiceClient(LTAService):
         #build the request body
         sb = StringIO()
         sb.write(self.xml_header)
-        sb.write("<sceneList ")
-        sb.write("xmlns='http://earthexplorer.usgs.gov/schema/sceneList' ")
-        sb.write("xmlns:xsi='http://www.w3.org/2001/XMLSchema-instance' ")
-        sb.write("xsi:schemaLocation='http://earthexplorer.usgs.gov/schema/sceneList ")
-        sb.write("http://earthexplorer.usgs.gov/EE/sceneList.xsd'>")
-
+       
+        head = ("<sceneList "
+            "xmlns='http://earthexplorer.usgs.gov/schema/sceneList' "
+            "xmlns:xsi='http://www.w3.org/2001/XMLSchema-instance' "
+            "xsi:schemaLocation="
+            "'http://earthexplorer.usgs.gov/schema/sceneList "
+            "http://earthexplorer.usgs.gov/EE/sceneList.xsd'>")
+         
+        sb.write(head)
+        
         for s in scene_list:
+            product = sensor.instance(s)
             sb.write("<sceneId sensor='%s'>%s</sceneId>"
-                     % (self.get_sensor_name(s), s))
+                     % (product.lta_name, s))
 
         sb.write("</sceneList>")
 
@@ -208,24 +161,28 @@ class OrderWrapperServiceClient(LTAService):
         headers = dict()
         headers['Content-Type'] = 'application/xml'
         headers['Content-Length'] = len(request_body)
-
+ 
+        
         #send the request and check return status
-        request = urllib2.Request(request_url, request_body, headers)
-        h = urllib2.urlopen(request)
-        code = h.getcode()
-
+        #request = urllib2.Request(request_url, request_body, headers)
+        __response = requests.post(request_url, 
+                                   data=request_body,
+                                   headers=headers)
+        
         response = None
-        if code == 200:
-            response = h.read()
+        
+        if __response.ok:
+            response = __response.content
         else:
             msg = StringIO()
             msg.write("Error in lta.OrderWrapperServiceClient.verify_scenes\n")
             msg.write("Non 200 response code from service\n")
-            msg.write("Response code was:%s" % code)
+            msg.write("Response code was:%s" % __response.status_code)
+            msg.write("Reason:%s" % __response.reason)
             # Return the code and reason as an exception
             raise Exception(msg.getvalue())
 
-        h.close()
+        __response.close()
 
         #parse, transform and return response
         retval = dict()
@@ -284,61 +241,75 @@ class OrderWrapperServiceClient(LTAService):
         }
         '''
 
+        
         # build service url
         request_url = "%s/%s" % (self.url, 'submitOrder')
 
-        # build the request body
-        sb = StringIO()
-        sb.write(self.xml_header)
-        sb.write("<orderParameters ")
-        sb.write("xmlns='http://earthexplorer.usgs.gov/schema/orderParameters' ")
-        sb.write("xmlns:xsi='http://www.w3.org/2001/XMLSchema-instance' ")
-        sb.write("xsi:schemaLocation='http://earthexplorer.usgs.gov/schema/orderParameters ")
-        sb.write("http://earthexplorer.usgs.gov/EE/orderParameters.xsd'>")
+        def build_request(contact_id, priority, product_list):
+            # build the request body
+            sb = StringIO()
+            sb.write(self.xml_header)
+            
+            head = ("<orderParameters "
+                "xmlns='http://earthexplorer.usgs.gov/schema/orderParameters' "
+                "xmlns:xsi='http://www.w3.org/2001/XMLSchema-instance' "
+                "xsi:schemaLocation="
+                "'http://earthexplorer.usgs.gov/schema/orderParameters "
+                "http://earthexplorer.usgs.gov/EE/orderParameters.xsd'>")
 
-        sb.write("<contactId>%s</contactId>" % contact_id)
-        sb.write("<requestor>ESPA</requestor>")
+            sb.write(head)
+            sb.write("<contactId>%s</contactId>" % contact_id)
+            sb.write("<requestor>ESPA</requestor>")
 
-        # 1111111 is a dummy value.
-        sb.write("<externalReferenceNumber>%s</externalReferenceNumber>"
-                 % 1111111)
-        sb.write("<priority>%i</priority>" % priority)
-        for s in scene_list:
-            sb.write("<scene>")
-            sb.write("<sceneId>%s</sceneId>" % s.strip())
-            sb.write("<prodCode>%s</prodCode>" % self.get_product_code(s))
-            sb.write("<sensor>%s</sensor>" % self.get_sensor_name(s))
-            sb.write("</scene>")
-        sb.write("</orderParameters>")
+            # 1111111 is a dummy value.
+            sb.write("<externalReferenceNumber>%s</externalReferenceNumber>"
+                     % 1111111)
+            sb.write("<priority>%i</priority>" % priority)
+        
+            product_info = self.get_download_url(product_list, contact_id)
+            
+            for p in product_info.keys():
+                
+                try:
+                    sensor.instance(p)
+                except sensor.ProductNotImplemented:
+                    print("%s is not implemented, skipping..." % p)                
+                else:
+                    sb.write("<scene>")
+                    sb.write("<sceneId>%s</sceneId>" % p)
+                    sb.write("<prodCode>%s</prodCode>" 
+                             % product_info[p]['lta_code'])
+                    sb.write("<sensor>%s</sensor>" % product_info[p]['sensor'])
+                    sb.write("</scene>")
+            
+            sb.write("</orderParameters>")
 
-        request_body = sb.getvalue()
+            request_body = sb.getvalue()
+            
+            return request_body
 
-        if settings.DEBUG:
-            print("Request body")
-            print (request_body)
-            print("")
-
+        payload = build_request(contact_id, priority, scene_list)
         # set the required headers
         headers = dict()
         headers['Content-Type'] = 'application/xml'
-        headers['Content-Length'] = len(request_body)
+        headers['Content-Length'] = len(payload)
 
         # send the request and check response
-        request = urllib2.Request(request_url, request_body, headers)
-        h = urllib2.urlopen(request)
 
-        response = None
-        if h.getcode() == 200:
-            response = h.read()
+        __response = requests.post(request_url, data=payload, headers=headers)
+        
+        if __response.ok:
+            response = __response.content
         else:
             msg = StringIO()
             msg.write("Error in lta.OrderWrapperServiceClient.order_scenes\n")
             msg.write("Non 200 response code from service\n")
-            msg.write("Response code was:%s" % h.getcode())
+            msg.write("Response code was:%s" % __response.status_code)
+            msg.write("Reason:%s" % __response.reason)
             # Return the code and reason as an exception
             raise Exception(msg.getvalue())
 
-        h.close()
+        __response.close()
 
         # parse the response
         '''
@@ -346,8 +317,10 @@ class OrderWrapperServiceClient(LTAService):
 
         <?xml version="1.0" encoding="UTF-8"?>
         <orderStatus xmlns="http://earthexplorer.usgs.gov/schema/orderStatus"
-                     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-                     xsi:schemaLocation="http://earthexplorer.usgs.gov/schema/orderStatus http://edclxs151.cr.usgs.gov/OrderWrapperServicedevsys/orderStatus.xsd">
+            xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+            xsi:schemaLocation="http://host/schema/orderStatus 
+            http://host/OrderWrapperServicedevsys/orderStatus.xsd">
+            
             <scene>
                 <sceneId>LT51490212007234IKR00</sceneId>
                 <prodCode>T273</prodCode>
@@ -361,7 +334,7 @@ class OrderWrapperServiceClient(LTAService):
                 <prodCode>T271</prodCode>
                 <sensor>LANDSAT_ETM_SLC_OFF</sensor>
                 <status>available</status>
-                <downloadURL>http://edclpdsftp.cr.usgs.gov/lsatL1GT/29/30/2013/LE70290302013153EDC00.tar.gz?iid=LE70290302013153EDC00&did=80752&ver=</downloadURL>
+                <downloadURL>http://one_time_use.tar.gz</downloadURL>
             </scene>
 
             <scene>
@@ -430,7 +403,7 @@ class OrderWrapperServiceClient(LTAService):
 
         return retval
 
-    def get_download_url(self, contact_id, product_list):
+    def get_download_url(self, product_list, contact_id):
         ''' Returns a list of named tuples containing the product id,
         product status, product code, sensor name, and (conditionally) a
         one time use download url to obtain the product.  The download url
@@ -438,42 +411,118 @@ class OrderWrapperServiceClient(LTAService):
         as 'available'
 
         Keyword args:
-        contact_id The id of the user requesting the product urls
         product_list A list of products to generate a download url for
-
+        contact_id The id of the user requesting the product urls
+       
         Returns:
-        A list() of named tuples containing the values:
-            - product_id
-            - product_status
-            - product_code
-            - sensor_name
-            - dload_url
+        A dict of dicts:
+        d[product_name] = {'lta_prod_code': 'T272',
+                           'sensor': 'LANDSAT_8',
+                           'status': 'available',
+                           'download_url': 'http://one_time_use.tar.gz'}
         '''
-         # build service url
-        request_url = "%s/%s" % (self.url, 'downloadSceneList')
 
-        # build the request body
-        sb = StringIO()
-        sb.write(self.xml_header)
-        sb.write("<downloadSceneList ")
-        sb.write("xmlns='http://earthexplorer.usgs.gov/schema/downloadSceneList' ")
-        sb.write("xmlns:xsi='http://www.w3.org/2001/XMLSchema-instance' ")
-        sb.write("xsi:schemaLocation='http://earthexplorer.usgs.gov/schema/downloadSceneList ")
-        sb.write("http://earthexplorer.usgs.gov/EE/downloadSceneList.xsd'>")
+        def build_request(contact_id, products):
+            # build the request body
+            sb = StringIO()
+            sb.write(self.xml_header)
+            head = ("<downloadSceneList "
+                "xmlns="
+                "'http://earthexplorer.usgs.gov/schema/downloadSceneList' "
+                "xmlns:xsi='http://www.w3.org/2001/XMLSchema-instance' "
+                "xsi:schemaLocation="
+                "'http://earthexplorer.usgs.gov/schema/downloadSceneList "
+                "http://earthexplorer.usgs.gov/EE/downloadSceneList.xsd'>")
 
-        sb.write("<contactId>%s</contactId>" % contact_id)
+            sb.write(head)
+            
+            sb.write("<contactId>%s</contactId>" % contact_id)
 
-        for product in product_list:
-            sb.write("<scene>")
-            sb.write("<sceneId>%s</sceneId>" % product.strip())
-            sb.write("<sensor>%s</sensor>" % self.get_sensor_name(product))
-            sb.write("</scene>")
+            for p in products:
+                try:
+                    product = sensor.instance(p)
+                except sensor.ProductNotImplemented:
+                    print("%s not implemented, skipping" % p)
+                else:
+                    sb.write("<scene>")
+                    sb.write("<sceneId>%s</sceneId>" % product.product_id)
+                    sb.write("<sensor>%s</sensor>" % product.lta_name)
+                    sb.write("</scene>")
 
-        sb.write("</downloadSceneList>")
+            sb.write("</downloadSceneList>")
 
-        request_body = sb.getvalue()
+            request_body = sb.getvalue()
+            
+            return request_body
 
-        pass
+        def parse_response(response_xml):
+            '''<?xml version="1.0" encoding="UTF-8"?>'
+               <downloadList xmlns="http://host/schema/downloadList" 
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+                   xsi:schemaLocation="http://host/schema/downloadList 
+                   http://host/OrderWrapperServicedevsys/downloadList.xsd">
+               <scene>
+               <sceneId>LC80380292014211LGN00</sceneId>
+               <prodCode>D217</prodCode>
+               <sensor>LANDSAT_8</sensor>
+               <status>available</status>
+               <downloadURL>http://one_time_use.tar.gz</downloadURL>
+               </scene>
+               </downloadList>
+             '''
+             
+            __ns = 'http://earthexplorer.usgs.gov/schema/downloadList'
+            __ns_prefix = ''.join(['{', __ns, '}'])
+            sceneid_elem = ''.join([__ns_prefix, 'sceneId'])
+            prod_code_elem = ''.join([__ns_prefix, 'prodCode'])
+            sensor_elem = ''.join([__ns_prefix, 'sensor'])
+            status_elem = ''.join([__ns_prefix, 'status'])
+            dload_url_elem = ''.join([__ns_prefix, 'downloadURL'])
+  
+            # escape the ampersands and get rid of newlines if they exist
+            # was having problems with the sax escape() function
+            #response = response_xml.replace('&', '&amp;').replace('\n', '')
+             
+            #this will get us the list of <scene></scene> elements
+             
+            scene_elements = xml.fromstring(response_xml).getchildren()
+
+            retval = {}            
+            
+            for scene in list(scene_elements):
+                name = scene.find(sceneid_elem).text
+                prod_code = scene.find(prod_code_elem).text
+                sensor = scene.find(sensor_elem).text
+                status = scene.find(status_elem).text
+
+                #may not be included with every response if not online
+                __dload_url = scene.find(dload_url_elem)
+                
+                dload_url = None
+                
+                if __dload_url is not None:
+                    dload_url = __dload_url.text
+                
+                retval[name] = {'lta_code': prod_code,
+                                'sensor': sensor,
+                                'status': status}
+                if dload_url is not None:
+                    retval[name]['download_url'] = dload_url
+                                    
+            return retval
+            
+        # build service url
+        request_url = "%s/%s" % (self.url, 'getDownloadURL')
+        payload = build_request(contact_id, product_list)
+        response = requests.post(request_url, data=payload)
+        
+        if response.ok:
+            return parse_response(response.text)
+        else:
+            msg = "Error retrieving download urls.  Reason:%s Response Text:%s"
+            msg = msg % (response.reason, response.text)
+            print(msg)
+            raise RuntimeError(msg)
 
 
 class OrderUpdateServiceClient(LTAService):
@@ -556,47 +605,6 @@ class OrderUpdateServiceClient(LTAService):
                              status=resp.status)
 
 
-#TODO:Stop using this once the OrderWrapperService is fixed by EE
-#TODO: Don't delete this though, just stop using it.
-#class MassLoaderServiceClient(LTAService):
-
-#    def order_scenes(self, scene_list):
-#        ''' Orders scenes from the TRAM massloader.
-#        Be sure to call verifyscenes before allowing this to happen
-#
-#        Keyword args:
-#        scene_list A list of scene ids to be ordered
-#
-#        Returns:
-#        A TRAM orderid
-#        Raises exception on error
-#        '''
-#        client = SoapClient(self.get_url("massloader"))
-#        tramorder = client.factory.create('order')
-#        tramscenes = client.factory.create('scenes')
-#        tramorder.scenes = tramscenes
-#        for scene in scene_list:
-#            tramscene = client.factory.create('scene')
-#            tramscene.sceneId = scene.name
-#            tramscene.productName = self.get_product_code(scene.name)
-#            tramscene.recipeId = null()
-#            tramscene.unitComment = null()
-#            tramscene.parameters = null()
-#            tramorder.scenes.scene.append(tramscene)
-#        tramorder.externalRefNumber = '111111'
-#        tramorder.orderComment = null()
-#        tramorder.priority = 5
-#        tramorder.registrationId = self.tram_id
-#        tramorder.requestor = 'EE'
-#        tramorder.roleId = null()
-#
-#        try:
-#            response = client.service.submitOrder(tramorder)
-#            return response
-#        except Exception, e:
-#            raise e
-
-
 class OrderDeliveryServiceClient(LTAService):
     '''EE SOAP Service client to find orders for ESPA which originated in EE'''
 
@@ -632,7 +640,7 @@ class OrderDeliveryServiceClient(LTAService):
         for u in resp.units.unit:
 
             #ignore anything that is not for us
-            if str(u.productCode).lower() not in ('sr01', 'sr02'):
+            if str(u.productCode).lower() not in ('sr01', 'sr02', 'sr03'):
 
                 print ("%s is not an ESPA product.  \
                        Order[%s] Unit[%s] Product code[%s]: ignoring"
@@ -696,3 +704,42 @@ class OrderDeliveryServiceClient(LTAService):
                             )
 
         return rtn
+        
+
+''' This is the public interface that calling code should use to interact
+    with this module'''
+    
+def login_user(username, password):
+    '''Logs a user in '''
+    return RegistrationServiceClient().login_user(username, password)
+
+def get_user_info(username, password):
+    return RegistrationServiceClient().get_user_info(username, password)
+
+def get_user_name(contactid):
+    return RegistrationServiceClient().get_username(contactid)
+
+def verify_scenes(product_list):
+    return OrderWrapperServiceClient().verify_scenes(product_list)
+
+def order_scenes(product_list, contact_id, priority=5):
+    return OrderWrapperServiceClient().order_scenes(product_list,
+                                                    contact_id,
+                                                    priority)
+
+def get_download_url(product_list, contact_id):
+    return OrderWrapperServiceClient().get_download_url(product_list,
+                                                        contact_id)
+
+def get_available_orders():
+    return OrderDeliveryServiceClient().get_available_orders()
+
+def get_order_status(lta_order_number):
+    return OrderUpdateServiceClient().get_order_status(lta_order_number)
+
+def update_order_status(lta_order_number, unit_number, new_status):
+    return OrderUpdateServiceClient().update_order(lta_order_number,
+                                                   unit_number,
+                                                   new_status)
+
+

@@ -186,7 +186,7 @@ SERVICE_LOCATOR = {
     "ops": {
         "orderservice": "http://edclxs152.cr.usgs.gov/OrderWrapperService/resources",
         "orderdelivery": "http://edclxs152.cr.usgs.gov/OrderDeliveryService/OrderDeliveryService?WSDL",
-        "orderupdate": "http://edclxs152/OrderStatusService/OrderStatusService?wsdl",
+        "orderupdate": "http://edclxs152.cr.usgs.gov/OrderStatusService/OrderStatusService?wsdl",
         "massloader": "http://edclxs152.cr.usgs.gov/MassLoader/MassLoader?wsdl",
         "registration": "http://edclxs152.cr.usgs.gov/RegistrationService/RegistrationService?wsdl",
         "register_user": "https://earthexplorer.usgs.gov/register",

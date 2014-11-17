@@ -1,5 +1,4 @@
 import datetime
-import re
 import json
 
 from espa_common import sensor
@@ -479,24 +478,6 @@ class Scene(models.Model):
                                       blank=True,
                                       null=True,
                                       default=0)
-
-    @staticmethod
-    def sceneid_is_sane(sceneid):
-        ''' validates against a properly structure L7, L5 or L4 sceneid
-
-        Keyword args:
-        sceneid The scene name to check the structure of
-
-        Returns:
-        True if the value matches a sceneid structure
-        False if the value does not match a sceneid structure
-        '''
-
-        p = re.compile('L(E7|T4|T5)\d{3}\d{3}\d{4}\d{3}\w{3}\d{2}')
-        if p.match(sceneid):
-            return True
-        else:
-            return False
 
 
 class Configuration(models.Model):
