@@ -188,11 +188,10 @@ def process_test_order(request_file, products_file, env_vars,
                                         str(archive_date.month).zfill(2),
                                         str(archive_date.day).zfill(2))
 
-                    product_path = ('%s/%s.%s/%s'
-                                        % (base_source_path,
-                                           short_name,
-                                           version,
-                                           xxx))
+                    product_path = ('%s/%s.%s/%s' % (base_source_path,
+                                                     short_name,
+                                                     version,
+                                                     xxx))
 
                     if tmp == 'MOD' or tmp == 'MYD':
                         download_url = ('http://%s/%s/%s.hdf'
@@ -237,7 +236,7 @@ def process_test_order(request_file, products_file, env_vars,
 
                 # Validate again, since we modified it
                 parms = json.loads(tmp_line)
-                #parms = parameters.instance(json.loads(tmp_line))
+                # parms = parameters.instance(json.loads(tmp_line))
                 print(json.dumps(parms, indent=4, sort_keys=True))
 
             # END - with tmp_order
