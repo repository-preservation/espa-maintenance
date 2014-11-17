@@ -17,7 +17,8 @@ import uuid
 import shutil
 import ftplib
 import urllib
-import urllib2
+import requests
+from contextlib import closing
 
 # espa-common objects and methods
 from espa_constants import *
@@ -245,44 +246,59 @@ def scp_transfer_file(source_host, source_file,
 
 
 # Define the number of bytes to read from the URL file
-BLOCK_SIZE = 16384
+BLOCK_SIZE = 10485760
 
 
 # ============================================================================
-def http_transfer_file(source_host, source_file, destination_file):
+def http_transfer_file(download_url, destination_file):
     '''
     Description:
       Using http transfer a file from a source location to a destination
       file on the localhost.
     '''
 
-    global BLOCK_SIZE
-
     logger = EspaLogging.get_logger('espa.processing')
 
-    url_path = 'http://%s/%s' % (source_host, source_file)
-    logger.info(url_path)
+    logger.info(download_url)
 
-    url = urllib2.urlopen(url_path)
-
-    metadata = url.info()
-    file_size = int(metadata.getheaders("Content-Length")[0])
+    file_size = 0
     retrieved_bytes = 0
+    with closing(requests.get(download_url, stream=True)) as req:
+        if not req.ok:
+            raise Exception("Transfer Failed - HTTP - Reason(%s)"
+                            % req.reason)
 
-    with open(destination_file, 'wb') as local_fd:
-        while True:
-            data = url.read(BLOCK_SIZE)
-            if not data:
-                break
+        file_size = int(req.headers['content-length'])
 
-            retrieved_bytes += len(data)
-            local_fd.write(data)
+        with open(destination_file, 'wb') as local_fd:
+            for data_chunk in req.iter_content(BLOCK_SIZE):
+                local_fd.write(data_chunk)
+                retrieved_bytes += len(data_chunk)
 
     if retrieved_bytes != file_size:
-        raise Exception("Transfer Failed - HTTP")
+        raise Exception("Transfer Failed - HTTP - Retrieved %d out of %d bytes"
+                        % (retrieved_bytes, file_size))
     else:
         logger.info("Transfer complete - HTTP")
 # END - http_transfer_file
+
+
+def download_file_url(download_url, destination_file):
+    '''
+    Description:
+        Using a URL download the specified file to the destination.
+    '''
+
+    if download_url.startswith('http://'):
+        http_transfer_file(download_url, destination_file)
+    elif download_url.startswith('file://'):
+        source_file = download_url.replace('file://', '')
+        transfer_file('localhost', source_file, 'localhost', destination_file)
+    else:
+        raise Exception("Transfer Failed -"
+                        " Unknown URL transport protocol [%s]"
+                        % download_url)
+# END - download_file_url
 
 
 # ============================================================================
@@ -298,7 +314,6 @@ def transfer_file(source_host, source_file,
     Notes:
       We are not doing anything significant here other then some logic and
       fallback to SCP if FTP fails.
-
     '''
 
     logger = EspaLogging.get_logger('espa.processing')
