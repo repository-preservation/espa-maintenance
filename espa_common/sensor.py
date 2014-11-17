@@ -82,9 +82,17 @@ class SensorProduct(object):
         Return:
         None
         '''
+                
         self.product_id = product_id
         self.sensor_code = product_id[0:3]
-        self.sensor_name = settings.SENSOR_NAMES[self.sensor_code.upper()]
+
+        self.sensor_info = settings.SENSOR_INFO[self.sensor_code.upper()]
+        
+        self.sensor_name = self.sensor_info['name']
+                    
+        if 'lta_name' in self.sensor_info:
+            self.lta_name = self.sensor_info['lta_name']
+            
 
     # subclasses should override, construct and return True/False
     def input_exists(self):
@@ -287,6 +295,7 @@ class Landsat(SensorProduct):
     path = None
     row = None
     station = None
+    lta_product_code = None
 
     def __init__(self, product_id):
 
@@ -322,7 +331,7 @@ class Landsat(SensorProduct):
         _dd = _pixels['dd'][self.sensor_code.upper()]
 
         self.default_pixel_size = {'meters': _meters, 'dd': _dd}
-
+        
     def input_exists(self):
         ''' Checks the existence of a landsat tm/etm+ scene on the online
         cache via call to the ESPA scene cache'''
