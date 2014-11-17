@@ -136,10 +136,14 @@ def process_test_order(request_file, products_file, env_vars,
             if request_dict is None:
                 logger.error("Loading [%s]" % request_file)
 
-            new_dict = dict(template_dict.items() + request_dict.items())
-            new_dict['options'] = dict(template_dict['options'].items()
-                                       + request_dict['options'].items())
+            # Merge the requested options with the template options, to create
+            # a new dict with the requested options overriding the template.
+            new_dict = template_dict.copy()
+            new_dict.update(request_dict)
+            new_dict['options'] = template_dict['options'].copy()
+            new_dict['options'].update(request_dict['options'])
 
+            # Turn it into a string for follow-on processing
             order_contents = json.dumps(new_dict, indent=4, sort_keys=True)
 
             logger.info("Processing Request File [%s]" % request_file)
