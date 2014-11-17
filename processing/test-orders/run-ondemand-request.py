@@ -85,6 +85,9 @@ def process_test_order(request_file, products_file, env_vars,
 
     logger = logging.getLogger(__name__)
 
+    template_file = 'template.json'
+    template_dict = None
+
     tmp_order = 'tmp-' + request_file
 
     order_id = request_file.split('.json')[0]
@@ -112,13 +115,32 @@ def process_test_order(request_file, products_file, env_vars,
 
     logger.info("Processing Products [%s]" % ', '.join(products))
 
+    with open(template_file, 'r') as template_fd:
+        template_contents = template_fd.read()
+        if not template_contents:
+            raise Exception("Template file [%s] is empty" % template_file)
+
+        template_dict = json.loads(template_contents)
+        if template_dict is None:
+            logger.error("Loading template.json")
+
     for product in products:
         logger.info("Processing Product [%s]" % product)
 
-        with open(request_file, 'r') as order_fd:
-            order_contents = order_fd.read()
-            if not order_contents:
+        with open(request_file, 'r') as request_fd:
+            request_contents = request_fd.read()
+            if not request_contents:
                 raise Exception("Order file [%s] is empty" % request_file)
+
+            request_dict = json.loads(request_contents)
+            if request_dict is None:
+                logger.error("Loading [%s]" % request_file)
+
+            new_dict = dict(template_dict.items() + request_dict.items())
+            new_dict['options'] = dict(template_dict['options'].items()
+                                       + request_dict['options'].items())
+
+            order_contents = json.dumps(new_dict, indent=4, sort_keys=True)
 
             logger.info("Processing Request File [%s]" % request_file)
 
@@ -130,14 +152,13 @@ def process_test_order(request_file, products_file, env_vars,
 
                 # Update the order for the developer
                 tmp = product[:3]
-                source_host = 'localhost'
+                download_url = 'null'
+                dev_cache_dir = env_vars['dev_cache_dir']['value']
                 is_modis = False
                 if tmp == 'MOD' or tmp == 'MYD':
                     is_modis = True
-                    source_host = settings.MODIS_INPUT_HOSTNAME
 
                 # for plots
-                source_directory = 'DEV_CACHE_DIRECTORY/%s' % order_id
                 if not is_modis and not plot:
                     product_path = ('%s/%s%s'
                                     % (env_vars['dev_data_dir']['value'],
@@ -150,7 +171,7 @@ def process_test_order(request_file, products_file, env_vars,
                         have_error = True
                         break
 
-                    source_directory = env_vars['dev_data_dir']['value']
+                    download_url = ('file://%s' % product_path)
 
                 elif not plot:
                     if tmp == 'MOD':
@@ -167,11 +188,17 @@ def process_test_order(request_file, products_file, env_vars,
                                         str(archive_date.month).zfill(2),
                                         str(archive_date.day).zfill(2))
 
-                    source_directory = ('%s/%s.%s/%s'
+                    product_path = ('%s/%s.%s/%s'
                                         % (base_source_path,
                                            short_name,
                                            version,
                                            xxx))
+
+                    if tmp == 'MOD' or tmp == 'MYD':
+                        download_url = ('http://%s/%s/%s.hdf'
+                                        % (settings.MODIS_INPUT_HOSTNAME,
+                                           product_path,
+                                           product))
 
                 sensor_name = 'plot'
                 if not plot:
@@ -191,13 +218,20 @@ def process_test_order(request_file, products_file, env_vars,
                 else:
                     tmp_line = tmp_line.replace("PRODUCT_TYPE", 'plot')
 
-                tmp_line = tmp_line.replace("SRC_HOST", source_host)
-                tmp_line = \
-                    tmp_line.replace("DEV_DATA_DIRECTORY",
-                                     source_directory)
-                tmp_line = \
-                    tmp_line.replace("DEV_CACHE_DIRECTORY",
-                                     env_vars['dev_cache_dir']['value'])
+                if plot:
+                    statistics_host = 'localhost'
+                    statistics_directory = '%s/%s' % (dev_cache_dir, order_id)
+
+                    tmp_line = tmp_line.replace("STATISTICS_DIRECTORY",
+                                                statistics_directory)
+                    tmp_line = tmp_line.replace("STATISTICS_HOST",
+                                                statistics_host)
+
+                destination_directory = '%s/%s' % (dev_cache_dir, order_id)
+                tmp_line = tmp_line.replace("DESTINATION_DIRECTORY",
+                                            destination_directory)
+
+                tmp_line = tmp_line.replace("DOWNLOAD_URL", download_url)
 
                 tmp_fd.write(tmp_line)
 
