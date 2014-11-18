@@ -98,7 +98,7 @@ def send_completion_email(email, ordernum, readyscenes=[]):
                                             body=email_msg)
 
 
-def scenes_on_cache(input_product_list):
+def products_on_cache(input_product_list):
     """Proxy method call to determine if the scenes in question are on disk
 
     Keyword args:
@@ -111,7 +111,7 @@ def scenes_on_cache(input_product_list):
     return espa_common.utilities.scenecache_client().scenes_exist(ipl)
 
 
-def scenes_are_nlaps(input_product_list):
+def products_are_nlaps(input_product_list):
     """Proxy method call to determine if the scenes are nlaps scenes
 
     Keyword args:
@@ -145,9 +145,10 @@ def handle_onorder_landsat_products():
     orderby = 'order__order_date'
 
     landsat_products = Scene.objects.filter(**filter_args).order_by(orderby)
+   
     if len(landsat_products) > 0:
 
-        landsat_oncache = scenes_on_cache([l.name for l in landsat_products])
+        landsat_oncache = products_on_cache([l.name for l in landsat_products])
 
         filter_args = {'status': 'onorder', 'name__in': landsat_oncache}
         update_args = {'status': 'oncache'}
@@ -159,10 +160,6 @@ def handle_submitted_landsat_products():
     filter_args = {'status': 'submitted', 'sensor_type': 'landsat'}
     orderby = 'order__order_date'
     landsat_products = Scene.objects.filter(**filter_args).order_by(orderby)
-
-    #landsat_products =  Scene.objects.filter(status='submitted',
-    #                                         sensor_type='landsat')\
-    #                                         .order_by('order__order_date')
 
     if len(landsat_products) > 0:
 
@@ -180,7 +177,7 @@ def handle_submitted_landsat_products():
         landsat_submitted = [l.name for l in landsat_products]
 
         # find all the submitted products that are nlaps and reject them
-        landsat_nlaps = scenes_are_nlaps(landsat_submitted)
+        landsat_nlaps = products_are_nlaps(landsat_submitted)
 
         if settings.DEBUG:
             print("Found %i landsat nlaps products" % len(landsat_nlaps))
@@ -199,13 +196,9 @@ def handle_submitted_landsat_products():
 
             Scene.objects.filter(**filter_args).update(**update_args)
 
-            #Scene.objects.filter(status='submitted', name__in=landsat_nlaps)\
-            #    .update(status='unavailable',
-            #            completion_date = datetime.datetime.now(),
-            #            note='TMA data cannot be processed')
-
+            
         # find all the landsat products already sitting on online cache
-        landsat_oncache = scenes_on_cache(landsat_submitted)
+        landsat_oncache = products_on_cache(landsat_submitted)
 
         if settings.DEBUG:
             print("Found %i landsat products on cache" % len(landsat_oncache))
@@ -221,10 +214,6 @@ def handle_submitted_landsat_products():
             update_args = {'status': 'oncache'}
 
             Scene.objects.filter(**filter_args).update(**update_args)
-
-            #Scene.objects.filter(status='submitted',
-            #                     name__in=landsat_oncache)\
-            #   .update(status='oncache')
 
         # placeholder for scenes that are not nlaps but are not on cache
         need_to_order = set(landsat_submitted) - set(landsat_nlaps)
@@ -251,8 +240,6 @@ def handle_submitted_landsat_products():
                        }
 
         orders = Scene.objects.filter(**filter_args).values('order').distinct()
-
-        order_wrapper = lta.OrderWrapperServiceClient()
 
         # look through the Orders that are part of need_to_order
         # and place one order with lta for each one that has scenes that
@@ -292,8 +279,7 @@ def handle_submitted_landsat_products():
                 print eo_scene_list
 
             if len(eo_scene_list) > 0:
-                resp_dict = order_wrapper.order_scenes(eo_scene_list,
-                                                       contactid)
+                resp_dict = lta.order_scenes(eo_scene_list, contactid)
 
                 if settings.DEBUG:
                     print("Resp dict")
@@ -308,11 +294,6 @@ def handle_submitted_landsat_products():
 
                     eo.scene_set.filter(**filter_args).update(**update_args)
 
-                    #eo.scene_set.filter(status='submitted',
-                    #                    name__in=resp_dict['ordered'])\
-                    #    .update(status='onorder',
-                    #            tram_order_id=resp_dict['lta_order_id'])
-
                 if 'invalid' in resp_dict:
                     filter_args = {'status': 'submitted',
                                    'name__in': resp_dict['invalid']}
@@ -322,12 +303,6 @@ def handle_submitted_landsat_products():
                                    'note': 'Not found in landsat archive'}
 
                     eo.scene_set.filter(**filter_args).update(**update_args)
-
-                    #eo.scene_set.filter(status='submitted',
-                    #                    name__in=resp_dict['invalid'])\
-                    #    .update(status='unavailable',
-                    #            completion_date = datetime.datetime.now(),
-                    #            note='Not found in landsat archive')
 
                 if 'available' in resp_dict:
                     filter_args = {'status': 'submitted',
@@ -422,16 +397,8 @@ def handle_submitted_products():
     handle_submitted_plot_products()
 
 
-def get_landsat_products_to_process():
-    pass
-
-
-def get_modis_products_to_process():
-    pass
-
-
 @transaction.atomic
-def get_scenes_to_process(limit=500,
+def get_products_to_process(limit=500,
                           for_user=None,
                           priority=None,
                           product_types=['landsat', 'modis']):
@@ -488,49 +455,6 @@ def get_scenes_to_process(limit=500,
     return results
 
 
-'''
-def purge_expired_orders():
-    config = None
-    username  = None
-    password = None
-    host = None
-    port = None
-    ds = None
-    orders = None
-
-    try:
-        cutoff = datetime.datetime.now() - timedelta(days=14)
-        #get orders where status == complete and
-        #that were completed > than 14 days ago
-        orders = Order.objects.raw('select * from ordering_order oo \
-        where oo.id not in \
-        (select order_id from ordering_scene where status in \
-        ("queued","onorder","processing","distributing","oncache","purged"))')
-
-        config = Configuration()
-        username = config.getValue('distrods.user')
-        password = config.getValue('distrods.password')
-        host = config.getValue('distrods.host')
-        port = config.getValue('distrods.port')
-        ds = DistributionDataSource(None, None, username, password, host, port)
-        for o in orders:
-            diff = cutoff - o.completion_date
-            if diff.days >= 0:
-                scenes = Scene.objects.filter(order__id = o.id)
-                for s in scenes:
-                    ds.delete(s.name, s.product_distro_location)
-                o.delete()
-    finally:
-        config = None
-        username  = None
-        password = None
-        host = None
-        port = None
-        ds = None
-        orders = None
-'''
-
-
 # Simple logger method for this module
 def helper_logger(msg):
     print(msg)
@@ -570,7 +494,7 @@ def update_status(name, orderid, processing_loc, status):
 
 @transaction.atomic
 #  Marks a scene in error and accepts the log file contents
-def set_scene_error(name, orderid, processing_loc, error):
+def set_product_error(name, orderid, processing_loc, error):
     o = Order.objects.get(orderid=orderid)
     s = Scene.objects.get(name=name, order__id=o.id)
     if s:
@@ -582,7 +506,7 @@ def set_scene_error(name, orderid, processing_loc, error):
                 s.note = ''
                 s.save()
             elif resolution.status == 'unavailable':
-                set_scene_unavailable(name,
+                set_product_unavailable(name,
                                       orderid,
                                       processing_loc,
                                       error,
@@ -652,7 +576,7 @@ def set_product_retry(name,
 
 @transaction.atomic
 #  Marks a scene unavailable and stores a reason
-def set_scene_unavailable(name, orderid, processing_loc, error, note):
+def set_product_unavailable(name, orderid, processing_loc, error, note):
     o = Order.objects.get(orderid=orderid)
     s = Scene.objects.get(name=name, order__id=o.id)
     if s:
@@ -723,7 +647,7 @@ def queue_products(order_name_tuple_list, processing_location, job_name):
 
 @transaction.atomic
 #  Marks a scene complete in the database for a given order
-def mark_scene_complete(name,
+def mark_product_complete(name,
                         orderid,
                         processing_loc,
                         completed_file_location,
@@ -857,20 +781,9 @@ def load_ee_orders():
     our database and updates their status
     '''
 
-    #TODO -- Get the common operations out of this method and rehomed
-    #TODO where they belong.  This method should be calling into
-    #TODO the Order.enter_new_order() method rather than creating and
-    #TODO persisting the Order() itself.
-
-    order_delivery = lta.OrderDeliveryServiceClient()
-
-    registration = lta.RegistrationServiceClient()
-
-    order_update = lta.OrderUpdateServiceClient()
-
     # This returns a dict that contains a list of dicts{}
     # key:(order_num, email, contactid) = list({sceneid:, unit_num:})
-    orders = order_delivery.get_available_orders()
+    orders = lta.get_available_orders()
 
     # use this to cache calls to EE Registration Service username lookups
     local_cache = {}
@@ -894,7 +807,7 @@ def load_ee_orders():
             if contactid in local_cache:
                 username = local_cache[contactid]
             else:
-                username = registration.get_username(contactid)
+                username = lta.get_username(contactid)
                 local_cache[contactid] = username
 
             # now look the user up in our db.  Create if it doesn't exist
@@ -956,9 +869,8 @@ def load_ee_orders():
                 if scene.status == 'complete':
 
                     success, msg, status =\
-                        order_update.update_order(eeorder,
-                                                  s['unit_num'],
-                                                  "C")
+                        lta.update_order(eeorder, s['unit_num'], "C")
+                        
                     if not success:
                         log_msg = "Error updating lta for \
                         [eeorder:%s ee_unit_num:%s \
@@ -975,9 +887,7 @@ def load_ee_orders():
 
                 elif scene.status == 'unavailable':
                     success, msg, status =\
-                        order_update.update_order(eeorder,
-                                                  s['unit_num'],
-                                                  "R")
+                        lta.update_order(eeorder, s['unit_num'], "R")
 
                     if not success:
                         log_msg = "Error updating lta for \
@@ -1016,7 +926,7 @@ def load_ee_orders():
 
             # Update LTA
             success, msg, status =\
-                order_update.update_order(eeorder,
+                lta.update_order(eeorder,
                                           s['unit_num'],
                                           "I")
             if not success:
@@ -1041,5 +951,4 @@ def handle_orders():
     handle_retry_products()
     handle_submitted_products()
     finalize_orders()
-
     return True
