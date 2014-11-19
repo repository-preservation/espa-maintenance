@@ -13,7 +13,7 @@
         "pixel_size": 30,
         "pixel_size_units": "meters",
         "reproject": true,
-        "resample_method": "near",
+        "resample_method": "cubic",
         "resize": true,
         "target_projection": "utm",
         "utm_north_south": "north",
