@@ -673,10 +673,10 @@ class CDRProcessor(CustomizationProcessor):
                     # Export the file with validation
                     with open(self._xml_filename, 'w') as xml_fd:
                         # Export to the file and specify the namespace/schema
-                        xmlns = "http://espa.cr.usgs.gov/v1.0"
+                        xmlns = "http://espa.cr.usgs.gov/v1.1"
                         xmlns_xsi = "http://www.w3.org/2001/XMLSchema-instance"
                         schema_uri = ("http://espa.cr.usgs.gov/static/schema/"
-                                      "espa_internal_metadata_v1_0.xsd")
+                                      "espa_internal_metadata_v1_1.xsd")
                         metadata_api.export(xml_fd, espa_xml,
                                             xmlns=xmlns,
                                             xmlns_xsi=xmlns_xsi,
@@ -1116,7 +1116,7 @@ class LandsatProcessor(CDRProcessor):
             Returns the command line required to generate spectral indices.
 
         Note:
-            Provides the L4, L5, L7, and L8 command line.
+            Provides the L4, L5, L7, and L8(LC8) command line.
         '''
 
         options = self._parms['options']
@@ -1404,7 +1404,7 @@ class LandsatETMProcessor(LandsatProcessor):
 class LandsatOLITIRSProcessor(LandsatProcessor):
     '''
     Description:
-        Implements OLITIRS specific processing.
+        Implements OLITIRS (LC8) specific processing.
     '''
 
     # -------------------------------------------
@@ -1475,6 +1475,62 @@ class LandsatOLITIRSProcessor(LandsatProcessor):
                             '--xml', self._xml_filename])
 
         return cmd
+
+
+# ===========================================================================
+class LandsatOLIOnlyProcessor(LandsatOLITIRSProcessor):
+    '''
+    Description:
+        Implements OLI only (LO8) specific processing.
+    '''
+
+    # -------------------------------------------
+    def __init__(self, parms):
+        super(LandsatOLIOnlyProcessor, self).__init__(parms)
+
+    # -------------------------------------------
+    def sr_command_line(self):
+        '''
+        Description:
+            Returns the command line required to generate surface reflectance.
+        '''
+
+        options = self._parms['options']
+
+        cmd = None
+        # Check to see if Thermal or TOA is required
+        if (options['include_sr_toa']
+                or options['include_sr_thermal']
+                or options['include_cfmask']):
+
+            cmd = ['do_l8_sr.py', '--xml', self._xml_filename, '--write_toa']
+            cmd = ' '.join(cmd)
+
+        return cmd
+
+    # -------------------------------------------
+    def cfmask_command_line(self):
+        '''
+        Description:
+            Returns the command line required to generate cfmask.
+
+        Note: cfmask processing requires both OLI and TIRS bands so OLI only
+              products can not execute l8cfmask.
+        '''
+
+        return None
+
+    # -------------------------------------------
+    def spectral_indices_command_line(self):
+        '''
+        Description:
+            Returns the command line required to generate spectral indices.
+
+        Note:
+            SR indices can not be produced with OLI only products
+        '''
+
+        return None
 
 
 # ===========================================================================
@@ -1778,12 +1834,14 @@ class PlotProcessor(ProductProcessor):
 
         # Setup the default colors
         self._sensor_colors = dict()
-        self._sensor_colors['Terra'] = '#664400'  # Some Brown kinda like dirt
-        self._sensor_colors['Aqua'] = '#00cccc'  # Some cyan like blue color
-        self._sensor_colors['LT4'] = '#cc3333'  # A nice Red
-        self._sensor_colors['LT5'] = '#0066cc'  # A nice Blue
-        self._sensor_colors['LE7'] = '#00cc33'  # An ok Green
-        self._sensor_colors['LC8'] = '#ffbb00'  # An ok Blue
+        self._sensor_colors['Terra'] = '#664400'   # Some Brown kinda like dirt
+        self._sensor_colors['Aqua'] = '#00cccc'    # Some cyan like blue color
+        self._sensor_colors['L4'] = '#cc3333'     # A nice Red
+        self._sensor_colors['L5'] = '#0066cc'     # A nice Blue
+        self._sensor_colors['L7'] = '#00cc33'     # An ok Green
+        self._sensor_colors['L8'] = '#ffbb00'      # An ok Yellow
+        self._sensor_colors['L8-TIRS1'] = '#ffbb00'  # An ok Yellow
+        self._sensor_colors['L8-TIRS2'] = '#664400'  # Some Brown like dirt
         self._bg_color = settings.PLOT_BG_COLOR
 
         # Setup the default marker
@@ -1951,6 +2009,7 @@ class PlotProcessor(ProductProcessor):
         self._sr_swir1_sensor_info = [('LT4*_sr_band5.stats', L4_NAME),
                                       ('LT5*_sr_band5.stats', L5_NAME),
                                       ('LE7*_sr_band5.stats', L7_NAME),
+                                      ('LC8*_sr_band6.stats', L8_NAME),
                                       ('MOD*sur_refl_b06*.stats', TERRA_NAME),
                                       ('MYD*sur_refl_b06*.stats', AQUA_NAME)]
 
@@ -1963,7 +2022,7 @@ class PlotProcessor(ProductProcessor):
                                       ('MYD*sur_refl_b07*.stats', AQUA_NAME)]
 
         # SR (L8 B1)  coastal aerosol
-        self._sr_coastal_sensor_info = [('LC8*_toa_band1.stats', L8_NAME)]
+        self._sr_coastal_sensor_info = [('LC8*_sr_band1.stats', L8_NAME)]
 
         # SR (L4-L7 B1) (L8 B2) (MODIS B3)
         self._sr_blue_sensor_info = [('LT4*_sr_band1.stats', L4_NAME),
@@ -1998,7 +2057,7 @@ class PlotProcessor(ProductProcessor):
                                     ('MYD*sur_refl_b02*.stats', AQUA_NAME)]
 
         # SR (L8 B9)
-        self._sr_cirrus_sensor_info = [('LC8*_toa_band9.stats', L8_NAME)]
+        self._sr_cirrus_sensor_info = [('LC8*_sr_band9.stats', L8_NAME)]
 
         # --------------------------------------------------------------------
         # Only Landsat TOA band 6(L4-7) band 10(L8) band 11(L8)
@@ -2010,47 +2069,47 @@ class PlotProcessor(ProductProcessor):
              ('LC8*_toa_band11.stats', L8_TIRS2_NAME)]
 
         # --------------------------------------------------------------------
-        # Landsat TOA (L4-L7 B5) (L8 B6)
+        # Only Landsat TOA (L4-L7 B5) (L8 B6)
         self._toa_swir1_sensor_info = [('LT4*_toa_band5.stats', L4_NAME),
                                        ('LT5*_toa_band5.stats', L5_NAME),
                                        ('LE7*_toa_band5.stats', L7_NAME),
-                                       ('LC8*_toa_band6.stats', L8_NAME)]
+                                       ('L[C,O]8*_toa_band6.stats', L8_NAME)]
 
-        # Landsat TOA (L4-L8 B7)
+        # Only Landsat TOA (L4-L8 B7)
         self._toa_swir2_sensor_info = [('LT4*_toa_band7.stats', L4_NAME),
                                        ('LT5*_toa_band7.stats', L5_NAME),
                                        ('LE7*_toa_band7.stats', L7_NAME),
-                                       ('LC8*_toa_band7.stats', L8_NAME)]
+                                       ('L[C,O]8*_toa_band7.stats', L8_NAME)]
 
-        # Landsat TOA (L8 B1)
-        self._toa_coastal_sensor_info = [('LC8*_toa_band1.stats', L8_NAME)]
+        # Only Landsat TOA (L8 B1)
+        self._toa_coastal_sensor_info = [('L[C,O]8*_toa_band1.stats', L8_NAME)]
 
-        # Landsat TOA (L4-L7 B1) (L8 B2)
+        # Only Landsat TOA (L4-L7 B1) (L8 B2)
         self._toa_blue_sensor_info = [('LT4*_toa_band1.stats', L4_NAME),
                                       ('LT5*_toa_band1.stats', L5_NAME),
                                       ('LE7*_toa_band1.stats', L7_NAME),
-                                      ('LC8*_toa_band2.stats', L8_NAME)]
+                                      ('L[C,O]8*_toa_band2.stats', L8_NAME)]
 
-        # Landsat TOA (L4-L7 B2) (L8 B3)
+        # Only Landsat TOA (L4-L7 B2) (L8 B3)
         self._toa_green_sensor_info = [('LT4*_toa_band2.stats', L4_NAME),
                                        ('LT5*_toa_band2.stats', L5_NAME),
                                        ('LE7*_toa_band2.stats', L7_NAME),
-                                       ('LC8*_toa_band3.stats', L8_NAME)]
+                                       ('L[C,O]8*_toa_band3.stats', L8_NAME)]
 
-        # Landsat TOA (L4-L7 B3) (L8 B4)
+        # Only Landsat TOA (L4-L7 B3) (L8 B4)
         self._toa_red_sensor_info = [('LT4*_toa_band3.stats', L4_NAME),
                                      ('LT5*_toa_band3.stats', L5_NAME),
                                      ('LE7*_toa_band3.stats', L7_NAME),
-                                     ('LC8*_toa_band4.stats', L8_NAME)]
+                                     ('L[C,O]8*_toa_band4.stats', L8_NAME)]
 
-        # Landsat TOA (L4-L7 B4) (L8 B5)
+        # Only Landsat TOA (L4-L7 B4) (L8 B5)
         self._toa_nir_sensor_info = [('LT4*_toa_band4.stats', L4_NAME),
                                      ('LT5*_toa_band4.stats', L5_NAME),
                                      ('LE7*_toa_band4.stats', L7_NAME),
-                                     ('LC8*_toa_band5.stats', L8_NAME)]
+                                     ('L[C,O]8*_toa_band5.stats', L8_NAME)]
 
-        # Landsat TOA (L8 B9)
-        self._toa_cirrus_sensor_info = [('LC8*_toa_band9.stats', L8_NAME)]
+        # Only Landsat TOA (L8 B9)
+        self._toa_cirrus_sensor_info = [('L[C,O]8*_toa_band9.stats', L8_NAME)]
 
         # --------------------------------------------------------------------
         # Only MODIS band 20 files
@@ -2193,22 +2252,30 @@ class PlotProcessor(ProductProcessor):
             self._sensor_colors['Aqua'] = options['aqua_color']
         else:
             options['aqua_color'] = self._sensor_colors['Aqua']
-        if parameters.test_for_parameter(options, 'lt4_color'):
-            self._sensor_colors['LT4'] = options['lt4_color']
+        if parameters.test_for_parameter(options, 'l4_color'):
+            self._sensor_colors['L4'] = options['l4_color']
         else:
-            options['lt4_color'] = self._sensor_colors['LT4']
-        if parameters.test_for_parameter(options, 'lt5_color'):
-            self._sensor_colors['LT5'] = options['lt5_color']
+            options['l4_color'] = self._sensor_colors['L4']
+        if parameters.test_for_parameter(options, 'l5_color'):
+            self._sensor_colors['L5'] = options['l5_color']
         else:
-            options['lt5_color'] = self._sensor_colors['LT5']
-        if parameters.test_for_parameter(options, 'le7_color'):
-            self._sensor_colors['LE7'] = options['le7_color']
+            options['l5_color'] = self._sensor_colors['L5']
+        if parameters.test_for_parameter(options, 'l7_color'):
+            self._sensor_colors['L7'] = options['l7_color']
         else:
-            options['le7_color'] = self._sensor_colors['LE7']
-        if parameters.test_for_parameter(options, 'lc8_color'):
-            self._sensor_colors['LC8'] = options['lc8_color']
+            options['l7_color'] = self._sensor_colors['L7']
+        if parameters.test_for_parameter(options, 'l8_color'):
+            self._sensor_colors['L8'] = options['l8_color']
         else:
-            options['lc8_color'] = self._sensor_colors['LC8']
+            options['l8_color'] = self._sensor_colors['L8']
+        if parameters.test_for_parameter(options, 'l8_tirs1_color'):
+            self._sensor_colors['L8-TIRS1'] = options['l8_tirs1_color']
+        else:
+            options['l8_tirs1_color'] = self._sensor_colors['L8-TIRS1']
+        if parameters.test_for_parameter(options, 'l8_tirs2_color'):
+            self._sensor_colors['L8-TIRS2'] = options['l8_tirs2_color']
+        else:
+            options['l8_tirs2_color'] = self._sensor_colors['L8-TIRS2']
         if parameters.test_for_parameter(options, 'bg_color'):
             self._bg_color = options['bg_color']
         else:
@@ -2277,22 +2344,29 @@ class PlotProcessor(ProductProcessor):
         elif filename.startswith('LT4'):
             year = int(filename[9:13])
             day_of_year = int(filename[13:16])
-            sensor = 'LT4'
+            sensor = 'L4'
 
         elif filename.startswith('LT5'):
             year = int(filename[9:13])
             day_of_year = int(filename[13:16])
-            sensor = 'LT5'
+            sensor = 'L5'
 
         elif filename.startswith('LE7'):
             year = int(filename[9:13])
             day_of_year = int(filename[13:16])
-            sensor = 'LE7'
+            sensor = 'L7'
 
-        elif filename.startswith('LC8'):
+        elif filename.startswith('LC8') or filename.startswith('LO8'):
             year = int(filename[9:13])
             day_of_year = int(filename[13:16])
-            sensor = 'LC8'
+            # We plot both TIRS bands in the thermal plot so they need to
+            # be separatly identified
+            if 'toa_band10' in filename:
+                sensor = 'L8-TIRS1'
+            elif 'toa_band11' in filename:
+                sensor = 'L8-TIRS2'
+            else:
+                sensor = 'L8'
 
         # Now that we have the year and doy we can get the month and day of
         # month
@@ -2431,7 +2505,6 @@ class PlotProcessor(ProductProcessor):
         plot_date_max = datetime.date(1900, 01, 01)
 
         sensor_dict = defaultdict(list)
-        sensors = list()
 
         if plot_type == "Range":
             lower_subject = 'mean'  # Since Range force to the mean
@@ -2465,17 +2538,14 @@ class PlotProcessor(ProductProcessor):
                 plot_date_max = date
         # END - for filename
 
-        # Process through the sensor organized dictionary
-        for sensor in sensor_dict.keys():
+        # Process through the sensor organized dictionary in sorted order
+        sorted_sensors = sorted(sensor_dict.keys())
+        for sensor in sorted_sensors:
             dates = list()
             min_values = np.empty(0, dtype=np.float)
             max_values = np.empty(0, dtype=np.float)
             mean_values = np.empty(0, dtype=np.float)
             stddev_values = np.empty(0, dtype=np.float)
-
-            # Gather the unique sensors for the legend
-            if sensor not in sensors:
-                sensors.append(sensor)
 
             # Collect all for a specific sensor
             # Sorted only works because we have date first in the list
@@ -2611,7 +2681,7 @@ class PlotProcessor(ProductProcessor):
         mpl_plot.ylabel(plot_name)
 
         # Configure the legend
-        legend = mpl_plot.legend(sensors,
+        legend = mpl_plot.legend(sorted_sensors,
                                  bbox_to_anchor=(0.0, 1.01, 1.0, 0.5),
                                  loc=3, ncol=6, mode="expand",
                                  borderaxespad=0.0, numpoints=1,
@@ -2890,6 +2960,15 @@ def get_instance(parms):
         return LandsatTMProcessor(parms)
     elif sensor_code == 'le7':
         return LandsatETMProcessor(parms)
+    elif sensor_code == 'lo8':
+        # TODO TODO TODO - This is not implemented in sensors and settings
+        #                  So I can't process them either.
+        msg = "A processor for [%s] has not been implemented" % product_id
+        raise NotImplementedError(msg)
+        #return LandsatOLIOnlyProcessor(parms)
+    elif sensor_code == 'lt8':
+        msg = "A processor for [%s] has not been implemented" % product_id
+        raise NotImplementedError(msg)
     elif sensor_code == 'lc8':
         return LandsatOLITIRSProcessor(parms)
     elif sensor_code == 'mod':
