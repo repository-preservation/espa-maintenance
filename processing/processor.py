@@ -940,13 +940,11 @@ class LandsatProcessor(CDRProcessor):
 
             # Figure out the metadata filename
             try:
-                landsat_metadata = \
-                    metadata.get_landsat_metadata(self._work_dir)
+                self._metadata_filename = \
+                    metadata.get_landsat_metadata(self._work_dir, product_id)
             except Exception, e:
                 raise ee.ESPAException(ee.ErrorCodes.metadata,
                                        str(e)), None, sys.exc_info()[2]
-            self._metadata_filename = landsat_metadata['metadata_filename']
-            del landsat_metadata  # Not needed anymore
 
         except Exception, e:
             raise ee.ESPAException(ee.ErrorCodes.unpacking, str(e)), \
@@ -2965,7 +2963,7 @@ def get_instance(parms):
         #                  So I can't process them either.
         msg = "A processor for [%s] has not been implemented" % product_id
         raise NotImplementedError(msg)
-        #return LandsatOLIOnlyProcessor(parms)
+        # return LandsatOLIOnlyProcessor(parms)
     elif sensor_code == 'lt8':
         msg = "A processor for [%s] has not been implemented" % product_id
         raise NotImplementedError(msg)
