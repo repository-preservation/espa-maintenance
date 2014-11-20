@@ -1,10 +1,12 @@
 {
     "options": {
-        "destination_directory": "DEV_CACHE_DIRECTORY/ORDER_ID",
+        "destination_directory": "DESTINATION_DIRECTORY",
         "destination_host": "localhost",
+        "download_url": "DOWNLOAD_URL",
         "include_customized_source_data": true
     },
     "orderid": "ORDER_ID",
-    "scene": "LT50290302011300PAC01",
+    "scene": "SCENE_ID",
+    "product_type": "PRODUCT_TYPE",
     "xmlrpcurl": "skip_xmlrpc"
 }
