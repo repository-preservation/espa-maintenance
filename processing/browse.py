@@ -39,6 +39,11 @@ try:
 except:
     from espa_common import settings
 
+try:
+    import utilities
+except:
+    from espa_common import utilities
+
 # local objects and methods
 import util
 
@@ -69,7 +74,7 @@ def do_sr_browse(sr_filename, scene,
            '-sds', sr_filename, 'out.tiff']
     cmd = ' '.join(cmd)
     logger.info(' '.join(['Running:', cmd]))
-    output = util.execut_cmd(cmd)
+    output = utilities.execut_cmd(cmd)
     if len(output) > 0:
         logger.info(output)
 
@@ -83,7 +88,7 @@ def do_sr_browse(sr_filename, scene,
 # LT50460282002042EDC01_toa_band5.img browse_5.img
     cmd = ' '.join([base_translate_cmd, 'out.tiff5', 'browse.tiff5'])
     logger.info(' '.join(['Running:', cmd]))
-    output = util.execut_cmd(cmd)
+    output = utilities.execut_cmd(cmd)
     if len(output) > 0:
         logger.info(output)
 
@@ -91,7 +96,7 @@ def do_sr_browse(sr_filename, scene,
 # LT50460282002042EDC01_toa_band4.img browse_4.img
     cmd = ' '.join([base_translate_cmd, 'out.tiff4', 'browse.tiff4'])
     logger.info(' '.join(['Running:', cmd]))
-    output = util.execut_cmd(cmd)
+    output = utilities.execut_cmd(cmd)
     if len(output) > 0:
         logger.info(output)
 
@@ -99,7 +104,7 @@ def do_sr_browse(sr_filename, scene,
 # LT50460282002042EDC01_toa_band3.img browse_3.img
     cmd = ' '.join([base_translate_cmd, 'out.tiff3', 'browse.tiff3'])
     logger.info(' '.join(['Running:', cmd]))
-    output = util.execut_cmd(cmd)
+    output = utilities.execut_cmd(cmd)
     if len(output) > 0:
         logger.info(output)
 
@@ -113,7 +118,7 @@ def do_sr_browse(sr_filename, scene,
                     '-in', 'browse.tiff3',
                     '-out', 'final.tif'])
     logger.info(' '.join(['Running:', cmd]))
-    output = util.execut_cmd(cmd)
+    output = utilities.execut_cmd(cmd)
     if len(output) > 0:
         logger.info(output)
 
@@ -127,7 +132,7 @@ def do_sr_browse(sr_filename, scene,
                     '-t_srs', 'EPSG:4326',
                     'final.tif', 'warped.tif'])
     logger.info(' '.join(['Running:', cmd]))
-    output = util.execut_cmd(cmd)
+    output = utilities.execut_cmd(cmd)
     if len(output) > 0:
         logger.info(output)
 
@@ -147,7 +152,7 @@ def do_sr_browse(sr_filename, scene,
                     '-of', 'GTIFF',
                     'warped.tif', browse_filename])
     logger.info(' '.join(['Running:', cmd]))
-    output = util.execut_cmd(cmd)
+    output = utilities.execut_cmd(cmd)
     if len(output) > 0:
         logger.info(output)
 
@@ -158,7 +163,7 @@ def do_sr_browse(sr_filename, scene,
 
     cmd = ' '.join(['rm', '-rf'] + remove_files)
     logger.info(' '.join(['Running:', cmd]))
-    output = util.execut_cmd(cmd)
+    output = utilities.execut_cmd(cmd)
     if len(output) > 0:
         logger.info(output)
 
