@@ -4,7 +4,8 @@ License:
   "NASA Open Source Agreement 1.3"
 
 Description:
-  Provides routines for retrieving metadata from the various sensor data.
+  Provides routines for retrieving or updating metadata from the various
+  sensor data.
 
 History:
   Created Jan/2014 by Ron Dilley, USGS/EROS
@@ -12,6 +13,7 @@ History:
 
 import os
 import shutil
+import glob
 from cStringIO import StringIO
 
 # espa-common objects and methods
@@ -25,36 +27,36 @@ except:
 
 
 # ============================================================================
-def get_landsat_metadata(work_dir):
+def get_landsat_metadata(work_dir, product_id):
     '''
     Description:
-      Returns the Landsat metadata as a python dictionary
+        Fixes potentially bad MTL file from Landsat and returns the Landsat
+        metadata filename to use with the rest of the processing.
     '''
     logger = EspaLogging.get_logger('espa.processing')
 
     # Find the metadata file
     metadata_filename = ''
-    dir_items = os.listdir(work_dir)
-
-    for dir_item in dir_items:
-        if ((dir_item.find('_MTL') > 0) and
-                not (dir_item.find('old') > 0) and
-                not dir_item.startswith('lnd')):
-
-            # Save the filename and break out of the directory loop
-            metadata_filename = dir_item
-            logger.info("Located MTL file:%s" % metadata_filename)
-            break
-
-    if metadata_filename == '':
-        msg = "Could not locate the Landsat MTL file in %s" % work_dir
-        raise RuntimeError(msg)
 
     # Save the current directory and change to the work directory
     current_directory = os.getcwd()
     os.chdir(work_dir)
 
     try:
+        for meta_file in glob.glob('%s_MTL.*' % product_id):
+            if ('old' not in meta_file
+                    and not meta_file.startswith('lnd')):
+
+                # Save the filename and break out of the directory loop
+                metadata_filename = meta_file
+                break
+
+        if metadata_filename == '':
+            msg = "Could not locate the Landsat MTL file in %s" % work_dir
+            raise RuntimeError(msg)
+
+        logger.info("Located MTL file:%s" % metadata_filename)
+
         # Backup the original file
         shutil.copy(metadata_filename, ''.join([metadata_filename, '.old']))
 
@@ -70,7 +72,8 @@ def get_landsat_metadata(work_dir):
         fixed_data = data_buffer.getvalue()
 
         # Fix the stupid error where the filename has a bad extention
-        metadata_filename = metadata_filename.replace('.TIF', '.txt')
+        if metadata_filename.endswith('.TIF'):
+            metadata_filename = metadata_filename.replace('.TIF', '.txt')
 
         # Write the newly formatted file out
         with open(metadata_filename, 'w+') as metadata_fd:
@@ -80,18 +83,5 @@ def get_landsat_metadata(work_dir):
         # Change back to the original directory
         os.chdir(current_directory)
 
-    metadata = dict()
-    # First add the filename to the dictionary
-    metadata['metadata_filename'] = metadata_filename
-
-    # Read and add the metadata contents to the dictionary
-    for line in fixed_data.split('\n'):
-        line = line.strip()
-        logger.debug(line)
-        if not line.startswith('END') and not line.startswith('GROUP'):
-            parts = line.split('=')
-            if len(parts) == 2:
-                metadata[parts[0].strip()] = parts[1].strip().replace('"', '')
-
-    return metadata
+    return metadata_filename
 # END - get_landsat_metadata
