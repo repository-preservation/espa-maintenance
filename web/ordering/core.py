@@ -17,6 +17,7 @@ import json
 import datetime
 import lta
 import errors
+import collections
 
 import espa_common
 
@@ -127,16 +128,16 @@ def products_are_nlaps(input_product_list):
 @transaction.atomic
 def handle_retry_products():
     now = datetime.datetime.now()
-    
+
     filter_args = {'status': 'retry',
                    'retry_after__lt': now}
-                   
+
     update_args = {'status': 'submitted',
                    'note': ''}
-                   
+
     Scene.objects.filter(**filter_args).update(**update_args)
-    
-    
+
+
 @transaction.atomic
 def handle_onorder_landsat_products():
     filter_args = {'status': 'onorder',
@@ -145,7 +146,7 @@ def handle_onorder_landsat_products():
     orderby = 'order__order_date'
 
     landsat_products = Scene.objects.filter(**filter_args).order_by(orderby)
-   
+
     if len(landsat_products) > 0:
 
         landsat_oncache = products_on_cache([l.name for l in landsat_products])
@@ -196,7 +197,7 @@ def handle_submitted_landsat_products():
 
             Scene.objects.filter(**filter_args).update(**update_args)
 
-            
+
         # find all the landsat products already sitting on online cache
         landsat_oncache = products_on_cache(landsat_submitted)
 
@@ -409,7 +410,14 @@ def get_products_to_process(limit=500,
     kwargs = {
         'status': 'oncache'
     }
-
+    
+    #optimize the query so it creates a join call rather than executing
+    #multiple database calls for the related fields
+    select_related = ['order__orderid',
+                      'order__priority',
+                      'order__product_options',
+                      'order__user__userprofile__contactid']
+              
     # use orderby for the orderby clause
     orderby = 'order__order_date'
 
@@ -424,10 +432,9 @@ def get_products_to_process(limit=500,
     #filter based on what user asked for... modis, landsat or plot
     kwargs['sensor_type__in'] = product_types
 
-    #products = Scene.objects.filter(status='oncache')\
-    #    .order_by('order__order_date')[:limit]
-
-    products = Scene.objects.filter(**kwargs).order_by(orderby)[:limit]
+    #products = Scene.objects.filter(**kwargs).order_by(orderby)[:limit]
+    products = Scene.objects.filter(**kwargs).select_related(select_related)\
+               .order_by(orderby)[:limit]
 
     if len(products) == 0:
         return []
@@ -435,19 +442,63 @@ def get_products_to_process(limit=500,
     #Pull the current oncache set from the db
     #and include it as the result
     results = []
+    
+    #retrieve the contact_ids and group by order so we can retrieve the 
+    #download urls from lta    
+    mapping = {}
+    
+    #I really hate this, but flip the datastructure around so we have
+    #everything grouped by contactid as a key->value
+    #key == contact id
+    #value == list of dictionaries (with scene contents)
+    for p in products:
+       
+        mapping_value = {
+            'orderid': p.order.orderid,
+            'priority': p.order.priority,
+            'scene': p.name,
+            'product_type': p.sensor_type,
+            'options': json.loads(p.order.product_options)
+        }
+        
+        cid = p.order.user.userprofile.contactid
 
+        if not (cid) in mapping:
+            mapping[cid] = []
+
+        mapping[cid].append(mapping_value)
+    
+    #now we have to extract only the landsat scenes and then only the modis
+    #scenes so we can go to the right place to get the download urls
+    for cid in mapping.keys():
+        #build the separate lists
+        landsat = []
+        modis = []
+        for product in mapping[cid]:
+            if product['product_type'] == 'landsat':
+                landsat.append(product['scene'])
+            elif product['product_type'] == 'modis':
+                modis.append(product['scene'])
+
+        landsat_urls = lta.get_download_urls(landsat, cid)
+        modis_urls = lpdaac.get_download_urls(modis)
+        
+                
+        
     for p in products:
 
         #in here, check to see if its a plot product or a normal product
         #if plot, specify correct json options vs. product options
 
         options = json.loads(p.order.product_options)
-
+        
         orderline = json.dumps({'orderid': p.order.orderid,
                                 'scene': p.name,
                                 'priority': p.order.priority,
                                 'product_type': p.sensor_type,
-                                'options': options
+                                'options': options,
+                                #fill this in with the download url
+                                'download_url':None
                                 })
 
         results.append(orderline)
@@ -870,7 +921,7 @@ def load_ee_orders():
 
                     success, msg, status =\
                         lta.update_order(eeorder, s['unit_num'], "C")
-                        
+
                     if not success:
                         log_msg = "Error updating lta for \
                         [eeorder:%s ee_unit_num:%s \

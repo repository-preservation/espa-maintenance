@@ -333,9 +333,7 @@ class NewOrder(AbstractView):
             return HttpResponse(t.render(c))
 
         else:
-            #option_string = json.dumps(selected_options)
-            #option_string = json.dumps(self._get_order_options(request))
-
+           
             vipl = self._get_verified_input_product_list(request)
 
             order_options = self._get_order_options(request)

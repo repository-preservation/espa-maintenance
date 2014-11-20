@@ -1,4 +1,5 @@
 import lta
+import lpdaac
 from models import Order
 
 from espa_common import sensor
@@ -14,8 +15,12 @@ class ModisProductListValidator(Validator):
         valid_products = list()
 
         for p in input_products:
+            
+            if isinstance(p, str):
+                p = sensor.instance(p)
+            
             if isinstance(p, sensor.Modis):
-                if p.input_exists():
+                if lpdaac.input_exists(p):
                     valid_products.append(p.product_id)
 
         return set(valid_products)
@@ -86,15 +91,17 @@ class LandsatProductListValidator(Validator):
 
         if len(products) > 0:
 
-            client = lta.OrderWrapperServiceClient()
-
             request = list()
 
             for p in products:
+
+                if isinstance(p, str):
+                    p = sensor.instance(p)
+                    
                 if isinstance(p, sensor.Landsat):
                     request.append(p.product_id)
 
-            verified = client.verify_scenes(request)
+            verified = lta.verify_scenes(request)
 
             for product_name, valid in verified.iteritems():
                 if valid:
