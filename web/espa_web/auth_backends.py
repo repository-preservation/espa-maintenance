@@ -1,6 +1,6 @@
 
 from ordering.models import UserProfile
-from ordering.lta import RegistrationServiceClient
+from ordering import lta
 from django.contrib.auth.models import User
 from django.conf import settings
 import traceback
@@ -19,8 +19,6 @@ class EEAuthBackend(object):
 
     def authenticate(self, username=None, password=None):
 
-        registration = RegistrationServiceClient()
-        
         #strip whitespace to save users from accidental fat-fingering
         if username is not None:
             username = str(username).strip()
@@ -29,7 +27,7 @@ class EEAuthBackend(object):
             password = str(password).strip()
 
         try:
-            contactid = registration.login_user(username, password)
+            contactid = lta.login_user(username, password)
 
             try:
                 user = User.objects.get(username=username)
@@ -45,7 +43,7 @@ class EEAuthBackend(object):
                 UserProfile(contactid=contactid, user=user).save()
 
             #check to make sure we have the current user info
-            info = registration.get_user_info(username, password)
+            info = lta.get_user_info(username, password)
 
             save_user = False
 

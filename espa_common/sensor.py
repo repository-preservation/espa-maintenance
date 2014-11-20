@@ -1,9 +1,6 @@
 import settings
 import re
-import os
 import utilities
-import httplib
-import xmlrpclib
 
 
 class ProductNotImplemented(NotImplementedError):
@@ -25,30 +22,6 @@ class ProductNotImplemented(NotImplementedError):
 
 class SensorProduct(object):
     '''Base class for all sensor products'''
-
-    # full path to the file containing the input product
-    input_file_path = None
-
-    # full path where the output file should be placed
-    #output_file_path = None
-
-    # http, ftp, scp, file, etc
-    #input_scheme = None
-    #input_host = None
-    #input_port = None
-    input_file_name = None
-    #input_user = None
-    #input_pw = None
-    #input_url = None
-
-    # http, ftp, scp, file, etc
-    #output_scheme = None
-    #output_host = None
-    #output_port = None
-    #output_file_name = None
-    #output_user = None
-    #output_pw = None
-    #output_url = None
 
     # landsat sceneid, modis tile name, aster granule id, etc.
     product_id = None
@@ -82,29 +55,16 @@ class SensorProduct(object):
         Return:
         None
         '''
-                
+
         self.product_id = product_id
         self.sensor_code = product_id[0:3]
 
         self.sensor_info = settings.SENSOR_INFO[self.sensor_code.upper()]
-        
+
         self.sensor_name = self.sensor_info['name']
-                    
+
         if 'lta_name' in self.sensor_info:
             self.lta_name = self.sensor_info['lta_name']
-            
-
-    # subclasses should override, construct and return True/False
-    def input_exists(self):
-        ''' '''
-        raise NotImplementedError()
-
-    # subclasses should override, construct and return True/False
-    #def output_exists(self):
-    #    raise NotImplementedError()
-
-    #def get_input_product(self, target_directory):
-    #    raise NotImplementedError()
 
 
 class Modis(SensorProduct):
@@ -118,11 +78,6 @@ class Modis(SensorProduct):
     def __init__(self, product_id):
 
         super(Modis, self).__init__(product_id)
-
-        input_file_name = ''.join([product_id,
-                                   settings.MODIS_INPUT_FILENAME_EXTENSION])
-
-        self.input_file_name = input_file_name
 
         parts = product_id.strip().split('.')
 
@@ -148,67 +103,15 @@ class Modis(SensorProduct):
 
         self.default_pixel_size = {'meters': _meters, 'dd': _dd}
 
-    def _build_input_file_path(self, base_source_path):
-
-        date = utilities.date_from_doy(self.year, self.doy)
-
-        path_date = "%s.%s.%s" % (date.year,
-                                  str(date.month).zfill(2),
-                                  str(date.day).zfill(2))
-
-        input_file_extension = settings.MODIS_INPUT_FILENAME_EXTENSION
-
-        input_file_name = "%s.A%s%s.h%sv%s.%s.%s%s" % (self.short_name,
-                                                       self.year,
-                                                       self.doy,
-                                                       self.horizontal,
-                                                       self.vertical,
-                                                       self.version,
-                                                       self.date_produced,
-                                                       input_file_extension)
-
-        self.input_file_path = os.path.join(
-            base_source_path,
-            '.'.join([self.short_name.upper(), self.version.upper()]),
-            path_date.upper(),
-            input_file_name)
-
-    def input_exists(self):
-
-        host = settings.MODIS_INPUT_CHECK_HOST
-        port = settings.MODIS_INPUT_CHECK_PORT
-
-        conn = None
-
-        try:
-            conn = httplib.HTTPConnection(host, port)
-
-            conn.request("HEAD", self.input_file_path)
-
-            resp = conn.getresponse()
-
-            if resp.status == 200:
-                return True
-            else:
-                return False
-        except Exception, e:
-            print ("Exception checking inputs:%s" % e)
-            return False
-        finally:
-            conn.close()
-            conn = None
-
 
 class Terra(Modis):
     def __init__(self, product_id):
         super(Terra, self).__init__(product_id)
-        self._build_input_file_path(settings.TERRA_BASE_SOURCE_PATH)
 
 
 class Aqua(Modis):
     def __init__(self, product_id):
         super(Aqua, self).__init__(product_id)
-        self._build_input_file_path(settings.AQUA_BASE_SOURCE_PATH)
 
 
 class ModisTerra09A1(Terra):
@@ -303,25 +206,12 @@ class Landsat(SensorProduct):
 
         super(Landsat, self).__init__(product_id)
 
-        input_file_name = ''.join([product_id,
-                                   settings.LANDSAT_INPUT_FILENAME_EXTENSION])
-
-        self.input_file_name = input_file_name
-
         self.path = utilities.strip_zeros(product_id[3:6])
         self.row = utilities.strip_zeros(product_id[6:9])
         self.year = product_id[9:13]
         self.doy = product_id[13:16]
         self.station = product_id[16:19]
         self.version = product_id[19:21]
-
-        self.input_file_path = os.path.join(
-            settings.LANDSAT_BASE_SOURCE_PATH,
-            self.sensor_name,
-            self.path,
-            self.row,
-            self.year,
-            self.input_file_name)
 
         # set the default pixel sizes
         _pixels = settings.DEFAULT_PIXEL_SIZE
@@ -331,27 +221,8 @@ class Landsat(SensorProduct):
         _dd = _pixels['dd'][self.sensor_code.upper()]
 
         self.default_pixel_size = {'meters': _meters, 'dd': _dd}
-        
-    def input_exists(self):
-        ''' Checks the existence of a landsat tm/etm+ scene on the online
-        cache via call to the ESPA scene cache'''
 
-        host = settings.LANDSAT_INPUT_CHECK_HOST
-        port = settings.LANDSAT_INPUT_CHECK_PORT
-        base_url = settings.LANDSAT_INPUT_CHECK_BASE_PATH
-
-        url = ''.join(["http://", host, ":", str(port), base_url])
-        server = xmlrpclib.ServerProxy(url)
-
-        result = server.scenes_exist([self.product_id])
-        nlaps = server.is_nlaps([self.product_id])
-
-        if self.product_id in result and self.product_id not in nlaps:
-            return True
-        else:
-            return False
-
-
+   
 class LandsatTM(Landsat):
     def __init__(self, product_id):
         super(LandsatTM, self).__init__(product_id)
@@ -365,6 +236,10 @@ class LandsatETM(Landsat):
 class LandsatOLITIRS(Landsat):
     def __init__(self, product_id):
         super(LandsatOLITIRS, self).__init__(product_id)
+        
+class LandsatOLI(Landsat):
+    def __init__(self, product_id):
+        super(LandsatOLI, self).__init__(product_id)
 
 
 def instance(product_id):
@@ -404,6 +279,9 @@ def instance(product_id):
 
         'olitirs': (r'^lc8\d{3}\d{3}\d{4}\d{3}\w{3}.{2}$',
                     LandsatOLITIRS),
+                    
+        'oli': (r'^lo8\d{3}\d{3}\d{4}\d{3}\w{3}.{2}$',
+                    LandsatOLI),
 
         'mod09a1': (r'^mod09a1\.a\d{7}\.h\d{2}v\d{2}\.005\.\d{13}$',
                     ModisTerra09A1),

@@ -1,7 +1,9 @@
 from cStringIO import StringIO
 from django.conf import settings
 from suds.client import Client as SoapClient
+from suds.cache import ObjectCache
 from espa_common import sensor
+from espa_common import settings as common_settings
 
 import requests
 import collections
@@ -13,8 +15,11 @@ __author__ = "David V. Hill"
 class LTAService(object):
     ''' Abstract service client for all of LTA services '''
 
+    service_name = None
+
     def __init__(self):
         self.xml_header = "<?xml version ='1.0' encoding='UTF-8' ?>"
+        self.url = self.get_url(self.service_name)
 
     def __repr__(self):
         return "LTAService:%s" % self.__dict__
@@ -33,12 +38,26 @@ class LTAService(object):
         return settings.URL_FOR(service_name)
 
 
-class RegistrationServiceClient(LTAService):
+class LTASoapService(LTAService):
+    ''' Abstract service class for SOAP based clients '''
+
+    def __init__(self, *args, **kwargs):
+        super(LTASoapService, self).__init__(*args, **kwargs)
+        self.client = SoapClient(self.url, cache=self.build_object_cache())
+
+    def build_object_cache(self):
+        cache = ObjectCache()
+        cache.setduration(seconds=common_settings.SOAP_CLIENT_TIMEOUT)
+        cache.setlocation(common_settings.SOAP_CACHE_LOCATION)
+        return cache
+
+
+class RegistrationServiceClient(LTASoapService):
+
+    service_name = 'registration'
 
     def __init__(self, *args, **kwargs):
         super(RegistrationServiceClient, self).__init__(*args, **kwargs)
-        self.url = self.get_url('registration')
-        self.client = SoapClient(self.url)
 
     def login_user(self, username, password):
         '''Authenticates a username/password against the EE Registration
@@ -104,11 +123,10 @@ class OrderWrapperServiceClient(LTAService):
     must be performed when placing orders, and only the LTA team really know
     what those calls are.  Their services are largely undocumented.
     '''
+    service_name = 'orderservice'
 
     def __init__(self, *args, **kwargs):
         super(OrderWrapperServiceClient, self).__init__(*args, **kwargs)
-        self.url = self.get_url("orderservice")
-
 
     def verify_scenes(self, scene_list):
         ''' Checks to make sure the scene list is valid, where valid means
@@ -536,12 +554,12 @@ class OrderWrapperServiceClient(LTAService):
             return False
 
 
-class OrderUpdateServiceClient(LTAService):
+class OrderUpdateServiceClient(LTASoapService):
+
+    service_name = 'orderupdate'
 
     def __init__(self, *args, **kwargs):
         super(OrderUpdateServiceClient, self).__init__(*args, **kwargs)
-        self.url = self.get_url('orderupdate')
-        self.client = SoapClient(self.url)
 
     #TODO - Migrate this call to the OrderWrapperService
     def get_order_status(self, order_number):
@@ -616,13 +634,13 @@ class OrderUpdateServiceClient(LTAService):
                              status=resp.status)
 
 
-class OrderDeliveryServiceClient(LTAService):
+class OrderDeliveryServiceClient(LTASoapService):
     '''EE SOAP Service client to find orders for ESPA which originated in EE'''
+
+    service_name = 'orderdelivery'
 
     def __init__(self, *args, **kwargs):
         super(OrderDeliveryServiceClient, self).__init__(*args, **kwargs)
-        self.url = self.get_url('orderdelivery')
-        self.client = SoapClient(self.url)
 
     def get_available_orders(self):
         ''' Returns all the orders that were submitted for ESPA through EE
@@ -721,7 +739,6 @@ class OrderDeliveryServiceClient(LTAService):
     with this module'''
 
 def login_user(username, password):
-    '''Logs a user in '''
     return RegistrationServiceClient().login_user(username, password)
 
 def get_user_info(username, password):
@@ -755,5 +772,3 @@ def update_order_status(lta_order_number, unit_number, new_status):
     return OrderUpdateServiceClient().update_order(lta_order_number,
                                                    unit_number,
                                                    new_status)
-
-

@@ -17,8 +17,6 @@ import sys
 import datetime
 import commands
 import random
-import urllib2
-import xmlrpclib
 import re
 from email.mime.text import MIMEText
 from smtplib import SMTP
@@ -26,43 +24,42 @@ from smtplib import SMTP
 # local objects and methods
 import settings
 
+# ============================================================================
+#def scenecache_is_alive(url='http://edclpdsftp.cr.usgs.gov:50000/RPC2'):
+#    """Determine if the specified url has an http server
+#    that accepts POST calls
+#
+#    Keyword args:
+#    url -- The url of the server to check
+#
+#    Return:
+#    True -- If the contacted server is alive and accepts POST calls
+#    False -- If the server does not accept POST calls or the
+#             server could not be contacted
+#    """
+#
+#    try:
+#        return urllib2.urlopen(url, data="").getcode() == 200
+#    except Exception, e:
+#        if settings.DEBUG:
+#            print("Scene cache could not be contacted")
+#            print(e)
+#        return False
+
 
 # ============================================================================
-def scenecache_is_alive(url='http://edclpdsftp.cr.usgs.gov:50000/RPC2'):
-    """Determine if the specified url has an http server
-    that accepts POST calls
-
-    Keyword args:
-    url -- The url of the server to check
-
-    Return:
-    True -- If the contacted server is alive and accepts POST calls
-    False -- If the server does not accept POST calls or the
-             server could not be contacted
-    """
-
-    try:
-        return urllib2.urlopen(url, data="").getcode() == 200
-    except Exception, e:
-        if settings.DEBUG:
-            print("Scene cache could not be contacted")
-            print(e)
-        return False
-
-
-# ============================================================================
-def scenecache_client():
-    """Return an xmlrpc proxy to the caller for the scene cache
-
-    Returns -- An xmlrpclib ServerProxy object
-    """
-    url = 'http://edclpdsftp.cr.usgs.gov:50000/RPC2'
-    # url = os.environ['ESPA_SCENECACHE_URL']
-    if scenecache_is_alive(url):
-        return xmlrpclib.ServerProxy(url)
-    else:
-        msg = "Could not contact scene_cache at %s" % url
-        raise RuntimeError(msg)
+#def scenecache_client():
+#    """Return an xmlrpc proxy to the caller for the scene cache
+#
+#    Returns -- An xmlrpclib ServerProxy object
+#    """
+#    url = 'http://edclpdsftp.cr.usgs.gov:50000/RPC2'
+#    # url = os.environ['ESPA_SCENECACHE_URL']
+#    if scenecache_is_alive(url):
+#        return xmlrpclib.ServerProxy(url)
+#    else:
+#        msg = "Could not contact scene_cache at %s" % url
+#        raise RuntimeError(msg)
 
 
 # ============================================================================
@@ -153,15 +150,14 @@ def get_cache_hostname():
       network
     '''
 
-    # 140 is here twice so the load is 2/3 + 1/3.  machines are mismatched
     host_list = settings.ESPA_CACHE_HOST_LIST
 
     def check_host_status(hostname):
         cmd = "ping -q -c 1 %s" % hostname
-        output = ''
+
         try:
-            output = execute_cmd(cmd)
-        except Exception, e:
+            execute_cmd(cmd)
+        except Exception:
             return -1
         return 0
 
@@ -226,7 +222,7 @@ def tar_files(tarred_full_path, file_list):
     output = ''
     try:
         output = execute_cmd(cmd)
-    except Exception, e:
+    except Exception:
         msg = "Error encountered tar'ing file(s): Stdout/Stderr:"
         if len(output) > 0:
             msg = ' '.join([msg, output])
@@ -250,7 +246,7 @@ def gzip_files(file_list):
     output = ''
     try:
         output = execute_cmd(cmd)
-    except Exception, e:
+    except Exception:
         msg = "Error encountered compressing file(s): Stdout/Stderr:"
         if len(output) > 0:
             msg = ' '.join([msg, output])
@@ -271,7 +267,7 @@ def checksum_local_file(filename):
     cksum_result = ''
     try:
         cksum_result = execute_cmd(cmd)
-    except Exception, e:
+    except Exception:
         msg = "Error encountered generating checksum: Stdout/Stderr:"
         if len(cksum_result) > 0:
             msg = ' '.join([msg, cksum_result])

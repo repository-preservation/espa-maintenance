@@ -1,5 +1,3 @@
-
-
 ##############################################################################
 # Used in cdr_ecv_cron.py
 
@@ -20,24 +18,11 @@ HADOOP_QUEUE_MAPPING = {
     'high': 'ondemand-high'
 }
 
-
 ##############################################################################
 # Used in cdr_ecv.py
 
-# Path to the Landsat L1T source data location
-LANDSAT_BASE_SOURCE_PATH = '/data/standard_l1t'
-
 # filename extension for landsat input products
 LANDSAT_INPUT_FILENAME_EXTENSION = '.tar.gz'
-
-# host for landsat input checks
-LANDSAT_INPUT_CHECK_HOST = 'edclpdsftp.cr.usgs.gov'
-
-# port for landsat input checks
-LANDSAT_INPUT_CHECK_PORT = 50000
-
-LANDSAT_INPUT_CHECK_BASE_PATH = "/RPC2"
-
 
 ##############################################################################
 # Used in modis.py
@@ -56,35 +41,28 @@ MODIS_INPUT_CHECK_HOST = 'e4ftl01.cr.usgs.gov'
 # port for modis input checks
 MODIS_INPUT_CHECK_PORT = 80
 
-MODIS_INPUT_CHECK_BASE_PATH = "/"
-
-
 ##############################################################################
 # Used in cdr_ecv.py and modis.py
 
 # Path to place the completed orders
 ESPA_BASE_OUTPUT_PATH = '/data2/LSRD'
 
-
 ##############################################################################
 # Used in plotting.py
 
 # Path to the completed orders
 ESPA_CACHE_DIRECTORY = '/data2/LSRD/orders'
-# Can override this by setting the environment variable DEV_CACHE_DIRECTORY
-
+##############################################################################
 
 ESPA_EMAIL_ADDRESS = 'espa@usgs.gov'
 
 ESPA_EMAIL_SERVER = 'gssdsflh01.cr.usgs.gov'
-
 
 ##############################################################################
 # Used by browse.py and science.py
 
 # Default resolution for browse generation
 DEFAULT_BROWSE_RESOLUTION = 50
-
 
 ##############################################################################
 # Used by science.py
@@ -97,7 +75,6 @@ DEFAULT_SOLR_COLLECTION_NAME = 'DEFAULT_COLLECTION'
 # executable
 CFMASK_MAX_CLOUD_PIXELS = '5000000'
 
-
 ##############################################################################
 # Used by distribution.py
 
@@ -109,7 +86,6 @@ DEFAULT_SLEEP_SECONDS = 2
 MAX_PACKAGING_ATTEMPTS = 3
 MAX_DELIVERY_ATTEMPTS = 3
 MAX_DISTRIBUTION_ATTEMPTS = 5
-
 
 ##############################################################################
 # Used by util.py and lpcs.py
@@ -124,14 +100,12 @@ MODIS_INPUT_HOSTNAME = 'e4ftl01.cr.usgs.gov'
 # Where to place the temporary scene processing log files
 LOGFILE_PATH = '/tmp'
 
-
 ##############################################################################
 # Used by plotting.py
 PLOT_BG_COLOR = '#f3f3f3'  # A light gray
 PLOT_MARKER = (1, 3, 0)    # Better circle than 'o'
 PLOT_MARKER_SIZE = 5.0     # A good size for the circle or diamond
 PLOT_MARKER_EDGE_WIDTH = 0.9  # The width of the black marker border
-
 
 ##############################################################################
 # Used by statistics.py
@@ -168,16 +142,9 @@ BAND_TYPE_STAT_RANGES = {
 '''Resolves system-wide identification of sensor name based on three letter
    prefix
 '''
-#SENSOR_NAMES = {
-#    'LC8': 'olitirs',
-#    'LE7': 'etm',
-#    'LT4': 'tm',
-#    'LT5': 'tm',
-#    'MYD': 'aqua',
-#    'MOD': 'terra'
-#}
 
 SENSOR_INFO = {
+    'L08': {'name': 'oli', 'lta_name':''},
     'LC8': {'name': 'olitirs', 'lta_name':'LANDSAT_8'},
     'LE7': {'name': 'etm','lta_name':'LANDSAT_ETM_PLUS'},
     'LT4': {'name': 'tm', 'lta_name':'LANDSAT_TM'},
@@ -185,7 +152,6 @@ SENSOR_INFO = {
     'MYD': {'name': 'aqua'},
     'MOD': {'name': 'terra'}
 }
-
 
 '''Default pixel sizes based on the input products'''
 DEFAULT_PIXEL_SIZE = {
@@ -219,13 +185,20 @@ DEFAULT_PIXEL_SIZE = {
         }
 }
 
-
 ''' Constant dictionary to hold the cache keys used in Django
  caching/memcached'''
 CACHE_KEYS = {
 
 
 }
+
+''' SOAP client configuration parameters '''
+# timeout is in seconds
+SOAP_CLIENT_TIMEOUT = 60 * 30
+
+# location where the WSDLS should be cached
+SOAP_CACHE_LOCATION = '/tmp/suds'
+
 
 ''' Dictionary containing retry timeouts in seconds'''
 RETRY = {
