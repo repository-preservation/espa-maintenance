@@ -44,9 +44,6 @@ try:
 except:
     from espa_common import utilities
 
-# local objects and methods
-import util
-
 
 # TODO - At some point in the future we should allow browse generation from
 #        L1T, and TOA as well.  Should also consider support for applying
