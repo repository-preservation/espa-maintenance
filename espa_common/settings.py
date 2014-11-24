@@ -144,7 +144,7 @@ BAND_TYPE_STAT_RANGES = {
 '''
 
 SENSOR_INFO = {
-    'L08': {'name': 'oli', 'lta_name':''},
+    'LO8': {'name': 'oli', 'lta_name':''},
     'LC8': {'name': 'olitirs', 'lta_name':'LANDSAT_8'},
     'LE7': {'name': 'etm','lta_name':'LANDSAT_ETM_PLUS'},
     'LT4': {'name': 'tm', 'lta_name':'LANDSAT_TM'},
@@ -165,6 +165,7 @@ DEFAULT_PIXEL_SIZE = {
         '13A2': 1000,
         '13A1': 500,
         'LC8': 30,
+        'LO8': 30,
         'LE7': 30,
         'LT4': 30,
         'LT5': 30
@@ -179,6 +180,7 @@ DEFAULT_PIXEL_SIZE = {
         '13A2': 0.0089831,
         '13A1': 0.00449155,
         'LC8': 0.0002695,
+        'LO8': 0.0002695,
         'LE7': 0.0002695,
         'LT4': 0.0002695,
         'LT5': 0.0002695
