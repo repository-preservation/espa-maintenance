@@ -70,7 +70,7 @@ def projection_minbox(ul_lon, ul_lat, lr_lon, lr_lat,
 
     print('Direct translation of the provided geographic coordinates')
     print('min_x', 'min_y', 'max_x', 'max_y')
-    print(min_x, min_y, max_x, max_y)
+    print("(%.4lf, %.4lf, %.4lf, %.4lf)" % (min_x, min_y, max_x, max_y))
 
     # Walk across the top and bottom of the geographic coordinates
     for lon in longitudes:
@@ -104,7 +104,7 @@ def projection_minbox(ul_lon, ul_lat, lr_lon, lr_lat,
 
     print('Map coordinates after minbox determination')
     print('min_x', 'min_y', 'max_x', 'max_y')
-    print(min_x, min_y, max_x, max_y)
+    print("(%.4lf, %.4lf, %.4lf, %.4lf)" % (min_x, min_y, max_x, max_y))
 
     return (min_x, min_y, max_x, max_y)
 # END - projection_minbox
