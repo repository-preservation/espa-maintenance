@@ -283,6 +283,7 @@ def http_transfer_file(download_url, destination_file):
 # END - http_transfer_file
 
 
+# ============================================================================
 def download_file_url(download_url, destination_file):
     '''
     Description:
