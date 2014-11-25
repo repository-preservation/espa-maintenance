@@ -1476,7 +1476,7 @@ class LandsatOLITIRSProcessor(LandsatProcessor):
 
 
 # ===========================================================================
-class LandsatOLIOnlyProcessor(LandsatOLITIRSProcessor):
+class LandsatOLIProcessor(LandsatOLITIRSProcessor):
     '''
     Description:
         Implements OLI only (LO8) specific processing.
@@ -1484,7 +1484,7 @@ class LandsatOLIOnlyProcessor(LandsatOLITIRSProcessor):
 
     # -------------------------------------------
     def __init__(self, parms):
-        super(LandsatOLIOnlyProcessor, self).__init__(parms)
+        super(LandsatOLIProcessor, self).__init__(parms)
 
     # -------------------------------------------
     def sr_command_line(self):
@@ -2959,11 +2959,7 @@ def get_instance(parms):
     elif sensor_code == 'le7':
         return LandsatETMProcessor(parms)
     elif sensor_code == 'lo8':
-        # TODO TODO TODO - This is not implemented in sensors and settings
-        #                  So I can't process them either.
-        msg = "A processor for [%s] has not been implemented" % product_id
-        raise NotImplementedError(msg)
-        # return LandsatOLIOnlyProcessor(parms)
+        return LandsatOLIProcessor(parms)
     elif sensor_code == 'lt8':
         msg = "A processor for [%s] has not been implemented" % product_id
         raise NotImplementedError(msg)
