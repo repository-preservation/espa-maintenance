@@ -554,11 +554,12 @@ def get_products_to_process(record_limit=500,
             'order__user__userprofile__contactid': cid,
             'status': 'oncache'
         }
-    
-        select_related = {
-    
-        }
         
+        if priority:
+            filters['order__priority'] = 'priority'
+    
+        select_related = ['order',]
+               
         orderby = 'order__orderdate'
         
         scenes = Scene.objects.filter(**filters).order_by(orderby)
