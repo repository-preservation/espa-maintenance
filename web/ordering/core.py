@@ -508,7 +508,7 @@ def handle_submitted_products():
 
 
 @transaction.atomic
-def get_products_to_process(limit=500,
+def get_products_to_process(record_limit=500,
                           for_user=None,
                           priority=None,
                           product_types=['landsat', 'modis']):
@@ -517,104 +517,83 @@ def get_products_to_process(limit=500,
 
     # use kwargs so we can dynamically build the filter criteria
     filters = {
-        'status': 'oncache'
+        'user__order__scene__status': 'oncache'
     }
 
     #optimize the query so it creates a join call rather than executing
     #multiple database calls for the related fields
-    select_related = ['order__orderid',
-                      'order__priority',
-                      'order__product_options',
-                      'order__user__userprofile__contactid']
+    select_related = ['user__order__orderid',
+                      'user__order__priority',
+                      'user__order__product_options',
+                      'user__userprofile__contactid']
 
     # use orderby for the orderby clause
-    orderby = 'order__order_date'
+    orderby = 'user__order__order_date'
 
     if for_user:
         # Find orders submitted by a specific user
-        filters['order__user__username'] = for_user
+        filters['user__username'] = for_user
 
     if priority:
         # retrieve by specified priority
-        filters['order__priority'] = priority
+        filters['user__order__priority'] = priority
 
     #filter based on what user asked for... modis, landsat or plot
-    filters['sensor_type__in'] = product_types
+    filters['user__order__scene__sensor_type__in'] = product_types
+    
+    u = UserProfile.objects.filter(user__order__scene__status='oncache')
+    u = u.select_related(**select_related).order_by(orderby)
+    
+    cids = [c[0] for c in u.values_list('contactid').distinct()]
 
-    #products = Scene.objects.filter(**kwargs).order_by(orderby)[:limit]
-    products = Scene.objects.filter(**filters)
-    products = products.select_related(select_related)
-    products = products.order_by(orderby)[:limit]
-
-    if len(products) == 0:
-        return []
-
-    #Pull the current oncache set from the db
-    #and include it as the result
     results = []
-
-    #retrieve the contact_ids and group by order so we can retrieve the
-    #download urls from lta
-    mapping = {}
-
-    #I really hate this, but flip the datastructure around so we have
-    #everything grouped by contactid as a key->value
-    #key == contact id
-    #value == list of dictionaries (with scene contents)
-    for p in products:
-
-        mapping_value = {
-            'orderid': p.order.orderid,
-            'priority': p.order.priority,
-            'scene': p.name,
-            'product_type': p.sensor_type,
-            'options': json.loads(p.order.product_options)
+    
+    for cid in cids:
+    
+        filters = {
+            'order__user__userprofile__contactid': cid,
+            'status': 'oncache'
         }
+    
+        select_related = {
+    
+        }
+        
+        orderby = 'order__orderdate'
+        
+        scenes = Scene.objects.filter(**filters).order_by(orderby)
 
-        cid = p.order.user.userprofile.contactid
-
-        if not (cid) in mapping:
-            mapping[cid] = []
-
-        mapping[cid].append(mapping_value)
-
-    #now we have to extract only the landsat scenes and then only the modis
-    #scenes so we can go to the right place to get the download urls
-    for cid in mapping.keys():
-        #build the separate lists
-        landsat = []
-        modis = []
-        for product in mapping[cid]:
-            if product['product_type'] == 'landsat':
-                landsat.append(product['scene'])
-            elif product['product_type'] == 'modis':
-                modis.append(product['scene'])
-
+        #landsat = [s.name for s in scenes where s.sensor_type = 'landsat']        
+        landsat = [s.name for s in scenes if s.sensor_type == 'landsat']
         landsat_urls = lta.get_download_urls(landsat, cid)
-        modis_urls = lpdaac.get_download_urls(modis)
 
+        modis = [s.name for s in scenes if s.sensor_type == 'modis']
+        modis_urls = lpdaac.get_download_urls(modis, cid)
 
+        for scene in scenes:
 
-    for p in products:
+            if len(results) >= record_limit:
+                break
+ 
+            dload_url = None
 
-        #in here, check to see if its a plot product or a normal product
-        #if plot, specify correct json options vs. product options
+            if scene.sensor_type == 'landsat':
+                dload_url = landsat_urls[scene.name]
+            elif scene.sensor_type == 'modis':
+                dload_url = modis_urls[scene.name]
 
-        options = json.loads(p.order.product_options)
+            result = {
+                'orderid': scene.order.orderid,
+                'product_type': scene.sensor_type,
+                'download_url': dload_url,
+                'scene': scene.name,
+                'priority': scene.order.priority      
+            }
 
-        orderline = json.dumps({'orderid': p.order.orderid,
-                                'scene': p.name,
-                                'priority': p.order.priority,
-                                'product_type': p.sensor_type,
-                                'options': options,
-                                #fill this in with the download url
-                                'download_url':None
-                                })
-
-        results.append(orderline)
+        results.append(result)
 
     return results
-
+      
 
 # Simple logger method for this module
 def helper_logger(msg):
