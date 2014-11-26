@@ -1,6 +1,10 @@
-import settings
+'''module to extract embedded information from product names and supply
+configured values for each product
+'''
+
+from espa_common import settings
+from espa_common import utilities
 import re
-import utilities
 
 
 class ProductNotImplemented(NotImplementedError):
@@ -68,6 +72,7 @@ class SensorProduct(object):
 
 
 class Modis(SensorProduct):
+    ''' Superclass for all Modis products '''
     version = None
     short_name = None
     horizontal = None
@@ -86,9 +91,9 @@ class Modis(SensorProduct):
         self.year = self.date_acquired[0:4]
         self.doy = self.date_acquired[4:8]
 
-        hv = parts[2]
-        self.horizontal = hv[1:3]
-        self.vertical = hv[4:6]
+        __hv = parts[2]
+        self.horizontal = __hv[1:3]
+        self.vertical = __hv[4:6]
         self.version = parts[3]
         self.date_produced = parts[4]
 
@@ -105,11 +110,13 @@ class Modis(SensorProduct):
 
 
 class Terra(Modis):
+    ''' Superclass for Terra based Modis products '''
     def __init__(self, product_id):
         super(Terra, self).__init__(product_id)
 
 
 class Aqua(Modis):
+    ''' Superclass for Aqua based Modis products '''
     def __init__(self, product_id):
         super(Aqua, self).__init__(product_id)
 
@@ -195,6 +202,7 @@ class ModisAqua13Q1(Aqua):
 
 
 class Landsat(SensorProduct):
+    ''' Superclass for all landsat based products '''
     path = None
     row = None
     station = None
@@ -222,22 +230,27 @@ class Landsat(SensorProduct):
 
         self.default_pixel_size = {'meters': _meters, 'dd': _dd}
 
-   
+
 class LandsatTM(Landsat):
+    ''' Models Thematic Mapper based products '''
     def __init__(self, product_id):
         super(LandsatTM, self).__init__(product_id)
 
 
 class LandsatETM(Landsat):
+    ''' Models Enhanced Thematic Mapper Plus based products '''
     def __init__(self, product_id):
         super(LandsatETM, self).__init__(product_id)
 
 
 class LandsatOLITIRS(Landsat):
+    ''' Models combined Landsat 8 OLI/TIRS products '''
     def __init__(self, product_id):
         super(LandsatOLITIRS, self).__init__(product_id)
-        
+
+
 class LandsatOLI(Landsat):
+    ''' Models Landsat 8 OLI only products '''
     def __init__(self, product_id):
         super(LandsatOLI, self).__init__(product_id)
 
@@ -258,17 +271,16 @@ def instance(product_id):
 
     # remove known file extensions before comparison
     # do not alter the case of the actual product_id!
-    if product_id.lower().endswith(settings.MODIS_INPUT_FILENAME_EXTENSION):
-        index = product_id.lower().index(settings.MODIS_INPUT_FILENAME_EXTENSION)
-        # leave original case intact
-        product_id = product_id[0:index]
-    elif product_id.lower().endswith(settings.LANDSAT_INPUT_FILENAME_EXTENSION):
-        index = product_id.lower().index(settings.LANDSAT_INPUT_FILENAME_EXTENSION)
-        # leave original case intact
-        product_id = product_id[0:index]
-
-    # ok to modify case here for comparison in regex
     _id = product_id.lower().strip()
+
+    if _id.endswith(settings.MODIS_INPUT_FILENAME_EXTENSION):
+        index = _id.index(settings.MODIS_INPUT_FILENAME_EXTENSION)
+        # leave original case intact
+        product_id = product_id[0:index]
+    elif _id.endswith(settings.LANDSAT_INPUT_FILENAME_EXTENSION):
+        index = _id.index(settings.LANDSAT_INPUT_FILENAME_EXTENSION)
+        # leave original case intact
+        product_id = product_id[0:index]
 
     instances = {
         'tm': (r'^lt[4|5]\d{3}\d{3}\d{4}\d{3}[a-z]{3}[a-z0-9]{2}$',
@@ -279,9 +291,9 @@ def instance(product_id):
 
         'olitirs': (r'^lc8\d{3}\d{3}\d{4}\d{3}\w{3}.{2}$',
                     LandsatOLITIRS),
-                    
+
         'oli': (r'^lo8\d{3}\d{3}\d{4}\d{3}\w{3}.{2}$',
-                    LandsatOLI),
+                LandsatOLI),
 
         'mod09a1': (r'^mod09a1\.a\d{7}\.h\d{2}v\d{2}\.005\.\d{13}$',
                     ModisTerra09A1),
