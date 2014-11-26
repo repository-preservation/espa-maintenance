@@ -1,5 +1,3 @@
-##############################################################################
-# Used in cdr_ecv_cron.py
 
 # Specifies the buffer length for an order line in the order file
 # The Hadoop File System block size should be a multiple of this value
@@ -18,14 +16,8 @@ HADOOP_QUEUE_MAPPING = {
     'high': 'ondemand-high'
 }
 
-##############################################################################
-# Used in cdr_ecv.py
-
 # filename extension for landsat input products
 LANDSAT_INPUT_FILENAME_EXTENSION = '.tar.gz'
-
-##############################################################################
-# Used in modis.py
 
 # Path to the MODIS Terra source data location
 TERRA_BASE_SOURCE_PATH = '/MOLT'
@@ -41,31 +33,15 @@ MODIS_INPUT_CHECK_HOST = 'e4ftl01.cr.usgs.gov'
 # port for modis input checks
 MODIS_INPUT_CHECK_PORT = 80
 
-##############################################################################
-# Used in cdr_ecv.py and modis.py
-
-# Path to place the completed orders
-ESPA_BASE_OUTPUT_PATH = '/data2/LSRD'
-
-##############################################################################
-# Used in plotting.py
-
 # Path to the completed orders
 ESPA_CACHE_DIRECTORY = '/data2/LSRD/orders'
-##############################################################################
 
 ESPA_EMAIL_ADDRESS = 'espa@usgs.gov'
 
 ESPA_EMAIL_SERVER = 'gssdsflh01.cr.usgs.gov'
 
-##############################################################################
-# Used by browse.py and science.py
-
 # Default resolution for browse generation
 DEFAULT_BROWSE_RESOLUTION = 50
-
-##############################################################################
-# Used by science.py
 
 # Default name for the solr collection
 DEFAULT_SOLR_COLLECTION_NAME = 'DEFAULT_COLLECTION'
@@ -74,9 +50,6 @@ DEFAULT_SOLR_COLLECTION_NAME = 'DEFAULT_COLLECTION'
 # It is used as a string in the code since it is passed to the cfmask
 # executable
 CFMASK_MAX_CLOUD_PIXELS = '5000000'
-
-##############################################################################
-# Used by distribution.py
 
 # Number of seconds to sleep when errors are encountered before attempting the
 # task again
@@ -87,28 +60,17 @@ MAX_PACKAGING_ATTEMPTS = 3
 MAX_DELIVERY_ATTEMPTS = 3
 MAX_DISTRIBUTION_ATTEMPTS = 5
 
-##############################################################################
-# Used by util.py and lpcs.py
-
 # List of hostnames to choose from for the access to the online cache
 # 140 is here twice so the load is 2/3 + 1/3.  machines are mismatched
 ESPA_CACHE_HOST_LIST = ['edclxs67p', 'edclxs140p', 'edclxs140p']
-MODIS_INPUT_HOSTNAME = 'e4ftl01.cr.usgs.gov'
-# Developers can override these for LPCS by setting the environment variable
-# DEV_CACHE_HOSTNAME
 
 # Where to place the temporary scene processing log files
 LOGFILE_PATH = '/tmp'
 
-##############################################################################
-# Used by plotting.py
 PLOT_BG_COLOR = '#f3f3f3'  # A light gray
 PLOT_MARKER = (1, 3, 0)    # Better circle than 'o'
 PLOT_MARKER_SIZE = 5.0     # A good size for the circle or diamond
 PLOT_MARKER_EDGE_WIDTH = 0.9  # The width of the black marker border
-
-##############################################################################
-# Used by statistics.py
 
 # Band type data ranges.  They are intended to be used for removing outliers
 # from the data before statistics generation
