@@ -193,13 +193,13 @@ def package_product(source_directory, destination_directory, product_name):
         tar_product(product_full_path, product_files)
 
         # It has the tar extension now
-        product_full_path = '%s.tar' % product_full_path
+        product_full_path = '.'.join([product_full_path, 'tar'])
 
         # Compress the product tar
         gzip_product(product_full_path)
 
         # It has the gz extension now
-        product_full_path = '%s.gz' % product_full_path
+        product_full_path = '.'.join([product_full_path, 'gz'])
 
         # Change file permissions
         logger.info("Changing file permissions on %s to 0644"
@@ -218,7 +218,7 @@ def package_product(source_directory, destination_directory, product_name):
             if len(output) > 0:
                 logger.info(output)
 
-        # If it was good then create a checksum file
+        # If it was good create a checksum file
         cksum_output = ''
         cmd = ' '.join(['cksum', product_full_path])
         try:
@@ -300,10 +300,10 @@ def distribute_product(destination_host, destination_directory,
             logger.info(output)
 
     # Figure out the destination full paths
-    destination_cksum_file = '%s/%s' \
-        % (destination_directory, os.path.basename(cksum_filename))
-    destination_product_file = '%s/%s' \
-        % (destination_directory, os.path.basename(product_filename))
+    destination_cksum_file = os.path.join(destination_directory,
+                                          os.path.basename(cksum_filename))
+    destination_product_file = os.path.join(destination_directory,
+                                            os.path.basename(product_filename))
 
     # Remove any pre-existing files
     # Grab the first part of the filename, which is not unique
@@ -402,7 +402,7 @@ def distribute_statistics(scene, work_directory,
         # Remove any pre-existing stats
         cmd = ' '.join(['ssh', '-q', '-o', 'StrictHostKeyChecking=no',
                         destination_host, 'rm', '-f',
-                        '%s/%s*' % (stats_directory, scene)])
+                        os.path.join(stats_directory, scene)])
         output = ''
         try:
             logger.debug(' '.join(["rm remote stats cmd:", cmd]))
