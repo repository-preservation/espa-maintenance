@@ -9,10 +9,10 @@ class User(object):
 
     def list_orders(self):
         pass
-    
+
     def verify_products(self, product_list, ignore_errors=True):
         pass
-    
+
     def search(self,
                north,
                south,
@@ -36,11 +36,11 @@ class Admin(object):
 
     def list_policies(self):
         pass
-    
+
     def list_limits(self):
         pass
-    
-    def new_order(self, 
+
+    def new_order(self,
                   user_name,
                   verification_token,
                   product_list,

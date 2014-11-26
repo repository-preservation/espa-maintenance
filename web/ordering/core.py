@@ -56,7 +56,6 @@ class Emails(object):
             msg = 'order must be str, int or instance of models.Order'
             raise TypeError(msg)
 
-
         email = order.user.email
         url = self.__order_status_url(email)
 
@@ -147,6 +146,7 @@ TODO -- Build HadoopHandler() as well.
 TODO -- HadoopHandler().cluster_status()
 TODO -- HadoopHandler().cancel_job(jobid)
 '''
+
 
 class ProductHandler(object):
 
@@ -310,7 +310,7 @@ def handle_submitted_landsat_products():
         landsat_submitted = [l.name for l in landsat_products]
 
         # find all the submitted products that are nlaps and reject them
-        landsat_nlaps = products_are_nlaps(landsat_submitted)
+        landsat_nlaps = espa_common.nlaps.products_are_nlaps(landsat_submitted)
 
         if settings.DEBUG:
             print("Found %i landsat nlaps products" % len(landsat_nlaps))
@@ -328,7 +328,6 @@ def handle_submitted_landsat_products():
                            }
 
             Scene.objects.filter(**filter_args).update(**update_args)
-
 
         # find all the landsat products already sitting on online cache
         landsat_oncache = products_on_cache(landsat_submitted)
@@ -509,9 +508,9 @@ def handle_submitted_products():
 
 @transaction.atomic
 def get_products_to_process(record_limit=500,
-                          for_user=None,
-                          priority=None,
-                          product_types=['landsat', 'modis']):
+                            for_user=None,
+                            priority=None,
+                            product_types=['landsat', 'modis']):
     '''Find scenes that are oncache and return them as properly formatted
     json per the interface description between the web and processing tier'''
 
@@ -540,31 +539,31 @@ def get_products_to_process(record_limit=500,
 
     #filter based on what user asked for... modis, landsat or plot
     filters['user__order__scene__sensor_type__in'] = product_types
-    
+
     u = UserProfile.objects.filter(user__order__scene__status='oncache')
     u = u.select_related(**select_related).order_by(orderby)
-    
+
     cids = [c[0] for c in u.values_list('contactid').distinct()]
 
     results = []
-    
+
     for cid in cids:
-    
+
         filters = {
             'order__user__userprofile__contactid': cid,
             'status': 'oncache'
         }
-        
+
         if priority:
             filters['order__priority'] = 'priority'
-    
-        select_related = ['order',]
-               
+
+        select_related = ['order', ]
+
         orderby = 'order__orderdate'
-        
+
         scenes = Scene.objects.filter(**filters).order_by(orderby)
 
-        #landsat = [s.name for s in scenes where s.sensor_type = 'landsat']        
+        #landsat = [s.name for s in scenes where s.sensor_type = 'landsat']
         landsat = [s.name for s in scenes if s.sensor_type == 'landsat']
         landsat_urls = lta.get_download_urls(landsat, cid)
 
@@ -575,7 +574,7 @@ def get_products_to_process(record_limit=500,
 
             if len(results) >= record_limit:
                 break
- 
+
             dload_url = None
 
             if scene.sensor_type == 'landsat':
@@ -588,13 +587,13 @@ def get_products_to_process(record_limit=500,
                 'product_type': scene.sensor_type,
                 'download_url': dload_url,
                 'scene': scene.name,
-                'priority': scene.order.priority      
+                'priority': scene.order.priority
             }
 
         results.append(result)
 
     return results
-      
+
 
 # Simple logger method for this module
 def helper_logger(msg):
@@ -701,7 +700,6 @@ def set_product_unavailable(name, orderid, processing_loc, error, note):
     product = Scene.objects.get(name=name, order__orderid=orderid)
     product = product.select_related('order')
 
-
     product.status = 'unavailable'
     product.processing_location = processing_loc
     product.completion_date = datetime.datetime.now()
@@ -758,11 +756,11 @@ def queue_products(order_name_tuple_list, processing_location, job_name):
 @transaction.atomic
 #  Marks a scene complete in the database for a given order
 def mark_product_complete(name,
-                        orderid,
-                        processing_loc,
-                        completed_file_location,
-                        destination_cksum_file=None,
-                        log_file_contents=""):
+                          orderid,
+                          processing_loc,
+                          completed_file_location,
+                          destination_cksum_file=None,
+                          log_file_contents=""):
 
     print ("Marking scene:%s complete for order:%s" % (name, orderid))
     product = Scene.objects.get(name=name, order__orderid=orderid)
@@ -783,10 +781,10 @@ def mark_product_complete(name,
     cksum_file = cksum_file_parts[len(cksum_file_parts) - 1]
 
     product.product_dload_url = ('%s/orders/%s/%s') % \
-                          (base_url, orderid, product_file)
+                                (base_url, orderid, product_file)
 
     product.cksum_download_url = ('%s/orders/%s/%s') % \
-                           (base_url, orderid, cksum_file)
+                                 (base_url, orderid, cksum_file)
 
     product.save()
 
@@ -1015,15 +1013,19 @@ def load_ee_orders():
 
                 helper_logger(log_msg)
 
+
     # Sends the order submission confirmation email
 def send_initial_email(order):
     return Emails().send_initial(order)
 
+
 def send_completion_email(order):
     return Emails().send_completion(order)
 
+
 def send_initial_emails():
     return Emails().send_all_initial()
+
 
 @transaction.atomic
 def finalize_orders():
@@ -1035,6 +1037,7 @@ def finalize_orders():
         update_order_if_complete(o)
 
     return True
+
 
 def handle_orders():
     '''Logic handler for how we accept orders + products into the system'''

@@ -157,11 +157,11 @@ class OrderWrapperServiceClient(LTAService):
         sb.write(self.xml_header)
 
         head = ("<sceneList "
-            "xmlns='http://earthexplorer.usgs.gov/schema/sceneList' "
-            "xmlns:xsi='http://www.w3.org/2001/XMLSchema-instance' "
-            "xsi:schemaLocation="
-            "'http://earthexplorer.usgs.gov/schema/sceneList "
-            "http://earthexplorer.usgs.gov/EE/sceneList.xsd'>")
+                "xmlns='http://earthexplorer.usgs.gov/schema/sceneList' "
+                "xmlns:xsi='http://www.w3.org/2001/XMLSchema-instance' "
+                "xsi:schemaLocation="
+                "'http://earthexplorer.usgs.gov/schema/sceneList "
+                "http://earthexplorer.usgs.gov/EE/sceneList.xsd'>")
 
         sb.write(head)
 
@@ -178,7 +178,6 @@ class OrderWrapperServiceClient(LTAService):
         headers = dict()
         headers['Content-Type'] = 'application/xml'
         headers['Content-Length'] = len(request_body)
-
 
         #send the request and check return status
         #request = urllib2.Request(request_url, request_body, headers)
@@ -258,7 +257,6 @@ class OrderWrapperServiceClient(LTAService):
         }
         '''
 
-
         # build service url
         request_url = "%s/%s" % (self.url, 'submitOrder')
 
@@ -268,11 +266,12 @@ class OrderWrapperServiceClient(LTAService):
             sb.write(self.xml_header)
 
             head = ("<orderParameters "
-                "xmlns='http://earthexplorer.usgs.gov/schema/orderParameters' "
-                "xmlns:xsi='http://www.w3.org/2001/XMLSchema-instance' "
-                "xsi:schemaLocation="
-                "'http://earthexplorer.usgs.gov/schema/orderParameters "
-                "http://earthexplorer.usgs.gov/EE/orderParameters.xsd'>")
+                    "xmlns="
+                    "'http://earthexplorer.usgs.gov/schema/orderParameters' "
+                    "xmlns:xsi='http://www.w3.org/2001/XMLSchema-instance' "
+                    "xsi:schemaLocation="
+                    "'http://earthexplorer.usgs.gov/schema/orderParameters "
+                    "http://earthexplorer.usgs.gov/EE/orderParameters.xsd'>")
 
             sb.write(head)
             sb.write("<contactId>%s</contactId>" % contact_id)
@@ -444,12 +443,12 @@ class OrderWrapperServiceClient(LTAService):
             sb = StringIO()
             sb.write(self.xml_header)
             head = ("<downloadSceneList "
-                "xmlns="
-                "'http://earthexplorer.usgs.gov/schema/downloadSceneList' "
-                "xmlns:xsi='http://www.w3.org/2001/XMLSchema-instance' "
-                "xsi:schemaLocation="
-                "'http://earthexplorer.usgs.gov/schema/downloadSceneList "
-                "http://earthexplorer.usgs.gov/EE/downloadSceneList.xsd'>")
+                    "xmlns="
+                    "'http://earthexplorer.usgs.gov/schema/downloadSceneList' "
+                    "xmlns:xsi='http://www.w3.org/2001/XMLSchema-instance' "
+                    "xsi:schemaLocation="
+                    "'http://earthexplorer.usgs.gov/schema/downloadSceneList "
+                    "http://earthexplorer.usgs.gov/EE/downloadSceneList.xsd'>")
 
             sb.write(head)
 
@@ -547,7 +546,7 @@ class OrderWrapperServiceClient(LTAService):
         result = self.get_download_url([product], contact_id)
 
         if 'download_url' in result[product] \
-            and result[product]['status'] == 'available':
+                and result[product]['status'] == 'available':
 
             return True
         else:
@@ -738,35 +737,45 @@ class OrderDeliveryServiceClient(LTASoapService):
 ''' This is the public interface that calling code should use to interact
     with this module'''
 
+
 def login_user(username, password):
     return RegistrationServiceClient().login_user(username, password)
+
 
 def get_user_info(username, password):
     return RegistrationServiceClient().get_user_info(username, password)
 
+
 def get_user_name(contactid):
     return RegistrationServiceClient().get_username(contactid)
+
 
 def verify_scenes(product_list):
     return OrderWrapperServiceClient().verify_scenes(product_list)
 
+
 def input_exists(product, contact_id):
     return OrderWrapperServiceClient().input_exists(product, contact_id)
+
 
 def order_scenes(product_list, contact_id, priority=5):
     return OrderWrapperServiceClient().order_scenes(product_list,
                                                     contact_id,
                                                     priority)
 
+
 def get_download_urls(product_list, contact_id):
     return OrderWrapperServiceClient().get_download_urls(product_list,
-                                                        contact_id)
+                                                         contact_id)
+
 
 def get_available_orders():
     return OrderDeliveryServiceClient().get_available_orders()
 
+
 def get_order_status(lta_order_number):
     return OrderUpdateServiceClient().get_order_status(lta_order_number)
+
 
 def update_order_status(lta_order_number, unit_number, new_status):
     return OrderUpdateServiceClient().update_order(lta_order_number,

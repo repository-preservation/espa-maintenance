@@ -13,7 +13,7 @@ class LPDAACService(object):
 
     def verify_products(self, products):
         response = {}
-        
+
         if isinstance(products, str):
             products = [products]
 
@@ -25,7 +25,6 @@ class LPDAACService(object):
             response[product.product_id] = self.input_exists(product)
 
         return response
-
 
     def input_exists(self, product):
         '''Determines if a LPDAAC product is available for download
@@ -42,7 +41,7 @@ class LPDAACService(object):
             url = self.get_download_url(product)
             if url:
                 response = None
-                
+
                 try:
                     response = requests.head(url)
                     if response.ok:
@@ -63,24 +62,24 @@ class LPDAACService(object):
     def get_download_urls(self, products):
 
         urls = {}
-        
+
         #be nice and accept a string
         if isinstance(products, str):
             products = sensor.instance(products)
-        
+
         #also be nice and accept a sensor.Modis object
         if isinstance(products, sensor.Modis):
             products = [products]
-            
+
         for product in products:
             path = self._build_modis_input_file_path(product)
             url = ''.join([self.host, ":", str(self.port), path])
 
             if not url.lower().startswith("http"):
                 url = ''.join(['http://', url])
-                
+
             urls[product.product_id] = url
-            
+
         return urls
 
     def _build_modis_input_file_path(self, product):
@@ -116,7 +115,7 @@ class LPDAACService(object):
         path = os.path.join(base_path,
                             '.'.join([product.short_name.upper(),
                                       product.version.upper()]),
-                            path_date.upper(), input_file_name )
+                            path_date.upper(), input_file_name)
 
         return path
 
@@ -124,8 +123,10 @@ class LPDAACService(object):
 def input_exists(product):
     return LPDAACService().input_exists(product)
 
+
 def verify_products(products):
     return LPDAACService().verify_products(products)
+
 
 def get_download_urls(products):
     return LPDAACService().get_download_urls(products)

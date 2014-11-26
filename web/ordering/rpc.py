@@ -68,10 +68,10 @@ def _set_product_error(name, orderid, processing_loc, error):
 
 def _set_product_unavailable(name, orderid, processing_loc, error, note):
     return core.set_product_unavailable(name,
-                                      orderid,
-                                      processing_loc,
-                                      error,
-                                      note)
+                                        orderid,
+                                        processing_loc,
+                                        error,
+                                        note)
 
 
 def _queue_products(order_name_tuple_list, processing_location, job_name):
@@ -82,11 +82,11 @@ def _queue_products(order_name_tuple_list, processing_location, job_name):
 
 
 def _mark_product_complete(name,
-                         orderid,
-                         processing_loc,
-                         completed_scene_location,
-                         cksum_file_location,
-                         log_file_contents_binary):
+                           orderid,
+                           processing_loc,
+                           completed_scene_location,
+                           cksum_file_location,
+                           log_file_contents_binary):
 
     log_file_contents = None
     if type(log_file_contents_binary) is str:
@@ -95,11 +95,11 @@ def _mark_product_complete(name,
         log_file_contents = log_file_contents_binary.data
 
     return core.mark_product_complete(name,
-                                    orderid,
-                                    processing_loc,
-                                    completed_scene_location,
-                                    cksum_file_location,
-                                    log_file_contents)
+                                      orderid,
+                                      processing_loc,
+                                      completed_scene_location,
+                                      cksum_file_location,
+                                      log_file_contents)
 
 
 def _handle_orders():
@@ -112,13 +112,13 @@ def _get_configuration(key):
 
 
 def _get_products_to_process(limit=None,
-                           for_user=None,
-                           priority=None,
-                           product_types=['landsat', 'modis']):
+                             for_user=None,
+                             priority=None,
+                             product_types=['landsat', 'modis']):
     return core.get_products_to_process(limit=limit,
-                                      for_user=for_user,
-                                      priority=priority,
-                                      product_types=product_types)
+                                        for_user=for_user,
+                                        priority=priority,
+                                        product_types=product_types)
 
 
 def _get_data_points(tags=[]):

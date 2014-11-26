@@ -15,10 +15,10 @@ class ModisProductListValidator(Validator):
         valid_products = list()
 
         for p in input_products:
-            
+
             if isinstance(p, str):
                 p = sensor.instance(p)
-            
+
             if isinstance(p, sensor.Modis):
                 if lpdaac.input_exists(p):
                     valid_products.append(p.product_id)
@@ -97,7 +97,7 @@ class LandsatProductListValidator(Validator):
 
                 if isinstance(p, str):
                     p = sensor.instance(p)
-                    
+
                 if isinstance(p, sensor.Landsat):
                     request.append(p.product_id)
 
