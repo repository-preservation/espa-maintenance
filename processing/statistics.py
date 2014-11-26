@@ -19,18 +19,12 @@ from cStringIO import StringIO
 import numpy as np
 
 # espa-common objects and methods
-from espa_constants import *
+from espa_constants import EXIT_FAILURE
+from espa_constants import EXIT_SUCCESS
 
-# imports from espa/espa_common
-try:
-    from logger_factory import EspaLogging
-except:
-    from espa_common.logger_factory import EspaLogging
-
-try:
-    import settings
-except:
-    from espa_common import settings
+# imports from espa_common through processing.__init__.py
+from processing import EspaLogging
+from processing import settings
 
 # local objects and methods
 import espa_exception as ee
@@ -99,7 +93,7 @@ def generate_statistics(work_directory, files_to_search_for):
       product if we need statistics.
     '''
 
-    logger = EspaLogging.get_logger('espa.processing')
+    logger = EspaLogging.get_logger(settings.PROCESSING_LOGGER)
 
     # Change to the working directory
     current_directory = os.getcwd()
@@ -114,7 +108,7 @@ def generate_statistics(work_directory, files_to_search_for):
                 pass
             else:
                 raise ee.ESPAException(ee.ErrorCodes.statistics,
-                                       str(e)), None, sys.exc_info()[2]
+                                       str(exc)), None, sys.exc_info()[2]
 
         try:
             # Build the list of files to process
@@ -174,9 +168,9 @@ if __name__ == '__main__':
     '''
 
     # Configure logging
-    EspaLogging.configure('espa.processing', order='test',
+    EspaLogging.configure(settings.PROCESSING_LOGGER, order='test',
                           product='statistics')
-    logger = EspaLogging.get_logger('espa.processing')
+    logger = EspaLogging.get_logger(settings.PROCESSING_LOGGER)
 
     # Hold the wild card strings in a type based dictionary
     files_to_search_for = dict()

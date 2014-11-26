@@ -20,23 +20,13 @@ from time import sleep
 from argparse import ArgumentParser
 
 # espa-common objects and methods
-from espa_constants import *
+from espa_constants import EXIT_FAILURE
+from espa_constants import EXIT_SUCCESS
 
-# imports from espa/espa_common
-try:
-    from logger_factory import EspaLogging
-except:
-    from espa_common.logger_factory import EspaLogging
-
-try:
-    import settings
-except:
-    from espa_common import settings
-
-try:
-    import utilities
-except:
-    from espa_common import utilities
+# imports from espa_common through processing.__init__.py
+from processing import EspaLogging
+from processing import settings
+from processing import utilities
 
 # local objects and methods
 import espa_exception as ee
@@ -129,7 +119,7 @@ def tar_product(product_full_path, product_files):
                                str(e)), None, sys.exc_info()[2]
     finally:
         if len(output) > 0:
-            logger = EspaLogging.get_logger('espa.processing')
+            logger = EspaLogging.get_logger(settings.PROCESSING_LOGGER)
             logger.info(output)
 # END - tar_product
 
@@ -151,7 +141,7 @@ def gzip_product(product_full_path):
                                str(e)), None, sys.exc_info()[2]
     finally:
         if len(output) > 0:
-            logger = EspaLogging.get_logger('espa.processing')
+            logger = EspaLogging.get_logger(settings.PROCESSING_LOGGER)
             logger.info(output)
 # END - gzip_product
 
@@ -171,7 +161,7 @@ def package_product(source_directory, destination_directory, product_name):
       cksum_value - The checksum value
     '''
 
-    logger = EspaLogging.get_logger('espa.processing')
+    logger = EspaLogging.get_logger(settings.PROCESSING_LOGGER)
 
     product_full_path = os.path.join(destination_directory, product_name)
 
@@ -280,7 +270,7 @@ def distribute_product(destination_host, destination_directory,
         and destination system
     '''
 
-    logger = EspaLogging.get_logger('espa.processing')
+    logger = EspaLogging.get_logger(settings.PROCESSING_LOGGER)
 
     # Create the destination directory on the destination host
     logger.info("Creating destination directory %s on %s"
@@ -372,7 +362,7 @@ def distribute_statistics(scene, work_directory,
       - It is assumed a stats directory exists under the current directory
     '''
 
-    logger = EspaLogging.get_logger('espa.processing')
+    logger = EspaLogging.get_logger(settings.PROCESSING_LOGGER)
 
     # Change to the source directory
     current_directory = os.getcwd()
@@ -478,7 +468,7 @@ def deliver_product(scene, work_directory, package_directory, product_name,
         X attempts are made for each part of the delivery
     '''
 
-    logger = EspaLogging.get_logger('espa.processing')
+    logger = EspaLogging.get_logger(settings.PROCESSING_LOGGER)
 
     # Package the product files
     # Attempt X times sleeping between each attempt
@@ -555,9 +545,9 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     # Configure logging
-    EspaLogging.configure('espa.processing', order='test',
+    EspaLogging.configure(settings.PROCESSING_LOGGER, order='test',
                           product='product', debug=args.debug)
-    logger = EspaLogging.get_logger('espa.processing')
+    logger = EspaLogging.get_logger(settings.PROCESSING_LOGGER)
 
     try:
         # Test requested routine

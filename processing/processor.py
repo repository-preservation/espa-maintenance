@@ -31,29 +31,14 @@ from cStringIO import StringIO
 from collections import defaultdict
 from matplotlib import pyplot as mpl_plot
 from matplotlib import dates as mpl_dates
-from matplotlib.ticker import MaxNLocator, AutoMinorLocator
+from matplotlib.ticker import MaxNLocator
 import numpy as np
 
-# imports from espa/espa_common
-try:
-    from logger_factory import EspaLogging
-except:
-    from espa_common.logger_factory import EspaLogging
-
-try:
-    import sensor
-except:
-    from espa_common import sensor
-
-try:
-    import settings
-except:
-    from espa_common import settings
-
-try:
-    import utilities
-except:
-    from espa_common import utilities
+# imports from espa_common through processing.__init__.py
+from processing import EspaLogging
+from processing import sensor
+from processing import settings
+from processing import utilities
 
 # local objects and methods
 import espa_exception as ee
@@ -104,7 +89,7 @@ class ProductProcessor(object):
             Initialization for the object.
         '''
 
-        self._logger = EspaLogging.get_logger('espa.processing')
+        self._logger = EspaLogging.get_logger(settings.PROCESSING_LOGGER)
 
         # Some minor enforcement for what parms should be
         if type(parms) is dict:
@@ -192,19 +177,10 @@ class ProductProcessor(object):
     def log_order_parameters(self):
         '''
         Description:
-            Log the order parameters in json format
-            Logs the order parameters that can be passed to the mapper
-            for this processor
+            Log the order parameters in json format.
         '''
 
         logger = self._logger
-
-        cmd = [os.path.basename(__file__)]
-        cmd_line_options = \
-            parameters.convert_to_command_line_options(self._parms)
-        cmd.extend(cmd_line_options)
-        cmd = ' '.join(cmd)
-        logger.info("PROCESSOR COMMAND LINE [%s]" % cmd)
 
         logger.info("MAPPER OPTION LINE %s"
                     % json.dumps(self._parms, sort_keys=True))
@@ -526,15 +502,6 @@ class CDRProcessor(CustomizationProcessor):
         super(CDRProcessor, self).__init__(parms)
 
     # -------------------------------------------
-    def get_source_directory(self):
-        '''
-        Description:
-            Returns the source directory to use for retrieving the input data.
-        '''
-
-        return None
-
-    # -------------------------------------------
     def validate_parameters(self):
         '''
         Description:
@@ -555,7 +522,7 @@ class CDRProcessor(CustomizationProcessor):
         '''
 
         msg = ("[%s] Requires implementation in the child class"
-               % self.stage_input_date.__name__)
+               % self.stage_input_data.__name__)
         raise NotImplementedError(msg)
 
     # -------------------------------------------
@@ -728,7 +695,6 @@ class CDRProcessor(CustomizationProcessor):
             # Attempt X times sleeping between each attempt
             attempt = 0
             sleep_seconds = settings.DEFAULT_SLEEP_SECONDS
-            product_name = self.get_product_name()
             dest_host = options['destination_host']
             dest_directory = options['destination_directory']
             dest_user = options['destination_username']
@@ -840,7 +806,6 @@ class LandsatProcessor(CDRProcessor):
 
         logger.info("Validating [LandsatProcessor] parameters")
 
-        product_id = self._parms['product_id']
         options = self._parms['options']
 
         # Force these parameters to false if not provided
@@ -923,7 +888,9 @@ class LandsatProcessor(CDRProcessor):
         product_id = self._parms['product_id']
         options = self._parms['options']
 
-        destination_file = '%s/%s.tar.gz' % (self._stage_dir, product_id)
+        file_name = '.'.join([product_id,
+                              settings.LANDSAT_INPUT_FILENAME_EXTENSION])
+        destination_file = os.path.join(self._stage_dir, file_name)
 
         # Download the source data
         try:
@@ -988,6 +955,8 @@ class LandsatProcessor(CDRProcessor):
         '''
         Description:
             Returns the command line required to generate surface reflectance.
+            Evaluates the options requested by the user to define the command
+            line string to use, or returns None indicating nothing todo.
 
         Note:
             Provides the L4, L5, and L7 command line.  L8 processing overrides
@@ -1065,6 +1034,8 @@ class LandsatProcessor(CDRProcessor):
         '''
         Description:
             Returns the command line required to generate cfmask.
+            Evaluates the options requested by the user to define the command
+            line string to use, or returns None indicating nothing todo.
 
         Note:
             Provides the L4, L5, and L7 command line.  L8 processing overrides
@@ -1112,6 +1083,8 @@ class LandsatProcessor(CDRProcessor):
         '''
         Description:
             Returns the command line required to generate spectral indices.
+            Evaluates the options requested by the user to define the command
+            line string to use, or returns None indicating nothing todo.
 
         Note:
             Provides the L4, L5, L7, and L8(LC8) command line.
@@ -1414,6 +1387,8 @@ class LandsatOLITIRSProcessor(LandsatProcessor):
         '''
         Description:
             Returns the command line required to generate surface reflectance.
+            Evaluates the options requested by the user to define the command
+            line string to use, or returns None indicating nothing todo.
         '''
 
         options = self._parms['options']
@@ -1462,6 +1437,8 @@ class LandsatOLITIRSProcessor(LandsatProcessor):
         '''
         Description:
             Returns the command line required to generate cfmask.
+            Evaluates the options requested by the user to define the command
+            line string to use, or returns None indicating nothing todo.
         '''
 
         options = self._parms['options']
@@ -1491,6 +1468,8 @@ class LandsatOLIProcessor(LandsatOLITIRSProcessor):
         '''
         Description:
             Returns the command line required to generate surface reflectance.
+            Evaluates the options requested by the user to define the command
+            line string to use, or returns None indicating nothing todo.
         '''
 
         options = self._parms['options']
@@ -1511,11 +1490,14 @@ class LandsatOLIProcessor(LandsatOLITIRSProcessor):
         '''
         Description:
             Returns the command line required to generate cfmask.
+            Evaluates the options requested by the user to define the command
+            line string to use, or returns None indicating nothing todo.
 
         Note: cfmask processing requires both OLI and TIRS bands so OLI only
               products can not execute l8cfmask.
         '''
 
+        # Return None since we can not process this option.
         return None
 
     # -------------------------------------------
@@ -1523,11 +1505,14 @@ class LandsatOLIProcessor(LandsatOLITIRSProcessor):
         '''
         Description:
             Returns the command line required to generate spectral indices.
+            Evaluates the options requested by the user to define the command
+            line string to use, or returns None indicating nothing todo.
 
         Note:
             SR indices can not be produced with OLI only products
         '''
 
+        # Return None since we can not process this option.
         return None
 
 
@@ -1554,7 +1539,6 @@ class ModisProcessor(CDRProcessor):
 
         logger.info("Validating [ModisProcessor] parameters")
 
-        product_id = self._parms['product_id']
         options = self._parms['options']
 
         # Force these parameters to false if not provided
@@ -1587,7 +1571,9 @@ class ModisProcessor(CDRProcessor):
         product_id = self._parms['product_id']
         options = self._parms['options']
 
-        destination_file = '%s/%s.hdf' % (self._stage_dir, product_id)
+        file_name = '.'.join([product_id,
+                              settings.MODIS_INPUT_FILENAME_EXTENSION])
+        destination_file = os.path.join(self._stage_dir, file_name)
 
         # Download the source data
         try:
@@ -2883,9 +2869,6 @@ class PlotProcessor(ProductProcessor):
             Stages the input data required for the processor.
         '''
 
-        logger = self._logger
-
-        product_id = self._parms['product_id']
         options = self._parms['options']
 
         source_stats_files = os.path.join(options['statistics_directory'],

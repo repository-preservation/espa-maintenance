@@ -21,28 +21,12 @@ History:
 #        This code should also be modified to cleanup all of it's temporary
 #        files.  The calling code should only see the product.
 
-import os
-import sys
 import glob
 
-# espa-common objects and methods
-from espa_constants import *
-
-# imports from espa/espa_common
-try:
-    from logger_factory import EspaLogging
-except:
-    from espa_common.logger_factory import EspaLogging
-
-try:
-    import settings
-except:
-    from espa_common import settings
-
-try:
-    import utilities
-except:
-    from espa_common import utilities
+# imports from espa_common through processing.__init__.py
+from processing import EspaLogging
+from processing import settings
+from processing import utilities
 
 
 # TODO - At some point in the future we should allow browse generation from
@@ -56,7 +40,7 @@ def do_sr_browse(sr_filename, scene,
       Creates a browse image from the surface relfectance file
     '''
 
-    logger = EspaLogging.get_logger('espa.processing')
+    logger = EspaLogging.get_logger(settings.PROCESSING_LOGGER)
 
     logger.info("Creating browse product")
 

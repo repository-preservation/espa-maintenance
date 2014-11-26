@@ -12,31 +12,11 @@ History:
 
 import os
 import errno
-import sys
-import uuid
-import shutil
-import glob
 
-# espa-common objects and methods
-from espa_constants import *
-
-# imports from espa/espa_common
-try:
-    from logger_factory import EspaLogging
-except:
-    from espa_common.logger_factory import EspaLogging
-
-try:
-    import utilities
-except:
-    from espa_common import utilities
-
-# local objects and methods
-import espa_exception as ee
-import transfer
-
-
-espa_base_working_dir_envvar = 'ESPA_WORK_DIR'
+# imports from espa_common through processing.__init__.py
+from processing import EspaLogging
+from processing import settings
+from processing import utilities
 
 
 # ============================================================================
@@ -67,7 +47,7 @@ def untar_data(source_file, destination_directory):
       Works with '*.tar.gz' and '*.tar' files.
     '''
 
-    logger = EspaLogging.get_logger('espa.processing')
+    logger = EspaLogging.get_logger(settings.PROCESSING_LOGGER)
 
     # If both source and destination are localhost we can just copy the data
     cmd = ' '.join(['tar', '--directory', destination_directory,

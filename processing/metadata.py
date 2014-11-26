@@ -16,14 +16,9 @@ import shutil
 import glob
 from cStringIO import StringIO
 
-# espa-common objects and methods
-from espa_constants import *
-
-# imports from espa/espa_common
-try:
-    from logger_factory import EspaLogging
-except:
-    from espa_common.logger_factory import EspaLogging
+# imports from espa_common through processing.__init__.py
+from processing import EspaLogging
+from processing import settings
 
 
 # ============================================================================
@@ -33,7 +28,7 @@ def get_landsat_metadata(work_dir, product_id):
         Fixes potentially bad MTL file from Landsat and returns the Landsat
         metadata filename to use with the rest of the processing.
     '''
-    logger = EspaLogging.get_logger('espa.processing')
+    logger = EspaLogging.get_logger(settings.PROCESSING_LOGGER)
 
     # Find the metadata file
     metadata_filename = ''

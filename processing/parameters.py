@@ -12,19 +12,10 @@ History:
 
 import os
 
-# espa-common objects and methods
-from espa_constants import *
-
-# imports from espa/espa_common
-try:
-    from logger_factory import EspaLogging
-except:
-    from espa_common.logger_factory import EspaLogging
-
-try:
-    import sensor
-except:
-    from espa_common import sensor
+# imports from espa_common through processing.__init__.py
+from processing import EspaLogging
+from processing import settings
+from processing import sensor
 
 
 # This contains the valid sensors and data types which are supported
@@ -518,7 +509,7 @@ def validate_reprojection_parameters(parms, scene, projections, ns_values,
       assumed that the web tier has validated them.
     '''
 
-    logger = EspaLogging.get_logger('espa.processing')
+    logger = EspaLogging.get_logger(settings.PROCESSING_LOGGER)
 
     # Create this and set to None if not present
     if not test_for_parameter(parms, 'projection'):

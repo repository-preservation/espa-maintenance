@@ -72,6 +72,24 @@ PLOT_MARKER = (1, 3, 0)    # Better circle than 'o'
 PLOT_MARKER_SIZE = 5.0     # A good size for the circle or diamond
 PLOT_MARKER_EDGE_WIDTH = 0.9  # The width of the black marker border
 
+# We are only supporting one radius when warping to sinusoidal
+SINUSOIDAL_SPHERE_RADIUS = 6371007.181
+
+# Some defines for common pixels sizes in decimal degrees
+DEG_FOR_30_METERS = 0.0002695
+DEG_FOR_15_METERS = (DEG_FOR_30_METERS / 2.0)
+DEG_FOR_1_METER = (DEG_FOR_30_METERS / 30.0)
+
+# Supported datums - the strings for them
+WGS84 = 'WGS84'
+NAD27 = 'NAD27'
+NAD83 = 'NAD83'
+
+TRANSFER_BLOCK_SIZE = 10485760
+
+# We do not allow any user selectable choices for this projection
+GEOGRAPHIC_PROJ4_STRING = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs"
+
 # Band type data ranges.  They are intended to be used for removing outliers
 # from the data before statistics generation
 # Must match DATA_MAX_Y and DATA_MIN_Y values in plotting.py
@@ -178,6 +196,7 @@ RETRY = {
 '''
 LOGGING DEFINITIONS
 '''
+PROCESSING_LOGGER = 'espa.processing'
 
 LOGGER_CONFIG = {
     'version': 1,

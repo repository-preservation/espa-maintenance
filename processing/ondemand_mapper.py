@@ -21,23 +21,16 @@ History:
                                                map operations
 '''
 
-import os
 import sys
 import socket
 import json
 import xmlrpclib
 from argparse import ArgumentParser
 
-# imports from espa/espa_common
-try:
-    from logger_factory import EspaLogging
-except:
-    from espa_common.logger_factory import EspaLogging
-
-try:
-    import sensor
-except:
-    from espa_common import sensor
+# imports from espa_common through processing.__init__.py
+from processing import EspaLogging
+from processing import settings
+from processing import sensor
 
 # local objects and methods
 import espa_exception as ee
@@ -48,8 +41,8 @@ import processor
 # ============================================================================
 def set_product_error(server, order_id, product_id, processing_location):
 
-    logger = EspaLogging.get_logger('espa.processing')
-    logged_contents = EspaLogging.read_logger_file('espa.processing')
+    logger = EspaLogging.get_logger(settings.PROCESSING_LOGGER)
+    logged_contents = EspaLogging.read_logger_file(settings.PROCESSING_LOGGER)
 
     if server is not None:
         try:
@@ -62,7 +55,7 @@ def set_product_error(server, order_id, product_id, processing_location):
                                 " set_scene_error")
                 return False
 
-        except Exception, e:
+        except Exception:
             logger.critical("Failed processing xmlrpc call to"
                             " set_scene_error")
             logger.exception("Exception encountered and follows")
@@ -120,9 +113,9 @@ def process(args):
                 debug = options['debug']
 
             # Configure and get the logger for this order request
-            EspaLogging.configure('espa.processing', order=order_id,
+            EspaLogging.configure(settings.PROCESSING_LOGGER, order=order_id,
                                   product=product_id, debug=debug)
-            logger = EspaLogging.get_logger('espa.processing')
+            logger = EspaLogging.get_logger(settings.PROCESSING_LOGGER)
 
             # If the command line option is True don't use the scene option
             if not mapper_keep_log:
@@ -194,7 +187,7 @@ def process(args):
 
             # Cleanup the log file
             if not mapper_keep_log:
-                EspaLogging.delete_logger_file('espa.processing')
+                EspaLogging.delete_logger_file(settings.PROCESSING_LOGGER)
 
             # Reset back to the base logger
             logger = EspaLogging.get_logger('base')
@@ -294,7 +287,7 @@ def process(args):
                         try:
                             # Cleanup the log file
                             EspaLogging. \
-                                delete_logger_file('espa.processing')
+                                delete_logger_file(settings.PROCESSING_LOGGER)
                         except Exception, e:
                             logger.exception("Exception encountered"
                                              " stacktrace follows")
@@ -321,7 +314,7 @@ def process(args):
                         try:
                             # Cleanup the log file
                             EspaLogging. \
-                                delete_logger_file('espa.processing')
+                                delete_logger_file(settings.PROCESSING_LOGGER)
                         except Exception, e:
                             logger.exception("Exception encountered"
                                              " stacktrace follows")

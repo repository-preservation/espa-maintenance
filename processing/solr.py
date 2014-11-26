@@ -10,18 +10,12 @@ History:
   Created Jan/2014 by Ron Dilley, USGS/EROS
 '''
 
-import os
 import numpy as np
 from cStringIO import StringIO
 
-# espa-common objects and methods
-from espa_constants import *
-
-# imports from espa/espa_common
-try:
-    from logger_factory import EspaLogging
-except:
-    from espa_common.logger_factory import EspaLogging
+# imports from espa_common through processing.__init__.py
+from processing import EspaLogging
+from processing import settings
 
 
 # ============================================================================
@@ -32,7 +26,7 @@ def do_solr_index(metadata, scene, solr_filename, collection_name,
       Creates the solr index file from the metadata
     '''
 
-    logger = EspaLogging.get_logger('espa.processing')
+    logger = EspaLogging.get_logger(settings.PROCESSING_LOGGER)
 
     logger.info("Executing create_solr_index() for %s using collection %s "
                 % (scene, collection_name))
