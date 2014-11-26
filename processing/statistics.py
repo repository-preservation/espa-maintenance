@@ -136,10 +136,11 @@ def generate_statistics(work_directory, files_to_search_for):
                     # Drop the filename extention so we can replace it with
                     # 'stats'
                     base = os.path.splitext(file_name)[0]
+                    base_name = '.'.join([base, 'stats'])
 
-                    # Figure out the filename
-                    stats_output_file = ('%s/%s.stats'
-                                         % (stats_output_path, base))
+                    # Figure out the full path filename
+                    stats_output_file = os.path.join(stats_output_path,
+                                                     base_name)
 
                     # Buffer the stats
                     data_io = StringIO()
