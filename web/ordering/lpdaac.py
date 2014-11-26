@@ -103,14 +103,7 @@ class LPDAACService(object):
 
         input_file_extension = settings.MODIS_INPUT_FILENAME_EXTENSION
 
-        input_file_name = "%s.A%s%s.h%sv%s.%s.%s%s" % (product.short_name,
-                                                       product.year,
-                                                       product.doy,
-                                                       product.horizontal,
-                                                       product.vertical,
-                                                       product.version,
-                                                       product.date_produced,
-                                                       input_file_extension)
+        input_file_name = "%s.%s" % (product.product_id, input_file_extension)
 
         path = os.path.join(base_path,
                             '.'.join([product.short_name.upper(),

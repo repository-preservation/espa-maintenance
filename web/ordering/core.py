@@ -222,12 +222,6 @@ class OrderHandler(object):
     def load_ee(self):
         pass
 
-
-def frange(start, end, step):
-    '''Provides Python range functions over floating point values'''
-    return [x*step for x in range(int(start * 1./step), int(end * 1./step))]
-
-
 #def products_on_cache(input_product_list):
 #    """Proxy method call to determine if the scenes in question are on disk
 
@@ -239,19 +233,6 @@ def frange(start, end, step):
 #    """
 #    ipl = input_product_list
 #    return espa_common.utilities.scenecache_client().scenes_exist(ipl)
-
-
-#def products_are_nlaps(input_product_list):
-#    """Proxy method call to determine if the scenes are nlaps scenes
-
-#    Keyword args:
-#    input_product_list -- A Python list of scene identifiers
-
-#    Return:
-#    A subset of scene identifiers
-#    """
-#    client = espa_common.utilities.scenecache_client()
-#    return client.is_nlaps(input_product_list)
 
 
 @transaction.atomic
@@ -598,11 +579,6 @@ def get_products_to_process(record_limit=500,
 # Simple logger method for this module
 def helper_logger(msg):
     print(msg)
-    #h = open('/tmp/helper.log', 'a+')
-    #h.write(msg)
-    #h.flush()
-    #h.close()
-    #pass
 
 
 @transaction.atomic
@@ -943,16 +919,17 @@ def load_ee_orders():
                         lta.update_order(eeorder, s['unit_num'], "C")
 
                     if not success:
-                        log_msg = "Error updating lta for \
-                        [eeorder:%s ee_unit_num:%s \
-                        scene name:%s order:%s" \
-                        % (eeorder, s['unit_num'], scene.name, order.orderid)
+                        log_msg = ("Error updating lta for "
+                                   "[eeorder:%s ee_unit_num:%s "
+                                   "scene name:%s order:%s")
+                        log_msg = log_msg % (eeorder, s['unit_num'],
+                                             scene.name, order.orderid)
 
                         helper_logger(log_msg)
 
-                        log_msg = "Error detail: \
-                        lta return message:%s  lta return \
-                        status code:%s" % (msg, status)
+                        log_msg = ("Error detail: lta return message:%s "
+                                   "lta return status code:%s")
+                        log_msg = log_msg % (msg, status)
 
                         helper_logger(log_msg)
 
@@ -961,16 +938,17 @@ def load_ee_orders():
                         lta.update_order(eeorder, s['unit_num'], "R")
 
                     if not success:
-                        log_msg = "Error updating lta for \
-                        [eeorder:%s ee_unit_num:%s \
-                        scene name:%s order:%s" \
-                        % (eeorder, s['unit_num'], scene.name, order.orderid)
+                        log_msg = ("Error updating lta for "
+                                   "[eeorder:%s ee_unit_num:%s "
+                                   "scene name:%s order:%s")
+                        log_msg = log_msg % (eeorder, s['unit_num'],
+                                             scene.name, order.orderid)
 
                         helper_logger(log_msg)
 
-                        log_msg = "Error detail: \
-                        lta return message:%s  lta return \
-                        status code:%s" % (msg, status)
+                        log_msg = ("Error detail: "
+                                   "lta return message:%s  lta return "
+                                   "status code:%s") % (msg, status)
 
                         helper_logger(log_msg)
             except Scene.DoesNotExist:
@@ -1000,16 +978,17 @@ def load_ee_orders():
                 lta.update_order(eeorder, s['unit_num'], "I")
 
             if not success:
-                log_msg = "Error updating lta for \
-                [eeorder:%s ee_unit_num:%s scene \
-                name:%s order:%s" % (eeorder, s['unit_num'],
-                                     scene.name,
-                                     order.orderid)
+                log_msg = ("Error updating lta for "
+                           "[eeorder:%s ee_unit_num:%s scene "
+                           "name:%s order:%s") % (eeorder,
+                                                  s['unit_num'],
+                                                  scene.name,
+                                                  order.orderid)
 
                 helper_logger(log_msg)
 
-                log_msg = "Error detail: lta return message:%s  \
-                lta return status code:%s" % (msg, status)
+                log_msg = ("Error detail: lta return message:%s  "
+                           "lta return status code:%s") % (msg, status)
 
                 helper_logger(log_msg)
 
