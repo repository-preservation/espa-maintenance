@@ -199,7 +199,7 @@ def process_test_order(request_file, products_file, env_vars,
 
                     if tmp == 'MOD' or tmp == 'MYD':
                         download_url = ('http://%s/%s/%s.hdf'
-                                        % (settings.MODIS_INPUT_HOSTNAME,
+                                        % (settings.MODIS_INPUT_CHECK_HOST,
                                            product_path,
                                            product))
 

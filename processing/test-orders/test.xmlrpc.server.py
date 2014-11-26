@@ -128,7 +128,7 @@ def get_scenes_to_process(limit, user, priority, product_types):
                     is_modis = False
                     if tmp == 'MOD' or tmp == 'MYD':
                         is_modis = True
-                        source_host = settings.MODIS_INPUT_HOSTNAME
+                        source_host = settings.MODIS_INPUT_CHECK_HOST
 
                     if not is_modis:
                         product_path = ('%s/%s%s'
