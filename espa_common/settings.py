@@ -144,11 +144,11 @@ BAND_TYPE_STAT_RANGES = {
 '''
 
 SENSOR_INFO = {
-    'LO8': {'name': 'oli', 'lta_name':''},
-    'LC8': {'name': 'olitirs', 'lta_name':'LANDSAT_8'},
-    'LE7': {'name': 'etm','lta_name':'LANDSAT_ETM_PLUS'},
-    'LT4': {'name': 'tm', 'lta_name':'LANDSAT_TM'},
-    'LT5': {'name': 'tm', 'lta_name':'LANDSAT_TM'},
+    'LO8': {'name': 'oli', 'lta_name': ''},
+    'LC8': {'name': 'olitirs', 'lta_name': 'LANDSAT_8'},
+    'LE7': {'name': 'etm', 'lta_name': 'LANDSAT_ETM_PLUS'},
+    'LT4': {'name': 'tm', 'lta_name': 'LANDSAT_TM'},
+    'LT5': {'name': 'tm', 'lta_name': 'LANDSAT_TM'},
     'MYD': {'name': 'aqua'},
     'MOD': {'name': 'terra'}
 }
