@@ -126,8 +126,16 @@ function release_validation
    # $2 - svn tag area based off 'mode'
 
    # Let's make sure it exists in SVN or bail out too
+
+      
+
    for valid_tag in $( ${SVNBIN} list ${SVN_HOST}${SVN_BASE}/$2 )
    do
+      if [ -z "$RELEASE" ]; then
+         echo "pass"
+         break
+      fi
+
       if [ "$valid_tag" == "$1/" ]; then
          echo $1
          break
@@ -417,8 +425,6 @@ if [ $# -ge 2 -a $# -le 5 ]; then
 
    # Set checkout svh tagarea type
    set_checkout "$MODE"
-
-   exit 1
 
    # Validate release against SVN repo
    response=$( release_validation "$RELEASE" "$SVN_TAGAREA" )
