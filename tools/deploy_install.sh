@@ -46,6 +46,8 @@
 #							Adding --force-checkout-from-releases and --force-checkout-from-testing
 #							arguments to force code checkout from one area vs checkout map
 #  012		09-16-2014	Adam Dosch		Updating devel environment to pull from trunk by default
+#  013		12-01-2014	Adam Dosch		If devel, then going to force the release to 'None' and set it to nothing
+#							later on in the script if the force-checkout flags aren't used
 #
 #############################################################################################################################
 
@@ -99,7 +101,7 @@ declare FORCE_CHECKOUT_TESTING
 function print_usage
 {
    echo
-   echo " Usage: $0 --mode=[prod|tst|devel] --tier=[app|maintenance|processing|all]  --release=<espa-n.n.n-release> [-v|--verbose] [-d|--delete-prior-releases] [--force-checkout-from-releases|--force-checkout-from-testing]"
+   echo " Usage: $0 --mode=[prod|tst|devel] --tier=[app|maintenance|processing|all]  --release=[<espa-n.n.n-release>|none] [-v|--verbose] [-d|--delete-prior-releases] [--force-checkout-from-releases|--force-checkout-from-testing]"
    echo
 
    exit 1
@@ -178,11 +180,21 @@ function set_checkout
    if [ ! -z $FORCE_CHECKOUT_TESTING ]; then
       [[ $VERBOSE -eq 0 ]] && write_stdout "${MODE}" "Overriding default SVN_TAGREA of '$SVN_TAGAREA' to '/testing'"
       SVN_TAGAREA="/testing"
+   else
+      if [ "$1" == "devel" ]; then
+         [[ $VERBOSE -eq 0 ]] && write_stdout "${MODE}" "No forcing checkout from '/testing', defaulting RELEASE to None for checkout of $SVN_TAGAREA for $1"
+         RELEASE=""
+      fi
    fi
 
    if [ ! -z $FORCE_CHECKOUT_RELEASES ]; then
       [[ $VERBOSE -eq 0 ]] && write_stdout "${MODE}" "Overriding default SVN_TAGREA of '$SVN_TAGAREA' to '/releases'"
       SVN_TAGAREA="/releases"
+   else
+      if [ "$1" == "devel" ]; then
+         [[ $VERBOSE -eq 0 ]] && write_stdout "${MODE}" "No forcing checkout from '/releases', defaulting RELEASE to None for checkout of $SVN_TAGAREA for $1"
+         RELEASE=""
+      fi
    fi
 }
 
@@ -405,6 +417,8 @@ if [ $# -ge 2 -a $# -le 5 ]; then
 
    # Set checkout svh tagarea type
    set_checkout "$MODE"
+
+   exit 1
 
    # Validate release against SVN repo
    response=$( release_validation "$RELEASE" "$SVN_TAGAREA" )
