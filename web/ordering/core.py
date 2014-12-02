@@ -836,7 +836,7 @@ def load_ee_orders():
             if contactid in local_cache:
                 username = local_cache[contactid]
             else:
-                username = lta.get_username(contactid)
+                username = lta.get_user_name(contactid)
                 local_cache[contactid] = username
 
             # now look the user up in our db.  Create if it doesn't exist
