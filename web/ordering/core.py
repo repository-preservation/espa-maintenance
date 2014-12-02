@@ -31,7 +31,7 @@ class Emails(object):
                                                 body=body)
 
     def __order_status_url(self, email):
-        return ''.join(self.status_base_url, '/', email)
+        return ''.join([self.status_base_url, '/', email])
 
     @transaction.atomic
     def send_all_initial(self):
