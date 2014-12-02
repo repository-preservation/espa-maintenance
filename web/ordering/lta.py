@@ -282,7 +282,7 @@ class OrderWrapperServiceClient(LTAService):
                      % 1111111)
             sb.write("<priority>%i</priority>" % priority)
 
-            product_info = self.get_download_url(product_list, contact_id)
+            product_info = self.get_download_urls(product_list, contact_id)
 
             for p in product_info.keys():
 

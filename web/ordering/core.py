@@ -20,6 +20,7 @@ import errors
 import espa_common
 
 
+
 class Emails(object):
 
     def __init__(self):
@@ -938,7 +939,14 @@ def load_ee_orders():
                 # TODO: This logic should not be visible at this level.
                 scene = Scene()
 
-                product = espa_common.sensor.instance(s['sceneid'])
+                product = None
+                try:
+                    product = espa_common.sensor.instance(s['sceneid'])
+                except:
+                    log_msg = ("Received product via EE that "
+                               "is not implemented: %s" % s['sceneid'])
+                    helper_logger(log_msg)
+                    continue
 
                 sensor_type = None
 
