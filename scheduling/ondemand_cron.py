@@ -315,9 +315,9 @@ if __name__ == '__main__':
 
     parser.add_argument('--product-types',
                         action='store', dest='product_types', required=True,
-                        nargs='*',
-                        help=("only process requests for"
-                              " the specified products"))
+                        nargs='+', metavar='PRODUCT_TYPE',
+                        help=("only process requests for the specified"
+                              " product type(s)"))
 
     parser.add_argument('--limit',
                         action='store', dest='limit', required=False,
