@@ -288,9 +288,9 @@ def handle_onorder_landsat_products():
         'status': 'onorder'
     }
 
-    select_related = {'order'}
+    select_related = 'order'
 
-    products = Scene.objects.filter(**filters).select_related(**select_related)
+    products = Scene.objects.filter(**filters).select_related(select_related)
     product_tram_ids = products.values_list('tram_order_id').distinct()
     tram_ids = [p[0] for p in product_tram_ids]
 
