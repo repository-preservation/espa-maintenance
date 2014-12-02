@@ -957,7 +957,7 @@ def load_ee_orders():
 
             # Update LTA
             success, msg, status =\
-                lta.update_order(eeorder, s['unit_num'], "I")
+                lta.update_order_status(eeorder, s['unit_num'], "I")
 
             if not success:
                 log_msg = ("Error updating lta for "
