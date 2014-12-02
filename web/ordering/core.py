@@ -222,17 +222,49 @@ class OrderHandler(object):
     def load_ee(self):
         pass
 
-#def products_on_cache(input_product_list):
-#    """Proxy method call to determine if the scenes in question are on disk
 
-#    Keyword args:
-#    input_product_list -- A Python list of scene identifiers
+@transaction.atomic
+#  Marks a scene unavailable and stores a reason
+def set_product_unavailable(name, orderid, processing_loc, error, note):
 
-#    Returns:
-#    A subset of scene identifiers
-#    """
-#    ipl = input_product_list
-#    return espa_common.utilities.scenecache_client().scenes_exist(ipl)
+    product = Scene.objects.get(name=name, order__orderid=orderid)
+    product = product.select_related('order')
+
+    product.status = 'unavailable'
+    product.processing_location = processing_loc
+    product.completion_date = datetime.datetime.now()
+    product.log_file_contents = error
+    product.note = note
+    product.save()
+
+    if product.order.order_source == 'ee':
+        #update ee
+        lta.update_order_status(product.order.ee_order_id,
+                                product.ee_unit_id, 'R')
+
+    return True
+
+
+def set_products_unavailable(products, reason):
+    '''Bulk updates products to unavailable status and updates EE if
+    necessary.
+
+    Keyword args:
+    products - A list of models.Scene objects
+    reason - The user facing reason the product was rejected
+    '''
+    for p in products:
+        if not isinstance(p, Scene):
+            raise TypeError()
+
+    for p in products:
+        p.status = 'unavailable'
+        p.completion_date = datetime.datetime.now()
+        p.note = reason
+        p.save()
+
+        if p.order.order_source == 'ee':
+            lta.update_order_status(p.order.ee_order_id, p.ee_unit_id, 'R')
 
 
 @transaction.atomic
@@ -250,42 +282,64 @@ def handle_retry_products():
 
 @transaction.atomic
 def handle_onorder_landsat_products():
-    # TODO: This must be moved to look to the UserProfile since we have to
-    # TODO: group everything by contactid now
 
-    filter_args = {'status': 'onorder',
-                   'sensor_type': 'landsat'}
+    filters = {
+        'tram_order_id__isnull': False,
+        'status': 'onorder'
+    }
 
-    orderby = 'order__order_date'
+    select_related = {'order'}
 
-    landsat_products = Scene.objects.filter(**filter_args).order_by(orderby)
+    products = Scene.objects.filter(**filters).select_related(**select_related)
+    product_tram_ids = products.values_list('tram_order_id').distinct()
+    tram_ids = [p[0] for p in product_tram_ids]
 
-    if len(landsat_products) > 0:
+    rejected = []
+    available = []
 
-        landsat_oncache = products_on_cache([l.name for l in landsat_products])
+    for tid in tram_ids:
+        order_status = lta.get_order_status(tid)
 
-        filter_args = {'status': 'onorder', 'name__in': landsat_oncache}
-        update_args = {'status': 'oncache'}
-        Scene.objects.filter(**filter_args).update(**update_args)
+        for unit in order_status['units']:
+            if unit['unit_status'] == 'R':
+                rejected.append(unit['sceneid'])
+            elif unit['unit_status'] == 'C':
+                available.append(unit['sceneid'])
+
+    #Go find all the tram units that were rejected and mark them
+    #unavailable in our database.  Note that we are not looking for
+    #specific tram_order_id/sceneids as duplicate tram orders may have been
+    #submitted and we want to bulk update all scenes that are onorder but
+    #have been rejected
+    if len(rejected) > 0:
+        rejected_products = [p for p in products if p.name in rejected]
+        set_products_unavailable(rejected_products,
+                                 'Level 1 product could not be produced')
+
+    #Now update everything that is now on cache
+    filters = {
+        'status': 'onorder',
+        'name__in': available
+    }
+    updates = {
+        'status': 'oncache',
+    }
+
+    if len(available) > 0:
+        Scene.objects.filter(**filters).update(**updates)
 
 
 @transaction.atomic
 def handle_submitted_landsat_products():
-    filter_args = {'status': 'submitted', 'sensor_type': 'landsat'}
-    orderby = 'order__order_date'
-    landsat_products = Scene.objects.filter(**filter_args).order_by(orderby)
 
-    if len(landsat_products) > 0:
+    def mark_nlaps_unavailable():
+        #First things first... filter out all the nlaps scenes
+        filters = {
+            'order__scene__status': 'submitted',
+            'order__scene__sensor_type': 'landsat'
+        }
 
-        if settings.DEBUG:
-            print("Found %i landsat products submitted"
-                  % len(landsat_products))
-
-        # is cache online?
-        if not espa_common.utilities.scenecache_is_alive():
-            msg = "Scene cache could not be contacted..."
-            print(msg)
-            raise Exception(msg)
+        landsat_products = Scene.objects.filter(**filters)
 
         #build list input for calls to the scene cache
         landsat_submitted = [l.name for l in landsat_products]
@@ -299,129 +353,79 @@ def handle_submitted_landsat_products():
         # bulk update the nlaps scenes
         if len(landsat_nlaps) > 0:
 
-            filter_args = {'status': 'submitted',
-                           'name__in': landsat_nlaps,
-                           'sensor_type': 'landsat'}
+            nlaps = [p for p in landsat_products if p.name in landsat_nlaps]
+            set_products_unavailable(nlaps, 'TMA data cannot be processed')
 
-            update_args = {'status': 'unavailable',
-                           'completion_date': datetime.datetime.now(),
-                           'note': 'TMA data cannot be processed'
-                           }
+    def get_contactids_for_submitted_landsat_products():
+        filters = {
+            'order__scene__status': 'submitted',
+            'order__scene__sensor_type': 'landsat'
+        }
+        u = User.objects.filter(**filters)
+        u = u.select_related('userprofile__contactid')
+        contact_ids = u.values_list('userprofile__contactid').distinct()
+        return [c[0] for c in contact_ids]
 
-            Scene.objects.filter(**filter_args).update(**update_args)
+    def update_landsat_product_status(contact_id):
+        filters = {
+            'status': 'submitted',
+            'sensor_type': 'landsat',
+            'order__user__userprofile__contactid': contact_id
+        }
 
-        # find all the landsat products already sitting on online cache
-        landsat_oncache = products_on_cache(landsat_submitted)
+        products = Scene.objects.filter(**filters)
+        product_list = [p.name for p in products]
+        results = lta.get_download_urls(product_list, contact_id)
+        oncache = []
+        orderable = []
+        unavailable = []
 
-        if settings.DEBUG:
-            print("Found %i landsat products on cache" % len(landsat_oncache))
+        for product_id in results.keys():
+            if results[product_id]['status'] == 'available':
+                #its on cache
+                oncache.append(product_id)
+            elif results[product_id]['status'] == 'orderable':
+                #place order
+                orderable.append(product_id)
+            elif results[product_id]['status'] == 'invalid':
+                #not found in inventory
+                unavailable.append(product_id)
 
-        # bulk update the oncache scene status
-        if len(landsat_oncache) > 0:
-
-            filter_args = {'status': 'submitted',
-                           'name__in': landsat_oncache,
-                           'sensor_type': 'landsat'
-                           }
-
+        if len(oncache) > 0:
+            #update db
+            filter_args = {
+                'status': 'submitted',
+                'name__in': oncache,
+                'sensor_type': 'landsat',
+                'order__user__userprofile__contactid': contact_id
+            }
             update_args = {'status': 'oncache'}
+            Scene.objects.filter(**filter_args).update(**update_args)
+
+        if len(orderable) > 0:
+            #place order + update db
+            response = lta.order_scenes(orderable, contact_id)
+
+            filter_args = {'status': 'submitted',
+                           'name__in': orderable,
+                           'order__user__userprofile__contactid': contact_id}
+
+            update_args = {'status': 'onorder',
+                           'tram_order_id': response['lta_order_id']}
 
             Scene.objects.filter(**filter_args).update(**update_args)
 
-        # placeholder for scenes that are not nlaps but are not on cache
-        need_to_order = set(landsat_submitted) - set(landsat_nlaps)
+        if len(unavailable) > 0:
+            #look to see if they are ee orders.  If true then update the
+            #unit status
+            rejects = [p for p in products if p.name in unavailable]
+            set_products_unavailable(rejects, 'Not found in landsat archive')
 
-        need_to_order = set(need_to_order) - set(landsat_oncache)
+    #Here's the real logic for this handling submitted landsat products
+    mark_nlaps_unavailable()
 
-        if settings.DEBUG:
-            print("Found %i landsat products to order" % len(need_to_order))
-
-        # Need to run another query because the calls to order_scenes require
-        # the user contactid.  We don't want to make 500 separate calls to the
-        # EE service so this will allow us to group all the scenes by
-        # the order and thus the contactid
-
-        # this resultset is only a dict of orderids, not a normal queryset
-        # result
-
-        #TODO: Get this query and the next one for Order.objects.get(id...)
-        #TODO: down to a single query.  Should be doable
-
-        filter_args = {'status': 'submitted',
-                       'name__in': need_to_order,
-                       'sensor_type': 'landsat'
-                       }
-
-        orders = Scene.objects.filter(**filter_args).values('order').distinct()
-
-        # look through the Orders that are part of need_to_order
-        # and place one order with lta for each one that has scenes that
-        # need to be ordered
-        #
-        # The response that comes back is a dictionary with
-        # the lta_order_id key and a list of scene names in a key 'ordered'
-        # Two other lists may exist as well, 'invalid' and 'available'
-        # The lta_order_id and 'ordered' lists are either both present or
-        # missing if nothing was ordered.
-        # The other two lists may or may not exist as well depending on if
-        # there are any scenes in those statuses
-        for o in orders:
-            eo = Order.objects.get(id=o.get('order'))
-
-            try:
-                contactid = None
-                contactid = eo.user.userprofile.contactid
-            except Exception, e:
-                print("Exception getting contactid for user:%s"
-                      % eo.user.username)
-                print(e)
-
-            if not contactid:
-                print("No contactid associated with order:%s... skipping"
-                      % o.get('order'))
-                continue
-
-            filter_args = {'status': 'submitted', 'sensor_type': 'landsat'}
-
-            eo_scenes = eo.scene_set.filter(**filter_args).values('name')
-
-            eo_scene_list = [s.get('name') for s in eo_scenes]
-
-            if settings.DEBUG:
-                print("Ordering  %i landsat products" % len(eo_scene_list))
-                print eo_scene_list
-
-            if len(eo_scene_list) > 0:
-                resp_dict = lta.order_scenes(eo_scene_list, contactid)
-
-                if settings.DEBUG:
-                    print("Resp dict")
-                    print(resp_dict)
-
-                if 'ordered' in resp_dict:
-                    filter_args = {'status': 'submitted',
-                                   'name__in': resp_dict['ordered']}
-
-                    update_args = {'status': 'onorder',
-                                   'tram_order_id': resp_dict['lta_order_id']}
-
-                    eo.scene_set.filter(**filter_args).update(**update_args)
-
-                if 'invalid' in resp_dict:
-                    filter_args = {'status': 'submitted',
-                                   'name__in': resp_dict['invalid']}
-
-                    update_args = {'status': 'unavailable',
-                                   'completion_date': datetime.datetime.now(),
-                                   'note': 'Not found in landsat archive'}
-
-                    eo.scene_set.filter(**filter_args).update(**update_args)
-
-                if 'available' in resp_dict:
-                    filter_args = {'status': 'submitted',
-                                   'name__in': resp_dict['available']}
-
-                    eo.scene_set.filter(**filter_args).update(status='oncache')
+    for contact_id in get_contactids_for_submitted_landsat_products():
+        update_landsat_product_status(contact_id)
 
 
 @transaction.atomic
@@ -497,34 +501,34 @@ def get_products_to_process(record_limit=500,
 
     # use kwargs so we can dynamically build the filter criteria
     filters = {
-        'user__order__scene__status': 'oncache'
+        'order__scene__status': 'oncache'
     }
 
     #optimize the query so it creates a join call rather than executing
     #multiple database calls for the related fields
-    select_related = ['user__order__orderid',
-                      'user__order__priority',
-                      'user__order__product_options',
-                      'user__userprofile__contactid']
+    select_related = ['order__orderid',
+                      'order__priority',
+                      'order__product_options',
+                      'userprofile__contactid']
 
     # use orderby for the orderby clause
-    orderby = 'user__order__order_date'
+    orderby = 'order__order_date'
 
     if for_user:
         # Find orders submitted by a specific user
-        filters['user__username'] = for_user
+        filters['username'] = for_user
 
     if priority:
         # retrieve by specified priority
-        filters['user__order__priority'] = priority
+        filters['order__priority'] = priority
 
     #filter based on what user asked for... modis, landsat or plot
-    filters['user__order__scene__sensor_type__in'] = product_types
+    filters['order__scene__sensor_type__in'] = product_types
 
-    u = UserProfile.objects.filter(user__order__scene__status='oncache')
+    u = User.objects.filter(**filters)
     u = u.select_related(**select_related).order_by(orderby)
 
-    cids = [c[0] for c in u.values_list('contactid').distinct()]
+    cids = [c[0] for c in u.values_list('userprofile__contactid').distinct()]
 
     results = []
 
@@ -667,28 +671,6 @@ def set_product_retry(name,
         product.save()
     else:
         raise Exception("Retry limit exceeded")
-
-
-@transaction.atomic
-#  Marks a scene unavailable and stores a reason
-def set_product_unavailable(name, orderid, processing_loc, error, note):
-
-    product = Scene.objects.get(name=name, order__orderid=orderid)
-    product = product.select_related('order')
-
-    product.status = 'unavailable'
-    product.processing_location = processing_loc
-    product.completion_date = datetime.datetime.now()
-    product.log_file_contents = error
-    product.note = note
-    product.save()
-
-    if product.order.order_source == 'ee':
-        #update ee
-        lta.update_order_status(product.order.ee_order_id,
-                                product.ee_unit_id, 'R')
-
-    return True
 
 
 @transaction.atomic
