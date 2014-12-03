@@ -546,14 +546,15 @@ def get_products_to_process(record_limit=500,
             'status': 'oncache'
         }
 
-        if priority:
-            filters['order__priority'] = 'priority'
+        if priority is not None:
+            filters['order__priority'] = priority
 
-        select_related = ['order', ]
+        select_related = 'order'
 
         orderby = 'order__order_date'
 
-        scenes = Scene.objects.filter(**filters).order_by(orderby)
+        scenes = Scene.objects.filter(**filters)
+        scenes = scenes.select_related(select_related).order_by(orderby)
 
         #landsat = [s.name for s in scenes where s.sensor_type = 'landsat']
         landsat = [s.name for s in scenes if s.sensor_type == 'landsat']
@@ -571,21 +572,17 @@ def get_products_to_process(record_limit=500,
 
             if scene.sensor_type == 'landsat':
                 if 'download_url' in landsat_urls[scene.name]:
-                    url = landsat_urls[scene.name]['download_url']
+                    dload_url = landsat_urls[scene.name]['download_url']
                     if encode_urls:
-                        dload_url = urllib.quote(url, '')
-                        dload_url = 'url'
-                    else:
-                        dload_url = url
+                        dload_url = urllib.quote(dload_url, '')
+                        
             elif scene.sensor_type == 'modis':
                 if 'download_url' in modis_urls[scene.name]:
-                    url = modis_urls[scene.name]['download_url']
+                    dload_url = modis_urls[scene.name]['download_url']
+                    
                     if encode_urls:
-                        dload_url = urllib.quote(url, '')
-                        dload_url = 'url'
-                    else:
-                        dload_url = url
-
+                        dload_url = urllib.quote(dload_url, '')
+                    
             result = {
                 'orderid': scene.order.orderid,
                 'product_type': scene.sensor_type,
