@@ -527,7 +527,7 @@ def get_products_to_process(record_limit=500,
     filters['order__scene__sensor_type__in'] = product_types
 
     u = User.objects.filter(**filters)
-    u = u.select_related(**select_related).order_by(orderby)
+    u = u.select_related(select_related).order_by(orderby)
 
     cids = [c[0] for c in u.values_list('userprofile__contactid').distinct()]
 
