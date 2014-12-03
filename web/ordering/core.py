@@ -564,9 +564,9 @@ def get_products_to_process(record_limit=500,
             dload_url = None
 
             if scene.sensor_type == 'landsat':
-                dload_url = landsat_urls[scene.name]
+                dload_url = landsat_urls[scene.name]['download_url']
             elif scene.sensor_type == 'modis':
-                dload_url = modis_urls[scene.name]
+                dload_url = modis_urls[scene.name]['download_url']
 
             result = {
                 'orderid': scene.order.orderid,
