@@ -15,6 +15,7 @@ from django.db import transaction
 import json
 import datetime
 import urllib
+import base64
 import lta
 import lpdaac
 import errors
@@ -572,12 +573,14 @@ def get_products_to_process(record_limit=500,
                 url = landsat_urls[scene.name]['download_url']
                 if encode_urls:
                     dload_url = urllib.quote(url, '')
+                    dload_url = base64.b64encode(dload_url)
                 else:
                     dload_url = url
             elif scene.sensor_type == 'modis':
                 url = modis_urls[scene.name]['download_url']
                 if encode_urls:
                     dload_url = urllib.quote(url, '')
+                    dload_url = base64.b64encode(dload_url)
                 else:
                     dload_url = url
 
