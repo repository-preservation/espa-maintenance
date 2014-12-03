@@ -570,27 +570,31 @@ def get_products_to_process(record_limit=500,
             dload_url = None
 
             if scene.sensor_type == 'landsat':
-                url = landsat_urls[scene.name]['download_url']
-                if encode_urls:
-                    dload_url = urllib.quote(url, '')
-                    dload_url = 'url'
-                else:
-                    dload_url = url
+                if 'download_url' in landsat_urls[scene.name]:
+                    url = landsat_urls[scene.name]['download_url']
+                    if encode_urls:
+                        dload_url = urllib.quote(url, '')
+                        dload_url = 'url'
+                    else:
+                        dload_url = url
             elif scene.sensor_type == 'modis':
-                url = modis_urls[scene.name]['download_url']
-                if encode_urls:
-                    dload_url = urllib.quote(url, '')
-                    dload_url = 'url'
-                else:
-                    dload_url = url
+                if 'download_url' in modis_urls[scene.name]:
+                    url = modis_urls[scene.name]['download_url']
+                    if encode_urls:
+                        dload_url = urllib.quote(url, '')
+                        dload_url = 'url'
+                    else:
+                        dload_url = url
 
             result = {
                 'orderid': scene.order.orderid,
                 'product_type': scene.sensor_type,
-                'download_url': dload_url,
                 'scene': scene.name,
                 'priority': scene.order.priority
             }
+            
+            if dload_url is not None:
+                result['download_url'] = dload_url
 
             results.append(result)
 
