@@ -576,7 +576,7 @@ def get_products_to_process(record_limit=500,
                 'priority': scene.order.priority
             }
 
-        results.append(result)
+            results.append(result)
 
     return results
 
