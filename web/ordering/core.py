@@ -534,7 +534,10 @@ def get_products_to_process(record_limit=500,
     results = []
 
     for cid in cids:
-
+        
+        if len(results) + 1 > record_limit:
+            break
+        
         filters = {
             'order__user__userprofile__contactid': cid,
             'status': 'oncache'
@@ -558,7 +561,7 @@ def get_products_to_process(record_limit=500,
 
         for scene in scenes:
 
-            if len(results) >= record_limit:
+            if len(results) + 1 > record_limit:
                 break
 
             dload_url = None

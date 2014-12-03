@@ -115,6 +115,7 @@ def _get_products_to_process(limit=None,
                              for_user=None,
                              priority=None,
                              product_types=['landsat', 'modis']):
+                                 
     return core.get_products_to_process(record_limit=limit,
                                         for_user=for_user,
                                         priority=priority,
