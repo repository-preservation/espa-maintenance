@@ -507,9 +507,9 @@ def get_products_to_process(record_limit=500,
 
     #optimize the query so it creates a join call rather than executing
     #multiple database calls for the related fields
-    select_related = ('order__orderid',
-                      'order__priority',
-                      'order__product_options',
+    select_related = ('order__orderid,'
+                      'order__priority,'
+                      'order__product_options,'
                       'userprofile__contactid')
 
     # use orderby for the orderby clause
