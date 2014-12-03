@@ -559,6 +559,9 @@ def get_products_to_process(record_limit=500,
         #landsat = [s.name for s in scenes where s.sensor_type = 'landsat']
         landsat = [s.name for s in scenes if s.sensor_type == 'landsat']
         landsat_urls = lta.get_download_urls(landsat, cid)
+        
+        print("LANDSAT URLS:%s" % landsat_urls)
+        print("LANDSAT URLS SIZE:%i" % len(landsat_urls))
 
         modis = [s.name for s in scenes if s.sensor_type == 'modis']
         modis_urls = lpdaac.get_download_urls(modis)
