@@ -545,7 +545,7 @@ def get_products_to_process(record_limit=500,
 
         select_related = ['order', ]
 
-        orderby = 'order__orderdate'
+        orderby = 'order__order_date'
 
         scenes = Scene.objects.filter(**filters).order_by(orderby)
 
