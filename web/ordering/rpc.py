@@ -119,7 +119,8 @@ def _get_products_to_process(limit=None,
     return core.get_products_to_process(record_limit=limit,
                                         for_user=for_user,
                                         priority=priority,
-                                        product_types=product_types)
+                                        product_types=product_types,
+                                        encode_urls=True)
 
 
 def _get_data_points(tags=[]):

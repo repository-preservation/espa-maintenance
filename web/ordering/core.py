@@ -14,6 +14,7 @@ from django.conf import settings
 from django.db import transaction
 import json
 import datetime
+import urllib
 import lta
 import lpdaac
 import errors
@@ -496,7 +497,8 @@ def handle_submitted_products():
 def get_products_to_process(record_limit=500,
                             for_user=None,
                             priority=None,
-                            product_types=['landsat', 'modis']):
+                            product_types=['landsat', 'modis'],
+                            encode_urls=False):
     '''Find scenes that are oncache and return them as properly formatted
     json per the interface description between the web and processing tier'''
 
@@ -567,9 +569,17 @@ def get_products_to_process(record_limit=500,
             dload_url = None
 
             if scene.sensor_type == 'landsat':
-                dload_url = landsat_urls[scene.name]['download_url']
+                url = landsat_urls[scene.name]['download_url']
+                if encode_urls:
+                    dload_url = urllib.quote(url, '')
+                else:
+                    dload_url = url
             elif scene.sensor_type == 'modis':
-                dload_url = modis_urls[scene.name]['download_url']
+                url = modis_urls[scene.name]['download_url']
+                if encode_urls:
+                    dload_url = urllib.quote(url, '')
+                else:
+                    dload_url = url
 
             result = {
                 'orderid': scene.order.orderid,
