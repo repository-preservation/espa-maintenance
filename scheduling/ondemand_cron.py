@@ -121,11 +121,10 @@ def process_requests(args, logger_name, queue_priority, request_priority):
             # Create the order file full of all the scenes requested
             with open(job_filepath, 'w+') as espa_fd:
                 for request in requests:
-                    line = json.loads(request)
+                    (orderid, options) = (request['orderid'],
+                                          request['options'])
 
-                    (orderid, options) = (line['orderid'], line['options'])
-
-                    line['xmlrpcurl'] = rpcurl
+                    request['xmlrpcurl'] = rpcurl
 
                     # Add the usernames and passwords to the options
                     options['source_username'] = user
@@ -133,7 +132,7 @@ def process_requests(args, logger_name, queue_priority, request_priority):
                     options['source_pw'] = pw
                     options['destination_pw'] = pw
 
-                    line['options'] = options
+                    request['options'] = options
 
                     line_entry = json.dumps(line)
                     logger.info(line_entry)
