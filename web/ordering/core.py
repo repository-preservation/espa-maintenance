@@ -590,7 +590,8 @@ def get_products_to_process(record_limit=500,
                 'product_type': scene.sensor_type,
                 'scene': scene.name,
                 'priority': scene.order.priority,
-                'options': scene.order.product_options
+                'options': json.dumps(scene.order.product_options,
+                                      sort_keys=True, indent=None)
             }
             
             if dload_url is not None:
