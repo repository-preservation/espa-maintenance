@@ -135,12 +135,16 @@ class ProductProcessor(object):
 
         logger = self._logger
 
-        # Test for presence of top-level parameters
+        # Test for presence of required top-level parameters
         keys = ['orderid', 'scene', 'product_type', 'options']
         for key in keys:
             if not parameters.test_for_parameter(self._parms, key):
                 raise RuntimeError("Missing required input parameter [%s]"
                                    % key)
+
+        # Set the download URL to None if not provided
+        if not parameters.test_for_parameter(self._parms, 'download_url'):
+            self._parms['download_url'] = None
 
         # TODO - Remove this once we have converted
         if not parameters.test_for_parameter(self._parms, 'product_id'):
@@ -155,10 +159,6 @@ class ProductProcessor(object):
         # present and turned on for developers
         if not parameters.test_for_parameter(options, 'keep_directory'):
             options['keep_directory'] = False
-
-        # Verify or set the source information
-        if not parameters.test_for_parameter(options, 'download_url'):
-            options['download_url'] = None
 
         # Verify or set the destination information
         if not parameters.test_for_parameter(options, 'destination_host'):
@@ -886,6 +886,7 @@ class LandsatProcessor(CDRProcessor):
         '''
 
         product_id = self._parms['product_id']
+        download_url = self._parms['download_url']
         options = self._parms['options']
 
         file_name = '.'.join([product_id,
@@ -894,8 +895,7 @@ class LandsatProcessor(CDRProcessor):
 
         # Download the source data
         try:
-            transfer.download_file_url(options['download_url'],
-                                       destination_file)
+            transfer.download_file_url(download_url, destination_file)
         except Exception, e:
             raise ee.ESPAException(ee.ErrorCodes.staging_data, str(e)), \
                 None, sys.exc_info()[2]
