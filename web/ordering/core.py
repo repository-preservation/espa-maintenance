@@ -832,6 +832,13 @@ def load_ee_orders():
     our database and updates their status
     '''
 
+    #check to make sure this operation is enabled.  Bail if not
+    enabled = Configuration().getValue("load_ee_orders_enabled")
+    if enabled.lower() != 'true':
+        helper_logger(("enable_load_ee_orders is disabled,"
+                       "skipping load_ee_orders()"))
+        return
+        
     # This returns a dict that contains a list of dicts{}
     # key:(order_num, email, contactid) = list({sceneid:, unit_num:})
     orders = lta.get_available_orders()
