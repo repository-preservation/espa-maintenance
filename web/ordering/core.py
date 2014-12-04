@@ -587,18 +587,19 @@ def get_products_to_process(record_limit=500,
                     
                     if encode_urls:
                         dload_url = urllib.quote(dload_url, '')
-                    
+                        
             result = {
                 'orderid': scene.order.orderid,
                 'product_type': scene.sensor_type,
                 'scene': scene.name,
-                'priority': scene.order.priority
+                'priority': scene.order.priority,
+                'options': scene.order.product_options
             }
             
             if dload_url is not None:
                 result['download_url'] = dload_url
 
-            results.append(result)
+            results.append(json.dumps(result, sort_keys=True))
 
     return results
 
