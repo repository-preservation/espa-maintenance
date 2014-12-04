@@ -134,7 +134,7 @@ def process_requests(args, logger_name, queue_priority, request_priority):
 
                     request['options'] = options
 
-                    line_entry = json.dumps(line)
+                    line_entry = json.dumps(request)
                     logger.info(line_entry)
 
                     # Pad the entry so hadoop will properly split the jobs
@@ -224,9 +224,8 @@ def process_requests(args, logger_name, queue_priority, request_priority):
             # again now that these jobs have been stored in hdfs
             product_list = list()
             for request in requests:
-                line = json.loads(request)
-                orderid = line['orderid']
-                sceneid = line['scene']
+                orderid = request['orderid']
+                sceneid = request['scene']
                 product_list.append((orderid, sceneid))
 
                 logger.info("Adding scene:%s orderid:%s to queued list"
