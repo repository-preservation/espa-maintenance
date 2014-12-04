@@ -169,7 +169,7 @@ def process_requests(args, logger_name, queue_priority, request_priority):
                  '-D', 'mapred.job.queue.name=%s' % hadoop_job_queue,
                  '-D', 'mapred.job.name="%s"' % job_name,
                  '-file', '%s/espa-site/processing/%s' % (home_dir, mapper),
-                 '-file', '%s/espa-site/processing/__init__.py' % home_dir,
+                 '-file', '%s/espa-site/processing/local_imports.py' % home_dir,
                  '-file', '%s/espa-site/processing/processor.py' % home_dir,
                  '-file', '%s/espa-site/processing/browse.py' % home_dir,
                  '-file', '%s/espa-site/processing/distribution.py' % home_dir,

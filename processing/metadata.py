@@ -17,8 +17,8 @@ import glob
 from cStringIO import StringIO
 
 # imports from espa_common through processing.__init__.py
-from processing import EspaLogging
-from processing import settings
+from local_imports import EspaLogging
+from local_imports import settings
 
 
 # ============================================================================
