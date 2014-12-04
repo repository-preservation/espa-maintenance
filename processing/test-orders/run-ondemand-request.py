@@ -17,20 +17,9 @@ import logging
 import json
 from argparse import ArgumentParser
 
-try:
-    import settings
-except:
-    from espa_common import settings
-
-try:
-    import sensor
-except:
-    from espa_common import sensor
-
-try:
-    import utilities
-except:
-    from espa_common import utilities
+import settings
+import sensor
+import utilities
 
 import parameters
 

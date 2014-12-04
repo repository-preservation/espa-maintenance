@@ -27,10 +27,10 @@ import json
 import xmlrpclib
 from argparse import ArgumentParser
 
-# imports from espa_common through processing.__init__.py
-from local_imports import EspaLogging
-from local_imports import settings
-from local_imports import sensor
+# imports from espa_common
+from logger_factory import EspaLogging
+import settings
+import sensor
 
 # local objects and methods
 import espa_exception as ee

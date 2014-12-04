@@ -12,10 +12,10 @@ History:
 
 import os
 
-# imports from espa_common through processing.__init__.py
-from local_imports import EspaLogging
-from local_imports import settings
-from local_imports import sensor
+# imports from espa_common
+from logger_factory import EspaLogging
+import settings
+import sensor
 
 
 # This contains the valid sensors and data types which are supported

@@ -2,8 +2,8 @@
 configured values for each product
 '''
 
-from espa_common import settings
-from espa_common import utilities
+import settings
+import utilities
 import re
 
 

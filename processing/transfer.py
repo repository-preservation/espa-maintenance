@@ -15,10 +15,10 @@ import urllib2
 import requests
 from contextlib import closing
 
-# imports from espa_common through processing.__init__.py
-from local_imports import EspaLogging
-from local_imports import settings
-from local_imports import utilities
+# imports from espa_common
+from logger_factory import EspaLogging
+import settings
+import utilities
 
 
 # ============================================================================
