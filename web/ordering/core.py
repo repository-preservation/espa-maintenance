@@ -15,7 +15,6 @@ from django.db import transaction
 import json
 import datetime
 import urllib
-import base64
 import lta
 import lpdaac
 import errors
@@ -518,22 +517,25 @@ def get_products_to_process(record_limit=500,
     # use orderby for the orderby clause
     orderby = 'order__order_date'
 
-    if for_user:
+    if for_user is not None:
         # Find orders submitted by a specific user
         filters['username'] = for_user
 
-    if priority:
+    if priority is not None:
         # retrieve by specified priority
         filters['order__priority'] = priority
 
-    #filter based on what user asked for... modis, landsat or plot
-    filters['order__scene__sensor_type__in'] = product_types
+    if product_types is not None:
+        #filter based on what user asked for... modis, landsat or plot
+        filters['order__scene__sensor_type__in'] = product_types
 
     u = User.objects.filter(**filters)
     u = u.select_related(select_related).order_by(orderby)
 
-    cids = [c[0] for c in u.values_list('userprofile__contactid').distinct()]
-
+    #pull all the cids but cast to set() to eliminate dups then back to list
+    #to support index based iteration
+    cids = list(set([c[0] for c in u.values_list('userprofile__contactid')]))
+    
     results = []
 
     for cid in cids:
