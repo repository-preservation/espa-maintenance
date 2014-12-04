@@ -562,9 +562,6 @@ def get_products_to_process(record_limit=500,
         landsat = [s.name for s in scenes if s.sensor_type == 'landsat']
         landsat_urls = lta.get_download_urls(landsat, cid)
         
-        print("LANDSAT URLS:%s" % landsat_urls)
-        print("LANDSAT URLS SIZE:%i" % len(landsat_urls))
-
         modis = [s.name for s in scenes if s.sensor_type == 'modis']
         modis_urls = lpdaac.get_download_urls(modis)
 
@@ -599,7 +596,7 @@ def get_products_to_process(record_limit=500,
             if dload_url is not None:
                 result['download_url'] = dload_url
 
-            results.append(json.dumps(result, sort_keys=True))
+            results.append(json.dumps(result, sort_keys=True, indent=0))
 
     return results
 
