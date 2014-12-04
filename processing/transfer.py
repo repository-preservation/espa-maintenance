@@ -11,7 +11,7 @@ History:
 '''
 
 import ftplib
-import urllib
+import urllib2
 import requests
 from contextlib import closing
 
@@ -104,7 +104,7 @@ def ftp_from_remote_location(username, pw, host, remotefile, localfile):
     if not remotefile.startswith('/'):
         remotefile = ''.join(['/', remotefile])
 
-    pw = urllib.unquote(pw)
+    pw = urllib2.unquote(pw)
 
     url = 'ftp://%s/%s' % (host, remotefile)
 
@@ -157,7 +157,7 @@ def ftp_to_remote_location(username, pw, localfile, host, remotefile):
     if not remotefile.startswith('/'):
         remotefile = ''.join(['/', remotefile])
 
-    pw = urllib.unquote(pw)
+    pw = urllib2.unquote(pw)
 
     logger.info("Transferring file from %s to %s"
                 % (localfile, 'ftp://%s/%s' % (host, remotefile)))
@@ -272,7 +272,9 @@ def download_file_url(download_url, destination_file):
         Using a URL download the specified file to the destination.
     '''
 
-    if download_url.startswith('http://'):
+    download_url = urllib2.unquote(download_url)
+
+    if download_url.startswith('http'):
         http_transfer_file(download_url, destination_file)
     elif download_url.startswith('file://'):
         source_file = download_url.replace('file://', '')
