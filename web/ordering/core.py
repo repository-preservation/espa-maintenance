@@ -590,14 +590,14 @@ def get_products_to_process(record_limit=500,
                 'product_type': scene.sensor_type,
                 'scene': scene.name,
                 'priority': scene.order.priority,
-                'options': json.dumps(scene.order.product_options,
-                                      sort_keys=True, indent=None)
+                'options': json.loads(scene.order.product_options)
+                                     
             }
             
             if dload_url is not None:
                 result['download_url'] = dload_url
 
-            results.append(json.dumps(result, sort_keys=True, indent=0))
+            results.append(result)
 
     return results
 
