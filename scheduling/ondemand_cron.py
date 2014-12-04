@@ -338,7 +338,6 @@ if __name__ == '__main__':
         print("Invalid --product-types: 'plot' cannot be combined with any"
               " other product types")
         sys.exit(EXIT_FAILURE)
-    sys.exit(EXIT_SUCCESS)
 
     # Configure and get the logger for this task
     if 'plot' in args.product_types:
