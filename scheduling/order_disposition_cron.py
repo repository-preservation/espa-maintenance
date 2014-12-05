@@ -64,6 +64,13 @@ def determine_order_disposition():
         msg = "xmlrpc server was None... exiting"
         raise Exception(msg)
 
+    # Use order_disposition_enabled to determine if we should be processing
+    # or not
+    od_enabled = server.get_configuration('order_disposition_enabled')
+
+    if not od_enabled.lower() == 'true':
+        raise Exception("order disposition disabled... exiting")
+
     try:
         if not server.handle_orders():
             msg = "server.handle_orders() was not successful"
