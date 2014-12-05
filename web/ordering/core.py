@@ -540,7 +540,7 @@ def get_products_to_process(record_limit=500,
 
     for cid in cids:
         
-        if record_limit is not None and len(results) + 1 > record_limit:
+        if record_limit is not None and len(results) + 1 >= record_limit:
             break
         
         filters = {
@@ -567,7 +567,7 @@ def get_products_to_process(record_limit=500,
 
         for scene in scenes:
 
-            if record_limit is not None and len(results) + 1 > record_limit:
+            if record_limit is not None and len(results) + 1 >= record_limit:
                 break
 
             dload_url = None
