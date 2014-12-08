@@ -889,8 +889,8 @@ class LandsatProcessor(CDRProcessor):
         download_url = self._parms['download_url']
         options = self._parms['options']
 
-        file_name = '.'.join([product_id,
-                              settings.LANDSAT_INPUT_FILENAME_EXTENSION])
+        file_name = ''.join([product_id,
+                             settings.LANDSAT_INPUT_FILENAME_EXTENSION])
         destination_file = os.path.join(self._stage_dir, file_name)
 
         # Download the source data
@@ -989,8 +989,10 @@ class LandsatProcessor(CDRProcessor):
             cmd.extend(['--process_sr', 'False'])
 
         # Check to see if Thermal or TOA is required
+        # include_sr is added here for sanity to match L8 and business logic
         if (options['include_sr_toa']
                 or options['include_sr_thermal']
+                or options['include_sr']
                 or options['include_cfmask']):
 
             execute_do_ledaps = True
@@ -1417,8 +1419,10 @@ class LandsatOLITIRSProcessor(LandsatProcessor):
             cmd.extend(['--process_sr', 'False'])
 
         # Check to see if Thermal or TOA is required
+        # include_sr is added here for business logic
         if (options['include_sr_toa']
                 or options['include_sr_thermal']
+                or options['include_sr']
                 or options['include_cfmask']):
 
             cmd.append('--write_toa')
@@ -1571,8 +1575,8 @@ class ModisProcessor(CDRProcessor):
         product_id = self._parms['product_id']
         options = self._parms['options']
 
-        file_name = '.'.join([product_id,
-                              settings.MODIS_INPUT_FILENAME_EXTENSION])
+        file_name = ''.join([product_id,
+                             settings.MODIS_INPUT_FILENAME_EXTENSION])
         destination_file = os.path.join(self._stage_dir, file_name)
 
         # Download the source data
