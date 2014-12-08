@@ -288,8 +288,8 @@ class OrderWrapperServiceClient(LTAService):
 
                 try:
                     sensor.instance(p)
-                except sensor.ProductNotImplemented:
-                    print("%s is not implemented, skipping..." % p)
+                except sensor.ProductNotImplemented, pne:
+                    raise pne
                 else:
                     sb.write("<scene>")
                     sb.write("<sceneId>%s</sceneId>" % p)

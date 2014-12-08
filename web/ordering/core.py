@@ -377,7 +377,9 @@ def handle_submitted_landsat_products():
 
         products = Scene.objects.filter(**filters)
         product_list = [p.name for p in products]
-        results = lta.get_download_urls(product_list, contact_id)
+        
+        results = lta.order_scenes(product_list, contact_id)
+        #results = lta.get_download_urls(product_list, contact_id)
         oncache = []
         orderable = []
         unavailable = []
@@ -393,35 +395,35 @@ def handle_submitted_landsat_products():
                 #not found in inventory
                 unavailable.append(product_id)
 
-        if len(oncache) > 0:
+        if 'available' in results and len(results['available']) > 0:
             #update db
             filter_args = {
                 'status': 'submitted',
-                'name__in': oncache,
+                'name__in': results['available'],
                 'sensor_type': 'landsat',
                 'order__user__userprofile__contactid': contact_id
             }
             update_args = {'status': 'oncache'}
             Scene.objects.filter(**filter_args).update(**update_args)
 
-        if len(orderable) > 0:
-            #place order + update db
-            response = lta.order_scenes(orderable, contact_id)
+        if 'ordered' in results and len(results['ordered']) > 0:
+            #response = lta.order_scenes(orderable, contact_id)
 
             filter_args = {'status': 'submitted',
-                           'name__in': orderable,
+                           'name__in': results['ordered'],
                            'order__user__userprofile__contactid': contact_id}
 
             update_args = {'status': 'onorder',
-                           'tram_order_id': response['lta_order_id']}
+                           'tram_order_id': results['lta_order_id']}
 
             Scene.objects.filter(**filter_args).update(**update_args)
 
-        if len(unavailable) > 0:
+        if 'invalid' in results and len(results['invalid']) > 0:
             #look to see if they are ee orders.  If true then update the
             #unit status
-            rejects = [p for p in products if p.name in unavailable]
-            set_products_unavailable(rejects, 'Not found in landsat archive')
+                                       
+            invalid = [p for p in products if p.name in results['invalid']]
+            set_products_unavailable(invalid, 'Not found in landsat archive')
 
     #Here's the real logic for this handling submitted landsat products
     mark_nlaps_unavailable()
