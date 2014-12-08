@@ -209,13 +209,23 @@ def validate_email(email):
     return re.match(pattern, email.strip())
 
 
-def tar_files(tarred_full_path, file_list):
+def tar_files(tarred_full_path, file_list, gzip=False):
     '''
     Description:
       Create a tar ball (*.tar) of the specified file(s).
+      OR
+      Create a tar.gz ball (*.tar.gz) of the specified file(s).
     '''
 
-    cmd = ['tar', '-cf', '%s.tar' % tarred_full_path]
+    flags = '-cf'
+    target = '%s.tar' % tarred_full_path
+
+    # If zipping was chosen, change the flags and the target name
+    if gzip:
+        flags = '-czf'
+        target = '%s.tar.gz' % tarred_full_path
+
+    cmd = ['tar', flags, target]
     cmd.extend(file_list)
     cmd = ' '.join(cmd)
 
@@ -229,7 +239,9 @@ def tar_files(tarred_full_path, file_list):
         else:
             msg = ' '.join([msg, "NO STDOUT/STDERR"])
         # Raise and retain the callstack
-        raise Exception(msg), None, sys.exec_info()[2]
+        raise Exception(msg)
+
+    return target
 
 
 def gzip_files(file_list):
@@ -253,7 +265,7 @@ def gzip_files(file_list):
         else:
             msg = ' '.join([msg, "NO STDOUT/STDERR"])
         # Raise and retain the callstack
-        raise Exception(msg), None, sys.exec_info()[2]
+        raise Exception(msg)
 
 
 def checksum_local_file(filename):

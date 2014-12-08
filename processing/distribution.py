@@ -101,52 +101,6 @@ def build_argument_parser():
 
 
 # ============================================================================
-def tar_product(product_full_path, product_files):
-    '''
-    Description:
-      Create a tar ball of the specified files.
-    '''
-
-    cmd = ['tar', '-cf', '%s.tar' % product_full_path]
-    cmd.extend(product_files)
-    cmd = ' '.join(cmd)
-
-    output = ''
-    try:
-        output = utilities.execute_cmd(cmd)
-    except Exception, e:
-        raise ee.ESPAException(ee.ErrorCodes.packaging_product,
-                               str(e)), None, sys.exc_info()[2]
-    finally:
-        if len(output) > 0:
-            logger = EspaLogging.get_logger(settings.PROCESSING_LOGGER)
-            logger.info(output)
-# END - tar_product
-
-
-# ============================================================================
-def gzip_product(product_full_path):
-    '''
-    Description:
-      Create a gzip ball of the specified files.
-    '''
-
-    cmd = ' '.join(['gzip', product_full_path])
-
-    output = ''
-    try:
-        output = utilities.execute_cmd(cmd)
-    except Exception, e:
-        raise ee.ESPAException(ee.ErrorCodes.packaging_product,
-                               str(e)), None, sys.exc_info()[2]
-    finally:
-        if len(output) > 0:
-            logger = EspaLogging.get_logger(settings.PROCESSING_LOGGER)
-            logger.info(output)
-# END - gzip_product
-
-
-# ============================================================================
 def package_product(source_directory, destination_directory, product_name):
     '''
     Description:
@@ -179,17 +133,12 @@ def package_product(source_directory, destination_directory, product_name):
         logger.info("Packaging completed product to %s.tar.gz"
                     % product_full_path)
 
+        # Grab the files to tar and gzip
         product_files = glob.glob("*")
-        tar_product(product_full_path, product_files)
 
-        # It has the tar extension now
-        product_full_path = '.'.join([product_full_path, 'tar'])
-
-        # Compress the product tar
-        gzip_product(product_full_path)
-
-        # It has the gz extension now
-        product_full_path = '.'.join([product_full_path, 'gz'])
+        # Execute tar with zipping, the full/path/*.tar.gz name is returned
+        product_full_path = utilities.tar_files(product_full_path,
+                                                product_files, gzip=True)
 
         # Change file permissions
         logger.info("Changing file permissions on %s to 0644"
