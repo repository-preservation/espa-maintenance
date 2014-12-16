@@ -172,11 +172,8 @@ class Index(AbstractView):
         Return:
         HttpResponse
         '''
-
         c = self._get_request_context(request)
-
         t = loader.get_template(self.template)
-
         return HttpResponse(t.render(c))
 
 
