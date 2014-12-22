@@ -336,3 +336,27 @@ div.boxbody {
     padding-top: 0px;
 }
 
+div#system_message_wrapper {
+    width:700px;
+    margin: 0 auto;
+    margin-bottom:20px;
+    background:#DEDEDE;
+    padding:10px;
+    border:1px solid #CDCDCD;
+    border-top:none;
+}
+
+div#system_message_title {
+    padding:0 20px;
+    font-size:14px;
+    font-weight:bold;
+    /*font-family: Verdana, Arial, Helvetica, sans-serif;*/
+    line-height: 1.6em;
+}
+
+div#system_message_body {
+    padding:0 20px;
+    /*font-family: Verdana, Arial, Helvetica, sans-serif;*/
+    line-height: 1.6em;
+}
+

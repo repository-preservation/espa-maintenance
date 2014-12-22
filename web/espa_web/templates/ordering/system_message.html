@@ -1,16 +1,16 @@
 {% autoescape off %}
-<div style="width:700px;margin: 0 auto;margin-bottom:20px;background:#DEDEDE;padding:10px;border:1px solid #CDCDCD;border-top:none">
+<div id='system_message_wrapper'>
 
 <br/>
 
 {% if system_message_title %}
-<div style="padding:0 20px;font-size:14px;font-weight:bold;font-family: Verdana, Arial, Helvetica, sans-serif, Times New Roman; line-height: 1.6em;">
+<div id='system_message_title'>
 {{ system_message_title  }}
 </div>
 {% endif %}
 
 {% if system_message_body %}
-<div style="padding:0 20px;font-family: Verdana, Arial, Helvetica, sans-serif, Times New Roman; line-height: 1.6em;">
+<div id='system_message_body'>
     {{ system_message_body }}
 </div>
 {% endif %}
