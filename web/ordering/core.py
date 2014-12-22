@@ -340,30 +340,45 @@ def handle_onorder_landsat_products():
 def handle_submitted_landsat_products():
 
     def mark_nlaps_unavailable():
+
+        #print("In mark_nlaps_unavailable")
+
         #First things first... filter out all the nlaps scenes
         filters = {
-            'order__scene__status': 'submitted',
-            'order__scene__sensor_type': 'landsat'
+            'status': 'submitted',
+            'sensor_type': 'landsat'
         }
 
+        #print("looking for submitted landsat products")
         landsat_products = Scene.objects.filter(**filters)
 
         #build list input for calls to the scene cache
         landsat_submitted = [l.name for l in landsat_products]
 
+        landsat_products = None
+
+        #print("Checking for nlaps products now")
+
         # find all the submitted products that are nlaps and reject them
         landsat_nlaps = espa_common.nlaps.products_are_nlaps(landsat_submitted)
 
-        if settings.DEBUG:
-            print("Found %i landsat nlaps products" % len(landsat_nlaps))
+        landsat_submitted = None
+
+        #print("Found %i landsat nlaps products" % len(landsat_nlaps))
 
         # bulk update the nlaps scenes
         if len(landsat_nlaps) > 0:
 
             nlaps = [p for p in landsat_products if p.name in landsat_nlaps]
+
+            landsat_nlaps = None
+
             set_products_unavailable(nlaps, 'TMA data cannot be processed')
 
     def get_contactids_for_submitted_landsat_products():
+
+        #print("In get_contactids_for_submitted_landsat_products")
+
         filters = {
             'order__scene__status': 'submitted',
             'order__scene__sensor_type': 'landsat'
@@ -371,9 +386,16 @@ def handle_submitted_landsat_products():
         u = User.objects.filter(**filters)
         u = u.select_related('userprofile__contactid')
         contact_ids = u.values_list('userprofile__contactid').distinct()
+
+        #print("contact ids:")
+        #print contact_ids
+
         return [c[0] for c in contact_ids]
 
     def update_landsat_product_status(contact_id):
+
+        #print("update_landsat_product_status")
+
         filters = {
             'status': 'submitted',
             'sensor_type': 'landsat',
@@ -382,6 +404,8 @@ def handle_submitted_landsat_products():
 
         products = Scene.objects.filter(**filters)
         product_list = [p.name for p in products]
+
+        #print("update_landsat_product_status --> lta.order_scenes")
 
         results = lta.order_scenes(product_list, contact_id)
 
@@ -428,6 +452,8 @@ def handle_submitted_landsat_products():
 @transaction.atomic
 def handle_submitted_modis_products():
     ''' Moves all submitted modis products to oncache if true '''
+
+    #print("handle_submitted_modis")
 
     filter_args = {'status': 'submitted', 'sensor_type': 'modis'}
     modis_products = Scene.objects.filter(**filter_args)

@@ -12,6 +12,7 @@ class NLAPS(object):
         with open(self.path, 'rb') as nl:
             data = nl.read()
             self.names = data.split('\n')
+            data = None
 
 
 def products_are_nlaps(product_list):
@@ -20,7 +21,10 @@ def products_are_nlaps(product_list):
         raise TypeError("product_list must be an instance of list()")
 
     results = []
+
+    nl = NLAPS()
+
     for p in product_list:
-        if p in NLAPS().names:
+        if p in nl.names:
             results.append(p)
     return results
