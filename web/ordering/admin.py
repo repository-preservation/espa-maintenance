@@ -32,7 +32,10 @@ class SceneAdmin(admin.ModelAdmin):
               'cksum_download_url',
               'processing_location',
               'note',
-              'log_file_contents']
+              'log_file_contents',
+              ('retry_after',
+              'retry_limit',
+              'retry_count')]
 
     #this should stop django from querying the Order in addition to the Scene
     list_select_related = ()
@@ -40,7 +43,7 @@ class SceneAdmin(admin.ModelAdmin):
     readonly_fields = ('order', 'name', 'tram_order_id', 'ee_unit_id',
                        'product_distro_location', 'product_dload_url',
                        'cksum_distro_location', 'cksum_download_url',
-                       'processing_location')
+                       'processing_location', 'retry_count')
 
     list_display = ('name',
                     'sensor_type',

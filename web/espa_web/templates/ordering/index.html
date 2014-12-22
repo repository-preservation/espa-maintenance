@@ -28,12 +28,21 @@
     div.marketing_header{
        width:100%;
        text-align:center;
-       line-height:20px;
        font-size:14px;
        font-weight:bold;
        background:#577196;
        overflow:hidden;
        color:white;
+    }
+
+    div.marketing_header p {
+        line-height:36px;
+        font-size:14px;
+    }
+
+    div.marketing_footer p {
+        line-height:36px;
+        font-size:14px;
     }
 
     div.marketing_footer {
@@ -163,12 +172,12 @@
            <p>LPCS</p>
           </div>
           <div class="marketing_content">
-              <p>Land Product Characterization will provide a way to perform statistical comparisons between datasets obtained from disparate sensors.</p>
-              <p>LPCS will initially support MODIS and Landsat surface reflectance products only, but further development will expand the offerings.
+              <p>Land Product Characterization provides a way to perform statistical comparisons between datasets obtained from disparate sensors.</p>
+              <p>LPCS currently supports MODIS and Landsat surface reflectance products only, but further development will expand the offerings.
                </p>      
           </div>
            <div class="marketing_footer">
-           <p class="coming_soon">Coming Soon!</p>
+           <p><a href="{% url 'new_order' %}">Generate Comparisions</a></p>
           </div>
         </div>
             

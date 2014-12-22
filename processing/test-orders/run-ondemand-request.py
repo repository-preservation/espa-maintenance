@@ -153,9 +153,9 @@ def process_test_order(request_file, products_file, env_vars,
 
                 # for plots
                 if not is_modis and not plot:
-                    product_path = ('%s/%s%s'
+                    product_path = ('%s/%s/%s%s'
                                     % (env_vars['dev_data_dir']['value'],
-                                       product, '.tar.gz'))
+                                       product[:3], product, '.tar.gz'))
 
                     logger.info("Using Product Path [%s]" % product_path)
                     if not os.path.isfile(product_path):

@@ -4,7 +4,7 @@
         "include_customized_source_data": true,
         "include_dswe": true,
         "include_source_data": false,
-        "include_source_metadata": false,
+        "include_source_metadata": true,
         "include_sr": true,
         "include_sr_evi": false,
         "include_sr_msavi": false,

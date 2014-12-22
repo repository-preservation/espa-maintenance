@@ -505,11 +505,18 @@ class OrderWrapperServiceClient(LTAService):
 
             retval = {}
 
-            for scene in list(scene_elements):
+            ehost = common_settings.EXTERNAL_CACHE_HOST
+            ihosts = common_settings.ESPA_CACHE_HOST_LIST
+            
+            for index, scene in enumerate(list(scene_elements)):
                 name = scene.find(sceneid_elem).text
                 prod_code = scene.find(prod_code_elem).text
                 sensor = scene.find(sensor_elem).text
                 status = scene.find(status_elem).text
+
+                retval[name] = {'lta_code': prod_code,
+                                'sensor': sensor,
+                                'status': status}
 
                 #may not be included with every response if not online
                 __dload_url = scene.find(dload_url_elem)
@@ -518,13 +525,12 @@ class OrderWrapperServiceClient(LTAService):
 
                 if __dload_url is not None:
                     dload_url = __dload_url.text
-
-                retval[name] = {'lta_code': prod_code,
-                                'sensor': sensor,
-                                'status': status}
-                if dload_url is not None:
+                    
+                    if dload_url.find(ehost) != -1:
+                        dload_url = dload_url.replace(ehost,
+                                                      ihosts[index % 2])
                     retval[name]['download_url'] = dload_url
-
+                   
             return retval
 
         # build service url

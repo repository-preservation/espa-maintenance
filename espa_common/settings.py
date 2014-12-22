@@ -61,8 +61,11 @@ MAX_DELIVERY_ATTEMPTS = 3
 MAX_DISTRIBUTION_ATTEMPTS = 5
 
 # List of hostnames to choose from for the access to the online cache
-# 140 is here twice so the load is 2/3 + 1/3.  machines are mismatched
-ESPA_CACHE_HOST_LIST = ['edclxs67p', 'edclxs140p', 'edclxs140p']
+# Runs over 10Gb line
+ESPA_CACHE_HOST_LIST = ['edclxs67p', 'edclxs140p']
+
+# The external name for the online cache.  Runs over 1Gb line.
+EXTERNAL_CACHE_HOST = 'edclpdsftp.cr.usgs.gov'
 
 # Where to place the temporary scene processing log files
 LOGFILE_PATH = '/tmp'

@@ -17,13 +17,35 @@ ol ol, ul ol {
    margin-left: 15px; 
 }
 
-table   { display: table; 
-          width:100%;
-          border:2px solid #d0d0d0;
+table   { 
+
+    display: table; 
+    width:100%;
+    border:2px solid #d0d0d0;
 }
 
 tr {
     display: table-row;
+    line-height:1.8em;
+}
+
+.evenrow {
+    background-color:#DEDEDE;
+    background:#DEDEDE;
+    border:none;
+}
+
+.oddrow {
+    background-color:#FFFFFF;
+    background:#FFFFFF;
+    border:none;
+}
+
+.header_row {
+    border:2px solid #577196;
+    background:#577196;
+    background-color:#577196;
+    color:white;
 }
 
 thead {
@@ -49,6 +71,7 @@ colgroup {
 td, th {
     display: table-cell;
     border:1px solid #d0d0d0;
+    background:transparent;
 }
 
 caption {
@@ -91,6 +114,18 @@ h5 {
     margin:10px 0px;
 }
 
+
+fieldset { 
+    display: block;
+    margin-left: 2px;
+    margin-right: 2px;
+    padding-top: 0.35em;
+    padding-bottom: 0.625em;
+    padding-left: 0.75em;
+    padding-right: 0.75em;
+    border: 2px groove;
+}
+
 .error {
     color:red;
 }
@@ -99,12 +134,13 @@ h5 {
     border: none;
 }
 
+
 .espa_lightbox {
      display:none;
      visibility:hidden;
      margin:0 auto;
      margin-top:20px;
-     width:600px;
+     width:90%;
      background-color:white;
      padding:20px;
      border:5px solid #577196;
@@ -229,7 +265,7 @@ h5 {
 .wrapper {
     min-height:650px;
     margin:auto;
-    width:800px;
+    width:900px;
     overflow:hidden;
 }
 
@@ -301,43 +337,32 @@ div.admin {
     background-color: #e5e5e5;
 }
 
-div.box {
-    margin-bottom: 35px;
-    width: 600px;
-    font-size: 12px;
-}
-
-div.boxhead {
-    background-color: #3D567A;
-    color:white;
-    font-weight:bold;
-    padding:5px;
-}
-
-.boxhead .id {
-    float: right;
-    font-size: 11px
-}
 
 div.boxbody {
-    padding: 6px 10px;
-    border-left: 1px solid #bbb;
-    border-right: 1px solid #bbb;
-    border-bottom: 1px solid #bbb;
+    margin:0 auto;
+    border:none;
 }
 
-.boxbody .boxitem {
-    font-family: 'Courier New', monospace;
-    padding: 6px;
-    letter-spacing: .3px;
+/**
+div.boxbody table {
+    width:100%;
+    padding:10px;
+    border:2px solid #d0d0d0;
 }
+
+div.boxbody table td {
+    padding:5px 10px;
+  
+}
+*/
+
 
 #usgsfooter {
     padding-top: 0px;
 }
 
 div#system_message_wrapper {
-    width:700px;
+    width:100%;
     margin: 0 auto;
     margin-bottom:20px;
     background:#DEDEDE;
@@ -349,14 +374,18 @@ div#system_message_wrapper {
 div#system_message_title {
     padding:0 20px;
     font-size:14px;
-    font-weight:bold;
-    /*font-family: Verdana, Arial, Helvetica, sans-serif;*/
+    font-weight:bold;   
     line-height: 1.6em;
+    width:80%;
+    margin:0 auto;
 }
 
 div#system_message_body {
     padding:0 20px;
-    /*font-family: Verdana, Arial, Helvetica, sans-serif;*/
     line-height: 1.6em;
+}
+
+h4.new_order_section_label {
+    margin-left:50px;
 }
 

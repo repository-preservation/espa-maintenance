@@ -563,6 +563,10 @@ class CDRProcessor(CustomizationProcessor):
             specified products.
         '''
 
+        # Nothing to do if the user did not specify anything to build
+        if not self._build_products:
+            return
+
         logger = self._logger
 
         options = self._parms['options']
@@ -993,6 +997,7 @@ class LandsatProcessor(CDRProcessor):
         if (options['include_sr_toa']
                 or options['include_sr_thermal']
                 or options['include_sr']
+                or options['include_dswe']
                 or options['include_cfmask']):
 
             execute_do_ledaps = True
@@ -1047,7 +1052,9 @@ class LandsatProcessor(CDRProcessor):
         options = self._parms['options']
 
         cmd = None
-        if options['include_cfmask'] or options['include_sr']:
+        if (options['include_cfmask']
+                or options['include_dswe']
+                or options['include_sr']):
             cmd = ' '.join(['cfmask', '--verbose', '--max_cloud_pixels',
                             settings.CFMASK_MAX_CLOUD_PIXELS,
                             '--xml', self._xml_filename])
@@ -1152,6 +1159,58 @@ class LandsatProcessor(CDRProcessor):
                     logger.info(output)
 
     # -------------------------------------------
+    def dswe_command_line(self):
+        '''
+        Description:
+            Returns the command line required to generate Dynamic Surface
+            Water Extent.  Evaluates the options requested by the user to
+            define the command line string to use, or returns None indicating
+            nothing todo.
+
+        Note:
+            Provides the L4, L5, L7, and L8(LC8) command line.
+        '''
+
+        options = self._parms['options']
+
+        cmd = None
+        if options['include_dswe']:
+
+            cmd = ['do_dynamic_surface_water_extent.py',
+                   '--xml', self._xml_filename,
+                   '--verbose']
+
+            cmd = ' '.join(cmd)
+
+        return cmd
+
+    # -------------------------------------------
+    def generate_dswe(self):
+        '''
+        Description:
+            Generates the Dynamic Surface Water Extent product.
+        '''
+
+        logger = self._logger
+
+        cmd = self.dswe_command_line()
+
+        # Only if required
+        if cmd is not None:
+
+            logger.info(' '.join(['DSWE COMMAND:', cmd]))
+
+            output = ''
+            try:
+                output = utilities.execute_cmd(cmd)
+            except Exception, e:
+                raise ee.ESPAException(ee.ErrorCodes.dswe,
+                                       str(e)), None, sys.exc_info()[2]
+            finally:
+                if len(output) > 0:
+                    logger.info(output)
+
+    # -------------------------------------------
     def build_science_products(self):
         '''
         Description:
@@ -1183,9 +1242,7 @@ class LandsatProcessor(CDRProcessor):
 
             self.generate_spectral_indices()
 
-            # TODO - We do not have a finalized version of this yet, but this
-            #        is where it will go
-            # self.generate_dswe()
+            self.generate_dswe()
 
         finally:
             # Change back to the previous directory
@@ -1468,28 +1525,6 @@ class LandsatOLIProcessor(LandsatOLITIRSProcessor):
         super(LandsatOLIProcessor, self).__init__(parms)
 
     # -------------------------------------------
-    def sr_command_line(self):
-        '''
-        Description:
-            Returns the command line required to generate surface reflectance.
-            Evaluates the options requested by the user to define the command
-            line string to use, or returns None indicating nothing todo.
-        '''
-
-        options = self._parms['options']
-
-        cmd = None
-        # Check to see if Thermal or TOA is required
-        if (options['include_sr_toa']
-                or options['include_sr_thermal']
-                or options['include_cfmask']):
-
-            cmd = ['do_l8_sr.py', '--xml', self._xml_filename, '--write_toa']
-            cmd = ' '.join(cmd)
-
-        return cmd
-
-    # -------------------------------------------
     def cfmask_command_line(self):
         '''
         Description:
@@ -1573,7 +1608,7 @@ class ModisProcessor(CDRProcessor):
         '''
 
         product_id = self._parms['product_id']
-        options = self._parms['options']
+        download_url = self._parms['download_url']
 
         file_name = ''.join([product_id,
                              settings.MODIS_INPUT_FILENAME_EXTENSION])
@@ -1581,8 +1616,7 @@ class ModisProcessor(CDRProcessor):
 
         # Download the source data
         try:
-            transfer.download_file_url(options['download_url'],
-                                       destination_file)
+            transfer.download_file_url(download_url, destination_file)
         except Exception, e:
             raise ee.ESPAException(ee.ErrorCodes.staging_data, str(e)), \
                 None, sys.exc_info()[2]

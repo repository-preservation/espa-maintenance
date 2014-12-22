@@ -363,9 +363,8 @@ class NewOrder(AbstractView):
 
 
 class ListOrders(AbstractView):
-    initial_template = "ordering/listorders.html"
-    results_template = "ordering/listorders_results.html"
-
+    template = "ordering/listorders.html"
+    
     def get(self, request, email=None, output_format=None):
         '''Request handler for displaying all user orders
 
@@ -377,29 +376,24 @@ class ListOrders(AbstractView):
         Return:
         HttpResponse
         '''
-
-        #no email provided, ask user for an email address
+       
         if email is None or not utilities.validate_email(email):
             user = User.objects.get(username=request.user.username)
+            email = user.email
 
-            #default the email field to the current user email
-            form = ListOrdersForm(initial={'email': user.email})
+        orders = Order.list_all_orders(email)
 
-            c = self._get_request_context(request, {'form': form})
+        form = ListOrdersForm(initial={'email': email})
+        
+        c = self._get_request_context(request, {'form': form, 
+                                                'email': email,
+                                                'orders': orders
+                                                })
+                                                
+        t = loader.get_template(self.template)
 
-            t = loader.get_template(self.initial_template)
-
-            return HttpResponse(t.render(c))
-        else:
-            #if we got here display the orders
-            orders = Order.list_all_orders(email)
-
-            t = loader.get_template(self.results_template)
-
-            c = self._get_request_context(request, {'email': email,
-                                                    'orders': orders
-                                                    })
-            return HttpResponse(t.render(c))
+        return HttpResponse(t.render(c))
+        
 
 
 class Downloads(AbstractView):

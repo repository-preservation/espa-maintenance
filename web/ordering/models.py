@@ -7,6 +7,7 @@ from django.db import models
 from django.db import transaction
 from django.contrib.auth.models import User
 from django.db.models import Q
+from django.db.models import Count
 
 
 class UserProfile (models.Model):
@@ -108,6 +109,24 @@ class Order(models.Model):
 
     # populated when the order is placed through EE vs ESPA
     ee_order_id = models.CharField(max_length=13, blank=True)
+
+    def product_counts(self):
+        '''Returns a dictionary of product status with a count for each one'''
+        counts = {}
+        
+        for s,d in Scene.STATUS:
+            counts[s] = 0
+        
+        scenes = Scene.objects.filter(order=self)
+        scenes = scenes.values('status').annotate(Count('status'));
+        
+        for scene in scenes:
+            counts[scene['status']] = scene['status__count']
+
+        return counts
+        
+    
+
 
     @staticmethod
     def get_default_product_options():
@@ -372,6 +391,7 @@ class Order(models.Model):
             scene.order_date = datetime.datetime.now()
             scene.status = 'submitted'
             scene.sensor_type = sensor_type
+            scene.note = ''
             scene.save()
 
         return order

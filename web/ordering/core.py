@@ -230,7 +230,6 @@ class OrderHandler(object):
 def set_product_unavailable(name, orderid, processing_loc, error, note):
 
     product = Scene.objects.get(name=name, order__orderid=orderid)
-    product = product.select_related('order')
 
     product.status = 'unavailable'
     product.processing_location = processing_loc
@@ -293,8 +292,8 @@ def handle_onorder_landsat_products():
     select_related = 'order'
 
     products = Scene.objects.filter(**filters).select_related(select_related)
-    product_tram_ids = products.values_list('tram_order_id').distinct()
-    tram_ids = [p[0] for p in product_tram_ids]
+    product_tram_ids = products.values_list('tram_order_id')
+    tram_ids = list(set([p[0] for p in product_tram_ids]))
 
     rejected = []
     available = []
@@ -302,6 +301,12 @@ def handle_onorder_landsat_products():
     for tid in tram_ids:
         order_status = lta.get_order_status(tid)
 
+        # There are a variety of product statuses that come back from tram
+        # on this call.  I is inprocess, Q is queued for the backend system,
+        # D is duplicate, C is complete and R is rejected.  We are ignoring
+        # all the statuses except for R and C because we don't care.
+        # In the case of D (duplicates), when the first product completes, all
+        # duplicates will also be marked C
         for unit in order_status['units']:
             if unit['unit_status'] == 'R':
                 rejected.append(unit['sceneid'])
@@ -377,23 +382,8 @@ def handle_submitted_landsat_products():
 
         products = Scene.objects.filter(**filters)
         product_list = [p.name for p in products]
-        
-        results = lta.order_scenes(product_list, contact_id)
-        #results = lta.get_download_urls(product_list, contact_id)
-        oncache = []
-        orderable = []
-        unavailable = []
 
-        for product_id in results.keys():
-            if results[product_id]['status'] == 'available':
-                #its on cache
-                oncache.append(product_id)
-            elif results[product_id]['status'] == 'orderable':
-                #place order
-                orderable.append(product_id)
-            elif results[product_id]['status'] == 'invalid':
-                #not found in inventory
-                unavailable.append(product_id)
+        results = lta.order_scenes(product_list, contact_id)
 
         if 'available' in results and len(results['available']) > 0:
             #update db
@@ -403,7 +393,9 @@ def handle_submitted_landsat_products():
                 'sensor_type': 'landsat',
                 'order__user__userprofile__contactid': contact_id
             }
+
             update_args = {'status': 'oncache'}
+
             Scene.objects.filter(**filter_args).update(**update_args)
 
         if 'ordered' in results and len(results['ordered']) > 0:
@@ -421,8 +413,9 @@ def handle_submitted_landsat_products():
         if 'invalid' in results and len(results['invalid']) > 0:
             #look to see if they are ee orders.  If true then update the
             #unit status
-                                       
+
             invalid = [p for p in products if p.name in results['invalid']]
+
             set_products_unavailable(invalid, 'Not found in landsat archive')
 
     #Here's the real logic for this handling submitted landsat products
@@ -464,27 +457,35 @@ def handle_submitted_plot_products():
     filter_args = {'status': 'ordered', 'order_type': 'lpcs'}
     plot_orders = Order.objects.filter(**filter_args)
 
-    if len(plot_orders) > 0:
 
-        for order in plot_orders:
-            product_count = order.scene_set.count()
+    for order in plot_orders:
+        product_count = order.scene_set.count()
 
-            complete_status = ['complete', 'unavailable']
-            filter_args = {'status__in': complete_status}
-            complete_products = order.scene_set.filter(**filter_args).count()
+        filter_args = {'status': 'complete'}
+        complete_products = order.scene_set.filter(**filter_args).count()
 
-            #if this is an lpcs order and there is only 1 product left that
-            #is not done, it must be the plot product.  Will verify this
-            #in next step.  Plotting cannot run unless everything else
-            #is done.
+        filter_args = {'status': 'unavailable'}
+        unavailable_products = order.scene_set.filter(**filter_args).count()
 
-            if product_count - complete_products == 1:
-                filter_args = {'status': 'submitted', 'sensor_type': 'plot'}
-                plot = order.scene_set.filter(**filter_args)
-                if len(plot) >= 1:
-                    for p in plot:
+
+        #if this is an lpcs order and there is only 1 product left that
+        #is not done, it must be the plot product.  Will verify this
+        #in next step.  Plotting cannot run unless everything else
+        #is done.
+
+        if product_count - (unavailable_products + complete_products) == 1:
+            filter_args = {'status': 'submitted', 'sensor_type': 'plot'}
+            plot = order.scene_set.filter(**filter_args)
+            if len(plot) >= 1:
+                for p in plot:
+                    if complete_products == 0:
+                        p.status = 'unavailable'
+                        p.note = ('No input products were available for '
+                                  'plotting and statistics')
+                    else:
                         p.status = 'oncache'
-                        p.save()
+                        p.note = ''
+                    p.save()
 
 
 @transaction.atomic
@@ -537,14 +538,14 @@ def get_products_to_process(record_limit=500,
     #pull all the cids but cast to set() to eliminate dups then back to list
     #to support index based iteration
     cids = list(set([c[0] for c in u.values_list('userprofile__contactid')]))
-    
+
     results = []
 
     for cid in cids:
-        
+
         if record_limit is not None and len(results) + 1 >= record_limit:
             break
-        
+
         filters = {
             'order__user__userprofile__contactid': cid,
             'status': 'oncache'
@@ -563,7 +564,7 @@ def get_products_to_process(record_limit=500,
         #landsat = [s.name for s in scenes where s.sensor_type = 'landsat']
         landsat = [s.name for s in scenes if s.sensor_type == 'landsat']
         landsat_urls = lta.get_download_urls(landsat, cid)
-        
+
         modis = [s.name for s in scenes if s.sensor_type == 'modis']
         modis_urls = lpdaac.get_download_urls(modis)
 
@@ -579,23 +580,22 @@ def get_products_to_process(record_limit=500,
                     dload_url = landsat_urls[scene.name]['download_url']
                     if encode_urls:
                         dload_url = urllib.quote(dload_url, '')
-                        
+
             elif scene.sensor_type == 'modis':
                 if 'download_url' in modis_urls[scene.name]:
                     dload_url = modis_urls[scene.name]['download_url']
-                    
+
                     if encode_urls:
                         dload_url = urllib.quote(dload_url, '')
-                        
+
             result = {
                 'orderid': scene.order.orderid,
                 'product_type': scene.sensor_type,
                 'scene': scene.name,
                 'priority': scene.order.priority,
                 'options': json.loads(scene.order.product_options)
-                                     
             }
-            
+
             if dload_url is not None:
                 result['download_url'] = dload_url
 
@@ -640,15 +640,15 @@ def set_product_error(name, orderid, processing_loc, error):
         elif resolution.status == 'unavailable':
             set_product_unavailable(product.name,
                                     product.order.orderid,
-                                    product.processing_loc,
-                                    product.error,
+                                    processing_loc,
+                                    error,
                                     resolution.reason)
         elif resolution.status == 'retry':
             try:
                 set_product_retry(product.name,
                                   product.order.orderid,
-                                  product.processing_loc,
-                                  product.error,
+                                  processing_loc,
+                                  error,
                                   resolution.reason,
                                   resolution.extra['retry_after'],
                                   resolution.extra['retry_limit'])
@@ -840,7 +840,7 @@ def load_ee_orders():
         helper_logger(("enable_load_ee_orders is disabled,"
                        "skipping load_ee_orders()"))
         return
-        
+
     # This returns a dict that contains a list of dicts{}
     # key:(order_num, email, contactid) = list({sceneid:, unit_num:})
     orders = lta.get_available_orders()

@@ -243,25 +243,43 @@ def http_transfer_file(download_url, destination_file):
 
     logger.info(download_url)
 
-    file_size = 0
-    retrieved_bytes = 0
-    with closing(requests.get(download_url, stream=True)) as req:
-        if not req.ok:
-            raise Exception("Transfer Failed - HTTP - Reason(%s)"
-                            % req.reason)
+#    file_size = 0
+#    retrieved_bytes = 0
+#    with closing(requests.get(download_url, stream=True)) as req:
+#        if not req.ok:
+#            raise Exception("Transfer Failed - HTTP - Reason(%s)"
+#                            % req.reason)
+#
+#        file_size = int(req.headers['content-length'])
+#
+#        with open(destination_file, 'wb') as local_fd:
+#            for data_chunk in req.iter_content(settings.TRANSFER_BLOCK_SIZE):
+#                local_fd.write(data_chunk)
+#                retrieved_bytes += len(data_chunk)
+#
+#    if retrieved_bytes != file_size:
+#        raise Exception("Transfer Failed - HTTP - Retrieved %d out of %d bytes"
+#                        % (retrieved_bytes, file_size))
+#    else:
+#        logger.info("Transfer Complete - HTTP")
 
-        file_size = int(req.headers['content-length'])
+    req = requests.get(download_url)
 
+    if not req.ok:
+        logger.error("Transfer Failed - HTTP")
+        req.raise_for_status()
+
+    try:
         with open(destination_file, 'wb') as local_fd:
-            for data_chunk in req.iter_content(settings.TRANSFER_BLOCK_SIZE):
-                local_fd.write(data_chunk)
-                retrieved_bytes += len(data_chunk)
+            local_fd.write(req.content)
+    except:
+        logger.error("Transfer Failed - HTTP")
+        raise
+    finally:
+        req.close()
 
-    if retrieved_bytes != file_size:
-        raise Exception("Transfer Failed - HTTP - Retrieved %d out of %d bytes"
-                        % (retrieved_bytes, file_size))
-    else:
-        logger.info("Transfer complete - HTTP")
+    logger.info("Transfer Complete - HTTP")
+
 # END - http_transfer_file
 
 

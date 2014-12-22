@@ -216,62 +216,64 @@ def process_requests(args, logger_name, queue_priority, request_priority):
                 if len(output) > 0:
                     logger.info(output)
 
-            # ----------------------------------------------------------------
-            # Update the scene list as queued so they don't get pulled down
-            # again now that these jobs have been stored in hdfs
-            product_list = list()
-            for request in requests:
-                orderid = request['orderid']
-                sceneid = request['scene']
-                product_list.append((orderid, sceneid))
+                logger.info("Deleting local request file copy [%s]"
+                            % job_filepath)
+                os.unlink(job_filepath)
 
-                logger.info("Adding scene:%s orderid:%s to queued list"
-                            % (sceneid, orderid))
-
-            server.queue_products(product_list, 'CDR_ECV cron driver',
-                                  job_name)
-
-            logger.info("Deleting local request file copy [%s]"
-                        % job_filepath)
-            os.unlink(job_filepath)
-
-            # ----------------------------------------------------------------
-            logger.info("Running hadoop job...")
-            output = ''
             try:
-                cmd = ' '.join(hadoop_run_command)
-                logger.info("Run cmd:%s" % cmd)
+                # ------------------------------------------------------------
+                # Update the scene list as queued so they don't get pulled
+                # down again now that these jobs have been stored in hdfs
+                product_list = list()
+                for request in requests:
+                    orderid = request['orderid']
+                    sceneid = request['scene']
+                    product_list.append((orderid, sceneid))
 
-                output = utilities.execute_cmd(cmd)
-            except Exception, e:
-                logger.exception("Error running Hadoop job...")
-            finally:
-                if len(output) > 0:
-                    logger.info(output)
+                    logger.info("Adding scene:%s orderid:%s to queued list"
+                                % (sceneid, orderid))
 
-            # ----------------------------------------------------------------
-            logger.info("Deleting hadoop job request file from hdfs....")
-            output = ''
-            try:
-                cmd = ' '.join(hadoop_delete_request_command1)
-                output = utilities.execute_cmd(cmd)
-            except Exception, e:
-                logger.exception("Error deleting hadoop job request file")
-            finally:
-                if len(output) > 0:
-                    logger.info(output)
+                server.queue_products(product_list, 'CDR_ECV cron driver',
+                                      job_name)
 
-            # ----------------------------------------------------------------
-            logger.info("Deleting hadoop job output...")
-            output = ''
-            try:
-                cmd = ' '.join(hadoop_delete_request_command2)
-                output = utilities.execute_cmd(cmd)
-            except Exception, e:
-                logger.exception("Error deleting hadoop job output")
+                # ------------------------------------------------------------
+                logger.info("Running hadoop job...")
+                output = ''
+                try:
+                    cmd = ' '.join(hadoop_run_command)
+                    logger.info("Run cmd:%s" % cmd)
+
+                    output = utilities.execute_cmd(cmd)
+                except Exception, e:
+                    logger.exception("Error running Hadoop job...")
+                finally:
+                    if len(output) > 0:
+                        logger.info(output)
+
             finally:
-                if len(output) > 0:
-                    logger.info(output)
+                # ------------------------------------------------------------
+                logger.info("Deleting hadoop job request file from hdfs....")
+                output = ''
+                try:
+                    cmd = ' '.join(hadoop_delete_request_command1)
+                    output = utilities.execute_cmd(cmd)
+                except Exception, e:
+                    logger.exception("Error deleting hadoop job request file")
+                finally:
+                    if len(output) > 0:
+                        logger.info(output)
+
+                # ------------------------------------------------------------
+                logger.info("Deleting hadoop job output...")
+                output = ''
+                try:
+                    cmd = ' '.join(hadoop_delete_request_command2)
+                    output = utilities.execute_cmd(cmd)
+                except Exception, e:
+                    logger.exception("Error deleting hadoop job output")
+                finally:
+                    if len(output) > 0:
+                        logger.info(output)
 
         else:
             logger.info("No requests to process....")

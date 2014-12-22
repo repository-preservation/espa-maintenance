@@ -9,6 +9,7 @@ class Errors(object):
     def __init__(self):
         #build list of known error conditions to be checked
         self.conditions = list()
+        self.conditions.append(self.oli_no_sr)
         self.conditions.append(self.night_scene)
         self.conditions.append(self.missing_ledaps_aux_data)
         self.conditions.append(self.ftp_timed_out)
@@ -65,14 +66,23 @@ class Errors(object):
         extras['retry_after'] = ts + datetime.timedelta(seconds=timeout)
         extras['retry_limit'] = self.retry[timeout_key]['retry_limit']
         return extras
+        
+    def oli_no_sr(self, error_message):
+        ''' Indicates the user requested sr processing against OLI-only'''
+        
+        key = 'oli-only cannot be corrected to surface reflectance'
+        status = 'unavailable'
+        reason = 'OLI only scenes cannot be processed to surface reflectance'
+        return self.__find_error(error_message, key, status, reason)
 
     def night_scene(self, error_message):
-        '''Indicates that LEDAPS could not process a scene because the
+        '''Indicates that LEDAPS/l8sr could not process a scene because the
         sun was beneath the horizon'''
 
         key = 'solar zenith angle out of range'
         status = 'unavailable'
-        reason = 'Night scenes cannot be processed to surface reflectance'
+        reason = ('This scene cannot be processed to surface reflectance '
+                  'due to the high solar zenith angle')
         return self.__find_error(error_message, key, status, reason)
 
     def missing_ledaps_aux_data(self, error_message):
