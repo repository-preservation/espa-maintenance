@@ -58,11 +58,22 @@ def get_http_status():
     for tr in trs:
         tds = tr.find_all('td')
         if 'id' in tds[0].attrs:
+            
+           # print(tds)
+           # for ttt in tds:
+           #     print ttt
+           #     print('\n')            
+            
             jobid = tds[0].text
             name = tds[4].text
-            total = tds[7].text
-            complete = tds[8].text
-            running = tds[13].text.split(' ')[0]
+            if 'cellspacing' in tds[7].attrs:
+                total = tds[8].text
+                complete = tds[9].text
+                running = tds[14].text.split(' ')[0]
+            else:
+                total = tds[7].text
+                complete = tds[8].text
+                running = tds[13].text.split(' ')[0]
             results[jobid] = {'name': name, 'total': total,
                       'complete': complete, 'running': running}
                         
