@@ -1,6 +1,7 @@
 import paramiko
 import requests
 from bs4 import BeautifulSoup
+import pprint
 
 def run_ssh(command):
     ssh = paramiko.SSHClient()
@@ -81,5 +82,6 @@ def get_http_status():
 if __name__ == '__main__':
     status = get_http_status()
     if status:
-        print(status)
+        printer = pprint.PrettyPrinter(indent=4)
+        printer.pprint(status)
 
