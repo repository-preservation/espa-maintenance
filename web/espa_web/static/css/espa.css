@@ -377,6 +377,7 @@ div#system_message_title {
     font-weight:bold;   
     line-height: 1.6em;
     width:80%;
+    text-align:center;
     margin:0 auto;
 }
 

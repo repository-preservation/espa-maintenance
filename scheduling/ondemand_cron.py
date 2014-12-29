@@ -100,7 +100,7 @@ def process_requests(args, logger_name, queue_priority, request_priority):
 
     try:
         logger.info("Checking for requests to process...")
-        requests = server.get_scenes_to_process(args.limit, args.user,
+        requests = server.get_scenes_to_process(int(args.limit), args.user,
                                                 request_priority,
                                                 list(args.product_types))
         if requests:
@@ -190,7 +190,8 @@ def process_requests(args, logger_name, queue_priority, request_priority):
                  '-cmdenv', 'ESPA_WORK_DIR=$ESPA_WORK_DIR',
                  '-cmdenv', 'HOME=$HOME',
                  '-cmdenv', 'USER=$USER',
-                 '-cmdenv', 'ANC_PATH=$ANC_PATH',
+                 '-cmdenv', 'LEDAPS_AUX_DIR=$LEDAPS_AUX_DIR',
+                 '-cmdenv', 'L8_AUX_DIR=$L8_AUX_DIR',
                  '-cmdenv', 'ESUN=$ESUN',
                  '-input', hdfs_target,
                  '-output', hdfs_target + '-out']
@@ -347,8 +348,8 @@ if __name__ == '__main__':
 
     # Check required variables that this script should fail on if they are not
     # defined
-    required_vars = ['ESPA_XMLRPC', 'ESPA_WORK_DIR', 'ANC_PATH', 'PATH',
-                     'HOME']
+    required_vars = ['ESPA_XMLRPC', 'ESPA_WORK_DIR', 'LEDAPS_AUX_DIR',
+                     'L8_AUX_DIR', 'PATH', 'HOME']
     for env_var in required_vars:
         if (env_var not in os.environ or os.environ.get(env_var) is None
                 or len(os.environ.get(env_var)) < 1):

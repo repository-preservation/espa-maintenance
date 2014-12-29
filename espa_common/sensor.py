@@ -245,9 +245,9 @@ class LandsatETM(Landsat):
 
 class LandsatOLITIRS(Landsat):
     ''' Models combined Landsat 8 OLI/TIRS products '''
-    def __init__(self, product_id):
+    def __init__(self, product_id):                
         super(LandsatOLITIRS, self).__init__(product_id)
-
+        
 
 class LandsatOLI(Landsat):
     ''' Models Landsat 8 OLI only products '''

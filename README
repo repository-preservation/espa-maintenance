@@ -3,6 +3,12 @@ License: NASA Open Source Agreement 1.3
 USGS Designation: EROS Science Processing Architecture (ESPA)
 		
 Change Notes
+Version 2.7.0 (December 22, 2014)
+        Added auto-retry logic.
+        Added landsat 8 surface reflectance.
+        Added timeout for SUDS ObjectCache.
+        Utilizing EE HTTP services for ordering and level 1 download.
+
 Version 2.5.0 (August 27, 2014)
         Added console application for staff personnel.
         Added priority to Orders in conjunction with Hadoop Queueing to prevent

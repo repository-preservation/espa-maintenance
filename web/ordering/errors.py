@@ -11,12 +11,15 @@ class Errors(object):
         self.conditions = list()
         self.conditions.append(self.oli_no_sr)
         self.conditions.append(self.night_scene)
+        self.conditions.append(self.night_scene2)
         self.conditions.append(self.missing_ledaps_aux_data)
         self.conditions.append(self.ftp_timed_out)
         self.conditions.append(self.ftp_500_oops)
         self.conditions.append(self.ftp_ftplib_error_reply)
         self.conditions.append(self.network_is_unreachable)
         self.conditions.append(self.connection_timed_out)
+        self.conditions.append(self.http_not_found)
+        self.conditions.append(self.gzip_errors)
 
         #construct the named tuple for the return value of this module
         self.resolution = collections.namedtuple('ErrorResolution',
@@ -66,7 +69,15 @@ class Errors(object):
         extras['retry_after'] = ts + datetime.timedelta(seconds=timeout)
         extras['retry_limit'] = self.retry[timeout_key]['retry_limit']
         return extras
-        
+    
+    def gzip_errors(self, error_message):
+        ''' there were problems gzipping products '''
+        key = 'gzip: stdin: not in gzip format'
+        status = 'retry'
+        reason = 'error unpacking gzip'
+        extras = self.__add_retry('gzip_format_error')
+        return self.__find_error(error_message, key, status, reason, extras)
+    
     def oli_no_sr(self, error_message):
         ''' Indicates the user requested sr processing against OLI-only'''
         
@@ -84,6 +95,24 @@ class Errors(object):
         reason = ('This scene cannot be processed to surface reflectance '
                   'due to the high solar zenith angle')
         return self.__find_error(error_message, key, status, reason)
+        
+    def night_scene2(self, error_message):
+        '''Indicates that LEDAPS/l8sr could not process a scene because the
+        sun was beneath the horizon'''
+
+        key = 'Solar zenith angle is out of range'
+        status = 'unavailable'
+        reason = ('This scene cannot be processed to surface reflectance '
+                  'due to the high solar zenith angle')
+        return self.__find_error(error_message, key, status, reason)
+        
+    def http_not_found(self, error_message):
+        '''Indicates that we had an issue trying to download the product'''
+        key = '404 Client Error: Not Found'
+        status = 'retry'
+        reason = 'HTTP 404 for input product, retrying download'
+        extras = self.__add_retry('http_not_found')
+        return self.__find_error(error_message, key, status, reason, extras)
 
     def missing_ledaps_aux_data(self, error_message):
         '''LEDAPS could not run because there was no aux data available'''

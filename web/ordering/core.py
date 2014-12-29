@@ -226,6 +226,34 @@ class OrderHandler(object):
 
 
 @transaction.atomic
+def set_product_retry(name,
+                      orderid,
+                      processing_loc,
+                      error,
+                      note,
+                      retry_after,
+                      retry_limit=None):
+    '''Sets a product to retry status'''
+
+    product = Scene.objects.get(name=name, order__orderid=orderid)
+
+    #if a new retry limit has been provided, update the db and use it
+    if retry_limit is not None:
+        product.retry_limit = retry_limit
+
+    if product.retry_count + 1 < product.retry_limit:
+        product.status = 'retry'
+        product.retry_count = product.retry_count + 1
+        product.retry_after = retry_after
+        product.error = error
+        product.processing_loc = processing_loc
+        product.note = note
+        product.save()
+    else:
+        raise Exception("Retry limit exceeded")
+        
+        
+@transaction.atomic
 #  Marks a scene unavailable and stores a reason
 def set_product_unavailable(name, orderid, processing_loc, error, note):
 
@@ -341,7 +369,7 @@ def handle_submitted_landsat_products():
 
     def mark_nlaps_unavailable():
 
-        #print("In mark_nlaps_unavailable")
+        print("In mark_nlaps_unavailable")
 
         #First things first... filter out all the nlaps scenes
         filters = {
@@ -349,7 +377,7 @@ def handle_submitted_landsat_products():
             'sensor_type': 'landsat'
         }
 
-        #print("looking for submitted landsat products")
+        print("looking for submitted landsat products")
         landsat_products = Scene.objects.filter(**filters)
 
         #build list input for calls to the scene cache
@@ -357,14 +385,14 @@ def handle_submitted_landsat_products():
 
         landsat_products = None
 
-        #print("Checking for nlaps products now")
+        print("Checking for nlaps products now")
 
         # find all the submitted products that are nlaps and reject them
         landsat_nlaps = espa_common.nlaps.products_are_nlaps(landsat_submitted)
 
         landsat_submitted = None
 
-        #print("Found %i landsat nlaps products" % len(landsat_nlaps))
+        print("Found %i landsat nlaps products" % len(landsat_nlaps))
 
         # bulk update the nlaps scenes
         if len(landsat_nlaps) > 0:
@@ -377,7 +405,7 @@ def handle_submitted_landsat_products():
 
     def get_contactids_for_submitted_landsat_products():
 
-        #print("In get_contactids_for_submitted_landsat_products")
+        print("In get_contactids_for_submitted_landsat_products")
 
         filters = {
             'order__scene__status': 'submitted',
@@ -387,14 +415,14 @@ def handle_submitted_landsat_products():
         u = u.select_related('userprofile__contactid')
         contact_ids = u.values_list('userprofile__contactid').distinct()
 
-        #print("contact ids:")
-        #print contact_ids
+        print("contact ids:")
+        print contact_ids
 
         return [c[0] for c in contact_ids]
 
     def update_landsat_product_status(contact_id):
 
-        #print("update_landsat_product_status")
+        print("update_landsat_product_status")
 
         filters = {
             'status': 'submitted',
@@ -405,7 +433,7 @@ def handle_submitted_landsat_products():
         products = Scene.objects.filter(**filters)
         product_list = [p.name for p in products]
 
-        #print("update_landsat_product_status --> lta.order_scenes")
+        print("update_landsat_product_status --> lta.order_scenes")
 
         results = lta.order_scenes(product_list, contact_id)
 
@@ -453,7 +481,7 @@ def handle_submitted_landsat_products():
 def handle_submitted_modis_products():
     ''' Moves all submitted modis products to oncache if true '''
 
-    #print("handle_submitted_modis")
+    print("handle_submitted_modis")
 
     filter_args = {'status': 'submitted', 'sensor_type': 'modis'}
     modis_products = Scene.objects.filter(**filter_args)
@@ -530,6 +558,10 @@ def get_products_to_process(record_limit=500,
                             encode_urls=False):
     '''Find scenes that are oncache and return them as properly formatted
     json per the interface description between the web and processing tier'''
+    
+    # cast the record_limit to int since that's how its being used:
+    if record_limit is not None:
+        record_limit = int(record_limit)
 
     # use kwargs so we can dynamically build the filter criteria
     filters = {
@@ -569,7 +601,7 @@ def get_products_to_process(record_limit=500,
 
     for cid in cids:
 
-        if record_limit is not None and len(results) + 1 >= record_limit:
+        if record_limit is not None and len(results) + 1 > record_limit:
             break
 
         filters = {
@@ -585,7 +617,12 @@ def get_products_to_process(record_limit=500,
         orderby = 'order__order_date'
 
         scenes = Scene.objects.filter(**filters)
-        scenes = scenes.select_related(select_related).order_by(orderby)
+        scenes = scenes.select_related(select_related)
+        
+        if record_limit is not None:            
+            scenes = scenes.order_by(orderby)[:record_limit]
+        else:
+            scenes = scenes.order_by(orderby)
 
         #landsat = [s.name for s in scenes where s.sensor_type = 'landsat']
         landsat = [s.name for s in scenes if s.sensor_type == 'landsat']
@@ -596,12 +633,37 @@ def get_products_to_process(record_limit=500,
 
         for scene in scenes:
 
-            if record_limit is not None and len(results) + 1 >= record_limit:
+            if record_limit is not None and len(results) + 1 > record_limit:
                 break
 
             dload_url = None
 
             if scene.sensor_type == 'landsat':
+
+                if ('status' in landsat_urls[scene.name] and
+                    landsat_urls[scene.name]['status'] != 'available'):
+                        try:
+                            lookup = espa_common.settings.RETRY
+                            limit = lookup['retry_missing_l1']['retry_limit']
+                            timeout = lookup['retry_missing_l1']['timeout']
+                            ts = datetime.datetime.now()
+                            after = ts + datetime.timedelta(seconds=timeout)
+                        
+                            set_product_retry(scene.name,
+                                              scene.order.orderid,
+                                              'get_products_to_process',
+                                              'product was not available',
+                                              'reordering missing level 1 product',
+                                              after, limit)
+                        except:
+                            set_product_error(scene.name, scene.order.order,
+                                              'get_products_to_process',
+                                              ('level1 product data '
+                                              'not available after EE call '
+                                              'marked product as available'))
+                        continue
+                    
+                    
                 if 'download_url' in landsat_urls[scene.name]:
                     dload_url = landsat_urls[scene.name]['download_url']
                     if encode_urls:
@@ -624,8 +686,10 @@ def get_products_to_process(record_limit=500,
 
             if dload_url is not None:
                 result['download_url'] = dload_url
-
-            results.append(result)
+                results.append(result)
+            else:
+                print("dload_url for %s:%s was None, skipping..." 
+                    % (scene.order.id, scene.name))
 
     return results
 
@@ -693,34 +757,6 @@ def set_product_error(name, orderid, processing_loc, error):
         product.save()
 
     return True
-
-
-@transaction.atomic
-def set_product_retry(name,
-                      orderid,
-                      processing_loc,
-                      error,
-                      note,
-                      retry_after,
-                      retry_limit=None):
-    '''Sets a product to retry status'''
-
-    product = Scene.objects.get(name=name, order__orderid=orderid)
-
-    #if a new retry limit has been provided, update the db and use it
-    if retry_limit is not None:
-        product.retry_limit = retry_limit
-
-    if product.retry_count + 1 < product.retry_limit:
-        product.status = 'retry'
-        product.retry_count = product.retry_count + 1
-        product.retry_after = retry_after
-        product.error = error
-        product.processing_loc = processing_loc
-        product.note = note
-        product.save()
-    else:
-        raise Exception("Retry limit exceeded")
 
 
 @transaction.atomic
@@ -801,10 +837,7 @@ def mark_product_complete(name,
         lta.update_order_status(product.order.ee_order_id,
                                 product.ee_unit_id, 'C')
         return True
-    else:
-        print("MarkSceneComplete:No scene was found with the name:%s" % name)
-        return False
-
+   
 
 @transaction.atomic
 def update_order_if_complete(order):
