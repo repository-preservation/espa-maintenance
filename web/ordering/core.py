@@ -684,7 +684,9 @@ def get_products_to_process(record_limit=500,
                 'options': json.loads(scene.order.product_options)
             }
 
-            if dload_url is not None:
+            if scene.sensor_type == 'plot':
+                results.append(result)
+            elif dload_url is not None:
                 result['download_url'] = dload_url
                 results.append(result)
             else:
