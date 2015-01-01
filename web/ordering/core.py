@@ -383,8 +383,6 @@ def handle_submitted_landsat_products():
         #build list input for calls to the scene cache
         landsat_submitted = [l.name for l in landsat_products]
 
-        landsat_products = None
-
         print("Checking for nlaps products now")
 
         # find all the submitted products that are nlaps and reject them
