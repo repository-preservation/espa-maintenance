@@ -68,6 +68,8 @@ def set_product_error(server, order_id, product_id, processing_location):
                                     " set_scene_error")
                     return False
 
+                break
+
             except Exception, e:
                 logger.critical("Failed processing xmlrpc call to"
                                 " set_scene_error")
