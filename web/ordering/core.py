@@ -245,7 +245,7 @@ def set_product_retry(name,
         product.status = 'retry'
         product.retry_count = product.retry_count + 1
         product.retry_after = retry_after
-        product.error = error
+        product.log_file_contents = error
         product.processing_loc = processing_loc
         product.note = note
         product.save()
