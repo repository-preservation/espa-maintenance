@@ -58,7 +58,7 @@ class Hadoop(object):
         A dictionary:
             jobid = {name, total maps, complete maps, running maps}
         '''
-        response = requests.get(self.job_tracker_url)
+        response = requests.get(self.job_tracker_url, timeout=5)
         soup = BeautifulSoup(response.content)
         response.close()
         target = soup.find(id='running_jobs')
@@ -86,6 +86,14 @@ class Hadoop(object):
                                   'complete': complete, 'running': running}
 
         return results
+
+def kill_job(master_node, username, jobid):
+    '''Kills Hadoop jobid on the master_node'''
+    return Hadoop(master_node, username).kill_job(jobid)
+
+def list_jobs(master_node):
+    '''Lists all active Hadoop jobs on the master node'''
+    return Hadoop(master_node, None).list_jobs()
 
 if __name__ == '__main__':
     parser = ArgumentParser(description='Lists and kills Hadoop jobs',
