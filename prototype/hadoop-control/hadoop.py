@@ -91,8 +91,8 @@ if __name__ == '__main__':
     parser = ArgumentParser(description='Lists and kills Hadoop jobs',
                             prog='hadoop_job_control')
 
-    parser.add_argument('-m', '--master_host', dest='master_host', required=True,
-                        help='the hadoop master node')
+    parser.add_argument('-m', '--master_host', dest='master_host',
+                        required=True, help='the hadoop master node')
 
     parser.add_argument('-u', '--user', dest='username', required=True,
                         help='hadoop master node username')
@@ -106,22 +106,15 @@ if __name__ == '__main__':
                        help='Kill a Hadoop job')
     args = parser.parse_args()
 
-
     hadoop = Hadoop(args.master_host, username=args.username)
     printer = pprint.PrettyPrinter(indent=4)
-    
+
     if args.list:
         jobs = hadoop.list_jobs()
         if not jobs:
             jobs = 'No jobs found'
-        printer.pprint(jobs)       
-        
+        printer.pprint(jobs)
+
     elif args.kill_job:
         result = hadoop.kill_job(args.kill_job)
         printer.pprint(result)
-
-    #hadoop = Hadoop('l8srlscp05.cr.usgs.gov', username='espa')
-    #jobs = hadoop.list_jobs()
-    #if jobs:
-    #    printer = pprint.PrettyPrinter(indent=4)
-    #    printer.pprint(jobs)
