@@ -263,13 +263,13 @@ def http_transfer_file(download_url, destination_file):
 #    else:
 #        logger.info("Transfer Complete - HTTP")
 
-    req = requests.get(download_url)
-
-    if not req.ok:
-        logger.error("Transfer Failed - HTTP")
-        req.raise_for_status()
-
     try:
+        req = requests.get(download_url)
+
+        if not req.ok:
+            logger.error("Transfer Failed - HTTP")
+            req.raise_for_status()
+
         with open(destination_file, 'wb') as local_fd:
             local_fd.write(req.content)
     except:

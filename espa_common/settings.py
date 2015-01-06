@@ -60,6 +60,9 @@ MAX_PACKAGING_ATTEMPTS = 3
 MAX_DELIVERY_ATTEMPTS = 3
 MAX_DISTRIBUTION_ATTEMPTS = 5
 
+# Maximum number of times to attempt setting the scene error
+MAX_SET_SCENE_ERROR_ATTEMPTS = 5
+
 # List of hostnames to choose from for the access to the online cache
 # Runs over 10Gb line
 ESPA_CACHE_HOST_LIST = ['edclxs67p', 'edclxs140p']
@@ -194,7 +197,7 @@ RETRY = {
     'ftp_ftplib_error_reply': {'timeout': 60, 'retry_limit': 5},
     'network_is_unreachable': {'timeout': 120, 'retry_limit': 5},
     'connection_timed_out': {'timeout': 60, 'retry_limit': 5},
-    'http_not_found': {'timeout':60 * 5, 'retry_limit': 5},
+    'http_not_found': {'timeout': 60 * 5, 'retry_limit': 5},
     'gzip_errors': {'timeout': 60, 'retry_limit': 2},
     'retry_missing_l1': {'timeout': 60 * 60, 'retry_limit': 8}
 }

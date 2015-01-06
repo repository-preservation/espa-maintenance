@@ -25,6 +25,7 @@ import sys
 import socket
 import json
 import xmlrpclib
+from time import sleep
 from argparse import ArgumentParser
 
 # imports from espa_common
@@ -40,27 +41,46 @@ import processor
 
 # ============================================================================
 def set_product_error(server, order_id, product_id, processing_location):
-
-    logger = EspaLogging.get_logger(settings.PROCESSING_LOGGER)
-    logged_contents = EspaLogging.read_logger_file(settings.PROCESSING_LOGGER)
+    '''
+    Description:
+        Call the xmlrpc server routine to set a product request to error.
+        Provides a sleep retry implementation to hopefully by-pass any errors
+        encountered, so that we do not get requests that have failed, but
+        show a status of processing.
+    '''
 
     if server is not None:
-        try:
-            status = server.set_scene_error(product_id, order_id,
-                                            processing_location,
-                                            logged_contents)
+        logger = EspaLogging.get_logger(settings.PROCESSING_LOGGER)
 
-            if not status:
+        attempt = 0
+        sleep_seconds = settings.DEFAULT_SLEEP_SECONDS
+        while True:
+            try:
+                logged_contents = \
+                    EspaLogging.read_logger_file(settings.PROCESSING_LOGGER)
+
+                status = server.set_scene_error(product_id, order_id,
+                                                processing_location,
+                                                logged_contents)
+
+                if not status:
+                    logger.critical("Failed processing xmlrpc call to"
+                                    " set_scene_error")
+                    return False
+
+            except Exception, e:
                 logger.critical("Failed processing xmlrpc call to"
                                 " set_scene_error")
-                return False
+                logger.exception("Exception encountered and follows")
 
-        except Exception:
-            logger.critical("Failed processing xmlrpc call to"
-                            " set_scene_error")
-            logger.exception("Exception encountered and follows")
-
-            return False
+                if attempt < settings.MAX_SET_SCENE_ERROR_ATTEMPTS:
+                    sleep(sleep_seconds)  # sleep before trying again
+                    attempt += 1
+                    sleep_seconds = int(sleep_seconds * 1.5)
+                    continue
+                else:
+                    return False
+        # END - while True
 
     return True
 
