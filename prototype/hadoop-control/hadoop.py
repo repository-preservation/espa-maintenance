@@ -40,6 +40,48 @@ class Hadoop(object):
                 ssh.close()
             ssh = None
 
+    def is_running(self):
+        '''Checks to see if Hadoop is running on the master node
+        Returns:
+        True if running, False if not
+        '''
+
+        results = self.run_ssh('hadoop job -list')
+        if len(results) > 0 and 'jobs currently running' in results[0].lower():
+            return True
+        else:
+            return False
+
+    def stop(self):
+        ''' Stops the hadoop cluster.  If its already stopped does nothing.
+
+        Returns:
+        True if the cluster stopped, False if not.
+        '''
+
+        if self.is_running():
+            self.run_ssh('stop-all.sh')
+            if not self.is_running():
+                return True
+            else:
+                return False
+        return True
+
+    def start(self):
+        ''' Starts the hadoop cluster.  Does nothing if its already running
+
+        Returns:
+        True if the cluster started, False if not.
+        '''
+
+        if not self.is_running():
+            self.run_ssh('start-all.sh')
+            if self.is_running():
+                return True
+            else:
+                return False
+        return True
+
     def kill_job(self, jobid):
         '''Kills a hadoop job on the master node
         Keyword args:
@@ -95,8 +137,20 @@ def list_jobs(master_node):
     '''Lists all active Hadoop jobs on the master node'''
     return Hadoop(master_node, None).list_jobs()
 
+def is_running(master_node, username):
+    '''Returns True if Hadoop is running on master node, False if not'''
+    return Hadoop(master_node, username).is_running()
+
+def stop(master_node, username):
+    '''Stops the hadoop cluster'''
+    return Hadoop(master_node, username).stop()
+
+def start(master_node, username):
+    '''Starts the hadoop cluster.  If its already running, does nothing'''
+    return Hadoop(master_node, username).start()
+
 if __name__ == '__main__':
-    parser = ArgumentParser(description='Lists and kills Hadoop jobs',
+    parser = ArgumentParser(description='Hadoop cluster controller',
                             prog='hadoop_job_control')
 
     parser.add_argument('-m', '--master_host', dest='master_host',
@@ -112,9 +166,18 @@ if __name__ == '__main__':
 
     group.add_argument('-k', '--kill', dest='kill_job',
                        help='Kill a Hadoop job')
+
+    group.add_argument('--start', dest='start', help='Start hadoop cluster')
+
+    group.add_argument('--stop', dest='stop', help='Stop hadoop cluster')
+
+    group.add_argument('--is_running', dest='is_running',
+                       help='Checks if Hadoop is running')
+
     args = parser.parse_args()
 
     hadoop = Hadoop(args.master_host, username=args.username)
+
     printer = pprint.PrettyPrinter(indent=4)
 
     if args.list:
@@ -122,7 +185,11 @@ if __name__ == '__main__':
         if not jobs:
             jobs = 'No jobs found'
         printer.pprint(jobs)
-
     elif args.kill_job:
-        result = hadoop.kill_job(args.kill_job)
-        printer.pprint(result)
+        printer.pprint(hadoop.kill_job(args.kill_job))
+    elif args.start:
+        printer.pprint(hadoop.start)
+    elif args.stop:
+        printer.pprint(hadoop.stop)
+    elif args.is_running:
+        printer.pprint(hadoop.is_running())
