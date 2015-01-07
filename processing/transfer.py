@@ -262,7 +262,7 @@ def http_transfer_file(download_url, destination_file):
 #                        % (retrieved_bytes, file_size))
 #    else:
 #        logger.info("Transfer Complete - HTTP")
-
+    req = None
     try:
         req = requests.get(download_url)
 
@@ -276,7 +276,8 @@ def http_transfer_file(download_url, destination_file):
         logger.error("Transfer Failed - HTTP")
         raise
     finally:
-        req.close()
+        if req is not None:
+            req.close()
 
     logger.info("Transfer Complete - HTTP")
 
