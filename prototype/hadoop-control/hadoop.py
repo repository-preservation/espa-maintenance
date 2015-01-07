@@ -150,8 +150,7 @@ def start(master_node, username):
     return Hadoop(master_node, username).start()
 
 if __name__ == '__main__':
-    parser = ArgumentParser(description='Hadoop cluster controller',
-                            prog='hadoop_job_control')
+    parser = ArgumentParser(description='Hadoop cluster controller')
 
     parser.add_argument('--master_host', dest='master_host',
                         required=True, help='the hadoop master node')
