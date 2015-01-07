@@ -153,25 +153,27 @@ if __name__ == '__main__':
     parser = ArgumentParser(description='Hadoop cluster controller',
                             prog='hadoop_job_control')
 
-    parser.add_argument('-m', '--master_host', dest='master_host',
+    parser.add_argument('--master_host', dest='master_host',
                         required=True, help='the hadoop master node')
 
-    parser.add_argument('-u', '--user', dest='username', required=True,
+    parser.add_argument('--user', dest='username', required=True,
                         help='hadoop master node username')
 
     group = parser.add_mutually_exclusive_group(required=True)
 
-    group.add_argument('-l', '--list', action='store_true',
+    group.add_argument('--list', action='store_true',
                        help='list active Hadoop jobs')
 
-    group.add_argument('-k', '--kill', dest='kill_job',
+    group.add_argument('--kill', dest='kill_job',
                        help='Kill a Hadoop job')
 
-    group.add_argument('--start', dest='start', help='Start hadoop cluster')
+    group.add_argument('--start', action='store_true',
+                       help='Start hadoop cluster')
 
-    group.add_argument('--stop', dest='stop', help='Stop hadoop cluster')
+    group.add_argument('--stop', action='store_true',
+                       help='Stop hadoop cluster')
 
-    group.add_argument('--is_running', dest='is_running',
+    group.add_argument('--is_running', action='store_true',
                        help='Checks if Hadoop is running')
 
     args = parser.parse_args()
