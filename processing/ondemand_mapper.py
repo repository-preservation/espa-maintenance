@@ -56,6 +56,22 @@ def set_product_error(server, order_id, product_id, processing_location):
         sleep_seconds = settings.DEFAULT_SLEEP_SECONDS
         while True:
             try:
+                # START - DEBUG
+                if product_id is None:
+                    logger.info("DEBUG: Product ID is [None]")
+                else:
+                    logger.info("DEBUG: Product ID is [%s]" % product_id)
+                if order_id is None:
+                    logger.info("DEBUG: Order ID is [None]")
+                else:
+                    logger.info("DEBUG: Order ID is [%s]" % order_id)
+                if processing_location is None:
+                    logger.info("DEBUG: Processing Location is [None]")
+                else:
+                    logger.info("DEBUG: Processing Location is [%s]"
+                                % processing_location)
+                # END - DEBUG
+
                 logged_contents = \
                     EspaLogging.read_logger_file(settings.PROCESSING_LOGGER)
 
@@ -151,7 +167,8 @@ def process(args):
             # Update the status in the database
             if parameters.test_for_parameter(parms, 'xmlrpcurl'):
                 if parms['xmlrpcurl'] != 'skip_xmlrpc':
-                    server = xmlrpclib.ServerProxy(parms['xmlrpcurl'])
+                    server = xmlrpclib.ServerProxy(parms['xmlrpcurl'],
+                                                   allow_none=True)
                     if server is not None:
                         status = server.update_status(product_id, order_id,
                                                       processing_location,
