@@ -72,7 +72,7 @@ class Errors(object):
     
     def gzip_errors(self, error_message):
         ''' there were problems gzipping products '''
-        key = 'gzip: stdin: not in gzip format'
+        key = 'not in gzip format'
         status = 'retry'
         reason = 'error unpacking gzip'
         extras = self.__add_retry('gzip_format_error')
