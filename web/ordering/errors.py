@@ -71,6 +71,14 @@ class Errors(object):
         extras['retry_limit'] = self.retry[timeout_key]['retry_limit']
         return extras
 
+    def proxy_error_502(self, error_message):
+        ''' a service call was interrupted, most likely due to restart '''
+        key = '502 Server Error: Proxy Error'
+        status = 'retry'
+        reason = 'internal service was restarted (502)'
+        extras = self.__add_retry('502_proxy_error')
+        return self.__find_error(error_message, key, status, reason, extras)
+
     def db_lock_errors(self, error_message):
         ''' there were problems updating the database '''
         key = 'Lock wait timeout exceeded'

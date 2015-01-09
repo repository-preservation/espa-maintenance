@@ -200,7 +200,8 @@ RETRY = {
     'http_not_found': {'timeout': 60 * 5, 'retry_limit': 5},
     'gzip_format_error': {'timeout': 60, 'retry_limit': 2},
     'retry_missing_l1': {'timeout': 60 * 60, 'retry_limit': 8},
-    'db_lock_timeout': {'timeout':60 * 5, 'retry_limit':10}
+    'db_lock_timeout': {'timeout':60 * 5, 'retry_limit':10},
+    '502_proxy_error': {'timeout':60 * 5, 'retry_limit':10}
 }
 
 '''
