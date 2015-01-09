@@ -20,6 +20,7 @@ class Errors(object):
         self.conditions.append(self.connection_timed_out)
         self.conditions.append(self.http_not_found)
         self.conditions.append(self.gzip_errors)
+        self.conditions.append(self.db_lock_errors)
 
         #construct the named tuple for the return value of this module
         self.resolution = collections.namedtuple('ErrorResolution',
@@ -69,7 +70,15 @@ class Errors(object):
         extras['retry_after'] = ts + datetime.timedelta(seconds=timeout)
         extras['retry_limit'] = self.retry[timeout_key]['retry_limit']
         return extras
-    
+
+    def db_lock_errors(self, error_message):
+        ''' there were problems updating the database '''
+        key = 'Lock wait timeout exceeded'
+        status = 'retry'
+        reason = 'database lock timed out'
+        extras = self.__add_retry('db_lock_timeout')
+        return self.__find_error(error_message, key, status, reason, extras)
+
     def gzip_errors(self, error_message):
         ''' there were problems gzipping products '''
         key = 'not in gzip format'
@@ -77,10 +86,10 @@ class Errors(object):
         reason = 'error unpacking gzip'
         extras = self.__add_retry('gzip_format_error')
         return self.__find_error(error_message, key, status, reason, extras)
-    
+
     def oli_no_sr(self, error_message):
         ''' Indicates the user requested sr processing against OLI-only'''
-        
+
         key = 'oli-only cannot be corrected to surface reflectance'
         status = 'unavailable'
         reason = 'OLI only scenes cannot be processed to surface reflectance'
@@ -95,7 +104,7 @@ class Errors(object):
         reason = ('This scene cannot be processed to surface reflectance '
                   'due to the high solar zenith angle')
         return self.__find_error(error_message, key, status, reason)
-        
+
     def night_scene2(self, error_message):
         '''Indicates that LEDAPS/l8sr could not process a scene because the
         sun was beneath the horizon'''
@@ -105,7 +114,7 @@ class Errors(object):
         reason = ('This scene cannot be processed to surface reflectance '
                   'due to the high solar zenith angle')
         return self.__find_error(error_message, key, status, reason)
-        
+
     def http_not_found(self, error_message):
         '''Indicates that we had an issue trying to download the product'''
         key = '404 Client Error: Not Found'
@@ -157,7 +166,7 @@ class Errors(object):
         reason = 'Connection timed out'
         extras = self.__add_retry('connection_timed_out')
         return self.__find_error(error_message, key, status, reason, extras)
-        
+
     def no_such_file_or_directory(self, error_message):
         key = 'No such file or directory'
         status = 'submitted'
