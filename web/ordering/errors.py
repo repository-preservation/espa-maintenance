@@ -21,6 +21,7 @@ class Errors(object):
         self.conditions.append(self.http_not_found)
         self.conditions.append(self.gzip_errors)
         self.conditions.append(self.db_lock_errors)
+        self.conditions.append(self.proxy_error_502)
 
         #construct the named tuple for the return value of this module
         self.resolution = collections.namedtuple('ErrorResolution',
