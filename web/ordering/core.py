@@ -472,7 +472,13 @@ def handle_submitted_landsat_products():
     mark_nlaps_unavailable()
 
     for contact_id in get_contactids_for_submitted_landsat_products():
-        update_landsat_product_status(contact_id)
+        try:
+            print("Updating landsat_product_status for %s" % contact_id)
+            update_landsat_product_status(contact_id)
+        except Exception, e:
+            msg = '''Could not update_landsat_product_status for %s\n
+                     Exception:%s''' % (contact_id, e)
+            print(msg)
 
 
 @transaction.atomic

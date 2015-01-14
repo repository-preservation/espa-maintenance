@@ -543,6 +543,9 @@ class OrderWrapperServiceClient(LTAService):
         else:
             msg = "Error retrieving download urls.  Reason:%s Response Text:%s"
             msg = msg % (response.reason, response.text)
+            msg = msg + "\nContact ID:%s" % contact_id
+            msg = msg + "\nProduct list:%s" % product_list
+            msg = msg + "\nPayload:%s" % payload
             print(msg)
             raise RuntimeError(msg)
 
