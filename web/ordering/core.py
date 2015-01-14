@@ -251,8 +251,8 @@ def set_product_retry(name,
         product.save()
     else:
         raise Exception("Retry limit exceeded")
-        
-        
+
+
 @transaction.atomic
 #  Marks a scene unavailable and stores a reason
 def set_product_unavailable(name, orderid, processing_loc, error, note):
@@ -428,7 +428,8 @@ def handle_submitted_landsat_products():
             'order__user__userprofile__contactid': contact_id
         }
 
-        products = Scene.objects.filter(**filters)
+        #limit this to 3000, 9000+ scenes are stressing EE
+        products = Scene.objects.filter(**filters)[:3000]
         product_list = [p.name for p in products]
 
         print("update_landsat_product_status --> lta.order_scenes")
@@ -562,7 +563,7 @@ def get_products_to_process(record_limit=500,
                             encode_urls=False):
     '''Find scenes that are oncache and return them as properly formatted
     json per the interface description between the web and processing tier'''
-    
+
     # cast the record_limit to int since that's how its being used:
     if record_limit is not None:
         record_limit = int(record_limit)
@@ -622,8 +623,8 @@ def get_products_to_process(record_limit=500,
 
         scenes = Scene.objects.filter(**filters)
         scenes = scenes.select_related(select_related)
-        
-        if record_limit is not None:            
+
+        if record_limit is not None:
             scenes = scenes.order_by(orderby)[:record_limit]
         else:
             scenes = scenes.order_by(orderby)
@@ -652,7 +653,7 @@ def get_products_to_process(record_limit=500,
                             timeout = lookup['retry_missing_l1']['timeout']
                             ts = datetime.datetime.now()
                             after = ts + datetime.timedelta(seconds=timeout)
-                        
+
                             set_product_retry(scene.name,
                                               scene.order.orderid,
                                               'get_products_to_process',
@@ -666,8 +667,8 @@ def get_products_to_process(record_limit=500,
                                               'not available after EE call '
                                               'marked product as available'))
                         continue
-                    
-                    
+
+
                 if 'download_url' in landsat_urls[scene.name]:
                     dload_url = landsat_urls[scene.name]['download_url']
                     if encode_urls:
@@ -694,7 +695,7 @@ def get_products_to_process(record_limit=500,
                 result['download_url'] = dload_url
                 results.append(result)
             else:
-                print("dload_url for %s:%s was None, skipping..." 
+                print("dload_url for %s:%s was None, skipping..."
                     % (scene.order.id, scene.name))
 
     return results
@@ -844,7 +845,7 @@ def mark_product_complete(name,
         lta.update_order_status(product.order.ee_order_id,
                                 product.ee_unit_id, 'C')
         return True
-   
+
 
 @transaction.atomic
 def update_order_if_complete(order):
