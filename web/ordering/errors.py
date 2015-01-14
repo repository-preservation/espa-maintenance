@@ -20,6 +20,7 @@ class Errors(object):
         self.conditions.append(self.connection_timed_out)
         self.conditions.append(self.http_not_found)
         self.conditions.append(self.gzip_errors)
+        self.conditions.append(self.gzip_errors_eof)
         self.conditions.append(self.db_lock_errors)
         self.conditions.append(self.proxy_error_502)
 
@@ -95,6 +96,15 @@ class Errors(object):
         reason = 'error unpacking gzip'
         extras = self.__add_retry('gzip_format_error')
         return self.__find_error(error_message, key, status, reason, extras)
+
+    def gzip_errors_eof(self, error_message):
+        ''' file may be corrupt '''
+        key = 'gzip: stdin: unexpected end of file'
+        status = 'retry'
+        reason = 'gzip unexpected EOF'
+        extras = self.__add_retry('gzip_error_eof')
+        return self.__find_error(error_message, key, status, reason, extras)
+
 
     def oli_no_sr(self, error_message):
         ''' Indicates the user requested sr processing against OLI-only'''
@@ -230,7 +240,16 @@ def resolve(error_message):
 
     '''
 
-    for condition in Errors().conditions:
-        result = condition(error_message)
-        if result is not None:
-            return result
+    conditions = None
+    result = None
+    try:
+        conditions = Errors().conditions
+        for condition in conditions:
+            result = condition(error_message)
+            if result is not None:
+                return result
+        else:
+            return None
+    finally:
+        conditions = None
+        result = None

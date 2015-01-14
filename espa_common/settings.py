@@ -198,7 +198,8 @@ RETRY = {
     'network_is_unreachable': {'timeout': 120, 'retry_limit': 5},
     'connection_timed_out': {'timeout': 60, 'retry_limit': 5},
     'http_not_found': {'timeout': 60 * 5, 'retry_limit': 5},
-    'gzip_format_error': {'timeout': 60, 'retry_limit': 2},
+    'gzip_format_error': {'timeout': 60, 'retry_limit': 3},
+    'gzip_error_eof': {'timeout': 60, 'retry_limit': 3},
     'retry_missing_l1': {'timeout': 60 * 60, 'retry_limit': 8},
     'db_lock_timeout': {'timeout':60 * 5, 'retry_limit':10},
     '502_proxy_error': {'timeout':60 * 5, 'retry_limit':10}

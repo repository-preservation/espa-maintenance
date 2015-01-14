@@ -241,7 +241,7 @@ def set_product_retry(name,
     if retry_limit is not None:
         product.retry_limit = retry_limit
 
-    if product.retry_count + 1 < product.retry_limit:
+    if product.retry_count + 1 <= product.retry_limit:
         product.status = 'retry'
         product.retry_count = product.retry_count + 1
         product.retry_after = retry_after
@@ -743,6 +743,7 @@ def set_product_error(name, orderid, processing_loc, error):
                                   resolution.extra['retry_after'],
                                   resolution.extra['retry_limit'])
             except Exception, e:
+                print("Exception setting %s to retry:%s" % (name, e))
                 product.status = 'error'
                 product.processing_location = processing_loc
                 product.log_file_contents = error
