@@ -190,8 +190,8 @@ SOAP_CACHE_LOCATION = '/tmp/suds'
 
 ''' Dictionary containing retry timeouts in seconds'''
 RETRY = {
-    'missing_ledaps_aux_data': {'timeout': 60 * 60 * 24,
-                                'retry_limit': 5},
+    'missing_ledaps_aux_data': {'timeout': 60 * 60 * 24, 'retry_limit': 5},
+    'missing_l8sr_aux_data': {'timeout': 60 * 60 * 24, 'retry_limit': 5},
     'ftp_timed_out': {'timeout': 60, 'retry_limit': 5},
     'ftp_500_oops': {'timeout': 60, 'retry_limit': 5},
     'ftp_ftplib_error_reply': {'timeout': 60, 'retry_limit': 5},

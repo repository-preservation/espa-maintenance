@@ -13,6 +13,7 @@ class Errors(object):
         self.conditions.append(self.night_scene)
         self.conditions.append(self.night_scene2)
         self.conditions.append(self.missing_ledaps_aux_data)
+        self.conditions.append(self.missing_l8sr_aux_data)
         self.conditions.append(self.ftp_timed_out)
         self.conditions.append(self.ftp_500_oops)
         self.conditions.append(self.ftp_ftplib_error_reply)
@@ -149,6 +150,15 @@ class Errors(object):
         status = 'retry'
         reason = 'Auxillary data not yet available for this date'
         extras = self.__add_retry('missing_ledaps_aux_data')
+        return self.__find_error(error_message, key, status, reason, extras)
+
+    def missing_l8sr_aux_data(self, error_message):
+        '''L8SR could not run because there was no aux data available'''
+
+        key = 'Could not find auxnm data file:'
+        status = 'retry'
+        reason = 'Auxillary data not yet available for this date'
+        extras = self.__add_retry('missing_l8sr_aux_data')
         return self.__find_error(error_message, key, status, reason, extras)
 
     def ftp_timed_out(self, error_message):
