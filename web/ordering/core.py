@@ -428,8 +428,8 @@ def handle_submitted_landsat_products():
             'order__user__userprofile__contactid': contact_id
         }
 
-        #limit this to 3000, 9000+ scenes are stressing EE
-        products = Scene.objects.filter(**filters)[:3000]
+        #limit this to 1000, 9000+ scenes are stressing EE
+        products = Scene.objects.filter(**filters)[:1000]
         product_list = [p.name for p in products]
 
         print("update_landsat_product_status --> lta.order_scenes")
