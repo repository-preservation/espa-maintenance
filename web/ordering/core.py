@@ -549,7 +549,6 @@ def handle_submitted_plot_products():
 
 @transaction.atomic
 def handle_submitted_products():
-    load_ee_orders()
     handle_submitted_landsat_products()
     handle_submitted_modis_products()
     handle_submitted_plot_products()
@@ -1110,6 +1109,7 @@ def handle_orders():
     send_initial_emails()
     handle_onorder_landsat_products()
     handle_retry_products()
+    load_ee_orders()
     handle_submitted_products()
     finalize_orders()
     return True
