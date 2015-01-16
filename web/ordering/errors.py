@@ -24,6 +24,7 @@ class Errors(object):
         self.conditions.append(self.gzip_errors_eof)
         self.conditions.append(self.db_lock_errors)
         self.conditions.append(self.proxy_error_502)
+        self.conditions.append(self.incomplete_read)
 
         #construct the named tuple for the return value of this module
         self.resolution = collections.namedtuple('ErrorResolution',
@@ -73,6 +74,14 @@ class Errors(object):
         extras['retry_after'] = ts + datetime.timedelta(seconds=timeout)
         extras['retry_limit'] = self.retry[timeout_key]['retry_limit']
         return extras
+
+    def incomplete_read(self, error_message):
+        ''' http read was interrupted '''
+        key = 'Connection broken: IncompleteRead'
+        status = 'retry'
+        reason = 'incomplete read on input data'
+        extras = self.__add_retry('incomplete_read')
+        return self.__find_error(error_message, key, status, reason, extras)
 
     def proxy_error_502(self, error_message):
         ''' a service call was interrupted, most likely due to restart '''
