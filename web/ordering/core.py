@@ -364,9 +364,9 @@ def handle_onorder_landsat_products():
         Scene.objects.filter(**filters).update(**updates)
 
 
-@transaction.atomic
 def handle_submitted_landsat_products():
 
+    @transaction.atomic
     def mark_nlaps_unavailable():
 
         print("In mark_nlaps_unavailable")
@@ -418,6 +418,7 @@ def handle_submitted_landsat_products():
 
         return [c[0] for c in contact_ids]
 
+    @transaction.atomic
     def update_landsat_product_status(contact_id):
 
         print("update_landsat_product_status")
@@ -428,8 +429,8 @@ def handle_submitted_landsat_products():
             'order__user__userprofile__contactid': contact_id
         }
 
-        #limit this to 1000, 9000+ scenes are stressing EE
-        products = Scene.objects.filter(**filters)[:1000]
+        #limit this to 500, 9000+ scenes are stressing EE
+        products = Scene.objects.filter(**filters)[:500]
         product_list = [p.name for p in products]
 
         print("update_landsat_product_status --> lta.order_scenes")
