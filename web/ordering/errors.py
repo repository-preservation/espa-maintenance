@@ -74,6 +74,14 @@ class Errors(object):
         extras['retry_after'] = ts + datetime.timedelta(seconds=timeout)
         extras['retry_limit'] = self.retry[timeout_key]['retry_limit']
         return extras
+        
+    def connection_aborted(self, error_message):
+        ''' level 1 http download interrupted '''
+        key = 'Connection aborted.'
+        status = 'retry'
+        reason = 'level 1 product download interrupted'
+        extras = self.__add_retry('connection_aborted')
+        return self.__find_error(error_message, key, status, reason, extras)
 
     def incomplete_read(self, error_message):
         ''' http read was interrupted '''
