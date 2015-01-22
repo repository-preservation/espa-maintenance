@@ -9,22 +9,25 @@ class Errors(object):
     def __init__(self):
         #build list of known error conditions to be checked
         self.conditions = list()
-        self.conditions.append(self.oli_no_sr)
-        self.conditions.append(self.night_scene)
-        self.conditions.append(self.night_scene2)
-        self.conditions.append(self.missing_ledaps_aux_data)
-        self.conditions.append(self.missing_l8sr_aux_data)
+
+        self.conditions.append(self.connection_aborted)
+        self.conditions.append(self.connection_timed_out)
+        self.conditions.append(self.db_lock_errors)
         self.conditions.append(self.ftp_timed_out)
         self.conditions.append(self.ftp_500_oops)
         self.conditions.append(self.ftp_ftplib_error_reply)
-        self.conditions.append(self.network_is_unreachable)
-        self.conditions.append(self.connection_timed_out)
-        self.conditions.append(self.http_not_found)
         self.conditions.append(self.gzip_errors)
         self.conditions.append(self.gzip_errors_eof)
-        self.conditions.append(self.db_lock_errors)
-        self.conditions.append(self.proxy_error_502)
+        self.conditions.append(self.http_not_found)
         self.conditions.append(self.incomplete_read)
+        self.conditions.append(self.missing_ledaps_aux_data)
+        self.conditions.append(self.missing_l8sr_aux_data)
+        self.conditions.append(self.network_is_unreachable)
+        self.conditions.append(self.night_scene)
+        self.conditions.append(self.night_scene2)
+        self.conditions.append(self.oli_no_sr)
+        self.conditions.append(self.proxy_error_502)
+        self.conditions.append(self.ssh_errors)
 
         #construct the named tuple for the return value of this module
         self.resolution = collections.namedtuple('ErrorResolution',
@@ -74,7 +77,16 @@ class Errors(object):
         extras['retry_after'] = ts + datetime.timedelta(seconds=timeout)
         extras['retry_limit'] = self.retry[timeout_key]['retry_limit']
         return extras
-        
+
+    def ssh_errors(self, error_message):
+        ''' errors creating directories or transferring statistics '''
+        key = ('Application failed to execute '
+               '[ssh -q -o StrictHostKeyChecking=no')
+        status = 'retry'
+        reason = 'ssh operations interrupted'
+        extras = self.__add_retry('ssh_errors')
+        return self.__find_error(error_message, key, status, reason, extras)
+
     def connection_aborted(self, error_message):
         ''' level 1 http download interrupted '''
         key = 'Connection aborted.'
@@ -122,7 +134,6 @@ class Errors(object):
         reason = 'gzip unexpected EOF'
         extras = self.__add_retry('gzip_error_eof')
         return self.__find_error(error_message, key, status, reason, extras)
-
 
     def oli_no_sr(self, error_message):
         ''' Indicates the user requested sr processing against OLI-only'''
