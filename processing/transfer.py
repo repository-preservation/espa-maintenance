@@ -243,6 +243,7 @@ def http_transfer_file(download_url, destination_file):
 
     logger.info(download_url)
 
+# First way
 #    file_size = 0
 #    retrieved_bytes = 0
 #    with closing(requests.get(download_url, stream=True)) as req:
@@ -258,26 +259,62 @@ def http_transfer_file(download_url, destination_file):
 #                retrieved_bytes += len(data_chunk)
 #
 #    if retrieved_bytes != file_size:
-#        raise Exception("Transfer Failed - HTTP - Retrieved %d out of %d bytes"
-#                        % (retrieved_bytes, file_size))
+#        raise Exception("Transfer Failed - HTTP - Retrieved %d"
+#                        " out of %d bytes" % (retrieved_bytes, file_size))
 #    else:
 #        logger.info("Transfer Complete - HTTP")
-    req = None
-    try:
-        req = requests.get(download_url)
 
-        if not req.ok:
-            logger.error("Transfer Failed - HTTP")
-            req.raise_for_status()
+# Second way
+#    req = None
+#    try:
+#        req = requests.get(download_url)
+#
+#        if not req.ok:
+#            logger.error("Transfer Failed - HTTP")
+#            req.raise_for_status()
+#
+#        with open(destination_file, 'wb') as local_fd:
+#            local_fd.write(req.content)
+#    except:
+#        logger.error("Transfer Failed - HTTP")
+#        raise
+#    finally:
+#        if req is not None:
+#            req.close()
 
-        with open(destination_file, 'wb') as local_fd:
-            local_fd.write(req.content)
-    except:
-        logger.error("Transfer Failed - HTTP")
-        raise
-    finally:
-        if req is not None:
-            req.close()
+# Third way
+    session = requests.Session()
+
+    session.mount('http://', requests.adapters.HTTPAdapter(max_retries=3))
+    session.mount('https://', requests.adapters.HTTPAdapter(max_retries=3))
+
+    retry_attempt = 0
+    done = False
+    while not done:
+        req = None
+        try:
+            req = session.get(url=download_url, timeout=3.0)
+
+            if not req.ok:
+                logger.error("Transfer Failed - HTTP")
+                req.raise_for_status()
+
+            with open(destination_file, 'wb') as local_fd:
+                local_fd.write(req.content)
+
+            done = True
+
+        except:
+            logger.exception("Transfer Issue - HTTP")
+            if retry_attempt > 3:
+                raise Exception("Transfer Failed - HTTP"
+                                " - exceeded retry limit")
+            retry_attempt += 1
+            sleep(int(1.5 * retry_attempt))
+
+        finally:
+            if req is not None:
+                req.close()
 
     logger.info("Transfer Complete - HTTP")
 
