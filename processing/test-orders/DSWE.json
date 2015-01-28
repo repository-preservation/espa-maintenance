@@ -1,6 +1,6 @@
 {
     "options": {
-        "include_cfmask": true,
+        "include_cfmask": false,
         "include_customized_source_data": true,
         "include_dswe": true,
         "include_source_data": false,
