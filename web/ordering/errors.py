@@ -28,6 +28,7 @@ class Errors(object):
         self.conditions.append(self.oli_no_sr)
         self.conditions.append(self.proxy_error_502)
         self.conditions.append(self.ssh_errors)
+        self.conditions.append(self.read_timed_out)
 
         #construct the named tuple for the return value of this module
         self.resolution = collections.namedtuple('ErrorResolution',
@@ -85,6 +86,14 @@ class Errors(object):
         status = 'retry'
         reason = 'ssh operations interrupted'
         extras = self.__add_retry('ssh_errors')
+        return self.__find_error(error_message, key, status, reason, extras)
+
+    def read_timed_out(self, error_message):
+        ''' http read timed out '''
+        key = 'Read timed out.'
+        status = 'retry'
+        reason = 'HTTP read on level 1 product timed out'
+        extras = self.__add_retry('read_timed_out')
         return self.__find_error(error_message, key, status, reason, extras)
 
     def connection_aborted(self, error_message):

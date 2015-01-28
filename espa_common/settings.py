@@ -204,6 +204,7 @@ RETRY = {
     'missing_l8sr_aux_data': {'timeout': 60 * 60 * 24, 'retry_limit': 5},
     'network_is_unreachable': {'timeout': 120, 'retry_limit': 5},
     '502_proxy_error': {'timeout':60 * 5, 'retry_limit':10},
+    'read_timed_out': {'timeout':60 * 5, 'retry_limit':5},
     'retry_missing_l1': {'timeout': 60 * 60, 'retry_limit': 8},
     'ssh_errors': {'timeout':60 * 5, 'retry_limit':3}
 }
