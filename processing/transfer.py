@@ -293,7 +293,7 @@ def http_transfer_file(download_url, destination_file):
     while not done:
         req = None
         try:
-            req = session.get(url=download_url, timeout=60.0)
+            req = session.get(url=download_url, timeout=300.0)
 
             if not req.ok:
                 logger.error("Transfer Failed - HTTP")
