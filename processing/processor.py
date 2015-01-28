@@ -791,10 +791,16 @@ class LandsatProcessor(CDRProcessor):
     '''
 
     _metadata_filename = None
+    _dem_filename = None
 
     # -------------------------------------------
     def __init__(self, parms):
         super(LandsatProcessor, self).__init__(parms)
+
+        product_id = self._parms['product_id']
+
+        # Setup the dem filename, even though we may not need it
+        self._dem_filename = "%s_dem.img" % product_id
 
     # -------------------------------------------
     def validate_parameters(self):
@@ -816,6 +822,7 @@ class LandsatProcessor(CDRProcessor):
         # They are the required includes for product generation
         required_includes = ['include_cfmask',
                              'include_customized_source_data',
+                             'include_dem',
                              'include_dswe',
                              'include_solr_index',
                              'include_source_data',
@@ -875,6 +882,7 @@ class LandsatProcessor(CDRProcessor):
                 and not options['include_sr_msavi']
                 and not options['include_sr_evi']
                 and not options['include_dswe']
+                and not options['include_dem']
                 and not options['include_solr_index']):
 
             logger.info("***NO SCIENCE PRODUCTS CHOSEN***")
@@ -943,6 +951,55 @@ class LandsatProcessor(CDRProcessor):
         # Turn the list into a string
         cmd = ' '.join(cmd)
         logger.info(' '.join(['CONVERT LPGS TO ESPA COMMAND:', cmd]))
+
+        output = ''
+        try:
+            output = utilities.execute_cmd(cmd)
+        except Exception, e:
+            raise ee.ESPAException(ee.ErrorCodes.reformat,
+                                   str(e)), None, sys.exc_info()[2]
+        finally:
+            if len(output) > 0:
+                logger.info(output)
+
+    # -------------------------------------------
+    def dem_command_line(self):
+        '''
+        Description:
+            Returns the command line required to generate the DEM product.
+            Evaluates the options requested by the user to define the command
+            line string to use, or returns None indicating nothing todo.
+
+        Note:
+            Provides the L4, L5, L7, and L8 command line.
+        '''
+
+        options = self._parms['options']
+
+        if (options['include_dem']
+                or options['include_dswe']):
+
+            cmd = ['do_create_dem.py',
+                   '--mtl', self._metadata_filename,
+                   '--dem', self._dem_filename]
+
+        # Turn the list into a string
+        cmd = ' '.join(cmd)
+
+        return cmd
+
+    # -------------------------------------------
+    def generate_dem_product(self):
+        '''
+        Description:
+            Generates a DEM product using the metadata from the input data.
+        '''
+
+        logger = self._logger
+
+        cmd = self.dem_command_line()
+
+        logger.info(' '.join(['DEM COMMAND:', cmd]))
 
         output = ''
         try:
@@ -1178,6 +1235,7 @@ class LandsatProcessor(CDRProcessor):
 
             cmd = ['do_dynamic_surface_water_extent.py',
                    '--xml', self._xml_filename,
+                   '--dem', self._dem_filename,
                    '--verbose']
 
             cmd = ' '.join(cmd)
@@ -1232,6 +1290,8 @@ class LandsatProcessor(CDRProcessor):
         try:
             self.convert_to_raw_binary()
 
+            self.generate_dem_product()
+
             self.generate_sr_products()
 
             self.generate_cfmask()
@@ -1266,8 +1326,13 @@ class LandsatProcessor(CDRProcessor):
             'lndsr.*.txt',
             'lndcal.*.txt',
             'LogReport*',
-            '*_MTL.txt.old',
-            '*_dem.img'
+            '*_MTL.txt.old'
+        ]
+
+        # Define DEM files that may need to be removed before product tarball
+        # generation
+        dem_files = [
+            '*_dem.*'
         ]
 
         # Define L1 source files that may need to be removed before product
@@ -1295,6 +1360,11 @@ class LandsatProcessor(CDRProcessor):
             non_products = []
             for item in non_product_files:
                 non_products.extend(glob.glob(item))
+
+            # Add DEM files if not requested
+            if not options['include_dem']:
+                for item in dem_files:
+                    non_products.extend(glob.glob(item))
 
             # Add level 1 source files if not requested
             if not options['include_source_data']:
