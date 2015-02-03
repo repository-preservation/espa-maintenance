@@ -532,10 +532,6 @@
 
 {% endcache %}
 {% endblock %}
-
-{% block js_files %}
- <script src="{% static 'js/jquery.popupoverlay.js' %}"></script>
-{% endblock %}
     
 {% block scripts %}
 {% cache 1 new_order_javascripts %}
@@ -561,6 +557,7 @@
 
        var resample_control = "#resample_options";
        var resample_method = "#resample_method";
+       var select_resample_method = "#select_resample_method";
        var selected_resample_option = "#select_resample_method option:selected";
        
        var reproject = "#reproject";
@@ -609,16 +606,9 @@
 
            //hide resample options on page load
            $(resample_options).hide(0);    
-
-           //set the popup for the product specs
-           /*$('#available_input_products').popup({background: true,
-                                                 transition: 'all 0.3s',
-                                                 type: 'overlay',
-                                                 color: 'black',
-                                                 opacity: 0.5});*/
+           
            $('#available_input_products').hide(0);
           
-
            /******************************************************************* 
                default the output format to gtiff
            *******************************************************************/
