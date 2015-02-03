@@ -1512,6 +1512,26 @@ class LandsatOLITIRSProcessor(LandsatProcessor):
         super(LandsatOLITIRSProcessor, self).__init__(parms)
 
     # -------------------------------------------
+    def validate_parameters(self):
+        '''
+        Description:
+            Validates the parameters required for the processor.
+        '''
+
+        logger = self._logger
+
+        # Call the base class parameter validation
+        super(LandsatOLITIRSProcessor, self).validate_parameters()
+
+        logger.info("Validating [LandsatOLITIRSProcessor] parameters")
+
+        options = self._parms['options']
+
+        if options['include_dswe'] is True:
+            raise Exception("include_dswe is an unavailable product option"
+                            " for OLITTIRS")
+
+    # -------------------------------------------
     def sr_command_line(self):
         '''
         Description:
