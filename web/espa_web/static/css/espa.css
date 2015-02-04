@@ -18,7 +18,6 @@ ol ol, ul ol {
 }
 
 table   { 
-
     display: table; 
     width:100%;
     border:2px solid #d0d0d0;
@@ -114,7 +113,6 @@ h5 {
     margin:10px 0px;
 }
 
-
 fieldset { 
     display: block;
     margin-left: 2px;
@@ -133,7 +131,6 @@ fieldset {
 .noborder {
     border: none;
 }
-
 
 .espa_lightbox {
      display:none;
@@ -284,6 +281,29 @@ fieldset {
     color:#FFFFFF;
 }
 
+#system-info {
+    padding-top:8px;
+    padding-bottom:8px;
+    overflow:auto;
+    line-height:20px;
+}
+
+.option-select {
+    font-weight: bold;
+    background-color: lightgray;
+    border: 1px solid black;
+    padding: 1px 2px 1px 2px;
+    cursor: pointer;
+}
+
+.option-not-select {
+    background-color: white;
+    font-weight: normal;
+    border: 1px solid black;
+    padding: 1px 2px 1px 2px;
+    cursor: pointer;
+}
+
 span.navitemleft {
     padding-left:15px;
     font-weight:bold;
@@ -313,7 +333,6 @@ div.admin {
     display:inline;
 }
 
-
 #content {
     margin:auto;
     background-color: #e5e5e5;
@@ -337,25 +356,10 @@ div.admin {
     background-color: #e5e5e5;
 }
 
-
 div.boxbody {
     margin:0 auto;
     border:none;
 }
-
-/**
-div.boxbody table {
-    width:100%;
-    padding:10px;
-    border:2px solid #d0d0d0;
-}
-
-div.boxbody table td {
-    padding:5px 10px;
-  
-}
-*/
-
 
 #usgsfooter {
     padding-top: 0px;
