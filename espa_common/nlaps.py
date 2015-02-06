@@ -11,7 +11,7 @@ class NLAPS(object):
 
         with open(self.path, 'rb') as nl:
             data = nl.read()
-            self.names = data.split('\n')
+            self.keys = {k.strip():True for k in data.split('\n')}
             data = None
 
 
@@ -25,6 +25,6 @@ def products_are_nlaps(product_list):
     nl = NLAPS()
 
     for p in product_list:
-        if p in nl.names:
+        if p in nl.keys:
             results.append(p)
     return results
