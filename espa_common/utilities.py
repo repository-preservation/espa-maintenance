@@ -205,7 +205,9 @@ def validate_email(email):
     True if the string is a properly formatted email address
     False if not
     '''
-    pattern = '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,4}$'
+    #pattern = '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,4}$'
+    #some clown used a single quote in his email address... sigh.
+    pattern = r'^[A-Za-z0-9._%+-\\\']+@[A-Za-z0-9.-]+\.[A-Za-z]{2,4}$'
     return re.match(pattern, email.strip())
 
 
