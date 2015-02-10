@@ -420,7 +420,7 @@ def handle_submitted_landsat_products():
 
     @transaction.atomic
     def update_landsat_product_status(contact_id):
-
+      
         print("update_landsat_product_status")
 
         filters = {
@@ -433,9 +433,11 @@ def handle_submitted_landsat_products():
         products = Scene.objects.filter(**filters)[:500]
         product_list = [p.name for p in products]
 
-        print("update_landsat_product_status --> lta.order_scenes")
+        print("Ordering %s scenes for contact:%s" % (len(product_list), contact_id))
 
         results = lta.order_scenes(product_list, contact_id)
+
+        print("Checking ordering results for contact:%s" % contact_id)
 
         if 'available' in results and len(results['available']) > 0:
             #update db
@@ -481,6 +483,7 @@ def handle_submitted_landsat_products():
             msg = '''Could not update_landsat_product_status for %s\n
                      Exception:%s''' % (contact_id, e)
             print(msg)
+
 
 
 @transaction.atomic
@@ -797,8 +800,8 @@ def queue_products(order_name_tuple_list, processing_location, job_name):
                        'log_file_contents': '',
                        'job_name': job_name}
 
-        helper_logger("Queuing %s:%s from %s for job %s"
-                      % (order, products, processing_location, job_name))
+        #helper_logger("Queuing %s:%s from %s for job %s"
+        #              % (order, products, processing_location, job_name))
 
         Scene.objects.filter(**filter_args).update(**update_args)
 
@@ -996,7 +999,7 @@ def load_ee_orders():
                 if scene.status == 'complete':
 
                     success, msg, status =\
-                        lta.update_order(eeorder, s['unit_num'], "C")
+                        lta.update_order_status(eeorder, s['unit_num'], "C")
 
                     if not success:
                         log_msg = ("Error updating lta for "
@@ -1015,7 +1018,7 @@ def load_ee_orders():
 
                 elif scene.status == 'unavailable':
                     success, msg, status =\
-                        lta.update_order(eeorder, s['unit_num'], "R")
+                        lta.update_order_status(eeorder, s['unit_num'], "R")
 
                     if not success:
                         log_msg = ("Error updating lta for "
