@@ -15,6 +15,7 @@ import os
 import sys
 import logging
 import json
+import urllib2
 from argparse import ArgumentParser
 
 import settings
@@ -77,7 +78,7 @@ def process_test_order(request_file, products_file, env_vars,
     template_file = 'template.json'
     template_dict = None
 
-    tmp_order = 'tmp-' + request_file
+    tmp_order = 'tmp-test-order'
 
     order_id = request_file.split('.json')[0]
 
@@ -305,7 +306,7 @@ if __name__ == '__main__':
     # Parse the command line arguments
     args = parser.parse_args()
 
-    request_file = "%s.json" % args.request
+    request_file = "%s.json" % args.request.replace("'", "\'")
     if not os.path.isfile(request_file):
         logger.critical("Request file [%s] does not exist" % request_file)
         sys.exit(1)

@@ -976,6 +976,7 @@ class LandsatProcessor(CDRProcessor):
 
         options = self._parms['options']
 
+        cmd = None
         if (options['include_dem']
                 or options['include_dswe']):
 
@@ -983,8 +984,8 @@ class LandsatProcessor(CDRProcessor):
                    '--mtl', self._metadata_filename,
                    '--dem', self._dem_filename]
 
-        # Turn the list into a string
-        cmd = ' '.join(cmd)
+            # Turn the list into a string
+            cmd = ' '.join(cmd)
 
         return cmd
 

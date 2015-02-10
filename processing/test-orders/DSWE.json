@@ -2,7 +2,7 @@
     "options": {
         "include_cfmask": false,
         "include_customized_source_data": true,
-        "include_dem": true,
+        "include_dem": false,
         "include_dswe": true,
         "include_source_data": false,
         "include_source_metadata": true,
@@ -17,6 +17,6 @@
         "include_sr_thermal": true,
         "include_sr_toa": true,
         "include_statistics": false,
-        "output_format": "envi"
+        "output_format": "gtiff"
     }
 }
