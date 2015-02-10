@@ -1000,17 +1000,20 @@ class LandsatProcessor(CDRProcessor):
 
         cmd = self.dem_command_line()
 
-        logger.info(' '.join(['DEM COMMAND:', cmd]))
+        # Only if required
+        if cmd is not None:
 
-        output = ''
-        try:
-            output = utilities.execute_cmd(cmd)
-        except Exception, e:
-            raise ee.ESPAException(ee.ErrorCodes.reformat,
-                                   str(e)), None, sys.exc_info()[2]
-        finally:
-            if len(output) > 0:
-                logger.info(output)
+            logger.info(' '.join(['DEM COMMAND:', cmd]))
+
+            output = ''
+            try:
+                output = utilities.execute_cmd(cmd)
+            except Exception, e:
+                raise ee.ESPAException(ee.ErrorCodes.reformat,
+                                       str(e)), None, sys.exc_info()[2]
+            finally:
+                if len(output) > 0:
+                    logger.info(output)
 
     # -------------------------------------------
     def sr_command_line(self):
