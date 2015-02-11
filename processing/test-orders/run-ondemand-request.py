@@ -15,7 +15,6 @@ import os
 import sys
 import logging
 import json
-import urllib2
 from argparse import ArgumentParser
 
 import settings
@@ -80,7 +79,7 @@ def process_test_order(request_file, products_file, env_vars,
 
     tmp_order = 'tmp-test-order'
 
-    order_id = request_file.split('.json')[0]
+    order_id = (request_file.split('.json')[0]).replace("'", '')
 
     if pre:
         order_id = ''.join([order_id, '-PRE'])

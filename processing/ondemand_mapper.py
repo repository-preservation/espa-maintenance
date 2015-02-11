@@ -141,6 +141,11 @@ def process(args):
                 (parms['orderid'], parms['scene'], parms['product_type'],
                  parms['options'])
 
+            # Fix the orderid in-case it contains any single quotes
+            # The processors can not handle single quotes in the email
+            # portion due to usage in command lines.
+            parms['orderid'] = order_id.replace("'", '')
+
             # If it is missing due to above TODO, then add it
             if not parameters.test_for_parameter(parms, 'product_id'):
                 parms['product_id'] = product_id
