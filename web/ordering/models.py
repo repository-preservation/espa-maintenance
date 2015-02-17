@@ -143,6 +143,7 @@ class Order(models.Model):
         o['include_sr_toa'] = False           # LEDAPS top of atmosphere
         o['include_sr_thermal'] = False       # LEDAPS band 6
         o['include_sr'] = False               # LEDAPS surface reflectance
+        o['include_dswe'] = False             # Dynamic Surface Water
         o['include_sr_browse'] = False        # surface reflectance browse
         o['include_sr_ndvi'] = False          # normalized difference veg
         o['include_sr_ndmi'] = False          # normalized difference moisture
