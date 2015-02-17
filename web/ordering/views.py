@@ -32,22 +32,24 @@ from django.contrib.auth.models import User
 
 class AbstractView(View):
 
-    def _get_option_style(self, request):
-        '''Utility method to determine which options to display in the
-        templates based on the user.
-
-        Keyword args:
-        request -- An HTTP request object
-
-        Return:
-        str('display:none') if the user is not admin or internal
-        str('') otherwise
-        '''
-        if hasattr(request, 'user'):
-            if request.user.username not in ('espa_admin', 'espa_internal'):
-                return "display:none"
-            else:
-                return ""
+    
+    #def _get_option_style(self, request):
+    #    '''Utility method to determine which options to display in the
+    #    templates based on the user.
+    #
+    #    Keyword args:
+    #    request -- An HTTP request object
+    #
+    #    Return:
+    #    str('display:none') if the user is not admin or internal
+    #    str('') otherwise
+    #    '''
+    #    if hasattr(request, 'user'):
+    #        
+    #        if request.user.username not in ('espa_admin', 'espa_internal'):
+    #            return "display:none"
+    #        else:
+    #            return ""
 
     def _display_system_message(self, ctx):
         '''Utility method to populate the context with systems messages if
@@ -265,7 +267,7 @@ class NewOrder(AbstractView):
 
         c = self._get_request_context(request)
         c['user'] = request.user
-        c['optionstyle'] = self._get_option_style(request)
+        #c['optionstyle'] = self._get_option_style(request)
 
         t = loader.get_template(self.template)
 

@@ -342,8 +342,9 @@
 		</div>
 	    </div>
 	</div>
-        
-     <div style="{{ optionstyle }}" class="product_box">
+    
+     {% if user.is_staff %}
+     <div class="product_box">
 	    <div class="product_boxheader">
 		Essential Climate Variables
 	    </div>
@@ -354,6 +355,7 @@
            </div>
 	    </div>
 	</div>
+     {% endif %}
 	
 	<div class="product_box">
 	    <div class="product_boxheader">
