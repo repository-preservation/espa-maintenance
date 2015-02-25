@@ -591,6 +591,8 @@
 
        //this is in milliseconds
        var show_hide_delay = 200;
+
+       var statistics = "#include_statistics";
         
 
        $(document).ready(function(){
@@ -605,6 +607,8 @@
            $(custom_controls).prop("checked", false);
            $(custom_controls).prop("disabled", true);
            $(submit_button).prop("disabled", true);
+           $(statistics).prop("disabled", true);
+           $(statistics).prop("checked", false);
             
            //hide the custom controls on page load
            $(custom_control_options).hide(0);
@@ -685,11 +689,14 @@
                if ($(checked_custom_products).length > 0) {
                    $(reproject).prop("disabled", false);
                    $(resize).prop("disabled", false);
+                   $(statistics).prop("disabled", false);
                    //$(custom_controls).prop("disabled", false);
                }
                else {
                   $(custom_controls).prop("disabled", true);
                   $(custom_controls).prop("checked", false);
+                  $(statistics).prop("disabled", true);
+                  $(statistics).prop("checked", false);
                   $(custom_control_options).hide(show_hide_delay);
                   $(resample_options).hide(show_hide_delay);
                   $("#target_projection").val(undefined);
@@ -772,19 +779,22 @@
               Initialize the bounding box placeholders
            *******************************************************************/
            $(image_extents).click(function(item) {
-                              
+                if ( $("input:radio[name='image_extents_unit']:checked").val() ==  undefined ) {
+                    $("input:radio[name='image_extents_units'][value='dd']").click();
+                }
+
                //make sure dd is selected if the projection is lonlat
-               if ( $("#target_projection").val() == "lonlat") {
-                   $("input:radio[name='image_extents_units'][value='dd']").click();
-               }
-               else if ( $("input:radio[name='image_extents_unit']:checked").val() ==  undefined ) {
-                   if ( $("#target_projection").val() == "lonlat") {
-                       $("input:radio[name='image_extents_units'][value='dd']").click();
-                   }    
-                   else {
-                       $("input:radio[name='image_extents_units'][value='meters']").click();
-                   }
-               }
+               //if ( $("#target_projection").val() == "lonlat") {
+               //    $("input:radio[name='image_extents_units'][value='dd']").click();
+               //}
+               //else if ( $("input:radio[name='image_extents_unit']:checked").val() ==  undefined ) {
+               //    if ( $("#target_projection").val() == "lonlat") {
+               //        $("input:radio[name='image_extents_units'][value='dd']").click();
+               //    }    
+               //    else {
+               //        $("input:radio[name='image_extents_units'][value='meters']").click();
+               //    }
+               //}
                
            });
 
@@ -975,7 +985,7 @@
                update_pixelsize_units(meters);
                //update_bounding_box_placeholders(meters);
                update_available_extents_units([meters, decimal_degrees]);
-               $("input:radio[name='image_extents_units'][value='meters']").click();
+               //$("input:radio[name='image_extents_units'][value='dd']").click();
                update_datum();                                               //set hidden input field for initial value
 		    break;
 
@@ -986,7 +996,7 @@
                  $("#select_pixel_size_units").val("meters");                  //force pixel size units to meters
                  update_pixelsize_units(meters);
                  update_available_extents_units([meters, decimal_degrees]);
-                 $("input:radio[name='image_extents_units'][value='meters']").click();
+                 //$("input:radio[name='image_extents_units'][value='dd']").click();
                  $("#target_projection").val("sinu");
 		      break;
 
@@ -997,7 +1007,7 @@
                   $("#select_pixel_size_units").val("meters");                  //force pixel size units to meters
                   update_pixelsize_units(meters);
                   update_available_extents_units([meters, decimal_degrees]);
-                  $("input:radio[name='image_extents_units'][value='meters']").click();
+                  //$("input:radio[name='image_extents_units'][value='dd']").click();
                   $("#target_projection").val("ps");
 		       break;
 
@@ -1009,7 +1019,7 @@
                 $("#select_pixel_size_units").val("meters");                  //force pixel size units to meters
                 update_pixelsize_units(meters);
                 update_available_extents_units([meters, decimal_degrees]);
-                $("input:radio[name='image_extents_units'][value='meters']").click();
+                //$("input:radio[name='image_extents_units'][value='dd']").click();
                 update_utm_params();                                          //update hidden input field
                 break;
 	    

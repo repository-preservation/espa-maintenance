@@ -825,8 +825,8 @@ def mark_product_complete(name,
     product.product_distro_location = completed_file_location
     product.completion_date = datetime.datetime.now()
     product.cksum_distro_location = destination_cksum_file
-
     product.log_file_contents = log_file_contents
+    product.note = None
 
     base_url = Configuration().getValue('distribution.cache.home.url')
 

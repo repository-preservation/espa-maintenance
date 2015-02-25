@@ -26,6 +26,7 @@ import shutil
 import glob
 import json
 import datetime
+import copy
 from time import sleep
 from cStringIO import StringIO
 from collections import defaultdict
@@ -182,8 +183,17 @@ class ProductProcessor(object):
 
         logger = self._logger
 
+        # Override the usernames and passwords for logging
+        parms = copy.deepcopy(self._parms)
+        parms['options']['source_username'] = 'XXXXXXX'
+        parms['options']['destination_username'] = 'XXXXXXX'
+        parms['options']['source_pw'] = 'XXXXXXX'
+        parms['options']['destination_pw'] = 'XXXXXXX'
+
         logger.info("MAPPER OPTION LINE %s"
-                    % json.dumps(self._parms, sort_keys=True))
+                    % json.dumps(parms, sort_keys=True))
+
+        del parms
 
     # -------------------------------------------
     def initialize_processing_directory(self):

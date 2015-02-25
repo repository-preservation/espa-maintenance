@@ -165,7 +165,6 @@ def ftp_to_remote_location(username, pw, localfile, host, remotefile):
     ftp = None
 
     try:
-        logger.info("Logging in to %s with %s:%s" % (host, username, pw))
         ftp = ftplib.FTP(host, user=username, passwd=pw, timeout=60)
         with open(localfile, 'rb') as tmp_fd:
             ftp.storbinary(' '.join(['STOR', remotefile]), tmp_fd, 1024)

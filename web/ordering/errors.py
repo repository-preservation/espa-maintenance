@@ -12,6 +12,7 @@ class Errors(object):
 
         self.conditions.append(self.connection_aborted)
         self.conditions.append(self.connection_timed_out)
+        self.conditions.append(self.dswe_unavailable)
         self.conditions.append(self.db_lock_errors)
         self.conditions.append(self.ftp_timed_out)
         self.conditions.append(self.ftp_500_oops)
@@ -174,6 +175,7 @@ class Errors(object):
 
     def http_not_found(self, error_message):
         '''Indicates that we had an issue trying to download the product'''
+        
         key = '404 Client Error: Not Found'
         status = 'retry'
         reason = 'HTTP 404 for input product, retrying download'
@@ -238,6 +240,15 @@ class Errors(object):
         status = 'submitted'
         reason = 'Reordered due to online cache purge'
         return self.__find_error(error_message, key, status, reason)
+        
+    def dswe_unavailable(self, error_message):
+        ''' Mark OLI/TIRS DSWE unavailable '''
+        
+        key = 'include_dswe is an unavailable product option for OLITTIRS'
+        status = 'unavailable'
+        reason = ('DSWE is not available for OLI/TIRS products')
+        return self.__find_error(error_message, key, status, reason)
+
 
 
 def resolve(error_message):

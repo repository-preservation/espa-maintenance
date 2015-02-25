@@ -277,11 +277,14 @@ def instance(product_id):
         index = _id.index(settings.MODIS_INPUT_FILENAME_EXTENSION)
         # leave original case intact
         product_id = product_id[0:index]
+        _id = _id[0:index]
+        
     elif _id.endswith(settings.LANDSAT_INPUT_FILENAME_EXTENSION):
         index = _id.index(settings.LANDSAT_INPUT_FILENAME_EXTENSION)
         # leave original case intact
         product_id = product_id[0:index]
-
+        _id = _id[0:index]
+        
     instances = {
         'tm': (r'^lt[4|5]\d{3}\d{3}\d{4}\d{3}[a-z]{3}[a-z0-9]{2}$',
                LandsatTM),

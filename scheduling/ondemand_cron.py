@@ -126,6 +126,10 @@ def process_requests(args, logger_name, queue_priority, request_priority):
 
                     request['xmlrpcurl'] = rpcurl
 
+                    # Log the requested options before passwords are added
+                    line_entry = json.dumps(request)
+                    logger.info(line_entry)
+
                     # Add the usernames and passwords to the options
                     options['source_username'] = user
                     options['destination_username'] = user
@@ -134,8 +138,9 @@ def process_requests(args, logger_name, queue_priority, request_priority):
 
                     request['options'] = options
 
+                    # Need to refresh since we added password stuff that
+                    # could not be logged
                     line_entry = json.dumps(request)
-                    logger.info(line_entry)
 
                     # Pad the entry so hadoop will properly split the jobs
                     filler_count = (settings.ORDER_BUFFER_LENGTH -
