@@ -10,6 +10,7 @@ History:
   Created Jan/2014 by Ron Dilley, USGS/EROS
 '''
 
+import os
 import ftplib
 import urllib2
 import requests
@@ -44,7 +45,35 @@ def copy_file_to_file(source_file, destination_file):
             logger.info(output)
 
     logger.info("Transfer complete - CP")
-# END - copy_file_to_directory
+# END - copy_file_to_file
+
+
+# ============================================================================
+def move_files_to_directory(source_files, destination_directory):
+    '''
+    Description:
+      Move files from one place to another on the localhost.
+    '''
+
+    logger = EspaLogging.get_logger(settings.PROCESSING_LOGGER)
+
+    if type(source_files) == str:
+        filename = os.path.basename(source_files)
+
+        new_name = os.path.join(destination_directory, filename)
+
+        os.rename(source_files, new_name)
+
+    elif type(source_files) == list:
+        for source_file in source_files:
+            filename = os.path.basename(source_file)
+
+            new_name = os.path.join(destination_directory, filename)
+
+            os.rename(source_file, new_name)
+
+    logger.info("Transfer complete - MOVE")
+# END - move_files_to_directory
 
 
 # ============================================================================
@@ -72,7 +101,7 @@ def remote_copy_file_to_file(source_host, source_file, destination_file):
             logger.info(output)
 
     logger.info("Transfer complete - SSH-CP")
-# END - remote_copy_file_to_directory
+# END - remote_copy_file_to_file
 
 
 # ============================================================================
@@ -228,6 +257,58 @@ def scp_transfer_file(source_host, source_file,
 
     logger.info("Transfer complete - SCP")
 # END - scp_transfer_file
+
+
+# ============================================================================
+def scp_transfer_directory(source_host, source_directory,
+                           destination_host, destination_directory):
+    '''
+    Description:
+      Using SCP transfer a directory from a source location to a destination
+      location.
+
+    Note:
+      - It is assumed ssh has been setup for access between the localhost
+        and destination system
+    '''
+
+    logger = EspaLogging.get_logger(settings.PROCESSING_LOGGER)
+
+    if source_host == destination_host:
+        msg = "source and destination host match unable to scp"
+        logger.error(msg)
+        raise Exception(msg)
+
+    cmd = ['scp', '-r', '-q', '-o', 'StrictHostKeyChecking=no', '-c',
+           'arcfour', '-C']
+
+    # Build the source portion of the command
+    # Single quote the source to allow for wild cards
+    if source_host == 'localhost':
+        cmd.append(source_directory)
+    else:
+        cmd.append("'%s:%s'" % (source_host, source_directory))
+
+    # Build the destination portion of the command
+    if destination_host == 'localhost':
+        cmd.append(destination_directory)
+    else:
+        cmd.append('%s:%s' % (destination_host, destination_directory))
+
+    cmd = ' '.join(cmd)
+
+    # Transfer the data and raise any errors
+    output = ''
+    try:
+        output = utilities.execute_cmd(cmd)
+    except Exception, e:
+        if len(output) > 0:
+            logger.info(output)
+        logger.error("Failed to transfer data")
+        raise e
+
+    logger.info("Transfer complete - SCP")
+# END - scp_transfer_directory
 
 
 # ============================================================================

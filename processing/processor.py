@@ -3013,17 +3013,27 @@ class PlotProcessor(ProductProcessor):
 
         options = self._parms['options']
 
-        source_stats_files = os.path.join(options['statistics_directory'],
-                                          'stats/*')
+        source_stats_directory = os.path.join(options['statistics_directory'],
+                                              'stats')
 
-        # Transfer the files using scp
-        # (don't provide any usernames and passwords)
+        # Transfer the directory using scp
         try:
-            transfer.transfer_file(options['statistics_host'],
-                                   source_stats_files,
-                                   'localhost', self._work_dir)
+            transfer.scp_transfer_directory(options['statistics_host'],
+                                            source_stats_directory,
+                                            'localhost', self._stage_dir)
         except Exception, e:
             raise ee.ESPAException(ee.ErrorCodes.staging_data, str(e)), \
+                None, sys.exc_info()[2]
+
+        # Move the staged data to the work directory
+        try:
+            source_stats_files = glob.glob(os.path.join(self._stage_dir,
+                                                        'stats/*'))
+
+            transfer.move_files_to_directory(source_stats_files,
+                                             self._work_dir)
+        except Exception, e:
+            raise ee.ESPAException(ee.ErrorCodes.unpacking, str(e)), \
                 None, sys.exc_info()[2]
 
     # -------------------------------------------
