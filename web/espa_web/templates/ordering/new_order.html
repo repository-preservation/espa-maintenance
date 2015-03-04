@@ -435,7 +435,7 @@
 			  </select>
                   
                    <input type="hidden" id="target_projection" name="target_projection" />
-			
+		
                    <div id="projection_parameters"></div>
 		    </div>
 
@@ -1074,13 +1074,23 @@
                //coord_unit_dd, coord_unit_meters
                $(image_extents_units).hide();
 
-               if (available_units.indexOf(decimal_degrees) != -1) {
-                   $(image_extents_units_dd).show();
+               var i=0;
+               for(i=0; i< available_units.length; i++) {
+                   if (available_units[i] == decimal_degrees) {
+                       $(image_extents_units_dd).show();
+                   }
+                   else if (available_units[i] == meters) {
+                       $(image_extents_units_meters).show();
+                   }
                }
+
+               //if (available_units.indexOf(decimal_degrees) != -1) {
+               //    $(image_extents_units_dd).show();
+               //}
                
-               if (available_units.indexOf(meters) != -1) {
-                   $(image_extents_units_meters).show();
-               }
+               //if (available_units.indexOf(meters) != -1) {
+               //    $(image_extents_units_meters).show();
+               //}
            }
 
            /*******************************************************************

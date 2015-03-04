@@ -75,9 +75,10 @@
     }
 
     div#opensource_box {
-        margin-top:25px;
+        margin-top:45px;
+        margin-right:60px;
         padding:10px;
-        width:300px;
+        width:400px;
         border:7px solid #577196;
         overflow:hidden;
         float:right;
@@ -91,21 +92,35 @@
     div#logo_box {
         margin-top:10px;
         padding:10px;
-        width:300px;
-        height:132px;
+        width:270px;
+        height:200px;
         overflow:hidden;
         float:left;
     }
 
     div#logo_box img {
-        width:300px;
-        height:132px;
+        width:250px;
+        height:200px;
+        margin:0 auto;
+        margin-left: 10px;
+        text-align:center;
+        /*box-shadow:10px 10px 5px #888888;*/
     }
 
     .coming_soon {
         color:yellow;
         font-weight:bold;
      }
+
+     .shadow {
+        -moz-box-shadow: 10px 10px 5px #888888;
+        -webkit-box-shadow: 10px 10px 5px #888888;
+        box-shadow: 10px 10px 5px #888888;
+        /* For IE 8 */
+        -ms-filter: "progid:DXImageTransform.Microsoft.Shadow(Strength=5, Direction=135, Color='#888888')";
+        /* For IE 5.5 - 7 */
+        filter: progid:DXImageTransform.Microsoft.Shadow(Strength=5, Direction=135, Color='#888888');
+    }
 
 {% endblock %}
 {% endcache %}
@@ -122,8 +137,8 @@
 {% endif %}
 
 	<div id="logo_box">
-           <img src="{% static 'img/lsrd_logo_color.png' %}" />
-      </div>
+          <img class='shadow' src="{% static 'img/gc.jpg' %}" />
+      </div> 
 
 	<div id="opensource_box">
             <h3>Did you know?</h3>

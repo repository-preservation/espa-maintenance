@@ -302,7 +302,10 @@ class NewOrder(AbstractView):
 
         validator = validators.NewOrderValidator(validator_parameters)
 
-        if validator.errors():
+        validation_errors = validator.errors()
+
+        #if validator.errors():
+        if validation_errors:
 
             c = self._get_request_context(request)
 
@@ -312,7 +315,7 @@ class NewOrder(AbstractView):
             # block but going forward will be able to put the error message
             # right next to the field where the error occurred once the
             # template is properly modified.
-            errors = validator.errors().values()
+            errors = validation_errors.values()
 
             error_list = list()
 
@@ -325,8 +328,7 @@ class NewOrder(AbstractView):
 
             c['errors'] = sorted(error_list)
             c['user'] = request.user
-            c['optionstyle'] = self._get_option_style(request)
-
+            
             t = loader.get_template(self.template)
 
             return HttpResponse(t.render(c))

@@ -140,19 +140,19 @@ class LandsatProductListValidator(Validator):
 
                     self.add_error('input_products', [msg, ])
                 else:
-                    
+
                     for p in landsat_products:
-                        
+
                         if isinstance(p, sensor.LandsatOLITIRS):
                             if (int(p.year) == 2014 and int(p.doy) > 352) or (int(p.year) > 2014):
                                 msg = ("%s is not available due "
                                        "to TIRS 12-19-2014 "
                                        "calibration event.") % p.product_id
                                 self.add_error('input_products', [msg, ])
-                            
-                            
+
+
                     product_list = [s.product_id for s in landsat_products]
-                    
+
                     difference = set(product_list) - set(valid)
 
                     if len(difference) > 0:
@@ -625,6 +625,7 @@ class ImageExtentsValidator(Validator):
         miny = None
         maxx = None
         maxy = None
+        image_extents_units = P['image_extents_units']
 
         # make sure we got upper left x,y and lower right x,y vals
         if not 'minx' in P or not utilities.is_number(P['minx']):
@@ -659,12 +660,38 @@ class ImageExtentsValidator(Validator):
             if minx >= maxx:
                 m = "Upper left x value must be less than lower right x value"
                 self.add_error('minx', [m, ])
-                self.add_error('maxx', [m, ])
+                #self.add_error('maxx', [m, ])
 
             if miny >= maxy:
                 m = "Lower right y value must be less than upper left y value"
                 self.add_error('miny', [m, ])
-                self.add_error('maxy', [m, ])
+                #self.add_error('maxy', [m, ])
+
+            if image_extents_units == 'dd':
+                x_m = ('Decimal degree longitude values must be -180 to 180')
+                y_m = ('Decimal degree latitude values must be -90 to 90')
+
+                if minx < -180.0 or minx > 180.0:
+                    self.add_error('minx', [x_m, ])
+
+                if maxx < -180.0 or maxx > 180.0:
+                    self.add_error('maxx', [x_m, ])
+
+                if miny < -90.0 or miny > 90.0:
+                    self.add_error('miny', [y_m, ])
+
+                if maxy < -90.0 or maxy > 90.0:
+                    self.add_error('maxy', [y_m, ])
+            else:
+                m = ('Please specify extent coordinates in meters.')
+
+                if (minx >= -180.0 and minx <= 180.0 and
+                    maxx >= -180.0 and maxx <= 180.0 and
+                    miny >= -90.0 and miny <= 90.0 and
+                    maxy >= -90.0 and maxy <= 90.0):
+
+                    self.add_error('minx', [m, ])
+
 
         return super(ImageExtentsValidator, self).errors()
 
