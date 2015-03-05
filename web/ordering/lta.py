@@ -696,7 +696,7 @@ class OrderDeliveryServiceClient(LTASoapService):
                 # we didn't get an email... fail the order
                 resp = OrderUpdateServiceClient().update_order(u.orderNbr,
                                                                u.unitNbr,
-                                                               "F")
+                                                               "R")
                 # we didn't get a response from the service
                 if not resp.success:
                     raise Exception("Could not update order[%s] unit[%s] \
@@ -718,7 +718,7 @@ class OrderDeliveryServiceClient(LTASoapService):
                 # didn't get an email... fail the order
                 resp = OrderUpdateServiceClient().update_order(u.orderNbr,
                                                                u.unitNbr,
-                                                               "F")
+                                                               "R")
                 # didn't get a response from the service
                 if not resp.success:
                     raise Exception("Could not update order[%s] unit[%s] \
