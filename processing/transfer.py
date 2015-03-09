@@ -19,6 +19,7 @@ from contextlib import closing
 # imports from espa_common
 from logger_factory import EspaLogging
 import settings
+from time import sleep
 import utilities
 
 
