@@ -32,6 +32,7 @@ from cStringIO import StringIO
 from collections import defaultdict
 from matplotlib import pyplot as mpl_plot
 from matplotlib import dates as mpl_dates
+from matplotlib import lines as mpl_lines
 from matplotlib.ticker import MaxNLocator
 import numpy as np
 
@@ -2666,6 +2667,7 @@ class PlotProcessor(ProductProcessor):
 
         # Process through the sensor organized dictionary in sorted order
         sorted_sensors = sorted(sensor_dict.keys())
+        proxy_artists = list()
         for sensor in sorted_sensors:
             dates = list()
             min_values = np.empty(0, dtype=np.float)
@@ -2744,6 +2746,13 @@ class PlotProcessor(ProductProcessor):
                               markersize=self._marker_size,
                               markeredgewidth=self._marker_edge_width)
 
+            # Generate a proxy artist for the legend
+            proxy_artists.append(mpl_lines.Line2D([], [],
+                                 color=self._sensor_colors[sensor],
+                                 marker=self._marker,
+                                 markersize=self._marker_size,
+                                 markeredgewidth=self._marker_edge_width))
+
             # Cleanup the x and y data memory
             del x_data
             del y_data
@@ -2807,7 +2816,7 @@ class PlotProcessor(ProductProcessor):
         mpl_plot.ylabel(plot_name)
 
         # Configure the legend
-        legend = mpl_plot.legend(sorted_sensors,
+        legend = mpl_plot.legend(proxy_artists, sorted_sensors,
                                  bbox_to_anchor=(0.0, 1.01, 1.0, 0.5),
                                  loc=3, ncol=6, mode="expand",
                                  borderaxespad=0.0, numpoints=1,
