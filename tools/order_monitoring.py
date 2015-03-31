@@ -38,6 +38,7 @@
 #  006          08-22-2013      Adam Dosch          Had a typo for today's ordered orders
 #                                                   verbage.
 #  007		07-23-2014	Adam Dosch	    Updating notifications
+#  008          03-31-2015	Adam Dosch	    Updating notification addresses
 #
 ##########################################################################################
 #
@@ -98,7 +99,7 @@ verbose = False
 email_from = 'espa@espa.cr.usgs.gov'
 
 global email_to
-email_to = ['adosch@usgs.gov','gschmidt@usgs.gov','dhill@usgs.gov','rdilley@usgs.gov']
+email_to = ['gschmidt@usgs.gov','dhill@usgs.gov','rdilley@usgs.gov']
 
 email_subject = "ESPA Order Monitoring - " + datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
 

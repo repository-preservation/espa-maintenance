@@ -50,6 +50,7 @@
 #                                                   argument
 #                                                   Adding fix for homedir in crontab gen
 #  007          11-01-2014      Adam Dosch          Fixing credentials stomping updates
+#  008          03-31-2015      Adam Dosch          Updating notification addresses
 #
 ##########################################################################################
 
@@ -100,8 +101,7 @@ verbose = False
 # E-mail Recipients/Subject
 email_from = 'espa@espa.cr.usgs.gov'
 #email_from = 'espa'
-email_to = ['adosch@usgs.gov']
-#email_to = ['adosch@usgs.gov']
+email_to = ['dhill@usgs.gov']
 
 email_subject = "LSRD - Auto-credential changing"
 

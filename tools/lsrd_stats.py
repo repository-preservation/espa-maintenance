@@ -42,6 +42,7 @@
 #                                                   DB anymore since 2.5.0 release
 # 012               11-07-2014      Adam Dosch      Updated queries to distinguish USGS vs. non-USGS better 
 #                                                   and added to distribution list
+# 013		    03-31-2015      Adam Dosch      Updating notification adddresses
 #
 #########################################################################################
 
@@ -93,8 +94,7 @@ verbose = False
 # E-mail Recipients/Subject
 email_from = 'espa@espa.cr.usgs.gov'
 #email_from = 'espa'
-email_to = ['adosch@usgs.gov','jenkerson@usgs.gov','lowen@usgs.gov']
-#email_to = ['adosch@usgs.gov']
+email_to = ['jenkerson@usgs.gov','lowen@usgs.gov']
 
 email_subject = "LSRD Monthly Statitics"
 
