@@ -99,7 +99,7 @@ verbose = False
 email_from = 'espa@espa.cr.usgs.gov'
 
 global email_to
-email_to = ['gschmidt@usgs.gov','dhill@usgs.gov','rdilley@usgs.gov']
+email_to = ['cbturner@usgs.gov', 'gschmidt@usgs.gov','dhill@usgs.gov','rdilley@usgs.gov']
 
 email_subject = "ESPA Order Monitoring - " + datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
 
