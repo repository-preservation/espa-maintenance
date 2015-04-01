@@ -664,7 +664,7 @@ def get_products_to_process(record_limit=500,
                                               'reordering missing level 1 product',
                                               after, limit)
                         except:
-                            set_product_error(scene.name, scene.order.order,
+                            set_product_error(scene.name, scene.order.orderid,
                                               'get_products_to_process',
                                               ('level1 product data '
                                               'not available after EE call '
