@@ -1,11 +1,12 @@
 {
     "options": {
         "include_cfmask": false,
-        "include_customized_source_data": false,
-        "include_source_data": true,
-        "include_source_metadata": false,
+        "include_customized_source_data": true,
+        "include_dem": true,
+        "include_dswe": false,
+        "include_source_data": false,
+        "include_source_metadata": true,
         "include_sr": false,
-        "include_sr_browse": false,
         "include_sr_evi": false,
         "include_sr_msavi": false,
         "include_sr_nbr": false,
@@ -14,7 +15,7 @@
         "include_sr_ndvi": false,
         "include_sr_savi": false,
         "include_sr_thermal": true,
-        "include_sr_toa": false,
+        "include_sr_toa": true,
         "include_statistics": false,
         "output_format": "envi"
     }
