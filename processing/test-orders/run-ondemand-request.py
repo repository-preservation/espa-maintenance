@@ -13,6 +13,7 @@ History:
 
 import os
 import sys
+import socket
 import logging
 import json
 from argparse import ArgumentParser
@@ -211,7 +212,7 @@ def process_test_order(request_file, products_file, env_vars,
                     tmp_line = tmp_line.replace("PRODUCT_TYPE", 'plot')
 
                 if plot:
-                    statistics_host = 'localhost'
+                    statistics_host = socket.gethostname()
                     statistics_directory = '%s/%s' % (dev_cache_dir, order_id)
 
                     tmp_line = tmp_line.replace("STATISTICS_DIRECTORY",
