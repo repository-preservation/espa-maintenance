@@ -655,10 +655,10 @@ class CDRProcessor(CustomizationProcessor):
                     # Export the file with validation
                     with open(self._xml_filename, 'w') as xml_fd:
                         # Export to the file and specify the namespace/schema
-                        xmlns = "http://espa.cr.usgs.gov/v1.1"
+                        xmlns = "http://espa.cr.usgs.gov/v1.2"
                         xmlns_xsi = "http://www.w3.org/2001/XMLSchema-instance"
                         schema_uri = ("http://espa.cr.usgs.gov/static/schema/"
-                                      "espa_internal_metadata_v1_1.xsd")
+                                      "espa_internal_metadata_v1_2.xsd")
                         metadata_api.export(xml_fd, espa_xml,
                                             xmlns=xmlns,
                                             xmlns_xsi=xmlns_xsi,
@@ -1544,7 +1544,7 @@ class LandsatOLITIRSProcessor(LandsatProcessor):
 
         if options['include_dswe'] is True:
             raise Exception("include_dswe is an unavailable product option"
-                            " for OLITTIRS")
+                            " for OLITIRS")
 
     # -------------------------------------------
     def sr_command_line(self):
@@ -1628,6 +1628,30 @@ class LandsatOLIProcessor(LandsatOLITIRSProcessor):
     # -------------------------------------------
     def __init__(self, parms):
         super(LandsatOLIProcessor, self).__init__(parms)
+
+    # -------------------------------------------
+    def validate_parameters(self):
+        '''
+        Description:
+            Validates the parameters required for the processor.
+        '''
+
+        logger = self._logger
+
+        # Call the base class parameter validation
+        super(LandsatOLIProcessor, self).validate_parameters()
+
+        logger.info("Validating [LandsatOLIProcessor] parameters")
+
+        options = self._parms['options']
+
+        if options['include_sr'] is True:
+            raise Exception("include_sr is an unavailable product option"
+                            " for OLI-Only data")
+
+        if options['include_sr_thermal'] is True:
+            raise Exception("include_sr_thermal is an unavailable product"
+                            " option for OLI-Only data")
 
     # -------------------------------------------
     def cfmask_command_line(self):

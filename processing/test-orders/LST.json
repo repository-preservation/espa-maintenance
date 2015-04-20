@@ -1,10 +1,10 @@
 {
     "options": {
-        "include_cfmask": false,
+        "include_cfmask": true,
         "include_customized_source_data": true,
         "include_dem": true,
         "include_dswe": false,
-        "include_source_data": false,
+        "include_source_data": true,
         "include_source_metadata": true,
         "include_sr": false,
         "include_sr_evi": false,
