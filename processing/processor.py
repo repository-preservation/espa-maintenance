@@ -1027,6 +1027,43 @@ class LandsatProcessor(CDRProcessor):
                     logger.info(output)
 
     # -------------------------------------------
+    def land_water_mask_command_line(self):
+        '''
+        Description:
+            Returns the command line required to generate a land/water mask.
+
+        Note:
+            Only for L8 OLITIRS processing
+        '''
+        return None
+
+    # -------------------------------------------
+    def generate_land_water_mask(self):
+        '''
+        Description:
+            Generates a land water mask.
+        '''
+
+        logger = self._logger
+
+        cmd = self.land_water_mask_command_line()
+
+        # Only if required
+        if cmd is not None:
+
+            logger.info(' '.join(['LAND/WATER MASK COMMAND:', cmd]))
+
+            output = ''
+            try:
+                output = utilities.execute_cmd(cmd)
+            except Exception, e:
+                raise ee.ESPAException(ee.ErrorCodes.surface_reflectance,
+                                       str(e)), None, sys.exc_info()[2]
+            finally:
+                if len(output) > 0:
+                    logger.info(output)
+
+    # -------------------------------------------
     def sr_command_line(self):
         '''
         Description:
@@ -1086,7 +1123,7 @@ class LandsatProcessor(CDRProcessor):
     def generate_sr_products(self):
         '''
         Description:
-            Generates surrface reflectance products.
+            Generates surface reflectance products.
         '''
 
         logger = self._logger
@@ -1306,6 +1343,8 @@ class LandsatProcessor(CDRProcessor):
             self.convert_to_raw_binary()
 
             self.generate_dem_product()
+
+            self.generate_land_water_mask()
 
             self.generate_sr_products()
 
@@ -1547,6 +1586,25 @@ class LandsatOLITIRSProcessor(LandsatProcessor):
                             " for OLITIRS")
 
     # -------------------------------------------
+    def land_water_mask_command_line(self):
+        '''
+        Description:
+            Returns the command line required to generate a land/water mask.
+
+        Note:
+            Only for L8 OLITIRS processing
+        '''
+
+        options = self._parms['options']
+
+        cmd = None
+        if options['include_sr']:
+            cmd = ' '.join(['create_land_water_mask',
+                            '--xml', self._xml_filename])
+
+        return cmd
+
+    # -------------------------------------------
     def sr_command_line(self):
         '''
         Description:
@@ -1652,6 +1710,17 @@ class LandsatOLIProcessor(LandsatOLITIRSProcessor):
         if options['include_sr_thermal'] is True:
             raise Exception("include_sr_thermal is an unavailable product"
                             " option for OLI-Only data")
+
+    # -------------------------------------------
+    def land_water_mask_command_line(self):
+        '''
+        Description:
+            Returns the command line required to generate a land/water mask.
+
+        Note:
+            Only for L8 OLITIRS processing
+        '''
+        return None
 
     # -------------------------------------------
     def cfmask_command_line(self):
