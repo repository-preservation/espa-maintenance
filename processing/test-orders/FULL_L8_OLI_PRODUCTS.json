@@ -12,7 +12,6 @@
         "image_extents_units": "meters",
         "include_cfmask": false,
         "include_customized_source_data": true,
-        "include_dem": false,
         "include_dswe": false,
         "include_solr_index": false,
         "include_source_data": true,
