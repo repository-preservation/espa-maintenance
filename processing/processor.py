@@ -157,10 +157,13 @@ class ProductProcessor(object):
         # Validate the options
         options = self._parms['options']
 
-        # Default this so the directory is not kept, it should only be
-        # present and turned on for developers
+        # Default these so they are not kept, they should only be present and
+        # turned on for developers
         if not parameters.test_for_parameter(options, 'keep_directory'):
             options['keep_directory'] = False
+        if not parameters.test_for_parameter(options,
+                                             'keep_intermediate_data'):
+            options['keep_intermediate_data'] = False
 
         # Verify or set the destination information
         if not parameters.test_for_parameter(options, 'destination_host'):
@@ -588,7 +591,8 @@ class CDRProcessor(CustomizationProcessor):
             'include_sr': 'sr_refl',
             'include_sr_toa': 'toa_refl',
             'include_sr_thermal': 'toa_bt',
-            'include_cfmask': 'cfmask'
+            'include_cfmask': 'cfmask',
+            'keep_intermediate_data': 'intermediate_data'
         }
 
         # If nothing to do just return
@@ -614,6 +618,9 @@ class CDRProcessor(CustomizationProcessor):
         if not options['include_cfmask'] and not options['include_sr']:
             products_to_remove.append(
                 order2xml_mapping['include_cfmask'])
+        if not options['keep_intermediate_data']:
+            products_to_remove.append(
+                order2xml_mapping['keep_intermediate_data'])
 
         if products_to_remove is not None:
             espa_xml = metadata_api.parse(self._xml_filename, silence=True)
@@ -833,7 +840,6 @@ class LandsatProcessor(CDRProcessor):
         # They are the required includes for product generation
         required_includes = ['include_cfmask',
                              'include_customized_source_data',
-                             'include_dem',
                              'include_dswe',
                              'include_solr_index',
                              'include_source_data',
@@ -893,7 +899,6 @@ class LandsatProcessor(CDRProcessor):
                 and not options['include_sr_msavi']
                 and not options['include_sr_evi']
                 and not options['include_dswe']
-                and not options['include_dem']
                 and not options['include_solr_index']):
 
             logger.info("***NO SCIENCE PRODUCTS CHOSEN***")
@@ -988,8 +993,7 @@ class LandsatProcessor(CDRProcessor):
         options = self._parms['options']
 
         cmd = None
-        if (options['include_dem']
-                or options['include_dswe']):
+        if (options['include_dswe']):
 
             cmd = ['do_create_dem.py',
                    '--mtl', self._metadata_filename,
@@ -1372,21 +1376,18 @@ class LandsatProcessor(CDRProcessor):
 
         logger = self._logger
 
+        product_id = self._parms['product_id']
         options = self._parms['options']
 
-        # Define all of the non-product files that need to be removed before
-        # product tarball generation
-        non_product_files = [
+        # Define intermediate files that need to be removed before product
+        # tarball generation
+        intermediate_files = [
             'lndsr.*.txt',
             'lndcal.*.txt',
             'LogReport*',
-            '*_MTL.txt.old'
-        ]
-
-        # Define DEM files that may need to be removed before product tarball
-        # generation
-        dem_files = [
-            '*_dem.*'
+            '*_MTL.txt.old',
+            '*_dem.*',
+            '%s_land_water_mask.*' % product_id
         ]
 
         # Define L1 source files that may need to be removed before product
@@ -1410,14 +1411,10 @@ class LandsatProcessor(CDRProcessor):
         os.chdir(self._work_dir)
 
         try:
-            # Remove the intermediate non-product files
             non_products = []
-            for item in non_product_files:
-                non_products.extend(glob.glob(item))
-
-            # Add DEM files if not requested
-            if not options['include_dem']:
-                for item in dem_files:
+            # Remove the intermediate non-product files
+            if not options['keep_intermediate_data']:
+                for item in intermediate_files:
                     non_products.extend(glob.glob(item))
 
             # Add level 1 source files if not requested
