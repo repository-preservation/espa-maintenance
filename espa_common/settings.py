@@ -190,23 +190,15 @@ SOAP_CACHE_LOCATION = '/tmp/suds'
 
 ''' Dictionary containing retry timeouts in seconds'''
 RETRY = {
-    'connection_aborted': {'timeout':60 * 5, 'retry_limit':3},
-    'connection_timed_out': {'timeout': 60, 'retry_limit': 5},
-    'db_lock_timeout': {'timeout':60 * 5, 'retry_limit':10},
-    'ftp_timed_out': {'timeout': 60, 'retry_limit': 5},
-    'ftp_500_oops': {'timeout': 60, 'retry_limit': 5},
-    'ftp_ftplib_error_reply': {'timeout': 60, 'retry_limit': 5},
-    'gzip_format_error': {'timeout': 60, 'retry_limit': 3},
-    'gzip_error_eof': {'timeout': 60, 'retry_limit': 3},
-    'http_not_found': {'timeout': 60 * 5, 'retry_limit': 5},
-    'incomplete_read': {'timeout':60, 'retry_limit':2},
-    'missing_ledaps_aux_data': {'timeout': 60 * 60 * 24, 'retry_limit': 5},
-    'missing_l8sr_aux_data': {'timeout': 60 * 60 * 24, 'retry_limit': 5},
-    'network_is_unreachable': {'timeout': 120, 'retry_limit': 5},
-    '502_proxy_error': {'timeout':60 * 5, 'retry_limit':10},
-    'read_timed_out': {'timeout':60 * 5, 'retry_limit':5},
+    'http_errors': {'timeout': 60 * 15, 'retry_limit': 10},
+    'ftp_errors': {'timeout': 60 * 15, 'retry_limit': 10},
+    'gzip_errors': {'timeout': 60 * 60 * 6, 'retry_limit': 10},
+    'network_errors': {'timeout': 60 * 2, 'retry_limit': 5},
+    'db_lock_timeout': {'timeout': 60 * 5, 'retry_limit': 10},
+    'lta_soap_errors': {'timeout': 60 * 60, 'retry_limit': 12},
+    'missing_aux_data': {'timeout': 60 * 60 * 24, 'retry_limit': 5},
     'retry_missing_l1': {'timeout': 60 * 60, 'retry_limit': 8},
-    'ssh_errors': {'timeout':60 * 5, 'retry_limit':3}
+    'ssh_errors': {'timeout': 60 * 5, 'retry_limit': 3}
 }
 
 '''

@@ -13,56 +13,14 @@ History:
 '''
 
 import os
-import sys
 import datetime
 import commands
 import random
-import re
-from email.mime.text import MIMEText
-from smtplib import SMTP
 
 # local objects and methods
 import settings
 
-# ============================================================================
-#def scenecache_is_alive(url='http://edclpdsftp.cr.usgs.gov:50000/RPC2'):
-#    """Determine if the specified url has an http server
-#    that accepts POST calls
-#
-#    Keyword args:
-#    url -- The url of the server to check
-#
-#    Return:
-#    True -- If the contacted server is alive and accepts POST calls
-#    False -- If the server does not accept POST calls or the
-#             server could not be contacted
-#    """
-#
-#    try:
-#        return urllib2.urlopen(url, data="").getcode() == 200
-#    except Exception, e:
-#        if settings.DEBUG:
-#            print("Scene cache could not be contacted")
-#            print(e)
-#        return False
 
-
-# ============================================================================
-#def scenecache_client():
-#    """Return an xmlrpc proxy to the caller for the scene cache
-#
-#    Returns -- An xmlrpclib ServerProxy object
-#    """
-#    url = 'http://edclpdsftp.cr.usgs.gov:50000/RPC2'
-#    # url = os.environ['ESPA_SCENECACHE_URL']
-#    if scenecache_is_alive(url):
-#        return xmlrpclib.ServerProxy(url)
-#    else:
-#        msg = "Could not contact scene_cache at %s" % url
-#        raise RuntimeError(msg)
-
-
-# ============================================================================
 def date_from_doy(year, doy):
     '''Returns a python date object given a year and day of year'''
 
@@ -75,7 +33,6 @@ def date_from_doy(year, doy):
         return d
 
 
-# ============================================================================
 def is_number(s):
     '''Determines if a string value is a float or int.
 
@@ -93,14 +50,13 @@ def is_number(s):
         return False
 
 
-# ============================================================================
 def execute_cmd(cmd):
     '''
     Description:
       Execute a command line and return the terminal output or raise an
       exception
 
-    Returns:
+    Returnsdsflh01.cr.usgs.gov
         output - The stdout and/or stderr from the executed command.
     '''
 
@@ -130,7 +86,6 @@ def execute_cmd(cmd):
     return output
 
 
-# ============================================================================
 def strip_zeros(value):
     '''
     Description:
@@ -142,7 +97,6 @@ def strip_zeros(value):
     return value
 
 
-# ============================================================================
 def get_cache_hostname():
     '''
     Description:
@@ -175,41 +129,6 @@ def get_cache_hostname():
                 raise Exception("No online cache hosts available...")
 
     return get_hostname()
-
-
-def send_email(recipient, subject, body):
-    '''Sends an email to a receipient on the behalf of espa'''
-
-    if not validate_email(recipient):
-        raise TypeError("Invalid email address provided:%s" % recipient)
-
-    msg = MIMEText(body)
-    msg['Subject'] = subject
-    msg['To'] = recipient
-    msg['From'] = settings.ESPA_EMAIL_ADDRESS
-    s = SMTP(host=settings.ESPA_EMAIL_SERVER)
-    s.sendmail(msg['From'], msg['To'], msg.as_string())
-    s.quit()
-
-    return True
-
-
-def validate_email(email):
-    '''Compares incoming email address against regular expression to make sure
-    its at least formatted like an email
-
-    Keyword args:
-    email -- String to validate as an email address
-
-    Return:
-    True if the string is a properly formatted email address
-    False if not
-    '''
-    #pattern = '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,4}$'
-    #some clown used a single quote in his email address... sigh.
-    email = email.replace("'", "\'")
-    pattern = r'^[A-Za-z0-9._%+-\\\']+@[A-Za-z0-9.-]+\.[A-Za-z]{2,4}$'
-    return re.match(pattern, email.strip())
 
 
 def tar_files(tarred_full_path, file_list, gzip=False):

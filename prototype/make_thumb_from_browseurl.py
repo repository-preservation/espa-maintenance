@@ -3,7 +3,9 @@ import shutil
 import os
 from PIL import Image
 
-url = 'http://earthexplorer.usgs.gov/browse/landsat_8/2015/157/071/LC81570712015056LGN00.jpg'
+#url = 'http://earthexplorer.usgs.gov/browse/landsat_8/2015/157/071/LC81570712015056LGN00.jpg'
+url = 'http://earthexplorer.usgs.gov/browse/etm/60/14/2003/LE7060014100315151.jpg'
+
 target_file = '/tmp/pic.jpg'
 final_image = '/tmp/a.jpg'
 

@@ -1,35 +1,33 @@
 import collections
 from espa_common import settings
+from espa_common import sensor
 import datetime
+import email
 
 
 class Errors(object):
     '''Implementation for ESPA errors.resolve(error_message) interface'''
 
-    def __init__(self):
+    def __init__(self, name=None):
+        self.product_name = name
+
         #build list of known error conditions to be checked
         self.conditions = list()
 
-        self.conditions.append(self.connection_aborted)
-        self.conditions.append(self.connection_timed_out)
-        self.conditions.append(self.dswe_unavailable)
         self.conditions.append(self.db_lock_errors)
-        self.conditions.append(self.ftp_timed_out)
-        self.conditions.append(self.ftp_500_oops)
-        self.conditions.append(self.ftp_ftplib_error_reply)
+        self.conditions.append(self.dswe_unavailable)
+        self.conditions.append(self.ftp_errors)
+        self.conditions.append(self.http_errors)
         self.conditions.append(self.gzip_errors)
-        self.conditions.append(self.gzip_errors_eof)
-        self.conditions.append(self.http_not_found)
-        self.conditions.append(self.incomplete_read)
-        self.conditions.append(self.missing_ledaps_aux_data)
-        self.conditions.append(self.missing_l8sr_aux_data)
-        self.conditions.append(self.network_is_unreachable)
+        self.conditions.append(self.gzip_errors_online_cache)
+        self.conditions.append(self.lta_soap_errors)
+        self.conditions.append(self.missing_aux_data)
+        self.conditions.append(self.network_errors)
         self.conditions.append(self.night_scene)
-        self.conditions.append(self.night_scene2)
+        self.conditions.append(self.no_such_file_or_directory)
         self.conditions.append(self.oli_no_sr)
-        self.conditions.append(self.proxy_error_502)
+        self.conditions.append(self.only_only_no_thermal)
         self.conditions.append(self.ssh_errors)
-        self.conditions.append(self.read_timed_out)
 
         #construct the named tuple for the return value of this module
         self.resolution = collections.namedtuple('ErrorResolution',
@@ -56,15 +54,15 @@ class Errors(object):
         ErrorResolution.status - The status a product should be set to
         ErrorResolution.reason - The reason the status was set
         '''
-
-        if key.lower() in error_message.lower():
-            return self.resolution(status, reason, extra)
-        else:
-            return None
+        for key in self.keys:
+            if key.lower() in error_message.lower():
+                return self.resolution(status, reason, extra)
+            else:
+                return None
 
     def __add_retry(self, timeout_key, extras=dict()):
         ''' Adds retry_after to the extras dictionary based on the supplied
-        timeout_key
+        timeout_keyemail_addr
 
         Keyword args:
         timeout_key - Name of timeout key defined in espa_common.settings.RETRY
@@ -82,182 +80,140 @@ class Errors(object):
 
     def ssh_errors(self, error_message):
         ''' errors creating directories or transferring statistics '''
-        key = ('Application failed to execute '
-               '[ssh -q -o StrictHostKeyChecking=no')
+        keys = [('Application failed to execute '
+                 '[ssh -q -o StrictHostKeyChecking=no'), ]
+
         status = 'retry'
         reason = 'ssh operations interrupted'
         extras = self.__add_retry('ssh_errors')
-        return self.__find_error(error_message, key, status, reason, extras)
+        return self.__find_error(error_message, keys, status, reason, extras)
 
-    def read_timed_out(self, error_message):
-        ''' http read timed out '''
-        key = 'Read timed out.'
+    def http_errors(self, error_message):
+        ''' http call errors '''
+        keys = ['Read timed out.',
+                'Connection aborted.',
+                'Connection timed out',
+                'Connection broken: IncompleteRead',
+                '502 Server Error: Proxy Error',
+                '404 Client Error: Not Found']
         status = 'retry'
-        reason = 'HTTP read on level 1 product timed out'
-        extras = self.__add_retry('read_timed_out')
-        return self.__find_error(error_message, key, status, reason, extras)
-
-    def connection_aborted(self, error_message):
-        ''' level 1 http download interrupted '''
-        key = 'Connection aborted.'
-        status = 'retry'
-        reason = 'level 1 product download interrupted'
-        extras = self.__add_retry('connection_aborted')
-        return self.__find_error(error_message, key, status, reason, extras)
-
-    def incomplete_read(self, error_message):
-        ''' http read was interrupted '''
-        key = 'Connection broken: IncompleteRead'
-        status = 'retry'
-        reason = 'incomplete read on input data'
-        extras = self.__add_retry('incomplete_read')
-        return self.__find_error(error_message, key, status, reason, extras)
-
-    def proxy_error_502(self, error_message):
-        ''' a service call was interrupted, most likely due to restart '''
-        key = '502 Server Error: Proxy Error'
-        status = 'retry'
-        reason = 'internal service was restarted (502)'
-        extras = self.__add_retry('502_proxy_error')
-        return self.__find_error(error_message, key, status, reason, extras)
+        reason = 'HTTP connection error'
+        extras = self.__add_retry('http_errors')
+        return self.__find_error(error_message, keys, status, reason, extras)
 
     def db_lock_errors(self, error_message):
         ''' there were problems updating the database '''
-        key = 'Lock wait timeout exceeded'
+        keys = ['Lock wait timeout exceeded']
         status = 'retry'
         reason = 'database lock timed out'
         extras = self.__add_retry('db_lock_timeout')
-        return self.__find_error(error_message, key, status, reason, extras)
+        return self.__find_error(error_message, keys, status, reason, extras)
 
     def gzip_errors(self, error_message):
         ''' there were problems gzipping products '''
-        key = 'not in gzip format'
+        keys = ['not in gzip format',
+                'gzip: stdin: unexpected end of file']
         status = 'retry'
         reason = 'error unpacking gzip'
-        extras = self.__add_retry('gzip_format_error')
-        return self.__find_error(error_message, key, status, reason, extras)
+        extras = self.__add_retry('gzip_errors')
 
-    def gzip_errors_eof(self, error_message):
-        ''' file may be corrupt '''
-        key = 'gzip: stdin: unexpected end of file'
+        return self.__find_error(error_message, keys, status, reason, extras)
+        
+    def gzip_errors_online_cache(self, error_message):
+        ''' products on cache are corrupted '''
+        keys = ['gzip: stdin: invalid compressed data--format violated']
         status = 'retry'
-        reason = 'gzip unexpected EOF'
-        extras = self.__add_retry('gzip_error_eof')
-        return self.__find_error(error_message, key, status, reason, extras)
+        reason = 'Input gzip corrupt'
+        extras = self.__add_retry('gzip_errors')
+
+        if isinstance(sensor.instance(self.product_name), sensor.Landsat):
+            email.Emails().send_gzip_error_email(self.product_name)
+        
+        return self.__find_error(error_message, keys, status, reason, extras)
 
     def oli_no_sr(self, error_message):
         ''' Indicates the user requested sr processing against OLI-only'''
 
-        key = 'oli-only cannot be corrected to surface reflectance'
+        keys = ['oli-only cannot be corrected to surface reflectance',
+                ('include_sr is an unavailable '
+                 'product option for OLI-Only data')]
         status = 'unavailable'
         reason = 'OLI only scenes cannot be processed to surface reflectance'
-        return self.__find_error(error_message, key, status, reason)
+        return self.__find_error(error_message, keys, status, reason)
 
     def night_scene(self, error_message):
         '''Indicates that LEDAPS/l8sr could not process a scene because the
         sun was beneath the horizon'''
 
-        key = 'solar zenith angle out of range'
+        keys = ['solar zenith angle out of range',
+                'Solar zenith angle is out of range']
         status = 'unavailable'
         reason = ('This scene cannot be processed to surface reflectance '
                   'due to the high solar zenith angle')
-        return self.__find_error(error_message, key, status, reason)
+        return self.__find_error(error_message, keys, status, reason)
 
-    def night_scene2(self, error_message):
-        '''Indicates that LEDAPS/l8sr could not process a scene because the
-        sun was beneath the horizon'''
+    def missing_aux_data(self, error_message):
+        '''Could not run do to aux data no available yet'''
 
-        key = 'Solar zenith angle is out of range'
-        status = 'unavailable'
-        reason = ('This scene cannot be processed to surface reflectance '
-                  'due to the high solar zenith angle')
-        return self.__find_error(error_message, key, status, reason)
-
-    def http_not_found(self, error_message):
-        '''Indicates that we had an issue trying to download the product'''
-        
-        key = '404 Client Error: Not Found'
-        status = 'retry'
-        reason = 'HTTP 404 for input product, retrying download'
-        extras = self.__add_retry('http_not_found')
-        return self.__find_error(error_message, key, status, reason, extras)
-
-    def missing_ledaps_aux_data(self, error_message):
-        '''LEDAPS could not run because there was no aux data available'''
-
-        key = 'Verify the missing auxillary data products'
+        keys = ['Verify the missing auxillary data products',
+                'Could not find auxnm data file:']
         status = 'retry'
         reason = 'Auxillary data not yet available for this date'
-        extras = self.__add_retry('missing_ledaps_aux_data')
-        return self.__find_error(error_message, key, status, reason, extras)
+        extras = self.__add_retry('missing_aux_data')
+        return self.__find_error(error_message, keys, status, reason, extras)
 
-    def missing_l8sr_aux_data(self, error_message):
-        '''L8SR could not run because there was no aux data available'''
-
-        key = 'Could not find auxnm data file:'
+    def ftp_errors(self, error_message):
+        keys = ['timed out|150 Opening BINARY mode data connection',
+                '500 OOPS',
+                'ftplib.error_reply']
         status = 'retry'
-        reason = 'Auxillary data not yet available for this date'
-        extras = self.__add_retry('missing_l8sr_aux_data')
-        return self.__find_error(error_message, key, status, reason, extras)
+        reason = 'FTP error'
+        extras = self.__add_retry('ftp_errors')
+        return self.__find_error(error_message, keys, status, reason, extras)
 
-    def ftp_timed_out(self, error_message):
-        key = 'timed out|150 Opening BINARY mode data connection'
-        status = 'retry'
-        reason = 'FTP connection timed out'
-        extras = self.__add_retry('ftp_timed_out')
-        return self.__find_error(error_message, key, status, reason, extras)
-
-    def ftp_500_oops(self, error_message):
-        key = '500 OOPS'
-        status = 'retry'
-        reason = 'FTP experienced a 500 error'
-        extras = self.__add_retry('ftp_500_oops')
-        return self.__find_error(error_message, key, status, reason, extras)
-
-    def ftp_ftplib_error_reply(self, error_message):
-        key = 'ftplib.error_reply'
-        status = 'retry'
-        reason = 'FTP experienced an error in the reply'
-        extras = self.__add_retry('ftp_ftplib_error_reply')
-        return self.__find_error(error_message, key, status, reason, extras)
-
-    def network_is_unreachable(self, error_message):
-        key = 'Network is unreachable'
+    def network_errors(self, error_message):
+        keys = ['Network is unreachable',
+                'Connection timed out']
         status = 'retry'
         reason = 'Network error'
-        extras = self.__add_retry('network_is_unreachable')
-        return self.__find_error(error_message, key, status, reason, extras)
-
-    def connection_timed_out(self, error_message):
-        key = 'Connection timed out'
-        status = 'retry'
-        reason = 'Connection timed out'
-        extras = self.__add_retry('connection_timed_out')
-        return self.__find_error(error_message, key, status, reason, extras)
+        extras = self.__add_retry('network_errors')
+        return self.__find_error(error_message, keys, status, reason, extras)
 
     def no_such_file_or_directory(self, error_message):
-        key = 'No such file or directory'
+        keys = ['No such file or directory']
         status = 'submitted'
         reason = 'Reordered due to online cache purge'
-        return self.__find_error(error_message, key, status, reason)
-        
+        return self.__find_error(error_message, keys, status, reason)
+
     def dswe_unavailable(self, error_message):
-        ''' Mark OLI/TIRS DSWE unavailable '''
-        
-        key = 'include_dswe is an unavailable product option for OLITTIRS'
+        keys = ['include_dswe is an unavailable product option for OLITIRS']
         status = 'unavailable'
-        reason = ('DSWE is not available for OLI/TIRS products')
-        return self.__find_error(error_message, key, status, reason)
+        reason = 'DSWE is not available for OLI/TIRS products'
+        return self.__find_error(error_message, keys, status, reason)
+
+    def only_only_no_thermal(self, error_message):
+        keys = [('include_sr_thermal is an unavailable '
+                 'product option for OLI-Only data')]
+        status = 'unavailable'
+        reason = 'Brightness temperature is not available for OLI-only data'
+        return self.__find_error(error_message, keys, status, reason)
+
+    def lta_soap_errors(self, error_message):
+        keys = ['Listener refused the connection with the following error']
+        status = 'retry'
+        reason = 'Could not complete order at this time'
+        extras = self.__add_retry('lta_soap_errors')
+        return self.__find_error(error_message, keys, status, reason, extras)
 
 
-
-def resolve(error_message):
+def resolve(error_message, name):
     '''Attempts to automatically determine the disposition of a scene given
     the error_message that is supplied.
 
     Keyword args:
     error_message - The full error message received from the backend processing
                     node.
+    name - The name of the product the error occurred on
 
     Returns:
     A named tuple of espa product status code and user facing message that
