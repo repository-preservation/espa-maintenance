@@ -55,7 +55,7 @@ class Emails(object):
 
         return True
 
-    def validate_email(self, email):
+    def validate_email(self, email_addr):
         '''Compares incoming email address against regular expression
         to make sure its at least formatted like an email
 
@@ -68,9 +68,9 @@ class Emails(object):
         '''
         #pattern = '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,4}$'
         #some clown used a single quote in his email address... sigh.
-        email = email.replace("'", "\'")
+        email_addr = email_addr.replace("'", "\'")
         pattern = r'^[A-Za-z0-9._%+-\\\']+@[A-Za-z0-9.-]+\.[A-Za-z]{2,4}$'
-        return re.match(pattern, email.strip())
+        return re.match(pattern, email_addr.strip())
 
     def send_gzip_error_email(self, product_id):
         '''Sends an email to our people telling them to reprocess

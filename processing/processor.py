@@ -1595,7 +1595,16 @@ class LandsatOLITIRSProcessor(LandsatProcessor):
         options = self._parms['options']
 
         cmd = None
-        if options['include_sr']:
+        if (options['include_sr']
+                or options['include_sr_browse']
+                or options['include_sr_nbr']
+                or options['include_sr_nbr2']
+                or options['include_sr_ndvi']
+                or options['include_sr_ndmi']
+                or options['include_sr_savi']
+                or options['include_sr_msavi']
+                or options['include_sr_evi']
+                or options['include_dswe']):
             cmd = ' '.join(['create_land_water_mask',
                             '--xml', self._xml_filename])
 

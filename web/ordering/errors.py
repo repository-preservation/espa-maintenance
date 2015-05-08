@@ -2,13 +2,14 @@ import collections
 from espa_common import settings
 from espa_common import sensor
 import datetime
-import email
+import emails
 
 
 class Errors(object):
     '''Implementation for ESPA errors.resolve(error_message) interface'''
 
     def __init__(self, name=None):
+        
         self.product_name = name
 
         #build list of known error conditions to be checked
@@ -37,7 +38,7 @@ class Errors(object):
         #in the future, retrieve it from a database or elsewhere if necessary
         self.retry = settings.RETRY
 
-    def __find_error(self, error_message, key, status, reason, extra=None):
+    def __find_error(self, error_message, keys, status, reason, extra=None):
         '''Logic to search the error_message and return the appropriate value
 
         Keyword args:
@@ -54,7 +55,7 @@ class Errors(object):
         ErrorResolution.status - The status a product should be set to
         ErrorResolution.reason - The reason the status was set
         '''
-        for key in self.keys:
+        for key in keys:
             if key.lower() in error_message.lower():
                 return self.resolution(status, reason, extra)
             else:
@@ -126,10 +127,18 @@ class Errors(object):
         reason = 'Input gzip corrupt'
         extras = self.__add_retry('gzip_errors')
 
-        if isinstance(sensor.instance(self.product_name), sensor.Landsat):
-            email.Emails().send_gzip_error_email(self.product_name)
+        resolution = self.__find_error(error_message,
+                                       keys,
+                                       status,
+                                       reason,
+                                       extras)
+        is_landsat =  isinstance(sensor.instance(self.product_name),
+                                 sensor.Landsat)    
+                                 
+        if resolution is not None and is_landsat:
+            emails.Emails().send_gzip_error_email(self.product_name)
         
-        return self.__find_error(error_message, keys, status, reason, extras)
+        return resolution
 
     def oli_no_sr(self, error_message):
         ''' Indicates the user requested sr processing against OLI-only'''
@@ -257,7 +266,7 @@ def resolve(error_message, name):
     conditions = None
     result = None
     try:
-        conditions = Errors().conditions
+        conditions = Errors(name).conditions
         for condition in conditions:
             result = condition(error_message)
             if result is not None:

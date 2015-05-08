@@ -18,7 +18,7 @@ import lta
 import lpdaac
 import errors
 import espa_common
-import email
+import emails
 
 '''
 TODO -- Create new method handle_submitted_scenes() or something to that effect
@@ -977,15 +977,15 @@ def load_ee_orders():
 
     # Sends the order submission confirmation email
 def send_initial_email(order):
-    return email.Emails().send_initial(order)
+    return emails.Emails().send_initial(order)
 
 
 def send_completion_email(order):
-    return email.Emails().send_completion(order)
+    return emails.Emails().send_completion(order)
 
 
 def send_initial_emails():
-    return email.Emails().send_all_initial()
+    return emails.Emails().send_all_initial()
 
 
 @transaction.atomic

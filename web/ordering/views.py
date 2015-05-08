@@ -1,6 +1,7 @@
 import json
 import collections
 from espa_common import sensor
+import emails
 
 import django.contrib.auth
 
@@ -381,7 +382,7 @@ class ListOrders(AbstractView):
         HttpResponse
         '''
        
-        if email is None or not utilities.validate_email(email):
+        if email is None or not emails.Emails().validate_email(email):
             user = User.objects.get(username=request.user.username)
             email = user.email
 
