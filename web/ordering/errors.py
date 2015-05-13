@@ -102,7 +102,8 @@ class Errors(object):
                 'Connection timed out',
                 'Connection broken: IncompleteRead',
                 '502 Server Error: Proxy Error',
-                '404 Client Error: Not Found']
+                '404 Client Error: Not Found',
+                'Transfer Failed - HTTP - exceeded retry limit']
         status = 'retry'
         reason = 'HTTP connection error'
         extras = self.__add_retry('http_errors')
