@@ -9,7 +9,7 @@ class Errors(object):
     '''Implementation for ESPA errors.resolve(error_message) interface'''
 
     def __init__(self, name=None):
-        
+
         self.product_name = name
 
         #build list of known error conditions to be checked
@@ -55,11 +55,18 @@ class Errors(object):
         ErrorResolution.status - The status a product should be set to
         ErrorResolution.reason - The reason the status was set
         '''
+        
+        resolution = None
+        
         for key in keys:
+            print("Comparing %s" % (key.lower()))
+            
             if key.lower() in error_message.lower():
-                return self.resolution(status, reason, extra)
-            else:
-                return None
+                resolution = self.resolution(status, reason, extra)
+                break
+            
+        #return self.resolution(status, reason, extra)
+        return resolution
 
     def __add_retry(self, timeout_key, extras=dict()):
         ''' Adds retry_after to the extras dictionary based on the supplied
@@ -81,8 +88,7 @@ class Errors(object):
 
     def ssh_errors(self, error_message):
         ''' errors creating directories or transferring statistics '''
-        keys = [('Application failed to execute '
-                 '[ssh -q -o StrictHostKeyChecking=no'), ]
+        keys = ['Application failed to execute [ssh -q -o StrictHostKeyChe']
 
         status = 'retry'
         reason = 'ssh operations interrupted'
@@ -119,7 +125,7 @@ class Errors(object):
         extras = self.__add_retry('gzip_errors')
 
         return self.__find_error(error_message, keys, status, reason, extras)
-        
+
     def gzip_errors_online_cache(self, error_message):
         ''' products on cache are corrupted '''
         keys = ['gzip: stdin: invalid compressed data--format violated']
@@ -133,19 +139,18 @@ class Errors(object):
                                        reason,
                                        extras)
         is_landsat =  isinstance(sensor.instance(self.product_name),
-                                 sensor.Landsat)    
-                                 
+                                 sensor.Landsat)
+
         if resolution is not None and is_landsat:
             emails.Emails().send_gzip_error_email(self.product_name)
-        
+
         return resolution
 
     def oli_no_sr(self, error_message):
         ''' Indicates the user requested sr processing against OLI-only'''
 
         keys = ['oli-only cannot be corrected to surface reflectance',
-                ('include_sr is an unavailable '
-                 'product option for OLI-Only data')]
+                'include_sr is an unavailable product option for OLI-Only dat']
         status = 'unavailable'
         reason = 'OLI only scenes cannot be processed to surface reflectance'
         return self.__find_error(error_message, keys, status, reason)
