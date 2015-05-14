@@ -176,7 +176,7 @@ class EspaLogging(object):
         if os.path.exists(filename):
             try:
                 os.unlink(filename)
-            except Exception, e:
+            except Exception as e:
                 raise EspaLoggerException(str(e))
 
     @classmethod

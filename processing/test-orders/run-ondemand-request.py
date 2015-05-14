@@ -147,7 +147,6 @@ def process_test_order(request_file, products_file, env_vars,
                 # Update the order for the developer
                 tmp = product[:3]
                 download_url = 'null'
-                dev_cache_dir = env_vars['dev_cache_dir']['value']
                 is_modis = False
                 if tmp == 'MOD' or tmp == 'MYD':
                     is_modis = True
@@ -211,19 +210,6 @@ def process_test_order(request_file, products_file, env_vars,
                 else:
                     tmp_line = tmp_line.replace("PRODUCT_TYPE", 'plot')
 
-                if plot:
-                    statistics_host = socket.gethostname()
-                    statistics_directory = '%s/%s' % (dev_cache_dir, order_id)
-
-                    tmp_line = tmp_line.replace("STATISTICS_DIRECTORY",
-                                                statistics_directory)
-                    tmp_line = tmp_line.replace("STATISTICS_HOST",
-                                                statistics_host)
-
-                destination_directory = '%s/%s' % (dev_cache_dir, order_id)
-                tmp_line = tmp_line.replace("DESTINATION_DIRECTORY",
-                                            destination_directory)
-
                 tmp_line = tmp_line.replace("DOWNLOAD_URL", download_url)
 
                 tmp_fd.write(tmp_line)
@@ -283,11 +269,7 @@ if __name__ == '__main__':
 
     env_vars = dict()
     env_vars = {'dev_data_dir': {'name': 'DEV_DATA_DIRECTORY',
-                                 'value': None},
-                'dev_cache_dir': {'name': 'DEV_CACHE_DIRECTORY',
-                                  'value': None},
-                'espa_work_dir': {'name': 'ESPA_WORK_DIR',
-                                  'value': None}}
+                                 'value': None}}
 
     missing_environment_variable = False
     for var in env_vars:

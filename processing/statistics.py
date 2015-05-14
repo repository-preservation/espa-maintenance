@@ -149,7 +149,7 @@ def generate_statistics(work_directory, files_to_search_for):
                     with open(stats_output_file, 'w+') as stat_fd:
                         stat_fd.write(data_io.getvalue())
             # END - for tile
-        except Exception, e:
+        except Exception as e:
             raise ee.ESPAException(ee.ErrorCodes.statistics,
                                    str(e)), None, sys.exc_info()[2]
 
@@ -191,7 +191,7 @@ if __name__ == '__main__':
 
     try:
         generate_statistics('.', files_to_search_for)
-    except Exception, e:
+    except Exception as e:
         if hasattr(e, 'output'):
             logger.error("Output [%s]" % e.output)
         logger.exception("Processing failed")

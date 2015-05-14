@@ -20,24 +20,6 @@ import utilities
 
 
 # ============================================================================
-def create_directory(directory):
-    '''
-    Description:
-        Create the specified directory with some error checking.
-    '''
-
-    # Create/Make sure the directory exists
-    try:
-        os.makedirs(directory, mode=0755)
-    except OSError as ose:
-        if ose.errno == errno.EEXIST and os.path.isdir(directory):
-            pass
-        else:
-            raise
-# END - create_directory
-
-
-# ============================================================================
 def untar_data(source_file, destination_directory):
     '''
     Description:
@@ -60,10 +42,13 @@ def untar_data(source_file, destination_directory):
     output = ''
     try:
         output = utilities.execute_cmd(cmd)
-    except Exception, e:
+    except Exception as e:
         logger.error("Failed to unpack data")
         raise e
     finally:
         if len(output) > 0:
             logger.info(output)
-# END - untar_data
+
+
+def stage_landsat_data
+# TODO TODO TODO

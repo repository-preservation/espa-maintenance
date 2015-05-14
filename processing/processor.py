@@ -43,7 +43,9 @@ import settings
 import utilities
 
 # local objects and methods
+from environment import Environment
 import espa_exception as ee
+import initialization
 import parameters
 import metadata
 import metadata_api
@@ -71,6 +73,7 @@ class ProductProcessor(object):
     '''
 
     _logger = None
+    _environment = None
 
     _parms = None
 
@@ -92,41 +95,24 @@ class ProductProcessor(object):
         '''
 
         self._logger = EspaLogging.get_logger(settings.PROCESSING_LOGGER)
+        logger = self._logger
 
         # Some minor enforcement for what parms should be
         if type(parms) is dict:
             self._parms = parms
         else:
-            raise Exception("parameters was of type %s, dict required"
-                            % type(parms))
+            raise Exception("Parameters was of type {0},"
+                            " where dict is required".format(type(parms)))
+
+        # Create an environment object (which also validates it)
+        self._environment = Environment()
+
+        # Log the distribution method that will be used
+        logger.info("Using distribution method '{0}'".
+                    format(self._environment.get_distribution_method()))
 
         # Validate the parameters
         self.validate_parameters()
-
-    # -------------------------------------------
-    def get_output_hostname(self):
-        '''
-        Description:
-            Determine the output hostname to use for espa products.
-        Note:
-            Today all output products use the landsat online cache which is
-            provided by utilities.get_cache_hostname.
-        '''
-
-        return utilities.get_cache_hostname()
-
-    # -------------------------------------------
-    def get_output_directory(self):
-        '''
-        Description:
-            Determine the output directory to use for espa products.
-        Note:
-            Today all output products go to the same directory.
-        '''
-
-        order_id = self._parms['orderid']
-
-        return os.path.join(settings.ESPA_CACHE_DIRECTORY, order_id)
 
     # -------------------------------------------
     def validate_parameters(self):
@@ -166,17 +152,11 @@ class ProductProcessor(object):
             options['keep_intermediate_data'] = False
 
         # Verify or set the destination information
-        if not parameters.test_for_parameter(options, 'destination_host'):
-            options['destination_host'] = self.get_output_hostname()
-
         if not parameters.test_for_parameter(options, 'destination_username'):
             options['destination_username'] = 'localhost'
 
         if not parameters.test_for_parameter(options, 'destination_pw'):
             options['destination_pw'] = 'localhost'
-
-        if not parameters.test_for_parameter(options, 'destination_directory'):
-            options['destination_directory'] = self.get_output_directory()
 
     # -------------------------------------------
     def log_order_parameters(self):
@@ -220,57 +200,51 @@ class ProductProcessor(object):
         product_id = self._parms['product_id']
         order_id = self._parms['orderid']
 
-        base_env_var = 'ESPA_WORK_DIR'
-        base_dir = ''
-
-        if base_env_var not in os.environ:
-            logger.warning("Environment variable $%s is not defined"
-                           % base_env_var)
-        else:
-            base_dir = os.environ.get(base_env_var)
+        base_work_dir = self._environment.get_base_work_directory()
 
         # Get the absolute path to the directory, and default to the current
         # one
-        if base_dir == '':
+        if base_work_dir == '':
             # If the directory is empty, use the current working directory
-            base_dir = os.getcwd()
+            base_work_dir = os.getcwd()
         else:
             # Get the absolute path
-            base_dir = os.path.abspath(base_dir)
+            base_work_dir = os.path.abspath(base_work_dir)
 
         # Add the order_id to the base path
-        self._order_dir = os.path.join(base_dir, str(order_id))
+        self._order_dir = os.path.join(base_work_dir, str(order_id))
 
         # Add the product_id to the order path
         self._product_dir = os.path.join(self._order_dir, str(product_id))
 
-        # Just incase remove it, and we don't care about errors since it
+        # Just incase remove it, and we don't care about errors if it
         # doesn't exist (probably only needed for developer runs)
         shutil.rmtree(self._product_dir, ignore_errors=True)
 
-        # Specify the sub-directories of the product directory
-        self._stage_dir = os.path.join(self._product_dir, 'stage')
-        self._work_dir = os.path.join(self._product_dir, 'work')
-        self._output_dir = os.path.join(self._product_dir, 'output')
-
         # Create each of the sub-directories
         try:
-            staging.create_directory(self._stage_dir)
-        except Exception, e:
+            self._stage_dir = \
+                initialization.create_stage_directory(self._product_dir)
+        except Exception as e:
             raise ee.ESPAException(ee.ErrorCodes.creating_stage_dir,
                                    str(e)), None, sys.exc_info()[2]
+        logger.info("Created directory [{0}]".format(self._stage_dir))
 
         try:
-            staging.create_directory(self._work_dir)
-        except Exception, e:
+            self._work_dir = \
+                initialization.create_work_directory(self._product_dir)
+        except Exception as e:
             raise ee.ESPAException(ee.ErrorCodes.creating_work_dir,
                                    str(e)), None, sys.exc_info()[2]
+        logger.info("Created directory [{0}]".format(self._work_dir))
 
         try:
-            staging.create_directory(self._output_dir)
-        except Exception, e:
+            self._output_dir = \
+                initialization.create_output_directory(self._product_dir)
+        except Exception as e:
             raise ee.ESPAException(ee.ErrorCodes.creating_output_dir,
                                    str(e)), None, sys.exc_info()[2]
+        logger.info("Created directory [{0}]".format(self._output_dir))
 
     # -------------------------------------------
     def remove_product_directory(self):
@@ -307,62 +281,33 @@ class ProductProcessor(object):
     def distribute_product(self):
         '''
         Description:
-            Does both the packaging and dsitribution of the product using
+            Does both the packaging and distribution of the product using
             the distribution module.
         '''
 
         logger = self._logger
 
         product_id = self._parms['product_id']
-        opts = self._parms['options']
 
         product_name = self.get_product_name()
 
         # Deliver the product files
-        # Attempt X times sleeping between each attempt
-        sleep_seconds = settings.DEFAULT_SLEEP_SECONDS
-        max_number_of_attempts = settings.MAX_DISTRIBUTION_ATTEMPTS
-        attempt = 0
-        destination_product_file = 'ERROR'
-        destination_cksum_file = 'ERROR'
-        while True:
-            try:
-                # Deliver product will also try each of its parts three times
-                # before failing, so we pass our sleep seconds down to them
-                (destination_product_file, destination_cksum_file) = \
-                    distribution.deliver_product(product_id,
-                                                 self._work_dir,
-                                                 self._output_dir,
-                                                 product_name,
-                                                 opts['destination_host'],
-                                                 opts['destination_directory'],
-                                                 opts['destination_username'],
-                                                 opts['destination_pw'],
-                                                 sleep_seconds)
+        product_file = 'ERROR'
+        cksum_file = 'ERROR'
+        try:
+            (product_file, cksum_file) = \
+                distribution.distribute_product(product_name,
+                                                self._work_dir,
+                                                self._output_dir,
+                                                self._parms)
+        except Exception as e:
+            logger.exception("An exception occurred delivering the product")
+            raise
 
-                # Always log where we placed the files
-                logger.info("Delivered product to %s at location %s and cksum"
-                            " location %s" % (opts['destination_host'],
-                                              destination_product_file,
-                                              destination_cksum_file))
-
-                logger.info("*** Product Delivery Complete ***")
-            except Exception, e:
-                logger.error("An exception occurred delivering the product")
-                logger.error("Exception Message: %s" % str(e))
-                if attempt < max_number_of_attempts:
-                    sleep(sleep_seconds)  # sleep before trying again
-                    attempt += 1
-                    # adjust for next set
-                    sleep_seconds = int(sleep_seconds * 1.5)
-                    continue
-                else:
-                    # May already be an ESPAException so don't override that
-                    raise e
-            break
+        logger.info("*** Product Delivery Complete ***")
 
         # Let the caller know where we put these on the destination system
-        return (destination_product_file, destination_cksum_file)
+        return (product_file, cksum_file)
 
     # -------------------------------------------
     def process_product(self):
@@ -646,7 +591,7 @@ class CDRProcessor(CustomizationProcessor):
 
                 try:
                     output = utilities.execute_cmd(cmd)
-                except Exception, e:
+                except Exception as e:
                     raise ee.ESPAException(ee.ErrorCodes.remove_products,
                                            str(e)), None, sys.exc_info()[2]
                 finally:
@@ -671,7 +616,7 @@ class CDRProcessor(CustomizationProcessor):
                                             xmlns_xsi=xmlns_xsi,
                                             schema_uri=schema_uri)
 
-                except Exception, e:
+                except Exception as e:
                     raise ee.ESPAException(ee.ErrorCodes.remove_products,
                                            str(e)), None, sys.exc_info()[2]
                 finally:
@@ -702,48 +647,23 @@ class CDRProcessor(CustomizationProcessor):
     def distribute_statistics(self):
         '''
         Description:
-            Generates statistics if required for the processor.
-
-        Note:
-            Not implemented here.
+            Distributes statistics if required for the processor.
         '''
 
         logger = self._logger
 
-        product_id = self._parms['product_id']
         options = self._parms['options']
 
         if options['include_statistics']:
-            # Attempt X times sleeping between each attempt
-            attempt = 0
-            sleep_seconds = settings.DEFAULT_SLEEP_SECONDS
-            dest_host = options['destination_host']
-            dest_directory = options['destination_directory']
-            dest_user = options['destination_username']
-            dest_pw = options['destination_pw']
-            while True:
-                try:
-                    distribution.distribute_statistics(product_id,
-                                                       self._work_dir,
-                                                       dest_host,
-                                                       dest_directory,
-                                                       dest_user,
-                                                       dest_pw)
+            try:
+                distribution.distribute_statistics(self._work_dir,
+                                                   self._output_dir,
+                                                   self._parms)
+            except Exception as e:
+                logger.exception("An exception occurred delivering the stats")
+                raise
 
-                    logger.info("*** Statistics Distribution Complete ***")
-                except Exception, e:
-                    logger.error("An exception occurred distributing"
-                                 " statistics")
-                    logger.error("Exception Message: %s" % str(e))
-                    if attempt < settings.MAX_DELIVERY_ATTEMPTS:
-                        sleep(sleep_seconds)  # sleep before trying again
-                        attempt += 1
-                        continue
-                    else:
-                        e_code = ee.ErrorCodes.distributing_product
-                        raise ee.ESPAException(e_code,
-                                               str(e)), None, sys.exc_info()[2]
-                break
+            logger.info("*** Statistics Distribution Complete ***")
 
     # -------------------------------------------
     def reformat_products(self):
@@ -924,7 +844,7 @@ class LandsatProcessor(CDRProcessor):
         # Download the source data
         try:
             transfer.download_file_url(download_url, destination_file)
-        except Exception, e:
+        except Exception as e:
             raise ee.ESPAException(ee.ErrorCodes.staging_data, str(e)), \
                 None, sys.exc_info()[2]
 
@@ -937,11 +857,11 @@ class LandsatProcessor(CDRProcessor):
             try:
                 self._metadata_filename = \
                     metadata.get_landsat_metadata(self._work_dir, product_id)
-            except Exception, e:
+            except Exception as e:
                 raise ee.ESPAException(ee.ErrorCodes.metadata,
                                        str(e)), None, sys.exc_info()[2]
 
-        except Exception, e:
+        except Exception as e:
             raise ee.ESPAException(ee.ErrorCodes.unpacking, str(e)), \
                 None, sys.exc_info()[2]
 
@@ -971,7 +891,7 @@ class LandsatProcessor(CDRProcessor):
         output = ''
         try:
             output = utilities.execute_cmd(cmd)
-        except Exception, e:
+        except Exception as e:
             raise ee.ESPAException(ee.ErrorCodes.reformat,
                                    str(e)), None, sys.exc_info()[2]
         finally:
@@ -1023,7 +943,7 @@ class LandsatProcessor(CDRProcessor):
             output = ''
             try:
                 output = utilities.execute_cmd(cmd)
-            except Exception, e:
+            except Exception as e:
                 raise ee.ESPAException(ee.ErrorCodes.reformat,
                                        str(e)), None, sys.exc_info()[2]
             finally:
@@ -1060,7 +980,7 @@ class LandsatProcessor(CDRProcessor):
             output = ''
             try:
                 output = utilities.execute_cmd(cmd)
-            except Exception, e:
+            except Exception as e:
                 raise ee.ESPAException(ee.ErrorCodes.surface_reflectance,
                                        str(e)), None, sys.exc_info()[2]
             finally:
@@ -1142,7 +1062,7 @@ class LandsatProcessor(CDRProcessor):
             output = ''
             try:
                 output = utilities.execute_cmd(cmd)
-            except Exception, e:
+            except Exception as e:
                 raise ee.ESPAException(ee.ErrorCodes.surface_reflectance,
                                        str(e)), None, sys.exc_info()[2]
             finally:
@@ -1193,7 +1113,7 @@ class LandsatProcessor(CDRProcessor):
             output = ''
             try:
                 output = utilities.execute_cmd(cmd)
-            except Exception, e:
+            except Exception as e:
                 raise ee.ESPAException(ee.ErrorCodes.cfmask,
                                        str(e)), None, sys.exc_info()[2]
             finally:
@@ -1264,7 +1184,7 @@ class LandsatProcessor(CDRProcessor):
             output = ''
             try:
                 output = utilities.execute_cmd(cmd)
-            except Exception, e:
+            except Exception as e:
                 raise ee.ESPAException(ee.ErrorCodes.spectral_indices,
                                        str(e)), None, sys.exc_info()[2]
             finally:
@@ -1317,7 +1237,7 @@ class LandsatProcessor(CDRProcessor):
             output = ''
             try:
                 output = utilities.execute_cmd(cmd)
-            except Exception, e:
+            except Exception as e:
                 raise ee.ESPAException(ee.ErrorCodes.dswe,
                                        str(e)), None, sys.exc_info()[2]
             finally:
@@ -1436,7 +1356,7 @@ class LandsatProcessor(CDRProcessor):
                 output = ''
                 try:
                     output = utilities.execute_cmd(cmd)
-                except Exception, e:
+                except Exception as e:
                     raise ee.ESPAException(ee.ErrorCodes.cleanup_work_dir,
                                            str(e)), None, sys.exc_info()[2]
                 finally:
@@ -1445,7 +1365,7 @@ class LandsatProcessor(CDRProcessor):
 
             try:
                 self.remove_products_from_xml()
-            except Exception, e:
+            except Exception as e:
                 raise ee.ESPAException(ee.ErrorCodes.remove_products,
                                        str(e)), None, sys.exc_info()[2]
 
@@ -1821,7 +1741,7 @@ class ModisProcessor(CDRProcessor):
         # Download the source data
         try:
             transfer.download_file_url(download_url, destination_file)
-        except Exception, e:
+        except Exception as e:
             raise ee.ESPAException(ee.ErrorCodes.staging_data, str(e)), \
                 None, sys.exc_info()[2]
 
@@ -1831,7 +1751,7 @@ class ModisProcessor(CDRProcessor):
         try:
             transfer.copy_file_to_file(destination_file, self._work_dir)
             os.unlink(destination_file)
-        except Exception, e:
+        except Exception as e:
             raise ee.ESPAException(ee.ErrorCodes.unpacking, str(e)), \
                 None, sys.exc_info()[2]
 
@@ -1861,7 +1781,7 @@ class ModisProcessor(CDRProcessor):
         output = ''
         try:
             output = utilities.execute_cmd(cmd)
-        except Exception, e:
+        except Exception as e:
             raise ee.ESPAException(ee.ErrorCodes.reformat,
                                    str(e)), None, sys.exc_info()[2]
         finally:
@@ -2427,26 +2347,6 @@ class PlotProcessor(ProductProcessor):
         super(PlotProcessor, self).__init__(parms)
 
     # -------------------------------------------
-    def get_statistics_hostname(self):
-        '''
-        Description:
-            Returns the hostname to use for retrieving the input data.
-        '''
-
-        return utilities.get_cache_hostname()
-
-    # -------------------------------------------
-    def get_statistics_directory(self):
-        '''
-        Description:
-            Returns the source directory to use for retrieving the input data.
-        '''
-
-        order_id = self._parms['orderid']
-
-        return os.path.join(settings.ESPA_CACHE_DIRECTORY, order_id)
-
-    # -------------------------------------------
     def validate_parameters(self):
         '''
         Description:
@@ -2461,13 +2361,6 @@ class PlotProcessor(ProductProcessor):
         logger.info("Validating [PlotProcessor] parameters")
 
         options = self._parms['options']
-
-        # Statistics input location information
-        if not parameters.test_for_parameter(options, 'statistics_host'):
-            options['statistics_host'] = self.get_statistics_hostname()
-
-        if not parameters.test_for_parameter(options, 'statistics_directory'):
-            options['statistics_directory'] = self.get_statistics_directory()
 
         # Override the colors if they were specified
         if parameters.test_for_parameter(options, 'terra_color'):
@@ -3119,30 +3012,51 @@ class PlotProcessor(ProductProcessor):
             Stages the input data required for the processor.
         '''
 
+        order_id = self._parms['orderid']
         options = self._parms['options']
 
-        source_stats_directory = os.path.join(options['statistics_directory'],
-                                              'stats')
+        distribution_method = self._environment.get_distribution_method()
 
-        # Transfer the directory using scp
-        try:
-            transfer.scp_transfer_directory(options['statistics_host'],
-                                            source_stats_directory,
-                                            'localhost', self._stage_dir)
-        except Exception, e:
-            raise ee.ESPAException(ee.ErrorCodes.staging_data, str(e)), \
-                None, sys.exc_info()[2]
+        if distribution_method == 'local':
+            cache_dir = os.path.join(self._output_dir,
+                                     settings.ESPA_LOCAL_CACHE_DIRECTORY)
+            cache_dir = os.path.join(cache_dir, order_id)
+            cache_dir = os.path.join(cache_dir, 'stats')
+            cache_files = os.path.join(cache_dir, '*')
 
-        # Move the staged data to the work directory
-        try:
-            source_stats_files = glob.glob(os.path.join(self._stage_dir,
-                                                        'stats/*'))
+            try:
+                source_stats_files = glob.glob(cache_files)
 
-            transfer.move_files_to_directory(source_stats_files,
-                                             self._work_dir)
-        except Exception, e:
-            raise ee.ESPAException(ee.ErrorCodes.unpacking, str(e)), \
-                None, sys.exc_info()[2]
+                transfer.copy_files_to_directory(source_stats_files,
+                                                 self._work_dir)
+            except Exception as e:
+                raise ee.ESPAException(ee.ErrorCodes.staging_data, str(e)), \
+                    None, sys.exc_info()[2]
+
+        else:
+            cache_host = utilities.get_cache_hostname()
+            cache_dir = os.path.join(settings.ESPA_REMOTE_CACHE_DIRECTORY,
+                                     order_id)
+            cache_dir = os.path.join(cache_dir, 'stats')
+
+            # Transfer the directory using scp
+            try:
+                transfer.scp_transfer_directory(cache_host, cache_dir,
+                                                'localhost', self._stage_dir)
+            except Exception as e:
+                raise ee.ESPAException(ee.ErrorCodes.staging_data, str(e)), \
+                    None, sys.exc_info()[2]
+
+            # Move the staged data to the work directory
+            try:
+                source_stats_files = glob.glob(os.path.join(self._stage_dir,
+                                                            'stats/*'))
+
+                transfer.move_files_to_directory(source_stats_files,
+                                                 self._work_dir)
+            except Exception as e:
+                raise ee.ESPAException(ee.ErrorCodes.unpacking, str(e)), \
+                    None, sys.exc_info()[2]
 
     # -------------------------------------------
     def get_product_name(self):

@@ -19,85 +19,16 @@ import glob
 from time import sleep
 from argparse import ArgumentParser
 
-# espa-common objects and methods
-from espa_constants import EXIT_FAILURE
-from espa_constants import EXIT_SUCCESS
-
 # imports from espa_common
 from logger_factory import EspaLogging
 import settings
 import utilities
 
 # local objects and methods
+from environment import Environment
 import espa_exception as ee
 import parameters
 import transfer
-
-
-# ============================================================================
-def build_argument_parser():
-    '''
-    Description:
-      Build the command line argument parser.
-    '''
-
-    # Create a command line argument parser
-    description = "Provides methods for creating and distributing products"
-    parser = ArgumentParser(description=description)
-
-    # Parameters
-    parameters.add_debug_parameter(parser)
-
-    parser.add_argument('--test_deliver_product',
-                        action='store_true', dest='test_deliver_product',
-                        default=False,
-                        help="test the delivery code which also tests"
-                             " package_product and distribute_product")
-
-    parser.add_argument('--test_package_product',
-                        action='store_true', dest='test_package_product',
-                        default=False,
-                        help="test the packaging code")
-
-    parser.add_argument('--test_distribute_product',
-                        action='store_true', dest='test_distribute_product',
-                        default=False,
-                        help="test the distributing code")
-
-    # Used by package and deliver and distribute
-    parameters.add_destination_parameters(parser)
-
-    # Used by package and deliver
-    parser.add_argument('--product_name',
-                        action='store', dest='product_name', required=False,
-                        help="basename of the product to distribute")
-
-    # Used by deliver
-    parameters.add_work_directory_parameter(parser)
-
-    parser.add_argument('--package_directory',
-                        action='store', dest='package_directory',
-                        default=os.curdir,
-                        help="package directory on the localhost")
-
-    parser.add_argument('--sleep_seconds',
-                        action='store', dest='sleep_seconds',
-                        default=settings.DEFAULT_SLEEP_SECONDS,
-                        help="number of seconds to sleep after a failure"
-                             " before retrying")
-
-    # Used by distribute
-    parser.add_argument('--product_file',
-                        action='store', dest='product_file', required=False,
-                        help="full path of the product to distribute")
-
-    parser.add_argument('--cksum_file',
-                        action='store', dest='cksum_file', required=False,
-                        help="full path of the checksum file to distribute"
-                             " and verify")
-
-    return parser
-# END - build_argument_parser
 
 
 # ============================================================================
@@ -119,10 +50,25 @@ def package_product(source_directory, destination_directory, product_name):
 
     product_full_path = os.path.join(destination_directory, product_name)
 
-    # Remove any old products from the destination directory
-    old_product_list = glob.glob("%s*" % product_full_path)
-    for old_product in old_product_list:
-        os.unlink(old_product)
+    # Make sure the directory exists.
+    utilities.create_directory(destination_directory)
+
+    # Remove any pre-existing files
+    # Grab the first part of the filename, which is not unique
+    filename_parts = product_full_path.split('-')
+    filename_parts[-1] = '*'  # Replace the last element of the list
+    filename = '-'.join(filename_parts)  # Join with '-'
+
+    cmd = ' '.join(['rm', '-f', filename])
+    output = ''
+    try:
+        output = utilities.execute_cmd(cmd)
+    except Exception as e:
+        raise ee.ESPAException(ee.ErrorCodes.packaging_product,
+                               str(e)), None, sys.exc_info()[2]
+    finally:
+        if len(output) > 0:
+            logger.info(output)
 
     # Change to the source directory
     current_directory = os.getcwd()
@@ -150,7 +96,7 @@ def package_product(source_directory, destination_directory, product_name):
         cmd = ' '.join(['tar', '-tf', product_full_path])
         try:
             output = utilities.execute_cmd(cmd)
-        except Exception, e:
+        except Exception as e:
             raise ee.ESPAException(ee.ErrorCodes.packaging_product,
                                    str(e)), None, sys.exc_info()[2]
         finally:
@@ -162,7 +108,7 @@ def package_product(source_directory, destination_directory, product_name):
         cmd = ' '.join(['cksum', product_full_path])
         try:
             cksum_output = utilities.execute_cmd(cmd)
-        except Exception, e:
+        except Exception as e:
             if len(cksum_output) > 0:
                 logger.info(cksum_output)
             raise ee.ESPAException(ee.ErrorCodes.packaging_product,
@@ -188,7 +134,7 @@ def package_product(source_directory, destination_directory, product_name):
         try:
             with open(cksum_full_path, 'wb+') as cksum_fd:
                 cksum_fd.write(cksum_value)
-        except Exception, e:
+        except Exception as e:
             raise ee.ESPAException(ee.ErrorCodes.packaging_product,
                                    "Error building cksum file"), \
                 None, sys.exc_info()[2]
@@ -202,9 +148,9 @@ def package_product(source_directory, destination_directory, product_name):
 
 
 # ============================================================================
-def distribute_product(destination_host, destination_directory,
-                       destination_username, destination_pw,
-                       product_filename, cksum_filename):
+def transfer_product(destination_host, destination_directory,
+                     destination_username, destination_pw,
+                     product_filename, cksum_filename):
     '''
     Description:
       Transfers the product and associated checksum to the specified directory
@@ -231,8 +177,8 @@ def distribute_product(destination_host, destination_directory,
     try:
         logger.debug(' '.join(["mkdir cmd:", cmd]))
         output = utilities.execute_cmd(cmd)
-    except Exception, e:
-        raise ee.ESPAException(ee.ErrorCodes.packaging_product,
+    except Exception as e:
+        raise ee.ESPAException(ee.ErrorCodes.transfer_product,
                                str(e)), None, sys.exc_info()[2]
     finally:
         if len(output) > 0:
@@ -256,8 +202,8 @@ def distribute_product(destination_host, destination_directory,
     try:
         logger.debug(' '.join(["rm remote file cmd:", cmd]))
         output = utilities.execute_cmd(cmd)
-    except Exception, e:
-        raise ee.ESPAException(ee.ErrorCodes.packaging_product,
+    except Exception as e:
+        raise ee.ESPAException(ee.ErrorCodes.transfer_product,
                                str(e)), None, sys.exc_info()[2]
     finally:
         if len(output) > 0:
@@ -282,28 +228,33 @@ def distribute_product(destination_host, destination_directory,
     try:
         logger.debug(' '.join(["ssh cmd:", cmd]))
         cksum_value = utilities.execute_cmd(cmd)
-    except Exception, e:
+    except Exception as e:
         if len(cksum_value) > 0:
             logger.error(cksum_value)
-        raise ee.ESPAException(ee.ErrorCodes.packaging_product,
+        raise ee.ESPAException(ee.ErrorCodes.transfer_product,
                                str(e)), None, sys.exc_info()[2]
 
     return (cksum_value, destination_product_file, destination_cksum_file)
-# END - distribute_product
 
 
 # ============================================================================
-def distribute_statistics(scene, work_directory,
-                          destination_host, destination_directory,
-                          destination_username, destination_pw):
+def distribute_statistics_remote(product_id, source_path,
+                                 destination_host, destination_path,
+                                 destination_username, destination_pw):
     '''
     Description:
       Transfers the statistics to the specified directory on the destination
       host
 
-    Returns:
-      cksum_value - The check sum value from the destination
-      destination_product_file - The full path on the destination
+    Parameters:
+        product_id - The unique product ID associated with the files.
+        source_path - The full path to where the statistics files to
+                      distribute reside.
+        destination_host - The hostname/url for where to distribute the files.
+        destination_path - The full path on the local system to copy the
+                           statistics files into.
+        destination_username - The user name to use for FTP
+        destination_pw - The password to use for FTP
 
     Note:
       - It is assumed ssh has been setup for access between the localhost
@@ -313,233 +264,447 @@ def distribute_statistics(scene, work_directory,
 
     logger = EspaLogging.get_logger(settings.PROCESSING_LOGGER)
 
-    # Change to the source directory
+    d_name = 'stats'
+
+    # Save the current directory location
     current_directory = os.getcwd()
-    os.chdir(work_directory)
 
-    try:
-        stats_directory = os.path.join(destination_directory, 'stats')
-        stats_files = ''.join(['stats/', scene, '*'])
-
-        # Create the stats directory on the destination host
-        logger.info("Creating stats directory %s on %s"
-                    % (stats_directory, destination_host))
-        cmd = ' '.join(['ssh', '-q', '-o', 'StrictHostKeyChecking=no',
-                        destination_host, 'mkdir', '-p', stats_directory])
-
-        output = ''
+    # Attempt X times sleeping between each attempt
+    attempt = 0
+    sleep_seconds = settings.DEFAULT_SLEEP_SECONDS
+    while True:
+        # Change to the source directory
+        os.chdir(source_path)
         try:
-            logger.debug(' '.join(["mkdir cmd:", cmd]))
-            output = utilities.execute_cmd(cmd)
-        except Exception, e:
-            raise ee.ESPAException(ee.ErrorCodes.packaging_product,
-                                   str(e)), None, sys.exc_info()[2]
-        finally:
-            if len(output) > 0:
-                logger.info(output)
+            stats_path = os.path.join(destination_path, d_name)
+            stats_files = ''.join([d_name, '/', product_id, '*'])
 
-        # Remove any pre-existing stats
-        cmd = ' '.join(['ssh', '-q', '-o', 'StrictHostKeyChecking=no',
-                        destination_host, 'rm', '-f',
-                        os.path.join(stats_directory, scene)])
-        output = ''
-        try:
-            logger.debug(' '.join(["rm remote stats cmd:", cmd]))
-            output = utilities.execute_cmd(cmd)
-        except Exception, e:
-            raise ee.ESPAException(ee.ErrorCodes.packaging_product,
-                                   str(e)), None, sys.exc_info()[2]
-        finally:
-            if len(output) > 0:
-                logger.info(output)
-
-        # Transfer the stats files
-        transfer.transfer_file('localhost', stats_files, destination_host,
-                               stats_directory,
-                               destination_username=destination_username,
-                               destination_pw=destination_pw)
-
-        logger.info("Verifying statistics transfers")
-        # NOTE - Re-purposing the stats_files variable
-        stats_files = glob.glob(stats_files)
-        for file_name in stats_files:
-            local_cksum_value = 'a b c'
-            remote_cksum_value = 'b c d'
-
-            # Generate a local checksum value
-            cmd = ' '.join(['cksum', file_name])
-            try:
-                logger.debug(' '.join(["cksum cmd:", cmd]))
-                local_cksum_value = utilities.execute_cmd(cmd)
-            except Exception, e:
-                if len(local_cksum_value) > 0:
-                    logger.error(local_cksum_value)
-                raise ee.ESPAException(ee.ErrorCodes.packaging_product,
-                                       str(e)), None, sys.exc_info()[2]
-
-            # Generate a remote checksum value
-            remote_file = os.path.join(destination_directory, file_name)
+            # Create the statistics directory on the destination host
+            logger.info("Creating directory {0} on {1}".
+                        format(stats_path, destination_host))
             cmd = ' '.join(['ssh', '-q', '-o', 'StrictHostKeyChecking=no',
-                            destination_host, 'cksum', remote_file])
+                            destination_host, 'mkdir', '-p', stats_path])
+
+            output = ''
             try:
-                remote_cksum_value = utilities.execute_cmd(cmd)
-            except Exception, e:
-                if len(remote_cksum_value) > 0:
-                    logger.error(remote_cksum_value)
+                logger.debug(' '.join(["mkdir cmd:", cmd]))
+                output = utilities.execute_cmd(cmd)
+            except Exception as e:
                 raise ee.ESPAException(ee.ErrorCodes.packaging_product,
                                        str(e)), None, sys.exc_info()[2]
+            finally:
+                if len(output) > 0:
+                    logger.info(output)
 
-            # Checksum validation
-            if local_cksum_value.split()[0] != remote_cksum_value.split()[0]:
-                raise ee.ESPAException(ee.ErrorCodes.verifing_checksum,
-                                       "Failed checksum validation between"
-                                       " %s and %s:%s" % (file_name,
-                                                          destination_host,
-                                                          remote_file))
-
-    finally:
-        # Change back to the previous directory
-        os.chdir(current_directory)
-# END - distribute_statistics
-
-
-# ============================================================================
-def deliver_product(scene, work_directory, package_directory, product_name,
-                    destination_host, destination_directory,
-                    destination_username, destination_pw,
-                    sleep_seconds=settings.DEFAULT_SLEEP_SECONDS):
-    '''
-    Description:
-      Packages the product and distributes it to the destination.
-      Verification of the local and remote checksum values is performed.
-
-    Note:
-        X attempts are made for each part of the delivery
-    '''
-
-    logger = EspaLogging.get_logger(settings.PROCESSING_LOGGER)
-
-    # Package the product files
-    # Attempt X times sleeping between each attempt
-    attempt = 0
-    while True:
-        try:
-            (product_full_path, cksum_full_path, local_cksum_value) = \
-                package_product(work_directory, package_directory,
-                                product_name)
-        except Exception, e:
-            logger.error("An exception occurred processing %s"
-                         % product_name)
-            logger.error("Exception Message: %s" % str(e))
-            if attempt < settings.MAX_PACKAGING_ATTEMPTS:
-                sleep(sleep_seconds)  # sleep before trying again
-                attempt += 1
-                continue
-            else:
+            # Remove any pre-existing statistics
+            cmd = ' '.join(['ssh', '-q', '-o', 'StrictHostKeyChecking=no',
+                            destination_host, 'rm', '-f',
+                            os.path.join(stats_path, product_id)])
+            output = ''
+            try:
+                logger.debug(' '.join(["rm remote stats cmd:", cmd]))
+                output = utilities.execute_cmd(cmd)
+            except Exception as e:
                 raise ee.ESPAException(ee.ErrorCodes.packaging_product,
                                        str(e)), None, sys.exc_info()[2]
-        break
+            finally:
+                if len(output) > 0:
+                    logger.info(output)
 
-    # Distribute the product
-    # Attempt X times sleeping between each attempt
-    attempt = 0
-    while True:
-        try:
-            (remote_cksum_value, destination_product_file,
-             destination_cksum_file) = \
-                distribute_product(destination_host, destination_directory,
-                                   destination_username, destination_pw,
-                                   product_full_path, cksum_full_path)
-        except Exception, e:
-            logger.error("An exception occurred processing %s"
-                         % product_name)
-            logger.error("Exception Message: %s" % str(e))
+            # Transfer the stats statistics
+            transfer.transfer_file('localhost', stats_files, destination_host,
+                                   stats_directory,
+                                   destination_username=destination_username,
+                                   destination_pw=destination_pw)
+
+            logger.info("Verifying statistics transfers")
+            # NOTE - Re-purposing the stats_files variable
+            stats_files = glob.glob(stats_files)
+            for file_name in stats_files:
+                local_cksum_value = 'a b c'
+                remote_cksum_value = 'b c d'
+
+                # Generate a local checksum value
+                cmd = ' '.join(['cksum', file_name])
+                try:
+                    logger.debug(' '.join(["cksum cmd:", cmd]))
+                    local_cksum_value = utilities.execute_cmd(cmd)
+                except Exception as e:
+                    if len(local_cksum_value) > 0:
+                        logger.error(local_cksum_value)
+                    raise ee.ESPAException(ee.ErrorCodes.packaging_product,
+                                           str(e)), None, sys.exc_info()[2]
+
+                # Generate a remote checksum value
+                remote_file = os.path.join(destination_path, file_name)
+                cmd = ' '.join(['ssh', '-q', '-o', 'StrictHostKeyChecking=no',
+                                destination_host, 'cksum', remote_file])
+                try:
+                    remote_cksum_value = utilities.execute_cmd(cmd)
+                except Exception as e:
+                    if len(remote_cksum_value) > 0:
+                        logger.error(remote_cksum_value)
+                    raise ee.ESPAException(ee.ErrorCodes.packaging_product,
+                                           str(e)), None, sys.exc_info()[2]
+
+                # Checksum validation
+                if (local_cksum_value.split()[0] !=
+                        remote_cksum_value.split()[0]):
+                    raise ee.ESPAException(ee.ErrorCodes.verifing_checksum,
+                                           "Failed checksum validation between"
+                                           " %s and %s:%s" % (file_name,
+                                                              destination_host,
+                                                              remote_file))
+        except Exception as e:
+            logger.exception("An exception occurred processing %s"
+                             % product_id)
             if attempt < settings.MAX_DELIVERY_ATTEMPTS:
                 sleep(sleep_seconds)  # sleep before trying again
                 attempt += 1
                 continue
             else:
-                raise ee.ESPAException(ee.ErrorCodes.distributing_product,
+                e_code = ee.ErrorCodes.distributing_product
+                raise ee.ESPAException(e_code,
                                        str(e)), None, sys.exc_info()[2]
+
+        finally:
+            # Change back to the previous directory
+            os.chdir(current_directory)
+
         break
-
-    # Checksum validation
-    if local_cksum_value.split()[0] != remote_cksum_value.split()[0]:
-        raise ee.ESPAException(ee.ErrorCodes.verifing_checksum,
-                               "Failed checksum validation between"
-                               " %s and %s:%s" % (product_full_path,
-                                                  destination_host,
-                                                  destination_product_file))
-
-    logger.info("Product delivery complete for %s:%s"
-                % (destination_host, destination_product_file))
-
-    # Let the caller know where we put these on the destination system
-    return (destination_product_file, destination_cksum_file)
-# END - deliver_product
 
 
 # ============================================================================
-if __name__ == '__main__':
+def distribute_statistics_local(product_id, source_path, destination_path):
     '''
     Description:
-      Read parameters from the command line and pass them to the main
-      delivery routine.
+        Copies the statistics to the specified directory on the local system
+
+    Parameters:
+        product_id - The unique product ID associated with the files.
+        source_path - The full path to where the statistics files to
+                      distribute reside.
+        destination_path - The full path on the local system to copy the
+                           statistics files into.
+
+    Note:
+        - It is assumed a stats directory exists under the source_path
+        - A stats directory will be created under the destination path
     '''
 
-    # Build the command line argument parser
-    parser = build_argument_parser()
-
-    # Parse the command line arguments
-    args = parser.parse_args()
-
-    # Configure logging
-    EspaLogging.configure(settings.PROCESSING_LOGGER, order='test',
-                          product='product', debug=args.debug)
     logger = EspaLogging.get_logger(settings.PROCESSING_LOGGER)
 
+    d_name = 'stats'
+
+    # Save the current directory location and change to the source directory
+    current_directory = os.getcwd()
+    os.chdir(source_path)
+
     try:
-        # Test requested routine
-        if args.test_deliver_product:
+        stats_path = os.path.join(destination_path, d_name)
+        stats_files = ''.join([d_name, '/', product_id, '*'])
 
-            if not args.product_name:
-                raise Exception("Missing required product_name argument")
+        # Create the statistics directory under the destination path
+        logger.info("Creating directory {0}".format(stats_path))
+        utilities.create_directory(stats_path)
 
-            deliver_product(args.work_directory, args.package_directory,
-                            args.product_name, args.destination_host,
-                            args.destination_directory, args.destination_host,
-                            args.destination_pw, args.sleep_seconds)
+        # Remove any pre-existing statistics for this product ID
+        cmd = ' '.join(['rm', '-f', os.path.join(destination_path,
+                                                 stats_files)])
+        output = ''
+        try:
+            output = utilities.execute_cmd(cmd)
+        except Exception as e:
+            raise ee.ESPAException(ee.ErrorCodes.distributing_product,
+                                   str(e)), None, sys.exc_info()[2]
+        finally:
+            if len(output) > 0:
+                logger.info(output)
 
-            logger.info("Successfully delivered product %s"
-                        % args.product_name)
+        # Transfer the statistics files
+        for file_path in glob.glob(stats_files):
+            filename = os.path.basename(file_path)
+            dest_file_path = os.path.join(stats_path, filename)
 
-        elif args.test_package_product:
-            (product_full_path, cksum_full_path, cksum_value) = \
-                package_product(args.work_directory,
-                                args.destination_directory,
-                                args.product_name)
+            logger.info("Copying {0} to {1}".format(filename, dest_file_path))
+            transfer.copy_file_to_file(file_path, dest_file_path)
 
-            logger.info("Product Path: %s" % product_full_path)
-            logger.info("Checksum Path: %s" % cksum_full_path)
-            logger.info("Checksum Value: %s" % cksum_value)
-            logger.info("Successfully packaged product %s"
-                        % args.product_name)
+    except Exception as e:
+        logger.exception("An exception occurred processing {0}".
+                         format(product_id))
+        e_code = ee.ErrorCodes.distributing_product
+        raise ee.ESPAException(e_code, str(e)), None, sys.exc_info()[2]
 
-        elif args.test_distribute_product:
-            (cksum_value, destination_full_path, destination_cksum_file) = \
-                distribute_product(args.destination_host,
-                                   args.destination_directory,
-                                   args.destination_host,
-                                   args.destination_pw,
-                                   args.product_file,
-                                   args.cksum_file)
-            logger.info("Successfully distributed product %s"
-                        % args.product_file)
+    finally:
+        # Change back to the previous directory
+        os.chdir(current_directory)
 
-    except Exception, e:
-        if hasattr(e, 'output'):
-            logger.error("Output [%s]" % e.output)
-        logger.exception("Processing failed")
-        sys.exit(EXIT_FAILURE)
 
-    sys.exit(EXIT_SUCCESS)
+# ============================================================================
+def distribute_product_remote(product_name, source_path, packaging_path,
+                              cache_path, parms):
+
+    logger = EspaLogging.get_logger(settings.PROCESSING_LOGGER)
+
+    opts = parms['options']
+
+    # Determine the remote hostname to use
+    destination_host = utilities.get_cache_hostname()
+
+    # Deliver the product files
+    # Attempt X times sleeping between each attempt
+    sleep_seconds = settings.DEFAULT_SLEEP_SECONDS
+    max_number_of_attempts = settings.MAX_DISTRIBUTION_ATTEMPTS
+    max_package_attempts = settings.MAX_PACKAGING_ATTEMPTS
+    max_delivery_attempts = settings.MAX_DELIVERY_ATTEMPTS
+
+    attempt = 0
+    product_file = 'ERROR'
+    cksum_file = 'ERROR'
+    while True:
+        try:
+            # Package the product files
+            # Attempt X times sleeping between each sub_attempt
+            sub_attempt = 0
+            while True:
+                try:
+                    (product_full_path, cksum_full_path,
+                     local_cksum_value) = package_product(source_path,
+                                                          packaging_path,
+                                                          product_name)
+                except Exception as e:
+                    logger.exception("An exception occurred processing %s"
+                                     % product_name)
+                    if sub_attempt < max_package_attempts:
+                        sleep(sleep_seconds)  # sleep before trying again
+                        sub_attempt += 1
+                        continue
+                    else:
+                        raise ee.ESPAException(ee.ErrorCodes.packaging_product,
+                                               str(e)), None, sys.exc_info()[2]
+                break
+
+            # Distribute the product
+            # Attempt X times sleeping between each sub_attempt
+            sub_attempt = 0
+            while True:
+                try:
+                    (remote_cksum_value, product_file, cksum_file) = \
+                        transfer_product(destination_host, cache_path,
+                                         opts['destination_username'],
+                                         opts['destination_pw'],
+                                         product_full_path, cksum_full_path)
+                except Exception as e:
+                    logger.exception("An exception occurred processing %s"
+                                     % product_name)
+                    if sub_attempt < max_delivery_attempts:
+                        sleep(sleep_seconds)  # sleep before trying again
+                        sub_attempt += 1
+                        continue
+                    else:
+                        raise ee.ESPAException(ee.ErrorCodes.transfer_product,
+                                               str(e)), None, sys.exc_info()[2]
+                break
+
+            # Checksum validation
+            if local_cksum_value.split()[0] != remote_cksum_value.split()[0]:
+                raise ee.ESPAException(ee.ErrorCodes.verifing_checksum,
+                                       "Failed checksum validation between"
+                                       " %s and %s:%s"
+                                       % (product_full_path,
+                                          destination_host,
+                                          destination_product_file))
+
+            # Always log where we placed the files
+            logger.info("Delivered product to %s at location %s"
+                        " and cksum location %s" % (destination_host,
+                                                    product_file, cksum_file))
+        except Exception as e:
+            if attempt < max_number_of_attempts:
+                sleep(sleep_seconds)  # sleep before trying again
+                attempt += 1
+                # adjust for next set
+                sleep_seconds = int(sleep_seconds * 1.5)
+                continue
+            else:
+                # May already be an ESPAException so don't override that
+                raise e
+        break
+
+    return (product_file, cksum_file)
+
+
+# ============================================================================
+def distribute_product_local(product_name, source_path, packaging_path):
+
+    logger = EspaLogging.get_logger(settings.PROCESSING_LOGGER)
+
+    # Deliver the product files
+    # Attempt X times sleeping between each attempt
+    sleep_seconds = settings.DEFAULT_SLEEP_SECONDS
+    max_number_of_attempts = settings.MAX_DISTRIBUTION_ATTEMPTS
+    max_package_attempts = settings.MAX_PACKAGING_ATTEMPTS
+    max_delivery_attempts = settings.MAX_DELIVERY_ATTEMPTS
+
+    attempt = 0
+    product_file = 'ERROR'
+    cksum_file = 'ERROR'
+
+    while True:
+        try:
+            # Package the product files to the online cache location
+            # Attempt X times sleeping between each sub_attempt
+            sub_attempt = 0
+            while True:
+                try:
+                    (product_file, cksum_file,
+                     local_cksum_value) = package_product(source_path,
+                                                          packaging_path,
+                                                          product_name)
+                except Exception as e:
+                    logger.exception("An exception occurred processing %s"
+                                     % product_name)
+                    if sub_attempt < max_package_attempts:
+                        sleep(sleep_seconds)  # sleep before trying again
+                        sub_attempt += 1
+                        continue
+                    else:
+                        raise ee.ESPAException(ee.ErrorCodes.packaging_product,
+                                               str(e)), None, sys.exc_info()[2]
+                break
+
+            # Always log where we placed the files
+            logger.info("Delivered product to location %s"
+                        " and cksum location %s" % (product_file, cksum_file))
+        except Exception as e:
+            if attempt < max_number_of_attempts:
+                sleep(sleep_seconds)  # sleep before trying again
+                attempt += 1
+                # adjust for next set
+                sleep_seconds = int(sleep_seconds * 1.5)
+                continue
+            else:
+                # May already be an ESPAException so don't override that
+                raise e
+        break
+
+    return (product_file, cksum_file)
+
+
+# ============================================================================
+# API Implementation
+
+
+def distribute_statistics(source_path, packaging_path, parms):
+    '''
+    Description:
+        Determines if the distribution method is set to local or remote and
+        calls the correct distribution method.
+
+    Returns:
+      product_file - The full path to the product either on the local system
+                     or the remote destination.
+      cksum_value - The check sum value of the product.
+
+    Parameters:
+        source_path - The full path to of directory containing the data to
+                      package and distribute.
+        package_dir - The full path on the local system for where the packaged
+                      product should be placed under.
+        parms - All the user and system defined parameters.
+    '''
+
+    e = Environment()
+
+    distribution_method = e.get_distribution_method()
+
+    product_id = parms['product_id']
+    order_id = parms['orderid']
+
+    # The file paths to the distributed product and cksum files
+    product_file = 'ERROR'
+    cksum_file = 'ERROR'
+
+    if distribution_method == 'local':
+        # Use the local cache path
+        cache_path = os.path.join(settings.ESPA_LOCAL_CACHE_DIRECTORY,
+                                  order_id)
+
+        # Adjust the packaging_path to use the cache
+        package_path = os.path.join(packaging_path, cache_path)
+
+        distribute_statistics_local(product_id, source_path, package_path)
+
+    else:  # remote
+        # Determine the remote hostname to use
+        destination_host = utilities.get_cache_hostname()
+        # Use the remote cache path
+        cache_path = os.path.join(settings.ESPA_REMOTE_CACHE_DIRECTORY,
+                                  order_id)
+
+        dest_user = options['destination_username']
+        dest_pw = options['destination_pw']
+
+        distribute_statistics_remote(product_id, source_path,
+                                     destination_host, cache_path,
+                                     dest_user, dest_pw)
+
+    return (product_file, cksum_file)
+
+
+def distribute_product(product_name, source_path, packaging_path, parms):
+    '''
+    Description:
+        Determines if the distribution method is set to local or remote and
+        calls the correct distribution method.
+
+    Returns:
+      product_file - The full path to the product either on the local system
+                     or the remote destination.
+      cksum_value - The check sum value of the product.
+
+    Parameters:
+        product_name - The name of the product.
+        source_path - The full path to of directory containing the data to
+                      package and distribute.
+        package_dir - The full path on the local system for where the packaged
+                      product should be placed under.
+        parms - All the user and system defined parameters.
+    '''
+
+    e = Environment()
+
+    distribution_method = e.get_distribution_method()
+
+    order_id = parms['orderid']
+
+    # The file paths to the distributed product and cksum files
+    product_file = 'ERROR'
+    cksum_file = 'ERROR'
+
+    if distribution_method == 'local':
+        # Use the local cache path
+        cache_path = os.path.join(settings.ESPA_LOCAL_CACHE_DIRECTORY,
+                                  order_id)
+
+        # Adjust the packaging_path to use the cache
+        package_path = os.path.join(packaging_path, cache_path)
+
+        (product_file, cksum_file) = \
+            distribute_product_local(product_name,
+                                     source_path,
+                                     package_path)
+
+    else:  # remote
+        # Use the remote cache path
+        cache_path = os.path.join(settings.ESPA_REMOTE_CACHE_DIRECTORY,
+                                  order_id)
+
+        (product_file, cksum_file) = \
+            distribute_product_remote(product_name,
+                                      source_path,
+                                      packaging_path,
+                                      cache_path,
+                                      parms)
+
+    return (product_file, cksum_file)

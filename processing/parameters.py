@@ -288,11 +288,6 @@ def add_destination_parameters(parser):
       parameters
     '''
 
-    parser.add_argument('--destination_host',
-                        action='store', dest='destination_host',
-                        default='localhost',
-                        help="destination host for the location of the data")
-
     parser.add_argument('--destination_username',
                         action="store", dest="destination_username",
                         default=None,

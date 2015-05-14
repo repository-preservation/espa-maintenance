@@ -245,9 +245,9 @@ class LandsatETM(Landsat):
 
 class LandsatOLITIRS(Landsat):
     ''' Models combined Landsat 8 OLI/TIRS products '''
-    def __init__(self, product_id):                
+    def __init__(self, product_id):
         super(LandsatOLITIRS, self).__init__(product_id)
-        
+
 
 class LandsatOLI(Landsat):
     ''' Models Landsat 8 OLI only products '''
@@ -278,13 +278,13 @@ def instance(product_id):
         # leave original case intact
         product_id = product_id[0:index]
         _id = _id[0:index]
-        
+
     elif _id.endswith(settings.LANDSAT_INPUT_FILENAME_EXTENSION):
         index = _id.index(settings.LANDSAT_INPUT_FILENAME_EXTENSION)
         # leave original case intact
         product_id = product_id[0:index]
         _id = _id[0:index]
-        
+
     instances = {
         'tm': (r'^lt[4|5]\d{3}\d{3}\d{4}\d{3}[a-z]{3}[a-z0-9]{2}$',
                LandsatTM),

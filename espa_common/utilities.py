@@ -13,6 +13,7 @@ History:
 '''
 
 import os
+import errno
 import datetime
 import commands
 import random
@@ -129,6 +130,48 @@ def get_cache_hostname():
                 raise Exception("No online cache hosts available...")
 
     return get_hostname()
+
+
+def create_directory(directory):
+    '''
+    Description:
+        Create the specified directory with some error checking.
+
+    Parameters:
+        directory - The full path to create.
+    '''
+
+    # Create/Make sure the directory exists
+    try:
+        os.makedirs(directory, mode=0755)
+    except OSError as ose:
+        if ose.errno == errno.EEXIST and os.path.isdir(directory):
+            # With how we operate, as long as it is a directory, we do not
+            # care about the "already exists" error.
+            pass
+        else:
+            raise
+
+
+def create_link(src_path, link_path):
+    '''
+    Description:
+        Create the specified link with some error checking.
+
+    Parameters:
+        src_path - The location where the link will point.
+        link_path - The location where the link will reside.
+    '''
+
+    # Create/Make sure the directory exists
+    try:
+        os.symlink(src_path, link_path)
+    except OSError as ose:
+        if (ose.errno == errno.EEXIST and os.path.islink(link_path)
+                and src_path == os.path.realpath(link_path)):
+            pass
+        else:
+            raise
 
 
 def tar_files(tarred_full_path, file_list, gzip=False):

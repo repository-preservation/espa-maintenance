@@ -310,6 +310,7 @@ def process(args):
                                                    processing_location)
 
                     elif (e.error_code == ee.ErrorCodes.packaging_product
+                          or (e.error_code == ee.ErrorCodes.transfer_product)
                           or (e.error_code ==
                               ee.ErrorCodes.distributing_product)
                           or (e.error_code ==

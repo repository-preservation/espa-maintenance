@@ -38,7 +38,7 @@ def copy_file_to_file(source_file, destination_file):
     output = ''
     try:
         output = utilities.execute_cmd(cmd)
-    except Exception, e:
+    except Exception as e:
         logger.error("Failed to copy file")
         raise e
     finally:
@@ -47,6 +47,34 @@ def copy_file_to_file(source_file, destination_file):
 
     logger.info("Transfer complete - CP")
 # END - copy_file_to_file
+
+
+# ============================================================================
+def copy_files_to_directory(source_files, destination_directory):
+    '''
+    Description:
+      Use unix 'cp' to copy files from one place to another on the localhost.
+    '''
+
+    logger = EspaLogging.get_logger(settings.PROCESSING_LOGGER)
+
+    if type(source_files) == list:
+        for source_file in source_files:
+            cmd = ' '.join(['cp', source_file, destination_directory])
+
+            # Transfer the data and raise any errors
+            output = ''
+            try:
+                output = utilities.execute_cmd(cmd)
+            except Exception as e:
+                logger.error("Failed to copy file")
+                raise e
+            finally:
+                if len(output) > 0:
+                    logger.info(output)
+
+    logger.info("Transfer complete - CP")
+# END - copy_files_to_directory
 
 
 # ============================================================================
@@ -94,7 +122,7 @@ def remote_copy_file_to_file(source_host, source_file, destination_file):
     output = ''
     try:
         output = utilities.execute_cmd(cmd)
-    except Exception, e:
+    except Exception as e:
         logger.error("Failed to copy file")
         raise e
     finally:
@@ -250,7 +278,7 @@ def scp_transfer_file(source_host, source_file,
     output = ''
     try:
         output = utilities.execute_cmd(cmd)
-    except Exception, e:
+    except Exception as e:
         if len(output) > 0:
             logger.info(output)
         logger.error("Failed to transfer data")
@@ -302,7 +330,7 @@ def scp_transfer_directory(source_host, source_directory,
     output = ''
     try:
         output = utilities.execute_cmd(cmd)
-    except Exception, e:
+    except Exception as e:
         if len(output) > 0:
             logger.info(output)
         logger.error("Failed to transfer data")
@@ -461,7 +489,7 @@ def transfer_file(source_host, source_file,
             ftp_from_remote_location(source_username, source_pw, source_host,
                                      source_file, destination_file)
             return
-        except Exception, e:
+        except Exception as e:
             logger.warning("FTP failures will attempt transfer using SCP")
             logger.warning("FTP Errors: %s" % str(e))
 
@@ -471,7 +499,7 @@ def transfer_file(source_host, source_file,
                                    source_file, destination_host,
                                    destination_file)
             return
-        except Exception, e:
+        except Exception as e:
             logger.warning("FTP failures will attempt transfer using SCP")
             logger.warning("FTP Errors: %s" % str(e))
 
