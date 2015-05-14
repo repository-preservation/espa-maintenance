@@ -1,4 +1,20 @@
 
+'''
+License:
+  "NASA Open Source Agreement 1.3"
+
+Description:
+  Provides the implementation for creating the directories used for processing.
+
+History:
+  Created Oct/2014 by Ron Dilley, USGS/EROS
+
+    Date              Programmer               Reason
+    ----------------  ------------------------ -------------------------------
+    May/2015          Ron Dilley               Initial implementation
+
+'''
+
 
 import os
 

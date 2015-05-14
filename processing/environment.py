@@ -1,4 +1,21 @@
 
+'''
+License:
+  "NASA Open Source Agreement 1.3"
+
+Description:
+  Implements a class for reading, validating, and retrieving system
+  environment variables.
+
+History:
+  Created Oct/2014 by Ron Dilley, USGS/EROS
+
+    Date              Programmer               Reason
+    ----------------  ------------------------ -------------------------------
+    May/2015          Ron Dilley               Initial implementation
+
+'''
+
 
 import os
 
