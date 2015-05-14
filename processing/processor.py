@@ -313,8 +313,8 @@ class ProductProcessor(object):
     def process_product(self):
         '''
         Description:
-            Perform the processor specific processing to generate the request
-            product.
+            Perform the processor specific processing to generate the
+            requested product.
 
         Note:
             Not implemented here.
@@ -688,8 +688,8 @@ class CDRProcessor(CustomizationProcessor):
     def process_product(self):
         '''
         Description:
-            Perform the processor specific processing to generate the request
-            product.
+            Perform the processor specific processing to generate the
+            requested product.
         '''
 
         # Stage the required input data
@@ -3012,51 +3012,8 @@ class PlotProcessor(ProductProcessor):
             Stages the input data required for the processor.
         '''
 
-        order_id = self._parms['orderid']
-        options = self._parms['options']
-
-        distribution_method = self._environment.get_distribution_method()
-
-        if distribution_method == 'local':
-            cache_dir = os.path.join(self._output_dir,
-                                     settings.ESPA_LOCAL_CACHE_DIRECTORY)
-            cache_dir = os.path.join(cache_dir, order_id)
-            cache_dir = os.path.join(cache_dir, 'stats')
-            cache_files = os.path.join(cache_dir, '*')
-
-            try:
-                source_stats_files = glob.glob(cache_files)
-
-                transfer.copy_files_to_directory(source_stats_files,
-                                                 self._work_dir)
-            except Exception as e:
-                raise ee.ESPAException(ee.ErrorCodes.staging_data, str(e)), \
-                    None, sys.exc_info()[2]
-
-        else:
-            cache_host = utilities.get_cache_hostname()
-            cache_dir = os.path.join(settings.ESPA_REMOTE_CACHE_DIRECTORY,
-                                     order_id)
-            cache_dir = os.path.join(cache_dir, 'stats')
-
-            # Transfer the directory using scp
-            try:
-                transfer.scp_transfer_directory(cache_host, cache_dir,
-                                                'localhost', self._stage_dir)
-            except Exception as e:
-                raise ee.ESPAException(ee.ErrorCodes.staging_data, str(e)), \
-                    None, sys.exc_info()[2]
-
-            # Move the staged data to the work directory
-            try:
-                source_stats_files = glob.glob(os.path.join(self._stage_dir,
-                                                            'stats/*'))
-
-                transfer.move_files_to_directory(source_stats_files,
-                                                 self._work_dir)
-            except Exception as e:
-                raise ee.ESPAException(ee.ErrorCodes.unpacking, str(e)), \
-                    None, sys.exc_info()[2]
+        staging.stage_statistics_data(self._output_dir, self._stage_dir,
+                                      self._work_dir, self._parms)
 
     # -------------------------------------------
     def get_product_name(self):
@@ -3076,8 +3033,8 @@ class PlotProcessor(ProductProcessor):
     def process_product(self):
         '''
         Description:
-            Perform the processor specific processing to generate the request
-            product.
+            Perform the processor specific processing to generate the
+            requested product.
         '''
 
         # Stage the required input data
