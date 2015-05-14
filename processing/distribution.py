@@ -15,6 +15,7 @@ History:
 
 import os
 import sys
+import shutil
 import glob
 from time import sleep
 from argparse import ArgumentParser
@@ -427,7 +428,7 @@ def distribute_statistics_local(product_id, source_path, destination_path):
             dest_file_path = os.path.join(stats_path, filename)
 
             logger.info("Copying {0} to {1}".format(filename, dest_file_path))
-            transfer.copy_file_to_file(file_path, dest_file_path)
+            shutil.copyfile(file_path, dest_file_path)
 
     except Exception as e:
         logger.exception("An exception occurred processing {0}".

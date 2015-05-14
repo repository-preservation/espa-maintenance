@@ -11,6 +11,7 @@ History:
 '''
 
 import os
+import shutil
 import ftplib
 import urllib2
 import requests
@@ -21,32 +22,6 @@ from logger_factory import EspaLogging
 import settings
 from time import sleep
 import utilities
-
-
-# ============================================================================
-def copy_file_to_file(source_file, destination_file):
-    '''
-    Description:
-      Use unix 'cp' to copy a file from one place to another on the localhost.
-    '''
-
-    logger = EspaLogging.get_logger(settings.PROCESSING_LOGGER)
-
-    cmd = ' '.join(['cp', source_file, destination_file])
-
-    # Transfer the data and raise any errors
-    output = ''
-    try:
-        output = utilities.execute_cmd(cmd)
-    except Exception as e:
-        logger.error("Failed to copy file")
-        raise e
-    finally:
-        if len(output) > 0:
-            logger.info(output)
-
-    logger.info("Transfer complete - CP")
-# END - copy_file_to_file
 
 
 # ============================================================================
@@ -474,7 +449,7 @@ def transfer_file(source_host, source_file,
 
     # If both source and destination are localhost we can just copy the data
     if source_host == 'localhost' and destination_host == 'localhost':
-        copy_file_to_file(source_file, destination_file)
+        shutil.copyfile(source_file, destination_file)
         return
 
     # If both source and destination hosts are the same, we can use ssh to copy

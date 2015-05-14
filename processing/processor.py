@@ -839,19 +839,19 @@ class LandsatProcessor(CDRProcessor):
 
         file_name = ''.join([product_id,
                              settings.LANDSAT_INPUT_FILENAME_EXTENSION])
-        destination_file = os.path.join(self._stage_dir, file_name)
+        staged_file = os.path.join(self._stage_dir, file_name)
 
         # Download the source data
         try:
-            transfer.download_file_url(download_url, destination_file)
+            transfer.download_file_url(download_url, staged_file)
         except Exception as e:
             raise ee.ESPAException(ee.ErrorCodes.staging_data, str(e)), \
                 None, sys.exc_info()[2]
 
         # Un-tar the input data to the work directory
         try:
-            staging.untar_data(destination_file, self._work_dir)
-            os.unlink(destination_file)
+            staging.untar_data(staged_file, self._work_dir)
+            os.unlink(staged_file)
 
             # Figure out the metadata filename
             try:
@@ -1736,21 +1736,22 @@ class ModisProcessor(CDRProcessor):
 
         file_name = ''.join([product_id,
                              settings.MODIS_INPUT_FILENAME_EXTENSION])
-        destination_file = os.path.join(self._stage_dir, file_name)
+        staged_file = os.path.join(self._stage_dir, file_name)
 
         # Download the source data
         try:
-            transfer.download_file_url(download_url, destination_file)
+            transfer.download_file_url(download_url, staged_file)
         except Exception as e:
             raise ee.ESPAException(ee.ErrorCodes.staging_data, str(e)), \
                 None, sys.exc_info()[2]
 
-        self._hdf_filename = os.path.basename(destination_file)
+        self._hdf_filename = os.path.basename(staged_file)
+        work_file = os.path.join(self._work_dir, self._hdf_filename)
 
         # Copy the staged data to the work directory
         try:
-            transfer.copy_file_to_file(destination_file, self._work_dir)
-            os.unlink(destination_file)
+            shutil.copyfile(staged_file, work_file)
+            os.unlink(staged_file)
         except Exception as e:
             raise ee.ESPAException(ee.ErrorCodes.unpacking, str(e)), \
                 None, sys.exc_info()[2]

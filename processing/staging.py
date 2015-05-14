@@ -12,6 +12,7 @@ History:
 
 import os
 import sys
+import glob
 import errno
 
 # imports from espa_common
@@ -21,6 +22,7 @@ import utilities
 
 # local objects and methods
 from environment import Environment
+import espa_exception as ee
 import transfer
 
 
