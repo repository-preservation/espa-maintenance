@@ -29,6 +29,7 @@ class Errors(object):
         self.conditions.append(self.oli_no_sr)
         self.conditions.append(self.only_only_no_thermal)
         self.conditions.append(self.ssh_errors)
+        self.conditions.append(self.warp_errors)
 
         #construct the named tuple for the return value of this module
         self.resolution = collections.namedtuple('ErrorResolution',
@@ -55,16 +56,16 @@ class Errors(object):
         ErrorResolution.status - The status a product should be set to
         ErrorResolution.reason - The reason the status was set
         '''
-        
+
         resolution = None
-        
+
         for key in keys:
-            print("Comparing %s" % (key.lower()))
-            
+            #print("Comparing %s" % (key.lower()))
+
             if key.lower() in error_message.lower():
                 resolution = self.resolution(status, reason, extra)
                 break
-            
+
         #return self.resolution(status, reason, extra)
         return resolution
 
@@ -219,6 +220,12 @@ class Errors(object):
         reason = 'Could not complete order at this time'
         extras = self.__add_retry('lta_soap_errors')
         return self.__find_error(error_message, keys, status, reason, extras)
+
+    def warp_errors(self, error_message):
+        keys = ['GDAL Warp failed to transform']
+        status = 'unavailable'
+        reason = 'Error transforming product, check projection parameters'
+        return self.__find_error(error_message, keys, status, reason)
 
 
 def resolve(error_message, name):
