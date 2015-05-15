@@ -71,6 +71,10 @@ ESPA_CACHE_HOST_LIST = ['edclxs67p', 'edclxs140p']
 # The external name for the online cache.  Runs over 1Gb line.
 EXTERNAL_CACHE_HOST = 'edclpdsftp.cr.usgs.gov'
 
+# Specify the checksum tool and filename extension
+ESPA_CHECKSUM_TOOL = 'md5sum'
+ESPA_CHECKSUM_EXTENSION = 'md5'
+
 # Where to place the temporary scene processing log files
 LOGFILE_PATH = '/tmp'
 

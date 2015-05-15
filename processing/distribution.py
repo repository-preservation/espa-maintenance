@@ -106,7 +106,7 @@ def package_product(source_directory, destination_directory, product_name):
 
         # If it was good create a checksum file
         cksum_output = ''
-        cmd = ' '.join(['cksum', product_full_path])
+        cmd = ' '.join([settings.ESPA_CHECKSUM_TOOL, product_full_path])
         try:
             cksum_output = utilities.execute_cmd(cmd)
         except Exception as e:
@@ -116,7 +116,8 @@ def package_product(source_directory, destination_directory, product_name):
                                    str(e)), None, sys.exc_info()[2]
 
         # Name of the checksum file created
-        cksum_filename = "%s.cksum" % product_name
+        cksum_filename = '.'.join([product_name,
+                                   settings.ESPA_CHECKSUM_EXTENSION])
         # Get the base filename of the file that was checksum'd
         cksum_prod_filename = os.path.basename(product_full_path)
 
@@ -125,9 +126,8 @@ def package_product(source_directory, destination_directory, product_name):
 
         # Make sure they are strings
         cksum_values = cksum_output.split()
-        cksum_value = "%s %s %s" % (str(cksum_values[0]),
-                                    str(cksum_values[1]),
-                                    str(cksum_prod_filename))
+        cksum_value = "%s %s" % (str(cksum_values[0]),
+                                 str(cksum_prod_filename))
         logger.info("Generating cksum: %s" % cksum_value)
 
         cksum_full_path = os.path.join(destination_directory, cksum_filename)
@@ -137,7 +137,7 @@ def package_product(source_directory, destination_directory, product_name):
                 cksum_fd.write(cksum_value)
         except Exception as e:
             raise ee.ESPAException(ee.ErrorCodes.packaging_product,
-                                   "Error building cksum file"), \
+                                   "Error building checksum file"), \
                 None, sys.exc_info()[2]
 
     finally:
@@ -225,7 +225,8 @@ def transfer_product(destination_host, destination_directory,
     # Get the remote checksum value
     cksum_value = ''
     cmd = ' '.join(['ssh', '-q', '-o', 'StrictHostKeyChecking=no',
-                    destination_host, 'cksum', destination_product_file])
+                    destination_host, settings.ESPA_CHECKSUM_TOOL,
+                    destination_product_file])
     try:
         logger.debug(' '.join(["ssh cmd:", cmd]))
         cksum_value = utilities.execute_cmd(cmd)
@@ -322,13 +323,13 @@ def distribute_statistics_remote(product_id, source_path,
             # NOTE - Re-purposing the stats_files variable
             stats_files = glob.glob(stats_files)
             for file_name in stats_files:
-                local_cksum_value = 'a b c'
-                remote_cksum_value = 'b c d'
+                local_cksum_value = 'a b'
+                remote_cksum_value = 'b c'
 
                 # Generate a local checksum value
-                cmd = ' '.join(['cksum', file_name])
+                cmd = ' '.join([settings.ESPA_CHECKSUM_TOOL, file_name])
                 try:
-                    logger.debug(' '.join(["cksum cmd:", cmd]))
+                    logger.debug(' '.join(["checksum cmd:", cmd]))
                     local_cksum_value = utilities.execute_cmd(cmd)
                 except Exception as e:
                     if len(local_cksum_value) > 0:
@@ -339,7 +340,8 @@ def distribute_statistics_remote(product_id, source_path,
                 # Generate a remote checksum value
                 remote_file = os.path.join(destination_path, file_name)
                 cmd = ' '.join(['ssh', '-q', '-o', 'StrictHostKeyChecking=no',
-                                destination_host, 'cksum', remote_file])
+                                destination_host, settings.ESPA_CHECKSUM_TOOL,
+                                remote_file])
                 try:
                     remote_cksum_value = utilities.execute_cmd(cmd)
                 except Exception as e:
@@ -576,7 +578,8 @@ def distribute_product_local(product_name, source_path, packaging_path):
 
             # Always log where we placed the files
             logger.info("Delivered product to location %s"
-                        " and cksum location %s" % (product_file, cksum_file))
+                        " and checksum location %s" % (product_file,
+                                                       cksum_file))
         except Exception as e:
             if attempt < max_number_of_attempts:
                 sleep(sleep_seconds)  # sleep before trying again
@@ -622,7 +625,7 @@ def distribute_statistics(source_path, packaging_path, parms):
     product_id = parms['product_id']
     order_id = parms['orderid']
 
-    # The file paths to the distributed product and cksum files
+    # The file paths to the distributed product and checksum files
     product_file = 'ERROR'
     cksum_file = 'ERROR'
 
@@ -679,7 +682,7 @@ def distribute_product(product_name, source_path, packaging_path, parms):
 
     order_id = parms['orderid']
 
-    # The file paths to the distributed product and cksum files
+    # The file paths to the distributed product and checksum files
     product_file = 'ERROR'
     cksum_file = 'ERROR'
 

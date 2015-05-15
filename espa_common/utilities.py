@@ -239,7 +239,7 @@ def checksum_local_file(filename):
       Create a checksum for the specified file.
     '''
 
-    cmd = ' '.join(['cksum', filename])
+    cmd = ' '.join([settings.ESPA_CHECKSUM_TOOL, filename])
 
     cksum_result = ''
     try:
