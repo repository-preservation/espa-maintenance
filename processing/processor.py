@@ -409,7 +409,6 @@ class CustomizationProcessor(ProductProcessor):
 
         logger.info("Validating [CustomizationProcessor] parameters")
 
-        # TODO TODO TODO - Pull the validation here??????
         parameters. \
             validate_reprojection_parameters(options,
                                              product_id,
