@@ -176,6 +176,9 @@ def process_requests(args, logger_name, queue_priority, request_priority):
                  '-file', '%s/espa-site/processing/%s' % (home_dir, mapper),
                  '-file', '%s/espa-site/processing/processor.py' % home_dir,
                  '-file', '%s/espa-site/processing/browse.py' % home_dir,
+                 '-file', '%s/espa-site/processing/environment.py' % home_dir,
+                 '-file', ('%s/espa-site/processing/initialization.py'
+                           % home_dir),
                  '-file', '%s/espa-site/processing/distribution.py' % home_dir,
                  '-file', ('%s/espa-site/processing/espa_exception.py'
                            % home_dir),
