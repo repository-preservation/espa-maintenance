@@ -226,6 +226,13 @@ class Errors(object):
         status = 'unavailable'
         reason = 'Error transforming product, check projection parameters'
         return self.__find_error(error_message, keys, status, reason)
+        
+    def sixs_errors(self, error_message):
+        keys = ['cannot create temp file for here-document: Permission denied']
+        status = 'retry'
+        reason = 'Error generating product, retrying'
+        extras = self.__add_retry('sixs_errors')
+        return self.__find_error(error_message, keys, status, reason, extras)
 
 
 def resolve(error_message, name):

@@ -203,7 +203,8 @@ RETRY = {
     'lta_soap_errors': {'timeout': 60 * 60, 'retry_limit': 12},
     'missing_aux_data': {'timeout': 60 * 60 * 24, 'retry_limit': 5},
     'retry_missing_l1': {'timeout': 60 * 60, 'retry_limit': 8},
-    'ssh_errors': {'timeout': 60 * 5, 'retry_limit': 3}
+    'ssh_errors': {'timeout': 60 * 5, 'retry_limit': 3},
+    'sixs_errors': {'timeout': 60, 'retry_limit': 3}
 }
 
 '''
