@@ -1,13 +1,18 @@
 Author: David V. Hill, Information Dynamics
+        Ron Dilley, Innovate!
+
 License: NASA Open Source Agreement 1.3
 USGS Designation: EROS Science Processing Architecture (ESPA)
 		
 Change Notes
-Version 2.8.1 
+
+Version 2.8.1 (May 2015)
+        Added additional error conditions to the master error handler        
+        Cosmetic changes for field labels
+        Removed inventory restrictions on L8SR TIRS failure scenes
+
+Version 2.8.0 (May 2015)
         
-
-Version 2.8.0
-
 
 Version 2.7.2 (March 4, 2015)
         Added DSWE to ECV section for staff only
