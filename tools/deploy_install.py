@@ -1,5 +1,6 @@
 import paramiko
 import argparse
+import datetime
 
 try:
     import deployment_settings as settings
@@ -112,18 +113,27 @@ class Deployer(object):
         self.user = settings.environments[self.environment]['user']
 
         self.deployers = {}
-        self.deployers['webapp'] = self.__deploy_webapp
-        self.deployers['production'] = self.__deploy_production
-        self.deployers['maintenance'] = self.__deploy_maintenance
+        self.deployers['webapp'] = self.__webapp
+        self.deployers['production'] = self.__production
+        self.deployers['maintenance'] = self.__maintenance
 
     def deploy(self, tier, delete_previous_releases=False, verbose=False):
-        init = 'rm -rf ~/staging; mkdir ~/staging; mkdir ~/deployments'
 
+        now = datetime.datetime.now()
+        deployment_name = "%s-%s%s%s-%s%s%s" % (self.branch_or_tag,
+                                                str(now.month).zfill(2),
+                                                str(now.day).zfill(2),
+                                                str(now.year).zfill(2),
+                                                str(now.hour).zfill(2),
+                                                str(now.minute).zfill(2),
+                                                str(now.second).zfill(2))
+
+        init = 'rm -rf ~/staging; mkdir ~/staging; mkdir -p ~/deployments'
         git = 'cd ~/staging;%s' % self.git_cmd
-
-        move =  'mv ~/staging/espa ~/deployments/%s' % self.branch_or_tag
-
-        relink = 'rm ~/espa-site; ln -s ~/deployments/%s ~/espa-site'
+        delete_old = 'rm -rf ~/deployments/'
+        move =  'mv ~/staging/espa ~/deployments/%s' % deployment_name
+        relink = 'rm ~/espa-site; ln -s ~/deployments/%s ~/espa-site' \
+                 % deployment_name
 
         if not tier in settings.tiers:
             raise ValueError("%s not found in deployment_settings.tiers"
@@ -132,43 +142,93 @@ class Deployer(object):
         hosts = settings.environments[self.environment]['tiers'][tier]
 
         remote_host = RemoteHost(hosts[tier], self.user)
-
+        
+        if verbose is True:
+            print("Deploying %s to %s" % (self.branch_or_tag, remote_host))
+            print("Initialization:%s" % init)
+            
         #initialize a clean staging directory
         out, err = remote_host.execute(init)
         if len(err) > 0:
             msg = "Error running %s.  Error:%s" % (init, err)
             raise Exception(msg)
 
+        if verbose is True:
+            print("Initilization complete:%s" % out)
+            print("Git:%s" % git)
+            
         #pull the code down from git
         out, err = remote_host.execute(git)
         if len(err) > 0:
             msg = "Error running %s.  Error:%s" % (git, err)
             raise Exception(msg)
 
+        if verbose is True:
+            print("Git complete:%s" % out)
+                        
+        #wipe out old deployments if requested
+        if delete_previous_releases is True:
+
+            if verbose is True:
+                print("Delete previous:%s" % delete_old)
+                
+            out, err = remote_host.execute(delete_old)
+            if len(err) > 0:
+                msg = "Error running %s.  Error:%s" % (git, err)
+                raise Exception(msg)
+                
+            if verbose is True:
+                print("Delete previous complete:%s" % out)
+
+        if verbose is True:
+            print("Deploy:%s" % move)
+            
         #move code to deployment dir and rename
         out, err = remote_host.execute(move)
         if len(err) > 0:
             msg = "Error running %s.  Error:%s" % (move, err)
             raise Exception(err)
 
+        if verbose is True:
+            print("Deploy complete:%s" % out)
+            print("Relink:%s" % relink)
+
         #reset the espa-site link
         out, err = remote_host.execute(relink)
         if len(err) > 0:
             msg = "Error running %s.  Error:%s" % (relink, err)
             raise Exception(err)
-
+            
+        if verbose is True:
+            print("Relink complete:%s" % out)
+            print("Tier customization")
+        
+        #run tier specific customizations
         self.deployers[tier](remote_host, delete_previous_releases)
+        
+        if verbose is True:
+            print("Tier customization complete")
 
+    def __webapp(self, remote_host, delete_previous=False, verbose=False):
+        if verbose is True:
+            print("Webapp customizations")
+        
+        if verbose is True:
+            print("Webapp customizations complete")
 
-    def __deploy_webapp(self, remote_host, delete_previous=False):
-        pass
+    def __production(self, remote_host, delete_previous=False, verbose=False):
+        if verbose is True:
+            print("Production customizations")
+        
+        if verbose is True:
+            print("Production customizations complete")
 
-    def __deploy_production(self, remote_host, delete_previous=False):
-        pass
-
-    def __deploy_maintenance(self, remote_host, delete_previous=False):
-        pass
-
+    def __maintenance(self, remote_host, delete_previous=False, verbose=False):
+        if verbose is True:
+            print("Maintenance customizations")
+        
+        if verbose is True:
+            print("Maintenance customizations complete")
 
 if __name__ == '__main__':
 
