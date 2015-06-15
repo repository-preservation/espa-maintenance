@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 import paramiko
 import argparse
 import datetime
@@ -5,7 +7,7 @@ import datetime
 try:
     import deployment_settings as settings
 except Exception, e:
-    s = '''tiers = ['webapp', 'maintenance', 'production', 'all'],
+    s = '''tiers = ['webapp', 'maintenance', 'production', 'all']
 
 environments = {
     'dev': {
@@ -39,6 +41,7 @@ environments = {
     print("deployment_settings.py could not be imported.")
     print("Module must contain site values as specified:")
     print(s)
+    print("Tier hosts must also be accessible via passwordless ssh")
     print("Exiting...")
 
     raise e
@@ -66,7 +69,7 @@ class RemoteHost(object):
                                                             self.debug)
         return s
 
-    def execute(self, command):
+    def execute(self, command, expected_exit_status=0):
         try:
             if self.debug is True:
                 print("Attempting to run [%s] on %s as %s" % (command,
@@ -86,12 +89,35 @@ class RemoteHost(object):
             stdin, stdout, stderr = self.client.exec_command(command)
             stdin.close()
 
-            return {'stdout': stdout.readlines(), 'stderr': stderr.readlines()}
+            result = {'stdout': stdout.readlines(),
+                      'stderr': stderr.readlines(),
+                      'exit_status': stdout.channel.recv_exit_status()}
+
+            if result['exit_status'] is not expected_exit_status:
+                msg = "Error running %s." % command
+                msg = "\n".join([msg, "Error:%s" % result['stderr']])
+                msg = "\n".join([msg,
+                                 "Exit status:%s" % result['exit_status']])
+                raise Exception(msg)
+            else:
+                if self.debug is True:
+                    out = 'None'
+                    if ('stdout' in result and
+                        result['stdout'] is not None and
+                        len(result['stdout']) is not 0):
+                        out = result['stdout']
+
+                    print("stdout:%s" % out)
+
+                return result
 
         finally:
             if self.client is not None:
                 self.client.close()
                 self.client = None
+
+
+
 
 
 class Deployer(object):
@@ -101,7 +127,7 @@ class Deployer(object):
     def __init__(self, branch_or_tag, environment):
         self.branch_or_tag = branch_or_tag
 
-        if not environment in settings.environments.keys():
+        if environment not in settings.environments.keys():
             raise ValueError("%s not found in deployment_settings"
                              % environment)
 
@@ -117,7 +143,11 @@ class Deployer(object):
         self.deployers['production'] = self.__production
         self.deployers['maintenance'] = self.__maintenance
 
-    def deploy(self, tier, delete_previous_releases=False, verbose=False):
+    def deploy(self,
+               tier,
+               delete_previous_releases=False,
+               verbose=False,
+               debug=False):
 
         now = datetime.datetime.now()
         deployment_name = "%s-%s%s%s-%s%s%s" % (self.branch_or_tag,
@@ -130,118 +160,99 @@ class Deployer(object):
 
         init = 'rm -rf ~/staging; mkdir ~/staging; mkdir -p ~/deployments'
         git = 'cd ~/staging;%s' % self.git_cmd
-        delete_old = 'rm -rf ~/deployments/'
-        move =  'mv ~/staging/espa ~/deployments/%s' % deployment_name
+        delete_old = 'rm -rf ~/deployments/*'
+        move = 'mv ~/staging/espa ~/deployments/%s' % deployment_name
         relink = 'rm ~/espa-site; ln -s ~/deployments/%s ~/espa-site' \
                  % deployment_name
+        cleanup = 'rm -rf ~/staging'
 
-        if not tier in settings.tiers:
+        if tier not in settings.tiers:
             raise ValueError("%s not found in deployment_settings.tiers"
                              % tier)
 
-        hosts = settings.environments[self.environment]['tiers'][tier]
+        host = settings.environments[self.environment]['tiers'][tier]
 
-        remote_host = RemoteHost(hosts[tier], self.user)
-        
+        remote_host = RemoteHost(host, self.user, debug=debug)
+
         if verbose is True:
             print("Deploying %s to %s" % (self.branch_or_tag, remote_host))
-            print("Initialization:%s" % init)
-            
-        #initialize a clean staging directory
-        out, err = remote_host.execute(init)
-        if len(err) > 0:
-            msg = "Error running %s.  Error:%s" % (init, err)
-            raise Exception(msg)
+            print("Initializing...")
+
+        # initialize a clean staging directory
+        remote_host.execute(command=init, expected_exit_status=0)
 
         if verbose is True:
-            print("Initilization complete:%s" % out)
-            print("Git:%s" % git)
-            
-        #pull the code down from git
-        out, err = remote_host.execute(git)
-        if len(err) > 0:
-            msg = "Error running %s.  Error:%s" % (git, err)
-            raise Exception(msg)
+            print("Pulling from Git...")
 
-        if verbose is True:
-            print("Git complete:%s" % out)
-                        
-        #wipe out old deployments if requested
+        # pull the code down from git
+        remote_host.execute(command=git, expected_exit_status=0)
+
+        # wipe out old deployments if requested
         if delete_previous_releases is True:
 
             if verbose is True:
-                print("Delete previous:%s" % delete_old)
-                
-            out, err = remote_host.execute(delete_old)
-            if len(err) > 0:
-                msg = "Error running %s.  Error:%s" % (git, err)
-                raise Exception(msg)
-                
-            if verbose is True:
-                print("Delete previous complete:%s" % out)
+                print("Deleting previous releases...")
+
+            remote_host.execute(command=delete_old, expected_exit_status=0)
 
         if verbose is True:
-            print("Deploy:%s" % move)
-            
-        #move code to deployment dir and rename
-        out, err = remote_host.execute(move)
-        if len(err) > 0:
-            msg = "Error running %s.  Error:%s" % (move, err)
-            raise Exception(err)
+            print("Deploying code...")
+
+        # move code to deployment dir and rename
+        remote_host.execute(command=move, expected_exit_status=0)
 
         if verbose is True:
-            print("Deploy complete:%s" % out)
-            print("Relink:%s" % relink)
+            print("Relinking directories...")
 
-        #reset the espa-site link
-        out, err = remote_host.execute(relink)
-        if len(err) > 0:
-            msg = "Error running %s.  Error:%s" % (relink, err)
-            raise Exception(err)
-            
+        # reset the espa-site link
+        remote_host.execute(command=relink, expected_exit_status=0)
+
         if verbose is True:
-            print("Relink complete:%s" % out)
-            print("Tier customization")
-        
-        #run tier specific customizations
+            print("Tier customization...")
+
+        # run tier specific customizations
         self.deployers[tier](remote_host, delete_previous_releases)
-        
+
         if verbose is True:
-            print("Tier customization complete")
+            print("Cleaning up...")
+
+        remote_host.execute(command=cleanup, expected_exit_status=0)
+
+        if verbose is True:
+            print("%s sucessfully deployed to %s" % (self.branch_or_tag,
+                                                     self.environment))
 
     def __webapp(self, remote_host, delete_previous=False, verbose=False):
         if verbose is True:
-            print("Webapp customizations")
-        
+            print("Webapp customizations...")
+
         if verbose is True:
             print("Webapp customizations complete")
 
     def __production(self, remote_host, delete_previous=False, verbose=False):
         if verbose is True:
-            print("Production customizations")
-        
+            print("Production customizations...")
+
         if verbose is True:
             print("Production customizations complete")
 
     def __maintenance(self, remote_host, delete_previous=False, verbose=False):
         if verbose is True:
-            print("Maintenance customizations")
-        
+            print("Maintenance customizations...")
+
         if verbose is True:
             print("Maintenance customizations complete")
 
 if __name__ == '__main__':
 
-    epilog = "Deploys and installs ESPA into the named environment\n\n"
+    description = "Deploys and installs ESPA into the named environment"
 
-    formatter = argparse.RawDescriptionHelpFormatter
-
-    parser = argparse.ArgumentParser(epilog=epilog,
-                                     formatter_class=formatter)
+    parser = argparse.ArgumentParser(description=description)
 
     parser.add_argument("--tier",
                         choices=settings.tiers,
-                        help="Portion of system to deploy")
+                        help="Portion of system to deploy.  If blank, code \
+                        will deploy to all available tiers")
 
     parser.add_argument("--environment",
                         required=True,
@@ -250,11 +261,15 @@ if __name__ == '__main__':
 
     parser.add_argument("--delete_previous_releases",
                         action="store_true",
-                        help="Delete prior releases from deploy directories")
+                        help="Remove prior releases from deploy directories")
 
     parser.add_argument("--verbose",
                         action="store_true",
                         help="Print intermediate progress messages")
+
+    parser.add_argument("--debug",
+                        action="store_true",
+                        help="Prints debugging info")
 
     parser.add_argument("--branch_or_tagname",
                         required=True,
@@ -264,8 +279,17 @@ if __name__ == '__main__':
 
     deployer = Deployer(args.branch_or_tagname, args.environment)
 
+    if args.debug is True:
+        args.verbose = True
+
     if args.tier:
-        deployer.deploy(args.tier, args.delete_previous_releases, args.verbose)
+        deployer.deploy(args.tier,
+                        args.delete_previous_releases,
+                        args.verbose,
+                        args.debug)
     else:
         for tier in settings.tiers:
-            deployer.deploy(tier, args.delete_previous_releases, args.verbose)
+            deployer.deploy(tier,
+                            args.delete_previous_releases,
+                            args.verbose,
+                            args.debug)
