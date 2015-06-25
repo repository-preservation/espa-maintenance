@@ -2,17 +2,12 @@
 # 
 # Migration steps:
 #  1. Set your PYTHONPATH to include the 'espa' and 'espa/web' directories
-#  2. In settings.py add a connection named 'postgres' to the DATABASES list
-#     using the Postgres database connection info
+#  2. Add postgres configuration to .cfgnfo
 #  3. Use manage.py to create the ESPA schema in the postgres database
 #       - from the epsa/web directory
 #       - python manage.py syncdb --pythonpath=../ --database=postgres
-#  4. Start the Django shell
-#       - ./django-shell.sh
-#  5. Run the migration script
-#       - import migrate
-#       - migrate.migrate()
-#  6. Have the DBAs reset the sequence for each primary key to the table's max value
+#  4. Run the migration script
+#  5. Have the DBAs reset the sequence for each primary key to the table's max value
 
 import os
 import sys
