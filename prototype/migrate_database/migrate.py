@@ -14,6 +14,8 @@ import sys
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'espa_web.settings')
 
+from django.db import transaction
+
 #from django.contrib.contenttypes.models import ContentType
 #from django.contrib.auth.models import Permission
 from django.contrib.auth.models import Group, User
@@ -38,6 +40,7 @@ def migrate_table(table, limit=500):
             item.save(using='postgres')
 
 
+@transaction.atomic
 def migrate(limit=500):
     #migrate_table(ContentType, limit)
     #migrate_table(Permission, limit)
