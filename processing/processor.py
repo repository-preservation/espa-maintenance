@@ -584,7 +584,7 @@ class CDRProcessor(CustomizationProcessor):
             # Only remove files if we found some
             if len(file_names) > 0:
                 # First remove from disk
-                for filename in filenames:
+                for filename in file_names:
                     if os.path.exists(filename):
                         os.unlink(filename)
 
