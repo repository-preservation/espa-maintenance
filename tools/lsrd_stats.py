@@ -475,7 +475,7 @@ def main():
         sys.exit(1)
 
     # Lastly lets connect to the database and get our metrics
-    db_conn = connect_db(host=creds["h"], user=creds["u"], password=creds["p"], db=creds["d"])
+    db_conn = connect_db(host=creds["stats_host"], user=creds["stats_user"], password=creds["stats_pw"], db=creds["stats_db"])
 
     if not db_conn:
         sys.stderr.write("\nCound not establish connection to the DB!\n")
