@@ -34,7 +34,7 @@ MODIS_INPUT_CHECK_HOST = 'e4ftl01.cr.usgs.gov'
 MODIS_INPUT_CHECK_PORT = 80
 
 # Path to the completed orders
-ESPA_REMOTE_CACHE_DIRECTORY = '/data3/science_lsrd/LSRD/orders'
+ESPA_REMOTE_CACHE_DIRECTORY = '/data/science_lsrd/LSRD/orders'
 ESPA_LOCAL_CACHE_DIRECTORY = 'LSRD/orders'
 
 ESPA_EMAIL_ADDRESS = 'espa@usgs.gov'
