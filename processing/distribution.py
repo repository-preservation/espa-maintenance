@@ -646,6 +646,7 @@ def distribute_statistics(source_path, packaging_path, parms):
         cache_path = os.path.join(settings.ESPA_REMOTE_CACHE_DIRECTORY,
                                   order_id)
 
+        options = parms['options']
         dest_user = options['destination_username']
         dest_pw = options['destination_pw']
 
