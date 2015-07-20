@@ -1,2 +1,0 @@
-update ordering_order set status = 'complete', completion_date = CURDATE() where status = 'ordered' and id in (      select tmpOrderTbl.tmpId from (                  select id as tmpId from ordering_order where id in              (select distinct order_id from ordering_scene where status = 'unavailable' group by order_id)         and id not in              (select distinct order_id from ordering_scene where status = 'onorder' group by order_id)      ) as tmpOrderTbl  );
-
