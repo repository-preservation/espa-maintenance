@@ -351,9 +351,9 @@ class OrderInfo(object):
             
             # stuff creds in a dict
             for line in data:
-                (k, v) = line.split("=")
-                self.creds[k] = v.strip("\n")
-            
+                if len(line) > 0 and "=" in line:
+                    (k, v) = line.split("=")
+                    self.creds[k] = v.strip("\n")    
             return True
         else:
             return False
