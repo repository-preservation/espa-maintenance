@@ -315,7 +315,7 @@ def distribute_statistics_remote(product_id, source_path,
 
             # Transfer the stats statistics
             transfer.transfer_file('localhost', stats_files, destination_host,
-                                   stats_directory,
+                                   stats_path,
                                    destination_username=destination_username,
                                    destination_pw=destination_pw)
 
