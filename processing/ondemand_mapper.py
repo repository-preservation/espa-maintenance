@@ -386,7 +386,7 @@ if __name__ == '__main__':
     parser = ArgumentParser(
         description="Processes a list of scenes from stdin")
     parser.add_argument('--keep-log', action='store_true', dest='keep_log',
-                        default=True, help="keep the generated log file")
+                        default=False, help="keep the generated log file")
     args = parser.parse_args()
 
     EspaLogging.configure_base_logger(filename='/tmp/espa-ondemand-mapper.log')
