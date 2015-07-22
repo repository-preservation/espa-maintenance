@@ -15,6 +15,7 @@ from ordering.models import Download
 from ordering.models import DownloadSection
 
 from django import forms
+from django.db import connection
 from django.conf import settings
 from django.contrib.syndication.views import Feed
 from django.core.urlresolvers import reverse
@@ -479,47 +480,58 @@ class StatusFeed(Feed):
 
     link = ""
 
-    def _get_email(self, obj):
-        if obj.email:
-            return obj.email
-        else:
-            return obj.user.email
+    email = ""
+
+    def dictfetchall(self, cursor):
+        "Returns all rows from a cursor as a dict"
+        desc = cursor.description
+        return [
+            dict(zip([col[0] for col in desc], row))
+            for row in cursor.fetchall() ]
 
     def get_object(self, request, email):
-        orders = Order.objects.filter(Q(email=email) | Q(user__email=email))
-        if not orders:
+        self.email = email
+
+        query = ("select u.email, o.orderid, o.order_date, p.name,"
+                 "p.product_dload_url, p.status "
+                 "from auth_user u, ordering_order o, ordering_scene p "
+                 "where u.id = o.user_id and o.id = p.order_id "
+                 "and p.status ='complete' and u.email = %s")
+
+        results = None
+
+        cursor = connection.cursor()
+
+        if cursor is not None:
+            try:
+                cursor.execute(query, [email])
+                results = self.dictfetchall(cursor)
+            finally:
+                if cursor is not None:
+                    cursor.close()
+    
+        if not results or len(results) == 0:
             raise Http404
         else:
-            return orders
+            return results
 
-    def link(self, obj):
+    def items(self, results):
+        return results
+
+    def link(self, results):
         return reverse('status_feed',
-                       kwargs={'email': self._get_email(obj[0])})
+                       kwargs={'email': results[0]['email']})
 
-    def description(self, obj):
-        return "ESPA scene status for:%s" % self._get_email(obj[0])
+    def description(self, results):
+        return "ESPA scene status for:%s" % results[0]['email']
 
-    def item_title(self, item):
-        return item.name
+    def item_title(self, result):
+        return result['name']
 
-    def item_link(self, item):
-        return item.product_dload_url
+    def item_link(self, result):
+        return result['product_dload_url']
 
-    def item_description(self, item):
-        orderid = item.order.orderid
-        orderdate = item.order.order_date
-
+    def item_description(self, result):
         return "scene_status:%s,orderid:%s,orderdate:%s" \
-               % (item.status, orderid, orderdate)
+            % ('complete', result['orderid'], result['order_date'])
 
-    def items(self, obj):
-
-        #email = obj[0].email
-        email = self._get_email(obj[0])
-
-        SO = Scene.objects
-
-        r = SO.filter(Q(order__email=email) | Q(order__user__email=email))\
-              .filter(status='complete')\
-              .order_by('-order__order_date')
-        return r
