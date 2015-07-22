@@ -186,6 +186,7 @@ def process_requests(args, logger_name, queue_priority, request_priority):
                  '-file', '%s/espa-site/processing/solr.py' % home_dir,
                  '-file', '%s/espa-site/processing/staging.py' % home_dir,
                  '-file', '%s/espa-site/processing/statistics.py' % home_dir,
+                 '-file', '%s/espa-site/processing/environment.py' % home_dir,
                  '-file', '%s/espa-site/processing/transfer.py' % home_dir,
                  '-file', '%s/espa-site/processing/warp.py' % home_dir,
                  '-file', ('%s/espa-site/espa_common/logger_factory.py'
