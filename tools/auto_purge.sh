@@ -85,10 +85,10 @@ echo $disk_usage_after >> $reportfile
 echo " " >> $reportfile
 echo "===================================" >> $reportfile
 echo "Purged orders" >> $reportfile
-echo $dumpfile >> $reportfile
+cat $dumpfile >> $reportfile
 echo " " >> $reportfile
 echo "=== End of report ===" >> $reportfile
 
 echo "Sending notifications"
-mail -s "Purged orders for $datestr" `cat notification_list` < $reportfile
+mail -s "Purged orders for $datestr" -r "espa@usgs.gov (ESPA AutoPurge Cron @ $HOSTNAME)" `cat notification_list` < $reportfile
  
