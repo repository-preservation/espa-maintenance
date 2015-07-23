@@ -57,6 +57,22 @@ else
    echo "Skipping purge since we passed in custom dumpfile"
 fi
 
+# gather metrics to report
+orders_placed_today=`mysql -N -e 'use espa;select count(*) from ordering_order where order_date >= now() - INTERVAL 1 DAY';`
+orders_complete_today=`mysql -N -e 'use espa;select count(*) from ordering_order where completion_date >= now() - INTERVAL 1 DAY';`
+
+orders_placed_week=`mysql -N -e 'use espa;select count(*) from ordering_order where order_date >= now() - INTERVAL 7 DAY';`
+orders_complete_week=`mysql -N -e 'use espa;select count(*) from ordering_order where completion_date >= now() - INTERVAL 7 DAY';`
+
+scenes_ordered_today=`mysql -N -e 'use espa;select count(s.name) from ordering_order o, ordering_scene s  where o.order_date >= now() - INTERVAL 1 DAY and o.id = s.order_id';`
+scenes_complete_today=`mysql -N -e 'use espa;select count(s.name) from ordering_scene s  where s.completion_date >= now() - INTERVAL 1 DAY';`
+ 
+scenes_ordered_week=`mysql -N -e 'use espa;select count(s.name) from ordering_order o, ordering_scene s  where o.order_date >= now() - INTERVAL 7 DAY and o.id = s.order_id';`
+scenes_complete_week=`mysql -N -e 'use espa;select count(s.name) from ordering_scene s  where s.completion_date >= now() - INTERVAL 7 DAY';`
+
+open_orders=`mysql -N -e 'use espa;select count(*) from ordering_order where status = "ordered"';`
+open_scenes=`mysql -N -e 'use espa;select count(s.name) from ordering_scene s where s.status in ("onorder", "oncache", "queued", "processing")';`
+
 disk_usage_before=`ssh -q ${USER}@${DISTRIBUTIONHOST} ${DF_CMD} $ORDERPATH`
 
 for x in `cat $dumpfile`:
@@ -82,6 +98,23 @@ echo " " >> $reportfile
 echo "===================================" >> $reportfile
 echo "Disk usage after purge" >> $reportfile
 echo $disk_usage_after >> $reportfile
+echo " " >> $reportfile
+echo "===================================" >> $reportfile
+echo "Past 24 Hours" >> $reportfile
+echo "Orders Placed:$orders_placed_today" >> $reportfile
+echo "Orders Completed:$orders_complete_today" >> $reportfile
+echo "Scenes Placed:$scenes_ordered_today" >> $reportfile
+echo "Scenes Completed:$scenes_complete_today" >> $reportfile
+echo " " >> $reportfile
+echo "Past 7 Days" >> $reportfile
+echo "Orders Placed:$orders_placed_week" >> $reportfile
+echo "Orders Completed:$orders_complete_week" >> $reportfile
+echo "Scenes Placed:$scenes_ordered_week" >> $reportfile
+echo "Scenes Completed:$scenes_complete_week" >> $reportfile
+echo " " >> $reportfile
+echo "===================================" >> $reportfile
+echo "Open orders:$open_orders" >> $reportfile
+echo "Open scenes:$open_scenes" >> $reportfile
 echo " " >> $reportfile
 echo "===================================" >> $reportfile
 echo "Purged orders" >> $reportfile
