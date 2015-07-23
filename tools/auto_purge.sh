@@ -26,8 +26,10 @@ declare SKIPDBPURGE
 
 datestr=`date +%m-%d-%y`
 
+mkdir -p auto_purge_logs
+
 if [ -z "$1" ]; then
-   dumpfile="$datestr-orders.txt"
+   dumpfile="auto_purge_logs/$datestr-orders.txt"
 else
    if [ -f $1 ]; then
       SKIPDBPURGE=1
@@ -40,7 +42,12 @@ else
    fi
 fi
 
+<<<<<<< HEAD
+###reportfile="$datestr-report.txt"
+reportfile="auto_purge_logs/report.txt"
+=======
 reportfile="$datestr-report.txt"
+>>>>>>> 411ad05e33c3983ed1881cae8c5e3663ff1b7c69
 
 if [ -z "$SKIPDBPURGE" ]; then
    echo "Creating oldorders.txt dump file for all completed orders older than 10 days"
