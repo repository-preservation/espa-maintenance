@@ -143,10 +143,11 @@ def process_requests(args, logger_name, queue_priority, request_priority):
                     line_entry = json.dumps(request)
 
                     # Pad the entry so hadoop will properly split the jobs
-                    filler_count = (settings.ORDER_BUFFER_LENGTH -
-                                    len(line_entry))
-                    request_line = ''.join([line_entry,
-                                            ('#' * filler_count), '\n'])
+                    #filler_count = (settings.ORDER_BUFFER_LENGTH -
+                    #                len(line_entry))
+                    #request_line = ''.join([line_entry,
+                    #                        ('#' * filler_count), '\n'])
+                    request_line = ''.join([line_entry, '\n'])
 
                     # Write out the request line
                     espa_fd.write(request_line)
@@ -173,12 +174,10 @@ def process_requests(args, logger_name, queue_priority, request_priority):
                  '-D', 'mapred.reduce.tasks=0',
                  '-D', 'mapred.job.queue.name=%s' % hadoop_job_queue,
                  '-D', 'mapred.job.name="%s"' % job_name,
+                 '-inputformat', 'org.apache.hadoop.mapred.lib.NLineInputFormat',
                  '-file', '%s/espa-site/processing/%s' % (home_dir, mapper),
                  '-file', '%s/espa-site/processing/processor.py' % home_dir,
                  '-file', '%s/espa-site/processing/browse.py' % home_dir,
-                 '-file', '%s/espa-site/processing/environment.py' % home_dir,
-                 '-file', ('%s/espa-site/processing/initialization.py'
-                           % home_dir),
                  '-file', '%s/espa-site/processing/distribution.py' % home_dir,
                  '-file', ('%s/espa-site/processing/espa_exception.py'
                            % home_dir),
@@ -187,6 +186,8 @@ def process_requests(args, logger_name, queue_priority, request_priority):
                  '-file', '%s/espa-site/processing/solr.py' % home_dir,
                  '-file', '%s/espa-site/processing/staging.py' % home_dir,
                  '-file', '%s/espa-site/processing/statistics.py' % home_dir,
+                 '-file', '%s/espa-site/processing/environment.py' % home_dir,
+                 '-file', '%s/espa-site/processing/initialization.py' % home_dir,
                  '-file', '%s/espa-site/processing/transfer.py' % home_dir,
                  '-file', '%s/espa-site/processing/warp.py' % home_dir,
                  '-file', ('%s/espa-site/espa_common/logger_factory.py'

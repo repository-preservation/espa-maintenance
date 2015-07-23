@@ -583,44 +583,25 @@ class CDRProcessor(CustomizationProcessor):
 
             # Only remove files if we found some
             if len(file_names) > 0:
+                # First remove from disk
+                for filename in file_names:
+                    if os.path.exists(filename):
+                        os.unlink(filename)
 
-                cmd = ' '.join(['rm', '-rf'] + file_names)
-                logger.info(' '.join(["REMOVING INTERMEDIATE PRODUCTS NOT"
-                                      " REQUESTED", 'COMMAND:', cmd]))
-
-                try:
-                    output = utilities.execute_cmd(cmd)
-                except Exception as e:
-                    raise ee.ESPAException(ee.ErrorCodes.remove_products,
-                                           str(e)), None, sys.exc_info()[2]
-                finally:
-                    if len(output) > 0:
-                        logger.info(output)
-
+                # Second remove from the metadata XML
                 # Remove them from the XML by creating a new list of all the
                 # others
                 bands.band[:] = [band for band in bands.band
                                  if band.product not in products_to_remove]
 
                 try:
-                    # Export the file with validation
+                    # Export to the file with validation
                     with open(self._xml_filename, 'w') as xml_fd:
-                        # Export to the file and specify the namespace/schema
-                        xmlns = "http://espa.cr.usgs.gov/v1.2"
-                        xmlns_xsi = "http://www.w3.org/2001/XMLSchema-instance"
-                        schema_uri = ("http://espa.cr.usgs.gov/static/schema/"
-                                      "espa_internal_metadata_v1_2.xsd")
-                        metadata_api.export(xml_fd, espa_xml,
-                                            xmlns=xmlns,
-                                            xmlns_xsi=xmlns_xsi,
-                                            schema_uri=schema_uri)
+                        metadata_api.export(xml_fd, espa_xml)
 
                 except Exception as e:
                     raise ee.ESPAException(ee.ErrorCodes.remove_products,
                                            str(e)), None, sys.exc_info()[2]
-                finally:
-                    if len(output) > 0:
-                        logger.info(output)
             # END - if file_names
 
             # Cleanup

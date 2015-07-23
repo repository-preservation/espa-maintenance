@@ -315,7 +315,7 @@ def distribute_statistics_remote(product_id, source_path,
 
             # Transfer the stats statistics
             transfer.transfer_file('localhost', stats_files, destination_host,
-                                   stats_directory,
+                                   stats_path,
                                    destination_username=destination_username,
                                    destination_pw=destination_pw)
 
@@ -646,6 +646,7 @@ def distribute_statistics(source_path, packaging_path, parms):
         cache_path = os.path.join(settings.ESPA_REMOTE_CACHE_DIRECTORY,
                                   order_id)
 
+        options = parms['options']
         dest_user = options['destination_username']
         dest_pw = options['destination_pw']
 

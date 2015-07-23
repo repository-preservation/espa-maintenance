@@ -120,8 +120,15 @@ def process(args):
 
     # Process each line from stdin
     for line in sys.stdin:
-        if not line or len(line) < 1 or not line.strip().startswith('{'):
+        if not line or len(line) < 1 or not line.strip().find('{') > -1:
+            # this is how the nlineinputformat is supplying values:
+            #341104        {"orderid":
+            #logger.info("BAD LINE:%s##" % line)
             continue
+        else:
+            #take the entry starting at the first opening parenth to the end
+            line = line[line.find("{"):]
+            line = line.strip()
 
         # Reset these for each line
         (server, order_id, product_id) = (None, None, None)
@@ -310,7 +317,6 @@ def process(args):
                                                    processing_location)
 
                     elif (e.error_code == ee.ErrorCodes.packaging_product
-                          or (e.error_code == ee.ErrorCodes.transfer_product)
                           or (e.error_code ==
                               ee.ErrorCodes.distributing_product)
                           or (e.error_code ==
