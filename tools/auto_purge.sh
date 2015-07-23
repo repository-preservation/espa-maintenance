@@ -40,12 +40,8 @@ else
    fi
 fi
 
-###reportfile="$datestr-report.txt"
-reportfile="report.txt"
+reportfile="$datestr-report.txt"
 
-
-#echo $datestr
-#echo $dumpfile
 if [ -z "$SKIPDBPURGE" ]; then
    echo "Creating oldorders.txt dump file for all completed orders older than 10 days"
    mysql -e 'use espa;select orderid from ordering_order where status = "complete" and DATEDIFF(CURDATE(),completion_date) > 10' > $dumpfile
@@ -71,22 +67,22 @@ disk_usage_after=`ssh -q ${USER}@${DISTRIBUTIONHOST} ${DF_CMD} $ORDERPATH`
 ###touch $reportfile
 
 if [ -f $reportfile ]; then
-   \rm -rf $reportfile && touch $reportfile
+   rm -rf $reportfile && touch $reportfile
 fi
 
-cat "===================================" >> $reportfile
-cat "Disk usage before purge" >> $reportfile
-cat $disk_usage_before >> $reportfile
-cat " " >> $reportfile
-cat "===================================" >> $reportfile
-cat "Disk usage after purge" >> $reportfile
-cat $disk_usage_after >> $reportfile
-cat " " >> $reportfile
-cat "===================================" >> $reportfile
-cat "Purged orders" >> $reportfile
-cat $dumpfile >> $reportfile
-cat " " >> $reportfile
-cat "=== End of report ===" >> $reportfile
+echo "===================================" >> $reportfile
+echo "Disk usage before purge" >> $reportfile
+echo $disk_usage_before >> $reportfile
+echo " " >> $reportfile
+echo "===================================" >> $reportfile
+echo "Disk usage after purge" >> $reportfile
+echo $disk_usage_after >> $reportfile
+echo " " >> $reportfile
+echo "===================================" >> $reportfile
+echo "Purged orders" >> $reportfile
+echo $dumpfile >> $reportfile
+echo " " >> $reportfile
+echo "=== End of report ===" >> $reportfile
 
 echo "Sending notifications"
 mail -s "Purged orders for $datestr" `cat notification_list` < $reportfile
