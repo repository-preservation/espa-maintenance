@@ -6,6 +6,11 @@ USGS Designation: EROS Science Processing Architecture (ESPA)
 
 Change Notes
 
+Version 2.8.4 (July 2015)
+        Added additional error conditions to the auto error resolver
+            - sixs failures now retry
+            - additional warp failures result in status unavailable
+
 Version 2.8.3 (July 2015)
         Modified RSS feed queries to use raw SQL due to performance overhead
         with large orders.
