@@ -170,7 +170,7 @@ class Errors(object):
         return self.__find_error(error_message, keys, status, reason)
 
     def missing_aux_data(self, error_message):
-        '''Could not run do to aux data no available yet'''
+        '''Could not run due to aux data no available yet'''
 
         keys = ['Verify the missing auxillary data products',
                 'Warning: main : Could not find auxnm data file']
