@@ -28,6 +28,7 @@ class Errors(object):
         self.conditions.append(self.no_such_file_or_directory)
         self.conditions.append(self.oli_no_sr)
         self.conditions.append(self.only_only_no_thermal)
+        self.conditions.append(self.sixs_errors)
         self.conditions.append(self.ssh_errors)
         self.conditions.append(self.warp_errors)
 
@@ -172,7 +173,7 @@ class Errors(object):
         '''Could not run do to aux data no available yet'''
 
         keys = ['Verify the missing auxillary data products',
-                'Could not find auxnm data file:']
+                'Warning: main : Could not find auxnm data file']
         status = 'retry'
         reason = 'Auxillary data not yet available for this date'
         extras = self.__add_retry('missing_aux_data')
