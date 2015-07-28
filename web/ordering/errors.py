@@ -28,6 +28,7 @@ class Errors(object):
         self.conditions.append(self.no_such_file_or_directory)
         self.conditions.append(self.oli_no_sr)
         self.conditions.append(self.only_only_no_thermal)
+        self.conditions.append(self.sixs_errors)
         self.conditions.append(self.ssh_errors)
         self.conditions.append(self.warp_errors)
 
@@ -169,10 +170,10 @@ class Errors(object):
         return self.__find_error(error_message, keys, status, reason)
 
     def missing_aux_data(self, error_message):
-        '''Could not run do to aux data no available yet'''
+        '''Could not run due to aux data no available yet'''
 
         keys = ['Verify the missing auxillary data products',
-                'Could not find auxnm data file:']
+                'Warning: main : Could not find auxnm data file']
         status = 'retry'
         reason = 'Auxillary data not yet available for this date'
         extras = self.__add_retry('missing_aux_data')
@@ -222,7 +223,9 @@ class Errors(object):
         return self.__find_error(error_message, keys, status, reason, extras)
 
     def warp_errors(self, error_message):
-        keys = ['GDAL Warp failed to transform']
+        keys = ['GDAL Warp failed to transform',
+                'ERROR 1: Too many points',
+                'unable to compute output bounds']
         status = 'unavailable'
         reason = 'Error transforming product, check projection parameters'
         return self.__find_error(error_message, keys, status, reason)
