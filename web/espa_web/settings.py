@@ -112,14 +112,14 @@ DATABASES = {
         'HOST': config.get('config', 'dbhost'),     # Set to empty string for localhost. Not used with sqlite3.
         'PORT': config.get('config', 'dbport'),     # Set to empty string for default. Not used with sqlite3.
     },
-    'postgres': {
-        'ENGINE': 'django.db.backends.postgresql_psycopg2',
-        'NAME': config.get('config', 'post-db'),
-        'USER': config.get('config', 'post-user'),
-        'PASSWORD': config.get('config', 'post-pass'),
-        'HOST': config.get('config', 'post-host'),
-        'PORT': config.get('config', 'post-port')
-    }
+    #'postgres': {
+    #    'ENGINE': 'django.db.backends.postgresql_psycopg2',
+    #    'NAME': config.get('config', 'post-db'),
+    #    'USER': config.get('config', 'post-user'),
+    #    'PASSWORD': config.get('config', 'post-pass'),
+    #    'HOST': config.get('config', 'post-host'),
+    #    'PORT': config.get('config', 'post-port')
+    #}
 }
 
 # Internationalization
