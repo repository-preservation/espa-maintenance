@@ -223,7 +223,9 @@ class Errors(object):
         return self.__find_error(error_message, keys, status, reason, extras)
 
     def warp_errors(self, error_message):
-        keys = ['GDAL Warp failed to transform']
+        keys = ['GDAL Warp failed to transform',
+                'ERROR 1: Too many points',
+                'unable to compute output bounds']
         status = 'unavailable'
         reason = 'Error transforming product, check projection parameters'
         return self.__find_error(error_message, keys, status, reason)
