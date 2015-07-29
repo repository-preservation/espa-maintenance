@@ -190,7 +190,8 @@ class Errors(object):
 
     def network_errors(self, error_message):
         keys = ['Network is unreachable',
-                'Connection timed out']
+                'Connection timed out',
+                'Fault: <Fault 1: "<class \'socket.timeout\'>:timed out">']
         status = 'retry'
         reason = 'Network error'
         extras = self.__add_retry('network_errors')
