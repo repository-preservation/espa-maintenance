@@ -5,6 +5,9 @@ License: NASA Open Source Agreement 1.3
 USGS Designation: EROS Science Processing Architecture (ESPA)
 
 Change Notes
+Version 2.8.5 (July 2015)
+        Added additional error condition to network errors 
+            - retry on socket timeouts
 
 Version 2.8.4 (July 2015)
         Added additional error conditions to the auto error resolver
