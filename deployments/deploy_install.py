@@ -9,6 +9,12 @@ try:
 except Exception, e:
     s = '''tiers = ['webapp', 'maintenance', 'production', 'all']
 
+repository_url = {
+    'webapp': 'some git repo',
+    'maintenance': 'some git repo',
+    'production': 'some other git repo',
+}
+
 environments = {
     'dev': {
         'user': 'dev username',
@@ -122,7 +128,7 @@ class RemoteHost(object):
 
 class Deployer(object):
 
-    url = 'https://github.com/USGS-EROS/espa.git'
+    #url = 'https://github.com/USGS-EROS/espa.git'
 
     def __init__(self, branch_or_tag, environment):
         self.branch_or_tag = branch_or_tag
@@ -134,7 +140,7 @@ class Deployer(object):
         self.environment = environment
 
         self.git_cmd = 'git clone --depth 1 --branch %s %s'
-        self.git_cmd = self.git_cmd % (branch_or_tag, self.url)
+        #self.git_cmd = self.git_cmd % (branch_or_tag, self.url)
 
         self.user = settings.environments[self.environment]['user']
 
@@ -158,10 +164,14 @@ class Deployer(object):
                                                 str(now.minute).zfill(2),
                                                 str(now.second).zfill(2))
 
+        repo = settings.repository_url[tier]
+        
+        self.git_cmd = self.git_cmd % (self.branch_or_tag, repo)
+
         init = 'rm -rf ~/staging; mkdir ~/staging; mkdir -p ~/deployments'
         git = 'cd ~/staging;%s' % self.git_cmd
         delete_old = 'rm -rf ~/deployments/*'
-        move = 'mv ~/staging/espa ~/deployments/%s' % deployment_name
+        move = 'mv ~/staging/espa-%s ~/deployments/%s' % (tier, deployment_name)
         relink = 'rm ~/espa-site; ln -s ~/deployments/%s ~/espa-site' \
                  % deployment_name
         cleanup = 'rm -rf ~/staging'
