@@ -7,37 +7,40 @@ import datetime
 try:
     import deployment_settings as settings
 except Exception, e:
-    s = '''tiers = ['webapp', 'maintenance', 'production', 'all']
-
-repository_url = {
-    'webapp': 'some git repo',
-    'maintenance': 'some git repo',
-    'production': 'some other git repo',
-}
+    s = '''tiers = ['espa-web', 'espa-maintenance', 'espa-production', 'all']
 
 environments = {
     'dev': {
         'user': 'dev username',
         'tiers': {
-            'webapp': 'dev webapp hostname',
-            'maintenance': 'dev maint hostname',
-            'production': 'dev production hostname'
+            'espa-web': {'host': 'dev webapp hostname',
+                         'repo': 'repository url'},
+            'espa-maintenance': {'host': 'dev maint hostname',
+                                 'repo': 'repository url'},
+            'espa-production': {'host': 'dev production hostname',
+                                'repo': 'repository url'}
         }
     },
     'tst': {
         'user': 'tst username',
         'tiers': {
-            'webapp': 'tst webapp hostname',
-            'maintenance': 'tst maint hostname',
-            'production': 'tst production hostname'
+            'espa-web': {'host': 'tst webapp hostname',
+                         'repo': 'repository url'},
+            'espa-maintenance': {'host': 'tst maint hostname',
+                                 'repo': 'repository url'},
+            'espa-production': {'host': 'tst production hostname',
+                                'repo': 'repository url'}
         }
     },
     'ops': {
         'user': 'ops username',
         'tiers': {
-            'webapp': 'ops webapp hostname',
-            'maintenance': 'ops maint hostname',
-            'production': 'ops production hostname'
+            'espa-web': {'host': 'ops webapp hostname',
+                         'repo': 'repository url'},
+            'espa-maintenance': {'host': 'ops maint hostname',
+                                 'repo': 'repository url'},
+            'espa-production': {'host': 'ops production hostname',
+                                'repo': 'repository url'}
         }
     }
 
@@ -139,15 +142,12 @@ class Deployer(object):
 
         self.environment = environment
 
-        self.git_cmd = 'git clone --depth 1 --branch %s %s'
-        #self.git_cmd = self.git_cmd % (branch_or_tag, self.url)
-
         self.user = settings.environments[self.environment]['user']
 
         self.deployers = {}
-        self.deployers['webapp'] = self.__webapp
-        self.deployers['production'] = self.__production
-        self.deployers['maintenance'] = self.__maintenance
+        self.deployers['espa-web'] = self.__webapp
+        self.deployers['espa-production'] = self.__production
+        self.deployers['espa-maintenance'] = self.__maintenance
 
     def deploy(self,
                tier,
@@ -164,14 +164,15 @@ class Deployer(object):
                                                 str(now.minute).zfill(2),
                                                 str(now.second).zfill(2))
 
-        repo = settings.repository_url[tier]
-        
-        self.git_cmd = self.git_cmd % (self.branch_or_tag, repo)
+        repo = settings.environments[self.environment]['tiers'][tier]['repo']
+
+        self.git_cmd = 'git clone --depth 1 --branch %s %s %s'
+        self.git_cmd = self.git_cmd % (self.branch_or_tag, repo, tier)
 
         init = 'rm -rf ~/staging; mkdir ~/staging; mkdir -p ~/deployments'
         git = 'cd ~/staging;%s' % self.git_cmd
         delete_old = 'rm -rf ~/deployments/*'
-        move = 'mv ~/staging/espa-%s ~/deployments/%s' % (tier, deployment_name)
+        move = 'mv ~/staging/%s ~/deployments/%s' % (tier, deployment_name)
         relink = 'rm ~/espa-site; ln -s ~/deployments/%s ~/espa-site' \
                  % deployment_name
         cleanup = 'rm -rf ~/staging'
@@ -180,7 +181,7 @@ class Deployer(object):
             raise ValueError("%s not found in deployment_settings.tiers"
                              % tier)
 
-        host = settings.environments[self.environment]['tiers'][tier]
+        host = settings.environments[self.environment]['tiers'][tier]['host']
 
         remote_host = RemoteHost(host, self.user, debug=debug)
 
