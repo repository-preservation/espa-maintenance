@@ -466,8 +466,9 @@ def main():
         
         # stuff creds in a dict
         for line in data:
-            (k, v) = line.split("=")
-            creds[k] = v.strip("\n")
+            if "=" in line:
+                (k, v) = line.split("=")
+                creds[k] = v.strip("\n")
     else:
         err = "DB creds file doesn't exist, BAILING!  Password changes for '%s' didn't happen on %s." % (username, platform.node())
         send_email(email_from, email_to, email_subject + " - Error", err)
