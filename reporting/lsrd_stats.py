@@ -637,10 +637,10 @@ def main():
 	    #print    
 	
 	#----------------------------------------------
-	# Total number of unique on-demand users
+	# Total number of unique on-demand users 
 	#----------------------------------------------
 	
-	SQL = "select COUNT(DISTINCT(substring_index(orderid,'-',1))) from ordering_order where ordering_order.order_source = '" + source + "'"
+	SQL = "select COUNT(DISTINCT(substring_index(orderid,'-',1))) from ordering_order where order_date like \'" + giveLastMonthDate() + "-%\' and  ordering_order.order_source = '" + source + "'"
 	
 	cursor.execute(SQL)
     
