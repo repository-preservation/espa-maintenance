@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 '''****************************************************************************
-FILE: bytes_downloaded_report.py
+FILE: download_count_report.py
 
 PURPOSE: Outputs an integer that represents the number of bytes downloaded.
 
@@ -10,49 +10,77 @@ PROJECT: Land Satellites Data System Science Research and Development (LSRD)
 LICENSE TYPE: NASA Open Source Agreement Version 1.3
 
 AUTHOR: ngenetzky@usgs.gov
-
-NOTES:
-
 ****************************************************************************'''
 import sys
-import mapreduce_logfile as mapred
-import argparse
 
 
-def parse_arguments():
-    '''Parse argument, filter, default to filter='orders' '''
-    desc = ('Outputs the bytes downloaded by successful requests')
-    parser = argparse.ArgumentParser(description=desc)
-    parser.add_argument('--ordertype', action='store',
-                        dest='ordertype',
-                        choices=['orders', 'dswe', 'burned_area'],
-                        required=False, default='orders',
-                        help='Which order type should be analyzed?')
-    args = parser.parse_args()
-    return args
+def get_rtcode(line):
+    '''Obtain a return_code from a line of text
+
+    Precondition: line is a ' ' separated list of data.
+                Return code is the first int in the items from 6 to 11.
+    Postcondition: return return_code
+    '''
+    data = line.split()
+    if(data[8].isdigit()):
+        return data[8]
 
 
-def main(iterable, ordertype='orders'):
-    if(ordertype not in ['orders', 'dswe', 'burned_area']):
-        return ("{0} not in ordertype choices({1})"
-                .format(ordertype, ['orders', 'dswe', 'burned_area']))
+def get_bytes(line):
+    '''Obtain a return_code from a line of text
 
-    filters = [mapred.is_successful_request]
+    Precondition: line is a ' ' separated list of data.
+                Bytes downloaded is the second int in the items from 6 to 12.
+    Postcondition: return bytes_downloaded
+    '''
+    data = line.split()
+    if(data[9].isdigit()):
+        return data[9]
 
-    if(ordertype == 'orders'):
-        filters.append(mapred.is_production_order)
-    elif(ordertype == 'burned_area'):
-        filters.append(mapred.is_burned_area_order)
-    elif(ordertype == 'dswe'):
-        filters.append(mapred.is_dswe_order)
 
-    return mapred.report_requests(iterable, filters=filters)
+def is_successful_request(line):
+    return (get_rtcode(line) in ['200', '206'])
+
+
+def is_production_order(line):
+    return (('"GET /orders/' in line) and ('.tar.gz' in line))
+
+
+def mapper(line):
+    '''Returns 1 if it was a successful production order.'''
+    # mapper is going to find all the lines we're
+    # interested in and only return those in its output
+    if not is_successful_request(line):
+        return 0
+    if not is_production_order(line):
+        return 0
+    return 1
+
+
+def reducer(accum, map_out):
+    '''Accumulates, via addition, the value produced by the mapper'''
+    # reducer is going to perform aggregate calculation
+    # on the output of the mapper.  It can do this
+    # because it receives all the lines of the the list
+    # as its input
+    return accum + map_out
+
+
+def report(lines):
+    map_out = map(mapper, lines)
+    reduce_out = reduce(reducer, map_out, 0)
+    return reduce_out
+
+
+def layout(data):
+    return ('Total number of ordered scenes downloaded through ESPA order'
+            ' interface order links: {0}\n'.format(data))
+
+
+def main(iterable):
+    return layout(report(iterable))
 
 
 if __name__ == '__main__':
-    args = parse_arguments()
-    print(main(iterable=sys.stdin.readlines(),
-               ordertype=args.ordertype))
-
-
+    print(main(sys.stdin.readlines()))
 
