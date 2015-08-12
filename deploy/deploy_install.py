@@ -250,6 +250,13 @@ class Deployer(object):
     def __maintenance(self, remote_host, delete_previous=False, verbose=False):
         if verbose is True:
             print("Maintenance customizations...")
+        move_script = 'cd ~; cp espa-site/deploy/deploy_install.py deploy_install.py'
+        
+        print('Moving new deploy_install.py to home directory...')
+
+        # reset the espa-site link
+        remote_host.execute(command=move_script, expected_exit_status=0)
+
 
         if verbose is True:
             print("Maintenance customizations complete")
