@@ -244,12 +244,14 @@ class Deployer(object):
 
         # Remove previous deployments
         self.delete_old = 'rm -rf ~/deployments/*'
+
+        self.deployment_location = ('~/deployments/{0}'
+                                   .format(self.deployment_name))
         
         # Move staged code to deployments
-        self.move = ('mv ~/staging/{0} '
-                     '~/deployments/{1}'.format(self.tier,
-                                                self.deployment_name))
-                                                
+        self.move = 'mv ~/staging/{0} {1}'.format(self.tier,
+                                                  self.deployment_location)
+                                                                                            
         # Relink espa-site to point to the new deployment        
         self.relink = ('rm ~/espa-site; '
                        'ln -s ~/deployments/{0} ~/espa-site'
@@ -393,6 +395,17 @@ class WebappDeployer(Deployer):
     ''' Deploys the espa-web project '''
     def __init__(self, *args, **kwargs):
         super(WebappDeployer, self).__init__(*args, **kwargs)
+        
+    def __post_move__(self, *args, **kwargs):
+        # create the virtualenv after the code has been put into 
+        # the deploy directory
+        super(WebappDeployer, self).__post_move__(*args, **kwargs)
+        
+        virtual_env = 'cd {0}; virtualenv .'.format(self.deployment_location)
+        print('Creating virtualenv at {0}'.format(self.deployment_location))
+        self.remote_client.execute(command=virtual_env,
+                                   expected_exit_status=0)
+        
 
 
 class ProductionDeployer(Deployer):
