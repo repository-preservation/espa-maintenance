@@ -446,7 +446,7 @@ def deploy(branch_or_tag,
 
     deployer = None
 
-    if tier == 'espa-webapp':
+    if tier == 'espa-web':
         deployer = WebappDeployer(branch_or_tag=branch_or_tag,
                                   environment=environment,
                                   tier=tier,
