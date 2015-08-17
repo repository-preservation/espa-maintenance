@@ -406,7 +406,9 @@ class WebappDeployer(Deployer):
         self.remote_client.execute(command=virtual_env,
                                    expected_exit_status=0)
                                    
-        pip_install = ('cd {0}; pip install -r requirements.txt'
+        pip_install = ('cd {0}; '
+                       '. bin/activate; '
+                       'pip install -r requirements.txt'
                       .format(self.deployment_location))
         print('Installing requirements')
         self.remote_client.execute(command=pip_install, expected_exit_status=0)
