@@ -13,55 +13,21 @@ LICENSE TYPE: NASA Open Source Agreement Version 1.3
 AUTHOR: ngenetzky@usgs.gov
 ****************************************************************************'''
 import sys
+import logging
+import argparse
 import datetime
-import urllib
-
-
-def substring_between(s, start, finish):
-    '''Find string between two substrings'''
-    end_of_start = s.index(start) + len(start)
-    start_of_finish = s.index(finish, end_of_start)
-    return s[end_of_start:start_of_finish]
-
-
-def get_rtcode(line):
-    '''Obtain a return_code from a line of text
-
-    Precondition: line is a ' ' separated list of data.
-                Return code is the first int in the items from 6 to 11.
-    Postcondition: return return_code
-    '''
-    data = line.split()
-    if(data[8].isdigit()):
-        return data[8]
-
-
-def get_user_email(line):
-    request = substring_between(line, '] "', '" ')
-    request = urllib.unquote(request)
-    try:
-        return substring_between(request, 'orders/', '-')
-    except ValueError:
-        return 'BAD_PARSE'
-
-
-def is_404_request(line):
-    return (get_rtcode(line) in ['404'])
-
-
-def is_production_order(line):
-    return (('"GET /orders/' in line) and ('.tar.gz' in line))
+import apache_log_helper as ApacheLog
 
 
 def mapper(line):
     '''Returns 1 if it was a successful production order.'''
     # mapper is going to find all the lines we're
     # interested in and only return those in its output
-    if not is_production_order(line):
+    if not ApacheLog.is_production_order(line):
         return
-    if not is_404_request(line):
+    if not ApacheLog.is_404_request(line):
         return
-    return get_user_email(line)
+    return ApacheLog.get_user_email(line)
 
 
 def reducer(accum, map_out):
@@ -79,13 +45,33 @@ def reducer(accum, map_out):
     return accum
 
 
-def report(lines):
+def report(lines, start_date, end_date):
+    '''Will compile a report that provides total offenses per user
+
+    Precondition: lines are from an Apache formated log file
+    Postcondition: returns a dictionary
+        keys are user_emails
+        values are number of occurrences
+    Note: If a value was unable to be parsed then the value will be reported
+            as 'BAD_PARSE'.
+    '''
     occurrences_per_email = {}
     email_date = map(mapper, lines)
     return reduce(reducer, email_date, occurrences_per_email)
 
 
 def layout(data):
+    '''Will compile a report that provides total offenses per user
+
+    Precondition: data is a dictionary
+        keys are user_emails
+        values are number of occurrences
+    Postcondition: returns string of each user_report separated by '\n'
+        Each user_report contains total_offenses and user_email
+        Report is sorted from most offenses to least offenses
+    Note: If a value was unable to be parsed then the value will be reported
+            as 'BAD_PARSE'.
+    '''
     sorted_num_of_offenses = sorted(data.iteritems(),
                                     key=lambda (k, v): v,
                                     reverse=True)
@@ -93,14 +79,72 @@ def layout(data):
     for item in sorted_num_of_offenses:
         # item[0] = email, item[1] = number of offenses
         final_report.append('{1} {0}'.format(item[0], item[1]))
-
     return '\n'.join(final_report)
 
 
-def main(iterable):
-    return layout(report(iterable))
+def isoformat_datetime(datetime_string):
+    '''
+
+    Supports: ISO-format variations with any level of time specified
+        ISO-format with only year, month, day
+        YearMonthDay with no spaces
+    '''
+    dt = None
+    dt_formats = []
+    if '.' in datetime_string:
+        dt_formats.insert(0, '%Y-%m-%dT%H:%M:%S.%fZ')
+    elif ':' in datetime_string:
+        dt_formats.insert(0, '%Y-%m-%dT%H:%M:%S')
+        dt_formats.insert(0, '%Y-%m-%dT%H:%M')
+    elif 'T' in datetime_string:
+        dt_formats.insert(0, '%Y-%m-%dT%H')
+    else:
+        dt_formats.insert(0, '%Y-%m-%d')
+
+    for fmt in dt_formats:
+        try:
+            dt = datetime.datetime.strptime(datetime_string, fmt)
+            break  # Parsed a valid datetime
+        except:
+            pass  # Parse failed, try the next one.
+    if dt is None:  # All parses failed
+        raise ValueError
+    else:
+        return dt
+
+
+def parse_arguments():
+    parser = argparse.ArgumentParser()
+    parser.epilog = ('Datetime must be provided for in a subset of isoformat'
+                     'min format:"YYYY-MM-DD" (missing elements are zeroed)'
+                     ', max format:"YYYY-NM-DDTHH:MM:SS.SSSS"')
+    parser.formatter_class = argparse.ArgumentDefaultsHelpFormatter
+
+    parser.add_argument('-s', '--start_date', dest='start_date',
+                        help='The start date for the date range filter',
+                        required=False, default=datetime.datetime.min,
+                        type=isoformat_datetime)
+    parser.add_argument('-e', '--end_date', dest='end_date',
+                        help='The end date for the date range filter',
+                        required=False, default=datetime.datetime.max,
+                        type=isoformat_datetime)
+    return parser.parse_args()
+
+
+def main(iterable, start_date=datetime.datetime.min,
+         end_date=datetime.datetime.max):
+    # Setup the default logger format and level. log to STDOUT
+    logging.basicConfig(format=('%(asctime)s.%(msecs)03d %(process)d'
+                                ' %(levelname)-8s'
+                                ' %(filename)s:%(lineno)d:'
+                                '%(funcName)s -- %(message)s'),
+                        datefmt='%Y-%m-%d %H:%M:%S',
+                        level=logging.INFO)
+    return layout(report(iterable, start_date, end_date))
 
 
 if __name__ == '__main__':
-    print(main(sys.stdin.readlines()))
+    args = parse_arguments()
+    print(main(sys.stdin.readlines(),
+               args.start_date, args.end_date))
 

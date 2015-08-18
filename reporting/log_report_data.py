@@ -1,8 +1,9 @@
 #!/usr/bin/env python
 '''****************************************************************************
-FILE: download_count_report.py
+FILE: log_report_data.py
 
-PURPOSE: Outputs an integer that represents the number of bytes downloaded.
+PURPOSE: Extracts data from each line in the Apache logfile into comma
+        separated lists.
 
 PROJECT: Land Satellites Data System Science Research and Development (LSRD)
     at the USGS EROS
@@ -12,45 +13,81 @@ LICENSE TYPE: NASA Open Source Agreement Version 1.3
 AUTHOR: ngenetzky@usgs.gov
 ****************************************************************************'''
 import sys
+import logging
 import argparse
 import datetime
-import logging
 import apache_log_helper as ApacheLog
 
 
-def mapper_count(line):
-    '''Returns 1 if it was a successful production order.'''
+def mapper_data(line):
+    '''Extracts values from a line of text into tuple
+
+    Precondition: line is a ' ' separated list of data.
+        Preconditions for the following functions must also
+            be satisfied: get_user_email, get_bytes, get_order_id, get_scene_id
+    Postcondition: return tuple where len(tuple)==6
+    '''
     # mapper is going to find all the lines we're
     # interested in and only return those in its output
+
+    # Filter lines to lines of interest
     if not ApacheLog.is_successful_request(line):
-        return 0
+        return
     if not ApacheLog.is_production_order(line):
-        return 0
-    return 1
+        return
+    # Extract data
+    remote_addr = line.split(' - ', 1)[0]
+    dt = ApacheLog.get_datetime(line).isoformat()
+    user_email = ApacheLog.get_user_email(line)
+    bytes_sent = ApacheLog.get_bytes(line)
+    orderid = ApacheLog.get_order_id(line)
+    sceneid = ApacheLog.get_scene_id(line)
+    return (dt, remote_addr, user_email, orderid, sceneid, bytes_sent)
 
 
-def reducer(accum, map_out):
-    '''Accumulates, via addition, the value produced by the mapper'''
+def reducer(dictionary, next_tuple):
+    '''Adds tuples to dictionary with first element as key'''
     # reducer is going to perform aggregate calculation
     # on the output of the mapper.  It can do this
     # because it receives all the lines of the the list
     # as its input
-    if map_out is None:
-        return accum
-    return accum + map_out
+    if next_tuple is None:
+        return dictionary
+    dictionary[next_tuple[0]] = next_tuple[1:]
+    return dictionary
 
 
 def report(lines, start_date, end_date):
-    '''Returns the number of downloads counted'''
-    mapper = ApacheLog.timefilter_decorator(mapper_count, start_date, end_date)
+    '''Returns a dictionary of data extracted from logfile
+
+    Precondition: lines are from an Apache formated log file
+    Postcondition: returns a dictionary
+        key is the datetime in iso format
+        value is a list of data extracted from line
+    '''
+    logging.getLogger(__name__).debug('Using dates: {0} to {1}'
+                                      .format(start_date.isoformat(),
+                                              end_date.isoformat()))
+    mapper = ApacheLog.timefilter_decorator(mapper_data, start_date, end_date)
     map_out = map(mapper, lines)
-    reduce_out = reduce(reducer, map_out, 0)
-    return reduce_out
+    return reduce(reducer, map_out, {})
 
 
 def layout(data):
-    return ('Total number of ordered scenes downloaded through ESPA order'
-            ' interface order links: {0}\n'.format(data))
+    '''Reports data from logfile in the form of comma separated lists
+
+    Precondition: lines are from an Apache formated log file
+    Postcondition: returns a string
+        String contains user reports separated by "\n"
+        Each user report contains comma separated values in this form:
+        datetime,remote_addr,user_email,orderid,sceneid,bytes
+    Note: If a value was unable to be parsed then the value will be reported
+            as 'BAD_PARSE'.
+    '''
+    report = []
+    for k, v in data.iteritems():
+        report.append('{0},{1}'.format(k, ','.join(v)))
+    return ('\n'.join(report))
 
 
 def isoformat_datetime(datetime_string):

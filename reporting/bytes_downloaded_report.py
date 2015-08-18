@@ -10,76 +10,146 @@ PROJECT: Land Satellites Data System Science Research and Development (LSRD)
 LICENSE TYPE: NASA Open Source Agreement Version 1.3
 
 AUTHOR: ngenetzky@usgs.gov
-
-NOTES:
-
 ****************************************************************************'''
 import sys
-import mapreduce_logfile as mapred
+import math
+import logging
+import datetime
 import argparse
-from datetime import datetime
+import apache_log_helper as ApacheLog
 
 
-def valid_date(s):
-    try:
-        return datetime.strptime(s, "%Y_%m_%d")
-    except ValueError:
-        msg = "Not a valid date: '{0}'.".format(s)
-        raise argparse.ArgumentTypeError(msg)
+def convert_bytes(size):
+    '''Convert bytes to proper units
+
+    Precondition: size is in int(bytes)
+    Postcondition: Output is in form of 'INTEGER STRING" where
+            string contains unit label and integer is the value for those units
+
+    Source: http://stackoverflow.com/a/14822210
+    '''
+    size_name = ("B", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB")
+    if (size > 0):
+        i = int(math.floor(math.log(size, 1024)))
+        p = math.pow(1024, i)
+        s = round(size/p, 2)
+        return '%s %s' % (s, size_name[i])
+    else:
+        return '0 B'
+
+
+def timefilter_decorator(mapper, start_date, end_date):
+    def new_mapper(line):
+        if(start_date <= ApacheLog.get_datetime(line) <= end_date):
+            return mapper(line)
+    return new_mapper
+
+
+def mapper_bytes(line):
+    '''Returns bytes downloaded if it was a successful production order.'''
+    # mapper is going to find all the lines we're
+    # interested in and only return those in its output
+    if not ApacheLog.is_successful_request(line):
+        return 0
+    if not ApacheLog.is_production_order(line):
+        return 0
+    return int(ApacheLog.get_bytes(line))
+
+
+def reducer(accum, map_out):
+    '''Accumulates, via addition, the value produced by the mapper'''
+    # reducer is going to perform aggregate calculation
+    # on the output of the mapper.  It can do this
+    # because it receives all the lines of the the list
+    # as its input
+    if map_out is None:
+        return accum
+    return accum + map_out
+
+
+def report(lines, start_date, end_date):
+    '''Returns the number of bytes downloaded'''
+    mapper = timefilter_decorator(mapper_bytes, start_date, end_date)
+    map_out = map(mapper, lines)
+    reduce_out = reduce(reducer, map_out, 0)
+    return reduce_out
+
+
+def layout(data):
+    gb = round(int(data)/math.pow(1024, 3), 2)
+    return ('Total volume of ordered scenes downloaded (GB): {0}\n'
+            .format(gb))
+
+
+def layout2(data):
+    labeled_data = convert_bytes(int(data))
+    return ('Total volume of ordered scenes downloaded: {0}\n'
+            .format(labeled_data))
+
+
+def valid_datetime(datetime_string):
+    '''
+
+    Supports: ISO-format variations with any level of time specified
+        ISO-format with only year, month, day
+        YearMonthDay with no spaces
+    '''
+    dt = None
+    dt_formats = []
+    if '.' in datetime_string:
+        dt_formats.insert(0, '%Y-%m-%dT%H:%M:%S.%fZ')
+    elif ':' in datetime_string:
+        dt_formats.insert(0, '%Y-%m-%dT%H:%M:%S')
+        dt_formats.insert(0, '%Y-%m-%dT%H:%M')
+    elif 'T' in datetime_string:
+        dt_formats.insert(0, '%Y-%m-%dT%H')
+    else:
+        dt_formats.insert(0, '%Y-%m-%d')
+
+    for fmt in dt_formats:
+        try:
+            dt = datetime.datetime.strptime(datetime_string, fmt)
+            break  # Parsed a valid datetime
+        except:
+            pass  # Parse failed, try the next one.
+    if dt is None:
+        raise ValueError
+    else:
+        return dt
 
 
 def parse_arguments():
-    '''Parse argument, filter, default to filter='orders' '''
-    desc = ('Outputs the bytes downloaded by successful requests')
+    parser = argparse.ArgumentParser()
+    parser.epilog = ('Datetime must be provided for in a subset of isoformat'
+                     'minimum format:"YYYY-MM-DD", max format:'
+                     '"YYYY-NM-DDTHH:MM:SS.SSSS"')
+    parser.formatter_class = argparse.ArgumentDefaultsHelpFormatter
 
-    today = datetime.now()
-    today.strftime("%Y_%m_%d")
-
-    parser = argparse.ArgumentParser(description=desc)
-    parser.add_argument('--ordertype', action='store',
-                        dest='ordertype',
-                        choices=['orders', 'dswe', 'burned_area'],
-                        required=False, default='orders',
-                        help='Which order type should be analyzed?')
-
-    parser.add_argument('-d', "--date_range", dest='date_range',
-                        help="The Date Range, Start_date end_date,"
-                             " format YYYY_MM_DD YYYY_MM_DD",
-                        required=False, nargs=2, type=valid_date)
-
-    args = parser.parse_args()
-    return args
+    parser.add_argument('-s', '--start_date', dest='start_date',
+                        help='The start date for the date range filter',
+                        required=False, default=datetime.datetime.min,
+                        type=valid_datetime)
+    parser.add_argument('-e', '--end_date', dest='end_date',
+                        help='The end date for the date range filter',
+                        required=False, default=datetime.datetime.max,
+                        type=valid_datetime)
+    return parser.parse_args()
 
 
-def main(iterable, ordertype='orders', date_range=None):
-    if(ordertype not in ['orders', 'dswe', 'burned_area']):
-        return ("{0} not in ordertype choices({1})"
-                .format(ordertype, ['orders', 'dswe', 'burned_area']))
-
-    filters = [mapred.is_successful_request]
-
-    if(date_range is None):
-        # Default, could filter by this month
-        pass
-    else:
-        filters.append(lambda line:
-                       mapred.is_within_daterange(line, date_range[0],
-                                                  date_range[1]))
-
-    # Filter by ordertype
-    if(ordertype == 'orders'):
-        filters.append(mapred.is_production_order)
-    elif(ordertype == 'burned_area'):
-        filters.append(mapred.is_burned_area_order)
-    elif(ordertype == 'dswe'):
-        filters.append(mapred.is_dswe_order)
-
-    return mapred.report_bytes(iterable, filters=filters)
+def main(iterable, start_date=datetime.datetime.min,
+         end_date=datetime.datetime.max):
+    # Setup the default logger format and level. log to STDOUT
+    logging.basicConfig(format=('%(asctime)s.%(msecs)03d %(process)d'
+                                ' %(levelname)-8s'
+                                ' %(filename)s:%(lineno)d:'
+                                '%(funcName)s -- %(message)s'),
+                        datefmt='%Y-%m-%d %H:%M:%S',
+                        level=logging.INFO)
+    return layout(report(iterable, start_date, end_date))
 
 
 if __name__ == '__main__':
     args = parse_arguments()
-    print(main(iterable=sys.stdin.readlines(),
-               ordertype=args.ordertype,
-               date_range=args.date_range))
+    print(main(sys.stdin.readlines(),
+               args.start_date, args.end_date))
 
