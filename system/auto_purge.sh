@@ -14,7 +14,7 @@
 #                 a notification_list file in the cwd with a list of names to send email reports to
 #
 
-ORDERPATH="/data2/LSRD/orders"
+ORDERPATH="/data2/science_lsrd/LSRD/orders"
 
 DISTRIBUTIONHOST="edclpdsftp.cr.usgs.gov"
 

@@ -57,7 +57,9 @@ environments = {
 
 
 class RemoteHost(object):
-    '''Duplicated from espa_common/sshcmd.py, included here for convienience'''
+    '''Duplicated from espa_common/sshcmd.py, included here for convienience
+    Runs a command on a remote host.  If no password is supplied, assumes
+    you have passwordless ssh set up '''
 
     client = None
 
@@ -126,144 +128,364 @@ class RemoteHost(object):
                 self.client = None
 
 
-
-
-
 class Deployer(object):
 
-    #url = 'https://github.com/USGS-EROS/espa.git'
-
-    def __init__(self, branch_or_tag, environment):
-        self.branch_or_tag = branch_or_tag
-
-        if environment not in settings.environments.keys():
-            raise ValueError("%s not found in deployment_settings"
-                             % environment)
-
-        self.environment = environment
-
-        self.user = settings.environments[self.environment]['user']
-
-        self.deployers = {}
-        self.deployers['espa-web'] = self.__webapp
-        self.deployers['espa-production'] = self.__production
-        self.deployers['espa-maintenance'] = self.__maintenance
-
-    def deploy(self,
-               tier,
-               delete_previous_releases=False,
-               verbose=False,
-               debug=False):
-
-        now = datetime.datetime.now()
-        deployment_name = "%s-%s%s%s-%s%s%s" % (self.branch_or_tag,
-                                                str(now.month).zfill(2),
-                                                str(now.day).zfill(2),
-                                                str(now.year).zfill(2),
-                                                str(now.hour).zfill(2),
-                                                str(now.minute).zfill(2),
-                                                str(now.second).zfill(2))
-
-        repo = settings.environments[self.environment]['tiers'][tier]['repo']
-
-        self.git_cmd = 'git clone --depth 1 --branch %s %s %s'
-        self.git_cmd = self.git_cmd % (self.branch_or_tag, repo, tier)
-
-        init = 'rm -rf ~/staging; mkdir ~/staging; mkdir -p ~/deployments'
-        git = 'cd ~/staging;%s' % self.git_cmd
-        delete_old = 'rm -rf ~/deployments/*'
-        move = 'mv ~/staging/%s ~/deployments/%s' % (tier, deployment_name)
-        relink = 'rm ~/espa-site; ln -s ~/deployments/%s ~/espa-site' \
-                 % deployment_name
-        cleanup = 'rm -rf ~/staging'
-
+    def __init__(self, branch_or_tag, environment, tier, debug=False):
+        
+        # tier is defined in settings
         if tier not in settings.tiers:
             raise ValueError("%s not found in deployment_settings.tiers"
                              % tier)
+        self.tier = tier
+        
+        # branch or tagname must exist in git
+        self.branch_or_tag = branch_or_tag
 
-        host = settings.environments[self.environment]['tiers'][tier]['host']
+        # environment is defined in settings.  
+        if environment not in settings.environments.keys():
+            raise ValueError("%s not found in deployment_settings"
+                             % environment)
+                             
+        # This is the name of the environment, not the object
+        self.environment = environment
+        
+        # The username for the remote host ('espadev', etc)
+        self.user = settings.environments[environment]['user']
+        
+        # The url of the git repo
+        self.repo = settings.environments[environment]['tiers'][tier]['repo']
+        
+        # Get the host we should deploy to
+        env = settings.environments[self.environment]
+        self.host = env['tiers'][self.tier]['host']
+        
+        # Instantiate a remote client to the remote host
+        self.remote_client = RemoteHost(self.host, self.user, debug=debug)
+        
 
-        remote_host = RemoteHost(host, self.user, debug=debug)
+    def __pre_initialize__(self, *args, **kwargs):
+        ''' Hook to perform actions before to initialization '''
+        pass
+
+    def __post_initialize__(self, *args, **kwargs):
+        ''' Hook to perform actions after initialization '''
+        pass
+
+    def __pre_git__(self, *args, **kwargs):
+        ''' Hook to perform actions before git command '''
+        pass
+
+    def __post_git__(self, *args, **kwargs):
+        ''' Hook to perform actions after git command '''
+        pass
+
+    def __pre_delete_old__(self, *args, **kwargs):
+        ''' Hook to perform actions before deleting old deployments '''
+        pass
+
+    def __post_delete_old__(self, *args, **kwargs):
+        ''' Hook to perform actions after deleting old deployments '''
+        pass
+
+    def __pre_move__(self, *args, **kwargs):
+        ''' Hook to perform actions before moving code from staging to 
+        deployments'''
+        pass
+
+    def __post_move__(self, *args, **kwargs):
+        ''' Hook to perform actions after moving code from staging to
+        deployments'''
+        pass
+
+    def __pre_relink__(self, *args, **kwargs):
+        ''' Hook to perform actions before relinking espa-site '''
+        pass
+
+    def __post_relink__(self, *args, **kwargs):
+        ''' Hook to perform actions after relinking espa-site '''
+        pass
+
+    def __pre_cleanup__(self, *args, **kwargs):
+        ''' Hook to perform actions before deleting staging directory '''
+        pass
+
+    def __post_cleanup__(self, *args, **kwargs):
+        ''' Hook to perform actions after deleting staging directory '''
+        pass
+
+    def deploy(self,
+               delete_previous_releases=False,
+               verbose=False,
+               *args,
+               **kwargs):
+        ''' Master deployment logic '''
+        
+        self.verbose = verbose
+        self.delete_previous_releases = delete_previous_releases
+        
+        now = datetime.datetime.now()
+        self.deployment_name = "%s-%s%s%s-%s%s%s" % (self.branch_or_tag,
+                                                     str(now.month).zfill(2),
+                                                     str(now.day).zfill(2),
+                                                     str(now.year).zfill(2),
+                                                     str(now.hour).zfill(2),
+                                                     str(now.minute).zfill(2),
+                                                     str(now.second).zfill(2))
+                                                     
+        # Initilize the target deployment directory
+        self.initialize = ('rm -rf ~/staging;'
+                           'mkdir ~/staging;'
+                           'mkdir -p ~/deployments')
+        
+        # Pull the project from git
+        git = 'git clone --depth 1 --branch {0} {1} {2}'
+        git = git.format(self.branch_or_tag, self.repo, self.tier)
+        self.git = 'cd ~/staging;{0}'.format(git)
+
+        # Remove previous deployments
+        self.delete_old = 'rm -rf ~/deployments/*'
+
+        self.deployment_location = ('~/deployments/{0}'
+                                   .format(self.deployment_name))
+        
+        # Move staged code to deployments
+        self.move = 'mv ~/staging/{0} {1}'.format(self.tier,
+                                                  self.deployment_location)
+                                                                                            
+        # Relink espa-site to point to the new deployment        
+        self.relink = ('rm ~/espa-site; '
+                       'ln -s ~/deployments/{0} ~/espa-site'
+                       .format(self.deployment_name))
+
+        # Clean up staging dir again.  Already done once in initialize                 
+        self.cleanup = 'rm -rf ~/staging'
 
         if verbose is True:
-            print("Deploying %s to %s" % (self.branch_or_tag, remote_host))
-            print("Initializing...")
+            print('Deploying %s to %s' % (self.branch_or_tag,
+                                          self.remote_client))
+            print('Calling pre-initialize hook...')
+
+        # call preinitialize hook
+        self.__pre_initialize__(*args, **kwargs)
+
+        if verbose is True:
+            print('Initializing...')
 
         # initialize a clean staging directory
-        remote_host.execute(command=init, expected_exit_status=0)
+        self.remote_client.execute(command=self.initialize,
+                                   expected_exit_status=0)
+
+        if verbose is True:
+            print('Calling post-initialize hook...')
+
+        # call postinitialize hook
+        self.__post_initialize__(*args, **kwargs)
+
+        if verbose is True:
+            print('Calling pre-git hook ...')
+
+        self.__pre_git__(*args, **kwargs)
 
         if verbose is True:
             print("Pulling from Git...")
 
         # pull the code down from git
-        remote_host.execute(command=git, expected_exit_status=0)
+        self.remote_client.execute(command=self.git, expected_exit_status=0)
+
+        if verbose is True:
+            print('Calling post-git-hook ...')
+
+        self.__post_git__(*args, **kwargs)
 
         # wipe out old deployments if requested
         if delete_previous_releases is True:
 
             if verbose is True:
+                print('Calling pre-delete-old hook...')
+
+            self.__pre_delete_old__(*args, **kwargs)
+
+            if verbose is True:
                 print("Deleting previous releases...")
 
-            remote_host.execute(command=delete_old, expected_exit_status=0)
+            self.remote_client.execute(command=self.delete_old,
+                                       expected_exit_status=0)
+
+            if verbose is True:
+                print('Calling post-delete-old hook...')
+
+            self.__post_delete_old__(*args, **kwargs)
+
+        if verbose is True:
+            print('Calling pre-move hook...')
+
+        self.__pre_move__(*args, **kwargs)
 
         if verbose is True:
             print("Deploying code...")
 
         # move code to deployment dir and rename
-        remote_host.execute(command=move, expected_exit_status=0)
+        self.remote_client.execute(command=self.move, expected_exit_status=0)
+
+        if verbose is True:
+            print('Calling post-move hook...')
+
+        self.__post_move__(*args, **kwargs)
+
+        if verbose is True:
+            print('Calling pre-relink hook...')
+
+        self.__pre_relink__(*args, **kwargs)
 
         if verbose is True:
             print("Relinking directories...")
 
         # reset the espa-site link
-        remote_host.execute(command=relink, expected_exit_status=0)
+        self.remote_client.execute(command=self.relink, expected_exit_status=0)
+
+        if verbose is True:
+            print('Calling post-relink hook...')
+
+        self.__post_relink__(*args, **kwargs)
 
         if verbose is True:
             print("Tier customization...")
 
         # run tier specific customizations
-        self.deployers[tier](remote_host, delete_previous_releases)
+        #self.deployers[tier](remote_host, delete_previous_releases)
+
+        if verbose is True:
+            print("Calling pre-cleanup hook...")
+
+        self.__pre_cleanup__(*args, **kwargs)
 
         if verbose is True:
             print("Cleaning up...")
 
-        remote_host.execute(command=cleanup, expected_exit_status=0)
+        self.remote_client.execute(command=self.cleanup,
+                                   expected_exit_status=0)
+
+        if verbose is True:
+            print("Calling post-cleanup hook...")
+
+        self.__post_cleanup__(*args, **kwargs)
 
         if verbose is True:
             print("%s sucessfully deployed to %s" % (self.branch_or_tag,
                                                      self.environment))
 
-    def __webapp(self, remote_host, delete_previous=False, verbose=False):
-        if verbose is True:
-            print("Webapp customizations...")
-
-        if verbose is True:
-            print("Webapp customizations complete")
-
-    def __production(self, remote_host, delete_previous=False, verbose=False):
-        if verbose is True:
-            print("Production customizations...")
-
-        if verbose is True:
-            print("Production customizations complete")
-
-    def __maintenance(self, remote_host, delete_previous=False, verbose=False):
+    '''
+     def __maintenance(self, remote_host, delete_previous=False, verbose=False):
         if verbose is True:
             print("Maintenance customizations...")
+        move_script = 'cd ~; cp espa-site/deploy/deploy_install.py deploy_install.py'
+
+        print('Moving new deploy_install.py to home directory...')
+
+        # reset the espa-site link
+        remote_host.execute(command=move_script, expected_exit_status=0)
+
 
         if verbose is True:
             print("Maintenance customizations complete")
+    '''
+
+
+class WebappDeployer(Deployer):
+    ''' Deploys the espa-web project '''
+    def __init__(self, *args, **kwargs):
+        super(WebappDeployer, self).__init__(*args, **kwargs)
+        
+    def __post_move__(self, *args, **kwargs):
+        # create the virtualenv after the code has been put into 
+        # the deploy directory
+        super(WebappDeployer, self).__post_move__(*args, **kwargs)
+        
+        virtual_env = 'cd {0}; virtualenv .'.format(self.deployment_location)
+        print('Creating virtualenv at {0}'.format(self.deployment_location))
+        self.remote_client.execute(command=virtual_env,
+                                   expected_exit_status=0)
+                                   
+        pip_install = ('cd {0}; '
+                       '. bin/activate; '
+                       'pip install -r requirements.txt'
+                      .format(self.deployment_location))
+        print('Installing requirements')
+        self.remote_client.execute(command=pip_install, expected_exit_status=0)
+
+
+class ProductionDeployer(Deployer):
+    ''' Deploys the espa-production project '''
+    def __init__(self, *args, **kwargs):
+        super(ProductionDeployer, self).__init__(*args, **kwargs)
+
+
+class MaintenanceDeployer(Deployer):
+    ''' Deploys the espa-maintenance project '''
+    def __init__(self, *args, **kwargs):
+        super(MaintenanceDeployer, self).__init__(*args, **kwargs)
+
+    def __post_relink__(self, *args, **kwargs):
+        ''' Update the maintenance tier after the new code is deployed '''
+
+        super(MaintenanceDeployer, self).__post_relink__(*args, **kwargs)
+
+        mv_script = ('cd ~; '
+                     'cp espa-site/deploy/deploy_install.py deploy_install.py')
+
+        print('Moving new deploy_install.py to home directory...')
+
+        # reset the espa-site link
+        self.remote_client.execute(command=mv_script,
+                                   expected_exit_status=0)
+
+
+''' Module level method to support deploying projects to the espa system.
+    If in doubt, you should be calling this method rather than any of the 
+    classes directly '''
+def deploy(branch_or_tag,
+           environment,
+           tier,
+           delete_previous_releases,
+           verbose,
+           debug):
+
+    deployer = None
+
+    if tier == 'espa-web':
+        deployer = WebappDeployer(branch_or_tag=branch_or_tag,
+                                  environment=environment,
+                                  tier=tier,
+                                  debug=debug)
+    elif tier == 'espa-production':
+        deployer = ProductionDeployer(branch_or_tag=branch_or_tag,
+                                      environment=environment,
+                                      tier=tier,
+                                      debug=debug)
+    elif tier == 'espa-maintenance':
+        deployer = MaintenanceDeployer(branch_or_tag=branch_or_tag,
+                                       environment=environment,
+                                       tier=tier,
+                                       debug=debug)
+    else:
+        raise TypeError('{0} is not a recognized tier... exiting'.format(tier))
+
+    if deployer is not None:
+        deployer.deploy(delete_previous_releases, verbose)
+    else:
+        print('deployer was None... exiting')
+
 
 if __name__ == '__main__':
 
-    description = "Deploys and installs ESPA into the named environment"
+    description = "Deploys & installs ESPA projects into the named environment"
 
     parser = argparse.ArgumentParser(description=description)
 
     parser.add_argument("--tier",
                         choices=settings.tiers,
-                        help="Portion of system to deploy.  If blank, code \
-                        will deploy to all available tiers")
+                        required=True,
+                        help="Project to deploy.")
 
     parser.add_argument("--environment",
                         required=True,
@@ -288,19 +510,12 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    deployer = Deployer(args.branch_or_tagname, args.environment)
-
     if args.debug is True:
         args.verbose = True
 
-    if args.tier:
-        deployer.deploy(args.tier,
-                        args.delete_previous_releases,
-                        args.verbose,
-                        args.debug)
-    else:
-        for tier in settings.tiers:
-            deployer.deploy(tier,
-                            args.delete_previous_releases,
-                            args.verbose,
-                            args.debug)
+    deploy(args.branch_or_tagname,
+           args.environment,
+           args.tier,
+           args.delete_previous_releases,
+           args.verbose,
+           args.debug)
