@@ -38,13 +38,6 @@ def convert_bytes(size):
         return '0 B'
 
 
-def timefilter_decorator(mapper, start_date, end_date):
-    def new_mapper(line):
-        if(start_date <= ApacheLog.get_datetime(line) <= end_date):
-            return mapper(line)
-    return new_mapper
-
-
 def mapper_bytes(line):
     '''Returns bytes downloaded if it was a successful production order.'''
     # mapper is going to find all the lines we're
@@ -69,7 +62,7 @@ def reducer(accum, map_out):
 
 def report(lines, start_date, end_date):
     '''Returns the number of bytes downloaded'''
-    mapper = timefilter_decorator(mapper_bytes, start_date, end_date)
+    mapper = ApacheLog.timefilter_decorator(mapper_bytes, start_date, end_date)
     map_out = map(mapper, lines)
     reduce_out = reduce(reducer, map_out, 0)
     return reduce_out
@@ -87,12 +80,14 @@ def layout2(data):
             .format(labeled_data))
 
 
-def valid_datetime(datetime_string):
-    '''
+def isoformat_datetime(datetime_string):
+    '''Converts string of ISO-format variations with datetime object
 
-    Supports: ISO-format variations with any level of time specified
-        ISO-format with only year, month, day
-        YearMonthDay with no spaces
+    Precondition:
+        Datetime_string must be provided a subset of isoformat anything from:
+        "YYYY-MM-DD" to "YYYY-NM-DDTHH:MM:SS.SSSS"
+    Postcondition:
+        returns datetime.datetime object(missing elements are zeroed)
     '''
     dt = None
     dt_formats = []
@@ -112,7 +107,7 @@ def valid_datetime(datetime_string):
             break  # Parsed a valid datetime
         except:
             pass  # Parse failed, try the next one.
-    if dt is None:
+    if dt is None:  # All parses failed
         raise ValueError
     else:
         return dt
@@ -121,18 +116,18 @@ def valid_datetime(datetime_string):
 def parse_arguments():
     parser = argparse.ArgumentParser()
     parser.epilog = ('Datetime must be provided for in a subset of isoformat'
-                     'minimum format:"YYYY-MM-DD", max format:'
-                     '"YYYY-NM-DDTHH:MM:SS.SSSS"')
+                     'min format:"YYYY-MM-DD" (missing elements are zeroed)'
+                     ', max format:"YYYY-NM-DDTHH:MM:SS.SSSS"')
     parser.formatter_class = argparse.ArgumentDefaultsHelpFormatter
 
     parser.add_argument('-s', '--start_date', dest='start_date',
                         help='The start date for the date range filter',
                         required=False, default=datetime.datetime.min,
-                        type=valid_datetime)
+                        type=isoformat_datetime)
     parser.add_argument('-e', '--end_date', dest='end_date',
                         help='The end date for the date range filter',
                         required=False, default=datetime.datetime.max,
-                        type=valid_datetime)
+                        type=isoformat_datetime)
     return parser.parse_args()
 
 

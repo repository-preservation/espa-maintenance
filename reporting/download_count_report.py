@@ -54,11 +54,13 @@ def layout(data):
 
 
 def isoformat_datetime(datetime_string):
-    '''
+    '''Converts string of ISO-format variations with datetime object
 
-    Supports: ISO-format variations with any level of time specified
-        ISO-format with only year, month, day
-        YearMonthDay with no spaces
+    Precondition:
+        Datetime_string must be provided a subset of isoformat anything from:
+        "YYYY-MM-DD" to "YYYY-NM-DDTHH:MM:SS.SSSS"
+    Postcondition:
+        returns datetime.datetime object(missing elements are zeroed)
     '''
     dt = None
     dt_formats = []
@@ -86,9 +88,9 @@ def isoformat_datetime(datetime_string):
 
 def parse_arguments():
     parser = argparse.ArgumentParser()
-    parser.epilog = ('Datetime must be provided for in a subset of isoformat'
-                     'min format:"YYYY-MM-DD" (missing elements are zeroed)'
-                     ', max format:"YYYY-NM-DDTHH:MM:SS.SSSS"')
+    parser.epilog = ('Datetime must be provided for in a subset of isoformat '
+                     'anything from:"YYYY-MM-DD" to "YYYY-NM-DDTHH:MM:SS.SSSS"'
+                     '(missing elements are zeroed)')
     parser.formatter_class = argparse.ArgumentDefaultsHelpFormatter
 
     parser.add_argument('-s', '--start_date', dest='start_date',

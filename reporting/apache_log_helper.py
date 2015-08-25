@@ -104,6 +104,19 @@ def get_user_email(line):
         return fail_to_parse('user_email', line)
 
 
+def get_email_category(line):
+    email = get_user_email(line)
+    if '.gov' in email:
+        if('usgs.' in email):
+            return 'usgs.gov'
+        else:
+            return 'not-usgs.gov'
+    elif '.edu' in email:
+        return '*.edu'
+    else:
+        return 'other'
+
+
 def get_scene_id(line):
     try:
         response_after_orderid = substring_between(line, 'orders/', '" ')

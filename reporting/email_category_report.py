@@ -1,9 +1,8 @@
 #!/usr/bin/env python
 '''****************************************************************************
-FILE: file_not_found_summary.py
+FILE: email_category_report.py
 
-PURPOSE: Outputs a list of each email that committed a 404 offense, and lists
-        the number of times they committed the offense.
+PURPOSE: Outputs the number of downloads per email category.
 
 PROJECT: Land Satellites Data System Science Research and Development (LSRD)
     at the USGS EROS
@@ -20,14 +19,14 @@ import apache_log_helper as ApacheLog
 
 
 def mapper(line):
-    '''Returns user_email if it was a successful production order.'''
+    '''Returns email_category if it was a successful production order.'''
     # mapper is going to find all the lines we're
     # interested in and only return those in its output
     if not ApacheLog.is_production_order(line):
         return
     if not ApacheLog.is_404_request(line):
         return
-    return ApacheLog.get_user_email(line)
+    return ApacheLog.get_email_category(line)
 
 
 def reducer(accum, map_out):
@@ -50,46 +49,44 @@ def report(lines, start_date, end_date):
 
     Precondition: lines are from an Apache formated log file
     Postcondition: returns a dictionary
-        keys are user_emails
+        keys are email_categories
         values are number of occurrences
     Note: If a value was unable to be parsed then the value will be reported
             as 'BAD_PARSE'.
     '''
-    occurrences_per_email = {}
-    email = map(mapper, lines)
-    return reduce(reducer, email, occurrences_per_email)
+    occurrences_per_email_category = {}
+    email_date = map(mapper, lines)
+    return reduce(reducer, email_date, occurrences_per_email_category)
 
 
 def layout(data):
-    '''Will compile a report that provides total offenses per user
+    '''Will compile a report that provides total downloads per category
 
     Precondition: data is a dictionary
-        keys are user_emails
+        keys are email_categories
         values are number of occurrences
     Postcondition: returns string of each user_report separated by '\n'
-        Each user_report contains total_offenses and user_email
-        Report is sorted from most offenses to least offenses
+        Each report will contain category_name and number of occurrences
+        Report is sorted from most to least
     Note: If a value was unable to be parsed then the value will be reported
             as 'BAD_PARSE'.
     '''
-    sorted_num_of_offenses = sorted(data.iteritems(),
-                                    key=lambda (k, v): v,
-                                    reverse=True)
+    sorted_num_of_occurances = sorted(data.iteritems(),
+                                      key=lambda (k, v): v,
+                                      reverse=True)
     final_report = []
-    for item in sorted_num_of_offenses:
-        # item[0] = email, item[1] = number of occurrences
+    for item in sorted_num_of_occurances:
+        # item[0] = email_category, item[1] = number of occurrences
         final_report.append('{1} {0}'.format(item[0], item[1]))
     return '\n'.join(final_report)
 
 
 def isoformat_datetime(datetime_string):
-    '''Converts string of ISO-format variations with datetime object
+    '''
 
-    Precondition:
-        Datetime_string must be provided a subset of isoformat anything from:
-        "YYYY-MM-DD" to "YYYY-NM-DDTHH:MM:SS.SSSS"
-    Postcondition:
-        returns datetime.datetime object(missing elements are zeroed)
+    Supports: ISO-format variations with any level of time specified
+        ISO-format with only year, month, day
+        YearMonthDay with no spaces
     '''
     dt = None
     dt_formats = []

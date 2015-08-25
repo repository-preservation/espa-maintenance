@@ -88,8 +88,9 @@ def layout(data):
     Precondition: data is a dictionary
         keys are user_emails
         values are ordered dictionaries
-            The first item is the total count
-            values are number of occurrences
+            The first item value is the total count
+            After the first the key is the date and the values are
+                number of occurrences on that particular date.
     Postcondition: returns string of each user_report separated by '\n'
         Each user_report contains total_offenses and user_email
         Each user_report also contains a per day offenses
@@ -115,11 +116,13 @@ def layout(data):
 
 
 def isoformat_datetime(datetime_string):
-    '''
+    '''Converts string of ISO-format variations with datetime object
 
-    Supports: ISO-format variations with any level of time specified
-        ISO-format with only year, month, day
-        YearMonthDay with no spaces
+    Precondition:
+        Datetime_string must be provided a subset of isoformat anything from:
+        "YYYY-MM-DD" to "YYYY-NM-DDTHH:MM:SS.SSSS"
+    Postcondition:
+        returns datetime.datetime object(missing elements are zeroed)
     '''
     dt = None
     dt_formats = []
