@@ -60,38 +60,16 @@ __author__ = "Adam Dosch"
 
 import os
 import sys
-
-import MySQLdb
-
+import datetime
+import itertools
+import re
 import argparse
-
-# for mail out
 import smtplib
-
-try:
-    # Python 2.[67].x
-    from email.mime.multipart import MIMEMultipart
-except ImportError:
-    # Python 2.4.x
-    from email.MIMEMultipart import MIMEMultipart
-
-try:
-    # Python 2.[67].x
-    from email.mime.text import MIMEText
-except ImportError:
-    # Python 2.4.x
-    from email.MIMEText import MIMEText
-
-from email.Header import Header
-from email.Utils import parseaddr, formataddr
-
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
 import platform
 
-import datetime
-
-import itertools
-
-import re
+import psycopg2
 
 verbose = False
 
@@ -346,7 +324,7 @@ class OrderInfo(object):
                 
                 f.close()
                 
-            except Exception, e:
+            except Exception:
                 return False
             
             # stuff creds in a dict
@@ -360,12 +338,12 @@ class OrderInfo(object):
     
     def _connect_db(self, host, user, password, db, port=3306):
         """
-        Connect to MySQL database
+        Connect to database
         """
         try:
-            return MySQLdb.connect(host=host, port=port, user=user, passwd=password, db=db)
-        except MySQLdb.Error, e:
-            print "Could not connect to MySQL database"
+            return psycopg2.connect(host=host, port=port, user=user, passwd=password, db=db)
+        except psycopg2.Error:
+            print "Could not connect to postgres database"
             
         return False
 

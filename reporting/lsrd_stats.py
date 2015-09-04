@@ -42,7 +42,8 @@
 #                                                   DB anymore since 2.5.0 release
 # 012               11-07-2014      Adam Dosch      Updated queries to distinguish USGS vs. non-USGS better 
 #                                                   and added to distribution list
-# 013		    03-31-2015      Adam Dosch      Updating notification adddresses
+# 013		         03-31-2015      Adam Dosch      Updating notification adddresses
+# 014               09-04-15        David Hill      Minimum changes necessary to port to postgres db
 #
 #########################################################################################
 
@@ -52,41 +53,25 @@ import os
 import commands
 import sys
 import re
-
 import datetime
 import argparse
-
-# for mail out
 import smtplib
+import socket
 
-try:
-	# Python 2.[67].x
-	from email.mime.multipart import MIMEMultipart
-except ImportError:
-	# Python 2.4.x
-	from email.MIMEMultipart import MIMEMultipart
-
-try:
-	# Python 2.[67].x
-	from email.mime.text import MIMEText
-except ImportError:
-	# Python 2.4.x
-	from email.MIMEText import MIMEText
-
+from email.mime.text import MIMEText
 from email.Header import Header
 from email.Utils import parseaddr, formataddr
 
-# For mysql
-import MySQLdb
+# For db
+import psycopg2
 
 # For giveLastMonthDate()
 from dateutil.relativedelta import relativedelta
 
-# Disabling MySQL warnings
+# Disabling warnings
 from warnings import filterwarnings
-import MySQLdb as Database
 
-filterwarnings('ignore', category = Database.Warning)
+filterwarnings('ignore', category = psycopg2.Warning)
 
 global verbose
 verbose = False
@@ -94,7 +79,7 @@ verbose = False
 # E-mail Recipients/Subject
 email_from = 'espa@espa.cr.usgs.gov'
 #email_from = 'espa'
-email_to = ['jenkerson@usgs.gov','lowen@usgs.gov']
+email_to = ['jenkerson@usgs.gov','lowen@usgs.gov', 'dhill@usgs.gov']
 
 email_subject = "LSRD Monthly Statitics"
 
@@ -360,11 +345,11 @@ def giveLastMonthDate():
 
     return last_month_date.strftime("%Y-%m")
 
-# Connect to MySQL DB
+# Connect to DB
 def connect_db(host, user, password, db, port=3306):
     try:
-        return MySQLdb.connect(host=host, port=port, user=user, passwd=password, db=db)
-    except MySQLdb.Error, e:
+        return psycopg2.connect(host=host, port=port, user=user, passwd=password, db=db)
+    except psycopg2.Error, e:
         sys.stderr.write("[ERROR] %d: %s\n" % (e.args[0], e.args[1]))
         
     return False
@@ -459,7 +444,8 @@ def main():
             f.close()
             
         except Exception, e:
-            err = "Problems opening up cred file for processing, BAILING!  Password changes for '%s' didn't happen on %s." % (username, platform.node())
+            err = "Problems opening up cred file for processing, BAILING!  Password changes for '%s' didn't happen on %s.\n" % (username, socket.gethostname())
+            err = err + 'Exception:%s' % e
             send_email(email_from, email_to, email_subject + " - Error", err)
             print err
             sys.exit(1)
@@ -470,7 +456,7 @@ def main():
                 (k, v) = line.split("=")
                 creds[k] = v.strip("\n")
     else:
-        err = "DB creds file doesn't exist, BAILING!  Password changes for '%s' didn't happen on %s." % (username, platform.node())
+        err = "DB creds file doesn't exist, BAILING!  Password changes for '%s' didn't happen on %s." % (username, socket.gethostname())
         send_email(email_from, email_to, email_subject + " - Error", err)
         print err
         sys.exit(1)

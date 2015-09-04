@@ -6,7 +6,7 @@
 #
 # Description: Changes credentials supplied for username and updates configuration table
 #              in Django view in ESPA admin.  Right now it needs to run on the same host
-#              where the MySQL database lives for ESPA Django framework.
+#              where the database lives for ESPA Django framework.
 #
 #              Although this isn't perfect, you should really schedule it a week or better
 #              away from your actual password expiration.
@@ -63,7 +63,7 @@ import platform
 
 import pexpect
 
-import MySQLdb
+import psycopg2
 
 from string import digits, lowercase, uppercase
 import random
@@ -89,8 +89,6 @@ except ImportError:
 
 from email.Header import Header
 from email.Utils import parseaddr, formataddr
-
-import time
 
 import commands
 
@@ -291,14 +289,14 @@ def genpass():
         
     return str(s)
 
-def connect_db(host, user, password, db, port=3306):
+def connect_db(host, user, password, db, port=5432):
     """
-    Connecting to a MySQL database
+    Connecting to a database
     """
     
     try:
-        return MySQLdb.connect(host=host, port=port, user=user, passwd=password, db=db)
-    except MySQLdb.Error, e:
+        return psycopg2.connect(host=host, port=port, user=user, passwd=password, db=db)
+    except psycopg2.Error, e:
         sys.stderr.write("[ERROR] %d: %s\n" % (e.args[0], e.args[1]))
         
     return False
@@ -310,7 +308,7 @@ def main():
     TABLE = "ordering_configuration"
     
     #Set up option handling
-    parser = argparse.ArgumentParser(description="Changes credentials supplied for -u/--username and updated Django configuration table for ESPA admin site.  Right now it needs to run on the same host where the MySQL database lives for ESPA.  This script will also auto-update a crontab for the user running this")
+    parser = argparse.ArgumentParser(description="Changes credentials supplied for -u/--username and updated Django configuration table for ESPA admin site.  Right now it needs to run on the same host where the postgres database lives for ESPA.  This script will also auto-update a crontab for the user running this")
     
     parser.add_argument("-u", "--username", action="store", nargs=1, dest="username", choices=['espa','espadev','espatst'], help="Username to changed credentials for (e.g. [espa|espadev|espatst] )")
     parser.add_argument("-f", "--frequency", action="store", type=int, default=60, dest="frequency", help="Frequency (in days) to change the following credentials")
@@ -369,7 +367,7 @@ def main():
         sys.exit(1)
 
 
-    # Connect to MySQL DB
+    # Connect to DB
     db_conn = connect_db(host=creds["h"], user=creds["u"], password=creds["p"], db=creds["d"])
 
     if not db_conn:
