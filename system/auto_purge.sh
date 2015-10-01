@@ -2,14 +2,14 @@
 #
 # auto_purge.sh
 #
-# Author: David Hill/Adam Dosch
+# Author: Adam Dosch/David Hill
 #
 # Date: 09-20-12
 #
 # Description: Script to automatically clean up ESPA orders older than 10 days from the database and from online cache disk
 #
-# Dependencies:   Mysql running on localhost with espa schema
-#                 .my.cnf in defined USER's ~/ that contains the [client] section for auto-login to database
+# Dependencies:   postgres running on localhost with espa schema
+#                 .pgpass in defined USER's ~/ with connection info
 #                 passwordless ssh access to the landsat web server
 #                 a notification_list file in the cwd with a list of names to send email reports to
 #
@@ -49,29 +49,29 @@ reportfile="auto_purge_logs/$datestr-report.txt"
 
 if [ -z "$SKIPDBPURGE" ]; then
    echo "Creating oldorders.txt dump file for all completed orders older than 10 days"
-   mysql -e 'use espa;select orderid from ordering_order where status = "complete" and DATEDIFF(CURDATE(),completion_date) > 10' > $dumpfile
+   psql -t -c 'select orderid from ordering_order where status = "complete" and DATEDIFF(CURDATE(),completion_date) > 10' > $dumpfile
 
    echo "Purging the database"
-   mysql -e 'use espa;delete from ordering_scene where order_id in (select id from ordering_order where status = "complete" and DATEDIFF(CURDATE(),completion_date) > 10);delete from ordering_order where status = "complete" and DATEDIFF(CURDATE(),completion_date) > 10'
+   psql -t -c 'delete from ordering_scene where order_id in (select id from ordering_order where status = "complete" and DATEDIFF(CURDATE(),completion_date) > 10);delete from ordering_order where status = "complete" and DATEDIFF(CURDATE(),completion_date) > 10'
 else
    echo "Skipping purge since we passed in custom dumpfile"
 fi
 
 # gather metrics to report
-orders_placed_today=`mysql -N -e 'use espa;select count(*) from ordering_order where order_date >= now() - INTERVAL 1 DAY';`
-orders_complete_today=`mysql -N -e 'use espa;select count(*) from ordering_order where completion_date >= now() - INTERVAL 1 DAY';`
+orders_placed_today=`psql -t -c 'select count(*) from ordering_order where order_date >= now() - INTERVAL 1 DAY';`
+orders_complete_today=`psql -t -c 'select count(*) from ordering_order where completion_date >= now() - INTERVAL 1 DAY';`
 
-orders_placed_week=`mysql -N -e 'use espa;select count(*) from ordering_order where order_date >= now() - INTERVAL 7 DAY';`
-orders_complete_week=`mysql -N -e 'use espa;select count(*) from ordering_order where completion_date >= now() - INTERVAL 7 DAY';`
+orders_placed_week=`psql -t -c 'select count(*) from ordering_order where order_date >= now() - INTERVAL 7 DAY';`
+orders_complete_week=`psql -t -c 'select count(*) from ordering_order where completion_date >= now() - INTERVAL 7 DAY';`
 
-scenes_ordered_today=`mysql -N -e 'use espa;select count(s.name) from ordering_order o, ordering_scene s  where o.order_date >= now() - INTERVAL 1 DAY and o.id = s.order_id';`
-scenes_complete_today=`mysql -N -e 'use espa;select count(s.name) from ordering_scene s  where s.completion_date >= now() - INTERVAL 1 DAY';`
+scenes_ordered_today=`psql -t -c 'select count(s.name) from ordering_order o, ordering_scene s  where o.order_date >= now() - INTERVAL 1 DAY and o.id = s.order_id';`
+scenes_complete_today=`psql -t -c 'select count(s.name) from ordering_scene s  where s.completion_date >= now() - INTERVAL 1 DAY';`
  
-scenes_ordered_week=`mysql -N -e 'use espa;select count(s.name) from ordering_order o, ordering_scene s  where o.order_date >= now() - INTERVAL 7 DAY and o.id = s.order_id';`
-scenes_complete_week=`mysql -N -e 'use espa;select count(s.name) from ordering_scene s  where s.completion_date >= now() - INTERVAL 7 DAY';`
+scenes_ordered_week=`psql -t -c 'select count(s.name) from ordering_order o, ordering_scene s  where o.order_date >= now() - INTERVAL 7 DAY and o.id = s.order_id';`
+scenes_complete_week=`psql -t -c 'select count(s.name) from ordering_scene s  where s.completion_date >= now() - INTERVAL 7 DAY';`
 
-open_orders=`mysql -N -e 'use espa;select count(*) from ordering_order where status = "ordered"';`
-open_scenes=`mysql -N -e 'use espa;select count(s.name) from ordering_scene s where s.status in ("onorder", "oncache", "queued", "processing")';`
+open_orders=`psql -t -c 'select count(*) from ordering_order where status = "ordered"';`
+open_scenes=`psql -t -c 'select count(s.name) from ordering_scene s where s.status in ("onorder", "oncache", "queued", "processing")';`
 
 disk_usage_before=`ssh -q ${USER}@${DISTRIBUTIONHOST} ${DF_CMD} $ORDERPATH`
 
