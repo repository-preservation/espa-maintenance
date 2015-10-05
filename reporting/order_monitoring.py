@@ -68,7 +68,7 @@ import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 import platform
-
+import traceback
 import psycopg2
 
 verbose = False
@@ -127,11 +127,6 @@ class OrderStatusReport(object):
             'unavailablescenes_espastatus': 'unavailable',
             'unavailablescenes_titleurl': "https://espa.cr.usgs.gov/admin/ordering/scene/?status__exact=unavailable", # Don't use this yet, but could hyper-link title if we wanted
             
-            'orderinfo': "Order Information",
-            'orderinfo_headings': [],
-            'orderinfo_url': '',
-            'orderinfo_espastatus': '',
-            'orderinfo_titleurl': "https://espa.cr.usgs.gov/admin/", # Don't use this yet, but could hyper-link title if we wanted
 
             'runtimeinfo': "Runtime Information",
             'runtimeinfo_headings': [],
@@ -154,10 +149,10 @@ class OrderStatusReport(object):
         
         # Create table and title for passed in section
         # - if orderinfo or runtimeinfo, don't include record Count -- sure there's a more elegant way to do this
-        if monitorType in ['orderinfo', 'runtimeinfo']:
-            section = """<table border=1 style="font-size:12px;color:#3a657a;border-width:1px;width:80%%;border-color:#729ea5;border-collapse:collapse;"><tr style="background-color:#dcdcdc;border-width:0px;"><th style="font-size:16px;background-color:#3a657a;border-width:1px;padding:8px;border-style:solid;border-color:#729ea5;text-align:left;color:#e8e683;font-weight:bold;">%s </th></tr>""" % (sectionLayouts[monitorType])
-        else:
-                        section = """<table border=1 style="font-size:12px;color:#3a657a;border-width:1px;width:80%%;border-color:#729ea5;border-collapse:collapse;"><tr style="background-color:#dcdcdc;border-width:0px;"><th style="font-size:16px;background-color:#3a657a;border-width:1px;padding:8px;border-style:solid;border-color:#729ea5;text-align:left;color:#e8e683;font-weight:bold;">%s (%s)</th></tr>""" % (sectionLayouts[monitorType], recCount)
+        #if monitorType in ['orderinfo', 'runtimeinfo']:
+        #    section = """<table border=1 style="font-size:12px;color:#3a657a;border-width:1px;width:80%%;border-color:#729ea5;border-collapse:collapse;"><tr style="background-color:#dcdcdc;border-width:0px;"><th style="font-size:16px;background-color:#3a657a;border-width:1px;padding:8px;border-style:solid;border-color:#729ea5;text-align:left;color:#e8e683;font-weight:bold;">%s </th></tr>""" % (sectionLayouts[monitorType])
+        #else:
+        section = """<table border=1 style="font-size:12px;color:#3a657a;border-width:1px;width:80%%;border-color:#729ea5;border-collapse:collapse;"><tr style="background-color:#dcdcdc;border-width:0px;"><th style="font-size:16px;background-color:#3a657a;border-width:1px;padding:8px;border-style:solid;border-color:#729ea5;text-align:left;color:#e8e683;font-weight:bold;">%s (%s)</th></tr>""" % (sectionLayouts[monitorType], recCount)
         # Lets generate section table headings
         section += """<tr style="background-color:#dcdcdc;">"""
         
@@ -265,7 +260,7 @@ class OrderInfo(object):
     def __init__(self, monitorType):
         
         # Order monitoring types
-        types = ['failedscenes', 'unavailablescenes', 'onorderscenes', 'orderinfo', 'runtimeinfo']
+        types = ['failedscenes', 'unavailablescenes', 'onorderscenes', 'runtimeinfo']
         
         # DB credential dict initialization
         self.creds = {}
@@ -336,12 +331,13 @@ class OrderInfo(object):
         else:
             return False
     
-    def _connect_db(self, host, user, password, db, port=3306):
+    def _connect_db(self, host, user, password, db, port=5432):
         """
         Connect to database
         """
         try:
-            return psycopg2.connect(host=host, port=port, user=user, passwd=password, db=db)
+            #return psycopg2.connect(host=host, port=port, user=user, passwd=password, db=db)
+            return psycopg2.connect(host=host, port=port, user=user, password=password)
         except psycopg2.Error:
             print "Could not connect to postgres database"
             
@@ -369,22 +365,22 @@ class OrderInfo(object):
         
         # Match monitorType and do set proper query
         if self.monitorType == "failedscenes":
-            sql = "select ordering_order.order_date, ordering_order.id, ordering_order.orderid, ordering_order.order_source, count(ordering_scene.name) as error_scenes from ordering_scene left join ordering_order on ( ordering_order.id = ordering_scene.order_id ) where ordering_scene.status = 'Error' group by ordering_order.order_date desc " + recordlimit + ";"
+            sql = "select ordering_order.order_date, ordering_order.id, ordering_order.orderid, ordering_order.order_source, count(ordering_scene.name) as error_scenes from ordering_scene left join ordering_order on ( ordering_order.id = ordering_scene.order_id ) where ordering_scene.status = 'Error' group by ordering_order.order_date, ordering_order.id, ordering_order.orderid, ordering_order.order_source  " + recordlimit + ";"
             hitDB = True
         
         if self.monitorType == "unavailablescenes":
-            sql = "select ordering_order.order_date, ordering_order.id, ordering_order.orderid, ordering_order.order_source, count(ordering_scene.name) as unavail_scenes, ordering_scene.note from ordering_scene left join ordering_order on ( ordering_order.id = ordering_scene.order_id ) where ordering_scene.status = 'unavailable' group by ordering_order.order_date desc " + recordlimit + ";"
+            sql = "select ordering_order.order_date, ordering_order.id, ordering_order.orderid, ordering_order.order_source, count(ordering_scene.name) as unavail_scenes, ordering_scene.note from ordering_scene left join ordering_order on ( ordering_order.id = ordering_scene.order_id ) where ordering_scene.status = 'unavailable' group by ordering_order.order_date, ordering_order.id, ordering_order.orderid, ordering_order.order_source, ordering_scene.note  " + recordlimit + ";"
             hitDB = True
         
         if self.monitorType == "onorderscenes":
-            sql = "select ordering_order.order_date, ordering_order.id, ordering_order.orderid, ordering_order.order_source, count(ordering_scene.name) as onorder_scenes from ordering_scene left join ordering_order on ( ordering_order.id = ordering_scene.order_id ) where ordering_scene.status = 'onorder' group by ordering_order.order_date desc " + recordlimit + ";"
+            sql = "select ordering_order.order_date, ordering_order.id, ordering_order.orderid, ordering_order.order_source, count(ordering_scene.name) as onorder_scenes from ordering_scene left join ordering_order on ( ordering_order.id = ordering_scene.order_id ) where ordering_scene.status = 'onorder' group by ordering_order.order_date, ordering_order.id, ordering_order.orderid, ordering_order.order_source  " + recordlimit + ";"
             hitDB = True
         
-        if self.monitorType == "orderinfo":
-            rows = tuple()
+#        if self.monitorType == "orderinfo":
+#            rows = tuple()
             
             # Order state counts
-            sql = """select "<b>Today's Total Orders(s)</b>", count(orderid) from ordering_order where order_date between '%s 00:00:00' and '%s 23:59:59' union all select "<b>Today's Partial Order(s)</b>", count(orderid) from ordering_order where order_date between '%s 00:00:00' and '%s 23:59:59' and status = 'partial' union all select "<b>Today's Completed Order(s)</b>", count(orderid) from ordering_order where order_date between '%s 00:00:00' and '%s 23:59:59' and status = 'complete' union all select "<b>Today's Ordered Order(s)</b>", count(orderid) from ordering_order where order_date between '%s 00:00:00' and '%s 23:59:59' and status = 'ordered'""" % (self.todays_date, self.todays_date, self.todays_date, self.todays_date, self.todays_date, self.todays_date, self.todays_date, self.todays_date)
+            sql = """select count(*) "<b>Today's Total Orders(s)</b>" from ordering_order where order_date between '%s 00:00:00' and '%s 23:59:59' union all select count(*) "<b>Today's Partial Order(s)</b>" from ordering_order where order_date between '%s 00:00:00' and '%s 23:59:59' and status = 'partial' union all select count(orderid) "<b>Today's Completed Order(s)</b>" from ordering_order where order_date between '%s 00:00:00' and '%s 23:59:59' and status = 'complete' union all select count(orderid) "<b>Today's Ordered Order(s)</b>" from ordering_order where order_date between '%s 00:00:00' and '%s 23:59:59' and status = 'ordered'""" % (self.todays_date, self.todays_date, self.todays_date, self.todays_date, self.todays_date, self.todays_date, self.todays_date, self.todays_date)
             hitDB = True
 
             
@@ -427,10 +423,15 @@ class OrderInfo(object):
             
             try:
                 cursor.execute(sql)
-                    
-                rows = rows + cursor.fetchall()
+                #print('Rows:{0}'.format(rows))   
+                results = cursor.fetchall()
+                #print('Results:{0}'.format(results)) 
+               
+                 
+                rows = rows + tuple(results)
             
             except Exception, e:
+                traceback.print_exc()
                 print "Exception: ", e
                 sys.exit(1)
         
@@ -492,7 +493,7 @@ def main():
     parser.add_argument("-f", "--failed-scenes", action="store_true", dest="failedscenes", help="Report on any failed scenes for orders within ESPA")
     parser.add_argument("-u", "--unavailable-scenes", action="store_true", dest="unavailablescenes", help="Report on any unavailable scenes for orders within ESPA")
     parser.add_argument("-o", "--onorder-scenes", action="store_true", dest="onorderscenes", help="Username to changed credentials for (e.g. [espa|esapdev] )")
-    parser.add_argument("-s", "--order-info", action="store_true", dest="orderinfo", help="Provide overall statistics for submitted orders on queried interval")
+    #parser.add_argument("-s", "--order-info", action="store_true", dest="orderinfo", help="Provide overall statistics for submitted orders on queried interval")
     parser.add_argument("-e", "--email-to-override", type=str, action="store", dest="email_to_override", nargs=1, help="Override default e-mail-to address.  Useful for testing or one-off report running.")
     parser.add_argument("-m", "--mark-todays-orders", action="store_true", dest="marktodaysorders", default=False, help="Will italicize the current day order's order date field to visually pick it out for analysis")
     parser.add_argument("-d", "--display-limit", type=int, action='store', nargs=1, dest="displaylimit", default=False, help="Controls how many of the overall results for each section to display in the e-mail table.  Helps with size and length of e-mail report.")
@@ -530,9 +531,9 @@ def main():
         i = OrderInfo("runtimeinfo")
         r.createReportSection("runtimeinfo", i.getResults())
     
-    if args.orderinfo == True:
-        i = OrderInfo("orderinfo")
-        r.createReportSection("orderinfo", i.getResults())
+    #if args.orderinfo == True:
+    #    i = OrderInfo("orderinfo")
+    #    r.createReportSection("orderinfo", i.getResults())
     
     if args.failedscenes == True:
         i = OrderInfo("failedscenes")
