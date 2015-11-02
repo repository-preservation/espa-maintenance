@@ -57,6 +57,7 @@ import datetime
 import argparse
 import smtplib
 import socket
+import traceback
 
 from email.mime.text import MIMEText
 from email.Header import Header
@@ -71,7 +72,7 @@ from dateutil.relativedelta import relativedelta
 # Disabling warnings
 from warnings import filterwarnings
 
-filterwarnings('ignore', category = psycopg2.Warning)
+#filterwarnings('ignore', category = psycopg2.Warning)
 
 global verbose
 verbose = False
@@ -346,11 +347,12 @@ def giveLastMonthDate():
     return last_month_date.strftime("%Y-%m")
 
 # Connect to DB
-def connect_db(host, user, password, db, port=3306):
+def connect_db(host, user, password, db, port=5432):
     try:
-        return psycopg2.connect(host=host, port=port, user=user, passwd=password, db=db)
+        return psycopg2.connect(host=host, port=port, user=user, password=password, database=db)
     except psycopg2.Error, e:
-        sys.stderr.write("[ERROR] %d: %s\n" % (e.args[0], e.args[1]))
+        traceback.print_exc(file=sys.stderr)
+        #sys.stderr.write("[ERROR]: {0}\n".format(e.message))
         
     return False
 
@@ -492,7 +494,7 @@ def main():
 	# Total scenes ordered in a month
 	#----------------------------------------------
     
-	SQL = "select COUNT(*) from ordering_scene inner join ordering_order on ordering_scene.order_id = ordering_order.id where ordering_order.order_date like \'" + giveLastMonthDate() + "-%\' and ordering_order.order_source = '" + source + "'"
+	SQL = "select COUNT(*) from ordering_scene inner join ordering_order on ordering_scene.order_id = ordering_order.id where ordering_order.order_date::text like \'" + giveLastMonthDate() + "-%\' and ordering_order.order_source = '" + source + "'"
     
 	cursor.execute(SQL)
 	
@@ -513,7 +515,7 @@ def main():
 	# Number of total scenes ordered in a month are USGS
 	#----------------------------------------------
     
-	SQL = "select COUNT(*) as usgs_scene_orders from ordering_scene inner join  ordering_order on ordering_scene.order_id = ordering_order.id where ordering_order.order_date like \'" + giveLastMonthDate() + "-%\' and ordering_order.orderid like \'%@usgs.gov-%\' and ordering_order.order_source = '" + source + "';"
+	SQL = "select COUNT(*) as usgs_scene_orders from ordering_scene inner join  ordering_order on ordering_scene.order_id = ordering_order.id where ordering_order.order_date::text like \'" + giveLastMonthDate() + "-%\' and ordering_order.orderid like \'%@usgs.gov-%\' and ordering_order.order_source = '" + source + "';"
 	
 	cursor.execute(SQL)
 	
@@ -534,7 +536,7 @@ def main():
 	# Number of total scenes ordered in a month are non-USGS
 	#----------------------------------------------
     
-	SQL = "select COUNT(*) as usgs_scene_orders from ordering_scene inner join  ordering_order on ordering_scene.order_id = ordering_order.id where ordering_order.order_date like \'" + giveLastMonthDate() + "-%\' and ordering_order.orderid not like \'%@usgs.gov-%\' and ordering_order.order_source = '" + source + "';"
+	SQL = "select COUNT(*) as usgs_scene_orders from ordering_scene inner join  ordering_order on ordering_scene.order_id = ordering_order.id where ordering_order.order_date::text like \'" + giveLastMonthDate() + "-%\' and ordering_order.orderid not like \'%@usgs.gov-%\' and ordering_order.order_source = '" + source + "';"
     
 	cursor.execute(SQL)
 	
@@ -563,7 +565,7 @@ def main():
 	# Total orders placed in a given month
 	#----------------------------------------------
     
-	SQL = "select COUNT(*) from ordering_order where order_date like \'" + giveLastMonthDate() + "-%\' and ordering_order.order_source = '" + source + "'"
+	SQL = "select COUNT(*) from ordering_order where order_date::text like \'" + giveLastMonthDate() + "-%\' and ordering_order.order_source = '" + source + "'"
        
 	cursor.execute(SQL)
 	
@@ -584,7 +586,7 @@ def main():
 	# Number of total orders placed in a month are USGS
 	#----------------------------------------------
     
-	SQL = "select COUNT(*) from ordering_order where order_date like \'" + giveLastMonthDate() + "-%\' and orderid like \'%@usgs.gov-%\' and ordering_order.order_source = '" + source + "'"
+	SQL = "select COUNT(*) from ordering_order where order_date::text like \'" + giveLastMonthDate() + "-%\' and orderid like \'%@usgs.gov-%\' and ordering_order.order_source = '" + source + "'"
 	
 	cursor.execute(SQL)
 	
@@ -605,7 +607,7 @@ def main():
 	# Number of total orders placed in a month are non-USGS
 	#----------------------------------------------
 	
-	SQL = "select COUNT(*) from ordering_order where order_date like \'" + giveLastMonthDate() + "-%\' and orderid not like \'%@usgs.gov-%\' and ordering_order.order_source = '" + source + "'"
+	SQL = "select COUNT(*) from ordering_order where order_date::text like \'" + giveLastMonthDate() + "-%\' and orderid not like \'%@usgs.gov-%\' and ordering_order.order_source = '" + source + "'"
 	
 	cursor.execute(SQL)
 	
@@ -626,7 +628,8 @@ def main():
 	# Total number of unique on-demand users 
 	#----------------------------------------------
 	
-	SQL = "select COUNT(DISTINCT(substring_index(orderid,'-',1))) from ordering_order where order_date like \'" + giveLastMonthDate() + "-%\' and  ordering_order.order_source = '" + source + "'"
+	#SQL = "select COUNT(DISTINCT(substring_index(orderid,'-',1))) from ordering_order where order_date::text like \'" + giveLastMonthDate() + "-%\' and  ordering_order.order_source = '" + source + "'"
+        SQL = "select COUNT(DISTINCT(split_part(orderid,'-',1))) from ordering_order where order_date::text like \'" + giveLastMonthDate() + "-%\' and  ordering_order.order_source = '" + source + "'"
 	
 	cursor.execute(SQL)
     

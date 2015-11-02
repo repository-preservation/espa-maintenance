@@ -59,6 +59,8 @@ __author__ = "Adam Dosch"
 import os
 import sys
 
+import traceback
+
 import platform
 
 import pexpect
@@ -219,6 +221,8 @@ def change_password(user, current_passwd, new_passwd, command):
         # Send our current password --- since that's what passwd will ask us for first
         child.sendline(current_passwd)
     except pexpect.ExceptionPexpect, e:
+        print("Failed at initial password change step")
+        traceback.print_exc()
         return False
     
     # We expect to be asked for our new pasword, lets offer it up
@@ -226,6 +230,8 @@ def change_password(user, current_passwd, new_passwd, command):
         child.expect('(New UNIX|New) [Pp]assword: ')
         child.sendline(new_passwd)
     except pexpect.ExceptionPexpect, e:
+        print("Failed at New UNIX|New)")
+        traceback.print_exc()
         return False
     
     # We expect to be asked to re-enter our password, lets offer it up again
@@ -233,16 +239,20 @@ def change_password(user, current_passwd, new_passwd, command):
         child.expect('([Rr]etype new UNIX|[Rr]e-enter new|[Rr]etype new) [Pp]assword:')
         child.sendline(new_passwd)
     except pexpect.ExceptionPexpect, e:
+        print("Failed at retyping password")
+        traceback.print_exc()
         return False
     
     # Since we cant rely on retval of 'passwd', if we don't see some sort of 'successfully changed/updated' message, then we assume that it failed
     try:
         r = child.expect([pexpect.TIMEOUT,'.*(updated)* successfully( changed|\.)*'])
     except pexpect.ExceptionPexpect, e:
+        print("Failed at password change confirmation")
+        traceback.print_exc()
         return False
         
     if r == 0:
-        # Failure --- fucked, should be 1, NOT 0
+        # Failure --- should be 1, NOT 0
         if verbose:
             print "Password change FAILED!"
             print "---------debug---------"
@@ -253,12 +263,13 @@ def change_password(user, current_passwd, new_passwd, command):
         return False
 
     if r == 1:
-        # Success --- fucked, should be 0, NOT 1
+        # Success --- should be 0, NOT 1
         child.sendline('exit')
         
         return True
 
     # Always return false if we don't trigger any logic
+    print("Failed at the end since it didn't return true")
     return False
 
 def containsAny(str, set):
@@ -295,9 +306,9 @@ def connect_db(host, user, password, db, port=5432):
     """
     
     try:
-        return psycopg2.connect(host=host, port=port, user=user, passwd=password, db=db)
+        return psycopg2.connect(host=host, port=port, user=user, password=password)
     except psycopg2.Error, e:
-        sys.stderr.write("[ERROR] %d: %s\n" % (e.args[0], e.args[1]))
+        raise Exception(e)
         
     return False
 
@@ -381,7 +392,8 @@ def main():
  
     # Let's nab our current password from the database    
     try:
-        sql = "select oc.value as value from " + TABLE + " as oc where oc.key like 'land%password'"
+        #sql = "select oc.value as value from " + TABLE + " as oc where oc.key like 'land%password'"
+        sql = "select value from ordering_configuration where key = 'landsatds.password'"
         cursor.execute(sql)
         
         rows = cursor.fetchall()
@@ -421,7 +433,9 @@ def main():
         
         # Successful *NIX password change, lets update DB
         try:
-            sql = "update " + TABLE + " as oc set oc.value = '" + np + "' where oc.key like 'land%.password'"
+            sql = "update ordering_configuration set value = '{0}' where key = '{1}'".format(np, 'landsatds.password')
+
+            #sql = "update " + TABLE + " as oc set oc.value = '" + np + "' where oc.key like 'land%.password'"
             
             cursor.execute(sql)
             
