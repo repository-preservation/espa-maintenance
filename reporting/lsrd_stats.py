@@ -82,7 +82,7 @@ email_from = 'espa@espa.cr.usgs.gov'
 #email_from = 'espa'
 email_to = ['jenkerson@usgs.gov','lowen@usgs.gov', 'dhill@usgs.gov']
 
-email_subject = "LSRD Monthly Statitics"
+email_subject = "LSRD Monthly Statistics"
 
 # Result files to process from pig runs
 # - NOTE: there are other generated statistics so if we
