@@ -35,17 +35,19 @@ def get_cfg(user):
 
     :return: dict
     """
+    fields = ['dbhost',
+              'db',
+              'dbuser',
+              'dbpass',
+              'dbport']
+
     cfg_info = {}
     with open(CFG_NFO.format(user), 'r') as f:
-        next(f)
         for line in f:
+            spl = line.split('=')
 
-            try:
-                key, val = line.split('=')
-            except:
-                continue
-
-            cfg_info[key] = val.rstrip()
+            if spl[0] in fields:
+                cfg_info[spl[0]] = spl[1].rstrip()
 
     return cfg_info
 
