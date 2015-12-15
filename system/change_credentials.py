@@ -1,6 +1,4 @@
 #!/usr/bin/env python
-import smtplib
-from email.mime.text import MIMEText
 import subprocess
 import argparse
 import sys
@@ -13,9 +11,10 @@ import re
 
 import pexpect
 from dbconnect import DBConnect
+from utils import get_cfg
+from utils import send_email
 
 
-CFG_NFO = "/home/{0}/.cfgnfo"
 FILE_PATH = os.path.realpath(__file__)
 
 # This info should come from a config file
@@ -26,57 +25,6 @@ EMAIL_SUBJECT = "LSRD - Auto-credential {0}"
 
 class CredentialException(Exception):
     pass
-
-
-def get_cfg(user):
-    """
-    Retrieve the configuration information from the .cfgnfo file
-    Will need to be made more robust if the file changes
-
-    :return: dict
-    """
-    fields = ['dbhost',
-              'db',
-              'dbuser',
-              'dbpass',
-              'dbport']
-
-    cfg_info = {}
-    with open(CFG_NFO.format(user), 'r') as f:
-        for line in f:
-            spl = line.split('=')
-
-            if spl[0] in fields:
-                cfg_info[spl[0]] = spl[1].rstrip()
-
-    return cfg_info
-
-
-def send_email(sender, recipient, subject, body):
-    """
-    Send out an email to give notice of success or failure
-
-    :param sender: who the email is from
-    :type sender: string
-    :param recipient: list of recipients of the email
-    :type recipient: list
-    :param subject: subject line of the email
-    :type subject: string
-    :param body: success or failure message to be passed
-    :type body: string
-    :return:
-    """
-    # This does not need to be anything fancy as it is used internally,
-    # as long as we can see if the script succeeded or where it failed
-    # at, then we are good to go
-    msg = MIMEText(body)
-    msg['Subject'] = subject
-    msg['From'] = sender
-    msg['To'] = ', '.join(recipient)
-
-    smtp = smtplib.SMTP("localhost")
-    smtp.sendmail(sender, recipient, msg.as_string())
-    smtp.quit()
 
 
 def arg_parser():
@@ -176,9 +124,6 @@ def update_cron(user, freq=60):
     :type user: string
     :param freq: number days to set the next cron job for
     :type freq: int
-    :param backdate: change the password ahead of time
-    :type backdate: bool
-    :return:
     """
     chron_file = 'tmp'
 
@@ -220,8 +165,6 @@ def change_pass(old_pass):
 
     :param old_pass: previous password
     :type old_pass: string
-    :param new_pass: new password
-    :type new_pass: string
     :return: exception message if fail
     """
     child = pexpect.spawn('passwd')
