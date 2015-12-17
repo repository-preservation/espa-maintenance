@@ -5,18 +5,24 @@ import calendar
 import argparse
 import os
 import subprocess
+import traceback
+import getpass
 
 from dbconnect import DBConnect
-from utils import get_cfg
-from utils import send_email
+from utils import get_cfg, send_email
 
 
 FILE_PATH = os.path.realpath(__file__)
+LOG_FILE = '/data/logs/espa.cr.usgs.gov-access_log.1'
 
 # This info should come from a config file
 EMAIL_FROM = 'espa@espa.cr.usgs.gov'
+# EMAIL_TO = ['jenkerson@usgs.gov', 'lowen@usgs.gov', 'dhill@usgs.gov', 'klsmith@usgs.gov']
 EMAIL_TO = ['klsmith@usgs.gov']
-EMAIL_SUBJECT = 'LSRD Monthly Statistics'
+DEBUG_EMAIL_TO = ['klsmith@usgs.gov']
+EMAIL_SUBJECT = 'LSRD ESPA Metrics for {0} to {1}'
+
+ORDER_SOURCES = ('EE', 'ESPA')
 
 
 def arg_parser():
@@ -68,7 +74,7 @@ def setup_cron():
         print('Error creating cron job')
 
 
-def download_info(info):
+def download_boiler(info):
     """
     Boiler plate text for On-Demand Info for downloads
 
@@ -85,7 +91,7 @@ def download_info(info):
     return boiler.format(**info)
 
 
-def ondemand_info(info):
+def ondemand_boiler(info):
     """
     Boiler plate text for On-Demand Info for orders
 
@@ -107,7 +113,7 @@ def ondemand_info(info):
     return boiler.format(**info)
 
 
-def prod_info(info):
+def prod_boiler(info):
     """
     Boiler plate text for On-Demand Info for products breakdown
 
@@ -330,8 +336,52 @@ def date_range():
     return begin_date, end_date
 
 
+def proc_daterange(cfg, begin, end):
+    try:
+        pass
+    except Exception:
+        msg = str(traceback.format_exc())
+    finally:
+        pass
+
+
+def proc_prevmonth(cfg):
+    msg = ''
+    try:
+        rng = date_range()
+        infodict = calc_dlinfo(LOG_FILE)
+        msg = download_boiler(infodict)
+
+        for source in ORDER_SOURCES:
+            infodict = db_orderstats(source, rng[0], rng[1], cfg)
+            infodict.update(db_scenestats(source, rng[0], rng[1], cfg))
+            infodict['who'] = source.upper()
+            msg += ondemand_boiler(infodict)
+
+        infodict = db_prodinfo(cfg, rng[0], rng[1])
+        msg += prod_boiler(infodict)
+
+    except Exception:
+        exc_msg = str(traceback.format_exc()) + '\n\n' + msg
+        send_email(EMAIL_FROM, DEBUG_EMAIL_TO, EMAIL_SUBJECT, exc_msg)
+        msg = 'There was an error with statistics processing.\n' \
+              'The following has been notified of the error: {0}.'.format(', '.join(DEBUG_EMAIL_TO))
+    finally:
+        send_email(EMAIL_FROM, EMAIL_TO, EMAIL_SUBJECT, msg)
+
+
 def run():
-    pass
+    opts = arg_parser()
+    cfg = get_cfg(getpass.getuser())
+
+    if opts.cron:
+        setup_cron()
+
+    if opts.daterange:
+        pass
+
+    if opts.prev:
+        proc_prevmonth(cfg)
 
 
 if __name__ == '__main__':
