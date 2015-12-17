@@ -11,8 +11,7 @@ import re
 
 import pexpect
 from dbconnect import DBConnect
-from utils import get_cfg
-from utils import send_email
+from utils import get_cfg, send_email
 
 
 FILE_PATH = os.path.realpath(__file__)
