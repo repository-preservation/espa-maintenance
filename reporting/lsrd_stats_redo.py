@@ -170,7 +170,7 @@ def db_prodinfo(dbinfo, begin_date, end_date):
               JOIN ordering_scene s ON s.order_id = o.id
               WHERE LENGTH(o.product_options) > 0
               AND o.order_date >= '{0}'
-              AND o.order_date < '{1}';''')
+              AND o.order_date <= '{1}';''')
 
     infodict = {'sr': 0,
                 'therm': 0,
@@ -245,7 +245,7 @@ def db_scenestats(source, begin_date, end_date, dbinfo):
               from ordering_scene
               inner join ordering_order on ordering_scene.order_id = ordering_order.id
               where ordering_order.order_date >= '{0}'
-              and ordering_order.order_date < '{1}'
+              and ordering_order.order_date <= '{1}'
               and ordering_order.orderid {2}like '%@usgs.gov-%'
               and ordering_order.order_source = '{2}';''')
 
@@ -288,7 +288,7 @@ def db_orderstats(source, begin_date, end_date, dbinfo):
     sql = ('''select COUNT(*)
               from ordering_order
               where order_date >= '{0}'
-              and order_date < '{1}'
+              and order_date <= '{1}'
               and orderid {2}like '%@usgs.gov-%'
               and order_source = '{3}';''')
 
