@@ -397,9 +397,6 @@ def run():
     if opts.cron:
         setup_cron()
 
-    # if opts.daterange:
-    #     pass
-
     if opts.prev:
         proc_prevmonth(cfg)
 
