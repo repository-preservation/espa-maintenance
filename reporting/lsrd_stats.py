@@ -47,7 +47,7 @@ def setup_cron():
 
     chron_file = 'tmp'
 
-    cron_str = '00 06 1 * * /usr/local/bin/python {1} -p'.format(FILE_PATH)
+    cron_str = '00 06 1 * * /usr/local/bin/python {0} -p'.format(FILE_PATH)
 
     crons = subprocess.check_output(['crontab', '-l']).split('\n')
 

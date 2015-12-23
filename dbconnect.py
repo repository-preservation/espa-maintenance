@@ -25,7 +25,7 @@ class DBConnect(object):
         """
         Used for enacting some change on a database
         """
-        if not self.verify_type(params):
+        if params and not self.verify_type(params):
             params = self.conv_totuple(params)
 
         try:
@@ -42,7 +42,7 @@ class DBConnect(object):
         Results are stored in self.fetcharr to enable more flexible use
         Each row is stored as a tuple in the list array
         """
-        if not self.verify_type(params):
+        if params and not self.verify_type(params):
             params = self.conv_totuple(params)
 
         try:

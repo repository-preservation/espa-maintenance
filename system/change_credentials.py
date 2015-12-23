@@ -17,8 +17,6 @@ from utils import get_cfg, send_email, backup_cron, get_email_addr
 FILE_PATH = os.path.realpath(__file__)
 
 # This info should come from a config file
-EMAIL_FROM = 'espa@espa.cr.usgs.gov'
-EMAIL_TO = ['klsmith@usgs.gov']
 EMAIL_SUBJECT = "LSRD - Auto-credential {0}"
 
 
@@ -91,10 +89,13 @@ def update_db(passwrd, db_info):
     :type db_info: dict
     :return: exception message
     """
-    sql_str = "update ordering_configuration set value = '%s' where key = 'landsatds.password'"
-    with DBConnect(**db_info) as db:
-        db.execute(sql_str, (passwrd,))
-        db.commit()
+    sql_str = "update ordering_configuration set value = %s where key = 'landsatds.password'"
+    try:
+        with DBConnect(**db_info) as db:
+            db.execute(sql_str, passwrd)
+            db.commit()
+    except Exception:
+        raise CredentialException('Error updating the database with the new password')
 
 
 def current_pass(db_info):
@@ -126,12 +127,12 @@ def update_cron(user, freq=60):
     """
     backup_cron()
 
-    cron_file = 'tmp'
+    cron_file = 'cron.tmp'
 
     new_date = datetime.date.today() + datetime.timedelta(days=freq)
 
-    cron_str = "00 05 {0} {1} * /usr/local/bin/python {2} -u {3} -f {4}".format(new_date.month,
-                                                                                new_date.day,
+    cron_str = "00 06 {0} {1} * /usr/local/bin/python {2} -u {3} -f {4}".format(new_date.day,
+                                                                                new_date.month,
                                                                                 FILE_PATH,
                                                                                 user,
                                                                                 freq)
@@ -213,9 +214,13 @@ def run():
     # is sent out in the email
     msg = 'General Failure'
     success = 'Failure'
+
+    db_info = get_cfg()['config']
+    reciever, sender = get_addresses(db_info)
+
     try:
         username, freq = arg_parser()
-        db_info = get_cfg()['config']
+
         old_pass = current_pass(db_info)
         new_pass = change_pass(old_pass)
         update_db(new_pass, db_info)
@@ -225,7 +230,7 @@ def run():
     except Exception:
         msg = str(traceback.format_exc())
     finally:
-        send_email(EMAIL_FROM, EMAIL_TO, EMAIL_SUBJECT.format(success), msg)
+        send_email(sender, reciever, EMAIL_SUBJECT.format(success), msg)
 
 
 if __name__ == '__main__':
