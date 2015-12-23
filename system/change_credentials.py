@@ -156,9 +156,11 @@ def update_cron(user, freq=60):
     with open(cron_file, 'w') as f:
         f.write('\n'.join(crons) + '\n')
 
-    msg = subprocess.check_output(['crontab', cron_file, '&&', 'rm', cron_file])
+    msg = subprocess.check_output(['crontab', cron_file])
     if 'errors' in msg:
         raise CredentialException('Password Updated, but failed crontab update:\n{0}'.format(msg))
+    else:
+        subprocess.call(['rm', cron_file])
 
 
 def change_pass(old_pass):

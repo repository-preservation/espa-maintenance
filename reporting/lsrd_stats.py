@@ -45,7 +45,7 @@ def setup_cron():
     """
     backup_cron()
 
-    chron_file = 'tmp'
+    cron_file = 'tmp'
 
     cron_str = '00 06 1 * * /usr/local/bin/python {0} -p'.format(FILE_PATH)
 
@@ -63,12 +63,14 @@ def setup_cron():
 
     crons.extend(add)
 
-    with open(chron_file, 'w') as f:
+    with open(cron_file, 'w') as f:
         f.write('\n'.join(crons) + '\n')
 
-    msg = subprocess.check_output(['crontab', chron_file, '&&', 'rm', chron_file])
+    msg = subprocess.check_output(['crontab', cron_file])
     if 'errors' in msg:
         print('Error creating cron job')
+    else:
+        subprocess.call(['rm', cron_file])
 
 
 def download_boiler(info):
@@ -99,12 +101,12 @@ def ondemand_boiler(info):
     boiler = ('\n==========================================\n'
               ' On-demand - {who}\n'
               '==========================================\n'
-              ' Total scenes ordered in the month for {who} interface: {sc_month}\n'
-              ' Number of scenes ordered in the month (USGS) for {who} interface: {sc_usgs}\n'
-              ' Number of scenes ordered in the month (non-USGS) for {who} interface: {sc_non}\n'
-              ' Total orders placed in the month for {who} interface: {or_month}\n'
-              ' Number of total orders placed in the month (USGS) for {who} interface: {or_usgs}\n'
-              ' Number of total orders placed in the month (non-USGS) for {who} interface: {or_non}\n'
+              ' Total scenes ordered in the month for {who} interface: {scenes_month}\n'
+              ' Number of scenes ordered in the month (USGS) for {who} interface: {scenes_usgs}\n'
+              ' Number of scenes ordered in the month (non-USGS) for {who} interface: {scenes_non}\n'
+              ' Total orders placed in the month for {who} interface: {orders_month}\n'
+              ' Number of total orders placed in the month (USGS) for {who} interface: {orders_usgs}\n'
+              ' Number of total orders placed in the month (non-USGS) for {who} interface: {orders_non}\n'
               ' Total number of unique On-Demand users for {who} interface: {tot_unique}\n')
 
     return boiler.format(**info)
@@ -260,20 +262,20 @@ def db_scenestats(source, begin_date, end_date, dbinfo):
               and ordering_order.orderid not like '%%@usgs.gov-%%'
               and ordering_order.order_source = %s;''')
 
-    results = {'sc_month': 0,
-               'sc_usgs': 0,
-               'sc_non': 0}
+    results = {'scenes_month': 0,
+               'scenes_usgs': 0,
+               'scenes_non': 0}
 
     with DBConnect(**dbinfo) as db:
         for q in sql:
             db.select(q, (begin_date, end_date, source))
 
             if 'not like' in q:
-                results['sc_non'] += int(db[0][0])
+                results['scenes_non'] += int(db[0][0])
             else:
-                results['sc_usgs'] += int(db[0][0])
+                results['scenes_usgs'] += int(db[0][0])
 
-    results['sc_month'] = results['sc_usgs'] + results['sc_non']
+    results['scenes_month'] = results['scenes_usgs'] + results['scenes_non']
 
     return results
 
@@ -307,20 +309,20 @@ def db_orderstats(source, begin_date, end_date, dbinfo):
               and orderid not like '%%@usgs.gov-%%'
               and order_source = %s;''')
 
-    results = {'or_month': 0,
-               'or_usgs': 0,
-               'or_non': 0}
+    results = {'orders_month': 0,
+               'orders_usgs': 0,
+               'orders_non': 0}
 
     with DBConnect(**dbinfo) as db:
         for q in sql:
             db.select(q, (begin_date, end_date, source))
 
             if 'not like' in q:
-                results['or_non'] += int(db[0][0])
+                results['orders_non'] += int(db[0][0])
             else:
-                results['or_usgs'] += int(db[0][0])
+                results['orders_usgs'] += int(db[0][0])
 
-    results['or_month'] = results['or_usgs'] + results['or_non']
+    results['orders_month'] = results['orders_usgs'] + results['orders_non']
 
     return results
 

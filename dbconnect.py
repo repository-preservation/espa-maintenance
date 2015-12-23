@@ -30,7 +30,7 @@ class DBConnect(object):
 
         try:
             self.cursor.execute(sql_str, params)
-        except psycopg2.Error as e:
+        except psycopg2.Error or psycopg2.Warning as e:
             raise DBConnectException(e)
 
         if self.autocommit:
@@ -40,7 +40,7 @@ class DBConnect(object):
         """
         Used for retrieving information from the database
         Results are stored in self.fetcharr to enable more flexible use
-        Each row is stored as a tuple in the list array
+        Each row result is stored as a tuple in the list array
         """
         if params and not self.verify_type(params):
             params = self.conv_totuple(params)
@@ -63,7 +63,9 @@ class DBConnect(object):
     @staticmethod
     def conv_totuple(val):
         """
-        Allow for single string or number parameters to be passed in more easily
+        Allow for single string or number parameters to be passed in easier
+        trying to avoid future issues with forgetting to wrap a single param
+        in a tuple
         """
         if isinstance(val, (str, numbers.Number)):
             val = (val, )
@@ -86,8 +88,11 @@ class DBConnect(object):
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        self.cursor.close()
-        self.conn.close()
+        try:
+            self.cursor.close()
+            self.conn.close()
+        except psycopg2.Error as e:
+            raise DBConnectException(e)
 
     def __len__(self):
         return len(self.fetcharr)
@@ -96,13 +101,17 @@ class DBConnect(object):
         return iter(self.fetcharr)
 
     def __getitem__(self, item):
-        if item >= len(self.fetcharr):
-            raise IndexError
-        return self.fetcharr[item]
+        try:
+            return self.fetcharr[item]
+        except IndexError:
+            raise
 
     def __del__(self):
-        self.cursor.close()
-        self.conn.close()
+        try:
+            self.cursor.close()
+            self.conn.close()
 
-        del self.cursor
-        del self.conn
+            del self.cursor
+            del self.conn
+        except Exception:
+            raise
