@@ -6,22 +6,15 @@ import argparse
 import os
 import subprocess
 import traceback
-import getpass
 
 from dbconnect import DBConnect
-from utils import get_cfg, send_email
+from utils import get_cfg, send_email, backup_cron, get_email_addr
 
 
 FILE_PATH = os.path.realpath(__file__)
 LOG_FILE = '/data/logs/espa.cr.usgs.gov-access_log.1'
 
-# This info should come from a config file
-EMAIL_FROM = 'espa@espa.cr.usgs.gov'
-# EMAIL_TO = ['jenkerson@usgs.gov', 'lowen@usgs.gov', 'dhill@usgs.gov', 'klsmith@usgs.gov']
-EMAIL_TO = ['klsmith@usgs.gov']
-DEBUG_EMAIL_TO = ['klsmith@usgs.gov']
 EMAIL_SUBJECT = 'LSRD ESPA Metrics for {0} to {1}'
-
 ORDER_SOURCES = ('EE', 'ESPA')
 
 
@@ -31,12 +24,14 @@ def arg_parser():
     """
     parser = argparse.ArgumentParser(description="LSRD ESPA Metrics")
 
-    parser.add_argument('-d', '--daterange', action='store', dest='daterange', type=str,
-                        help='Date range to process, begin - end: YYYY-MM-DD YYYY-MM-DD')
     parser.add_argument('-c', '--cron', action='store_true',
                         help='Setup cron job to run the 1st of every month')
     parser.add_argument('-p', '--prev', action='store_true',
                         help='Run metrics for the previous month')
+
+    # For future use
+    # parser.add_argument('-d', '--daterange', action='store', dest='daterange', type=str,
+    #                     help='Date range to process, begin - end: YYYY-MM-DD YYYY-MM-DD')
 
     args = parser.parse_args()
 
@@ -48,6 +43,8 @@ def setup_cron():
     Setup cron job for the 1st of the month
     for the previous month's metrics
     """
+    backup_cron()
+
     chron_file = 'tmp'
 
     cron_str = '00 06 1 * * /usr/local/bin/python {1} -p'.format(FILE_PATH)
@@ -175,8 +172,8 @@ def db_prodinfo(dbinfo, begin_date, end_date):
               FROM ordering_order o
               JOIN ordering_scene s ON s.order_id = o.id
               WHERE LENGTH(o.product_options) > 0
-              AND o.order_date >= '{0}'
-              AND o.order_date <= '{1}';''')
+              AND o.order_date >= '%s'
+              AND o.order_date <= '%s';''')
 
     infodict = {'sr': 0,
                 'therm': 0,
@@ -194,7 +191,7 @@ def db_prodinfo(dbinfo, begin_date, end_date):
                 'cfmask': 0}
 
     with DBConnect(**dbinfo) as db:
-        db.select(sql.format(begin_date, end_date))
+        db.select(sql, (begin_date, end_date))
         for i, key in enumerate(sorted(infodict.keys())):
             infodict[key] = int(db[0][i])
 
@@ -219,7 +216,8 @@ def calc_dlinfo(log_file):
         for line in log:
             try:
                 gr = re.match(regex, line).groups()
-                if gr[7] == '200' and gr[4] == 'GET' and '.tar.gz' in gr[5]:
+                # Kept simple for ease of reading and future use
+                if gr[7] == '200' and gr[4] == 'GET' and '.tar.gz' in gr[5] and '/orders/' in gr[5]:
                     infodict['tot_vol'] += int(gr[8])
                     infodict['tot_dl'] += 1
             except:
@@ -250,10 +248,10 @@ def db_scenestats(source, begin_date, end_date, dbinfo):
     sql = ('''select COUNT(*) as usgs_scene_orders
               from ordering_scene
               inner join ordering_order on ordering_scene.order_id = ordering_order.id
-              where ordering_order.order_date >= '{0}'
-              and ordering_order.order_date <= '{1}'
-              and ordering_order.orderid {2}like '%@usgs.gov-%'
-              and ordering_order.order_source = '{2}';''')
+              where ordering_order.order_date >= '%s'
+              and ordering_order.order_date <= '%s'
+              and ordering_order.orderid %slike '%@usgs.gov-%'
+              and ordering_order.order_source = '%s';''')
 
     results = {'sc_month': 0,
                'sc_usgs': 0,
@@ -263,7 +261,7 @@ def db_scenestats(source, begin_date, end_date, dbinfo):
 
     with DBConnect(**dbinfo) as db:
         for mod in mods:
-            db.select(sql.format(begin_date, end_date, mod, source))
+            db.select(sql, (begin_date, end_date, mod, source))
 
             if mod:
                 results['sc_non'] += int(db[0][0])
@@ -293,10 +291,10 @@ def db_orderstats(source, begin_date, end_date, dbinfo):
     """
     sql = ('''select COUNT(*)
               from ordering_order
-              where order_date >= '{0}'
-              and order_date <= '{1}'
-              and orderid {2}like '%@usgs.gov-%'
-              and order_source = '{3}';''')
+              where order_date >= '%s'
+              and order_date <= '%s'
+              and orderid %slike '%@usgs.gov-%'
+              and order_source = '%s';''')
 
     results = {'or_month': 0,
                'or_usgs': 0,
@@ -306,7 +304,7 @@ def db_orderstats(source, begin_date, end_date, dbinfo):
 
     with DBConnect(**dbinfo) as db:
         for mod in mods:
-            db.select(sql.format(begin_date, end_date, mod, source))
+            db.select(sql, (begin_date, end_date, mod, source))
 
             if mod:
                 results['or_non'] += int(db[0][0])
@@ -336,17 +334,39 @@ def date_range():
     return begin_date, end_date
 
 
-def proc_daterange(cfg, begin, end):
-    try:
-        pass
-    except Exception:
-        msg = str(traceback.format_exc())
-    finally:
-        pass
+def get_addresses(dbinfo):
+    """
+    Retrieve the notification email address from the database
+
+    :param dbinfo: connection information
+    :type dbinfo: dict
+    :return: list of recipients and the sender address
+    """
+    receive = get_email_addr(dbinfo, 'stats_notification')
+    sender = get_email_addr(dbinfo, 'espa_address')
+    debug = get_email_addr(dbinfo, 'stats_debug')
+
+    return receive, sender, debug
+
+
+# def proc_daterange(cfg, begin, end):
+#     """
+#     For future use when log filing better supports this
+#     """
+#     pass
 
 
 def proc_prevmonth(cfg):
+    """
+    Put together metrics for the previous month then
+    email the results out
+
+    :param cfg: database connection info
+    :type cfg: dict
+    """
     msg = ''
+    emails = get_addresses(cfg)
+
     try:
         rng = date_range()
         infodict = calc_dlinfo(LOG_FILE)
@@ -363,22 +383,22 @@ def proc_prevmonth(cfg):
 
     except Exception:
         exc_msg = str(traceback.format_exc()) + '\n\n' + msg
-        send_email(EMAIL_FROM, DEBUG_EMAIL_TO, EMAIL_SUBJECT, exc_msg)
+        send_email(emails[1], emails[2], EMAIL_SUBJECT, exc_msg)
         msg = 'There was an error with statistics processing.\n' \
-              'The following has been notified of the error: {0}.'.format(', '.join(DEBUG_EMAIL_TO))
+              'The following has been notified of the error: {0}.'.format(', '.join(emails[2]))
     finally:
-        send_email(EMAIL_FROM, EMAIL_TO, EMAIL_SUBJECT, msg)
+        send_email(emails[1], emails[0], EMAIL_SUBJECT, msg)
 
 
 def run():
     opts = arg_parser()
-    cfg = get_cfg(getpass.getuser())
+    cfg = get_cfg()['config']
 
     if opts.cron:
         setup_cron()
 
-    if opts.daterange:
-        pass
+    # if opts.daterange:
+    #     pass
 
     if opts.prev:
         proc_prevmonth(cfg)

@@ -11,7 +11,7 @@ import re
 
 import pexpect
 from dbconnect import DBConnect
-from utils import get_cfg, send_email
+from utils import get_cfg, send_email, backup_cron, get_email_addr
 
 
 FILE_PATH = os.path.realpath(__file__)
@@ -91,9 +91,9 @@ def update_db(passwrd, db_info):
     :type db_info: dict
     :return: exception message
     """
-    sql_str = "update ordering_configuration set value = '{0}' where key = '{1}'".format(passwrd, 'landsatds.password')
+    sql_str = "update ordering_configuration set value = '%s' where key = 'landsatds.password'"
     with DBConnect(**db_info) as db:
-        db.execute(sql_str)
+        db.execute(sql_str, (passwrd,))
         db.commit()
 
 
@@ -124,7 +124,9 @@ def update_cron(user, freq=60):
     :param freq: number days to set the next cron job for
     :type freq: int
     """
-    chron_file = 'tmp'
+    backup_cron()
+
+    cron_file = 'tmp'
 
     new_date = datetime.date.today() + datetime.timedelta(days=freq)
 
@@ -150,10 +152,10 @@ def update_cron(user, freq=60):
 
         crons.extend(add)
 
-    with open(chron_file, 'w') as f:
+    with open(cron_file, 'w') as f:
         f.write('\n'.join(crons) + '\n')
 
-    msg = subprocess.check_output(['crontab', chron_file, '&&', 'rm', chron_file])
+    msg = subprocess.check_output(['crontab', cron_file, '&&', 'rm', cron_file])
     if 'errors' in msg:
         raise CredentialException('Password Updated, but failed crontab update:\n{0}'.format(msg))
 
@@ -163,8 +165,8 @@ def change_pass(old_pass):
     Update the password in the linux environment
 
     :param old_pass: previous password
-    :type old_pass: string
-    :return: exception message if fail
+    :type old_pass: str
+    :return: new password string
     """
     child = pexpect.spawn('passwd')
     child.expect('password: ')
@@ -187,6 +189,19 @@ def change_pass(old_pass):
 
     return new_pass
 
+def get_addresses(dbinfo):
+    """
+    Retrieve the notification email address from the database
+
+    :param dbinfo: connection information
+    :type dbinfo: dict
+    :return: list of recipients and the sender address
+    """
+    recieve = get_email_addr(dbinfo, 'cred_notification')
+    sender = get_email_addr(dbinfo, 'espa_address')
+
+    return recieve, sender
+
 
 def run():
     """
@@ -200,10 +215,10 @@ def run():
     success = 'Failure'
     try:
         username, freq = arg_parser()
-        cfg_info = get_cfg(username)
-        old_pass = current_pass(cfg_info)
+        db_info = get_cfg()['config']
+        old_pass = current_pass(db_info)
         new_pass = change_pass(old_pass)
-        update_db(new_pass, cfg_info)
+        update_db(new_pass, db_info)
         update_cron(username, freq)
         msg = 'User: {0} password has been updated'.format(username)
         success = 'Successful'
