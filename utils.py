@@ -47,7 +47,9 @@ def send_email(sender, recipient, subject, body):
     # at, then we are good to go
     msg = MIMEText(body)
     msg['Subject'] = subject
-    msg['From'] = sender
+
+    # Expecting tuples from the db query
+    msg['From'] = ', '.join(sender)
     msg['To'] = ', '.join(recipient)
 
     smtp = smtplib.SMTP("localhost")
@@ -56,11 +58,16 @@ def send_email(sender, recipient, subject, body):
 
 
 def get_email_addr(dbinfo, who):
-    sql = "select value from configuration where key = 'email.%s'"
+    """
+    Retrieve email address(es) from the database
+    for a specified role
+    """
+    key = 'email.{0}'.format(who)
+    sql = "select value from ordering_configuration where key = %s"
 
     with DBConnect(**dbinfo) as db:
-        db.select(sql, who)
-        out = db[0][0]
+        db.select(sql, key)
+        out = db[0]
 
     return out
 

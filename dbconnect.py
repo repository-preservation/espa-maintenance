@@ -7,7 +7,7 @@ class DBConnectException(Exception):
 
 class DBConnect(object):
     """
-    Class for connecting to a postgresql database using a with statement
+    Class for connecting to a postgresql database using a single with statement
     """
     def __init__(self, dbhost='localhost', db='postgres', dbuser='postgres', dbpass='postgres',
                  dbport=5432, autocommit=False, *args, **kwargs):

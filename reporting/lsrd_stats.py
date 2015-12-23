@@ -15,7 +15,7 @@ FILE_PATH = os.path.realpath(__file__)
 LOG_FILE = '/data/logs/espa.cr.usgs.gov-access_log.1'
 
 EMAIL_SUBJECT = 'LSRD ESPA Metrics for {0} to {1}'
-ORDER_SOURCES = ('EE', 'ESPA')
+ORDER_SOURCES = ('ee', 'espa')
 
 
 def arg_parser():
@@ -103,8 +103,8 @@ def ondemand_boiler(info):
               ' Number of scenes ordered in the month (USGS) for {who} interface: {sc_usgs}\n'
               ' Number of scenes ordered in the month (non-USGS) for {who} interface: {sc_non}\n'
               ' Total orders placed in the month for {who} interface: {or_month}\n'
-              ' Number of total orders placed in the month (USGS) for {who} interface: {or_usgs}'
-              ' Number of total orders placed in the month (non-USGS) for {who} interface: {or_non}'
+              ' Number of total orders placed in the month (USGS) for {who} interface: {or_usgs}\n'
+              ' Number of total orders placed in the month (non-USGS) for {who} interface: {or_non}\n'
               ' Total number of unique On-Demand users for {who} interface: {tot_unique}\n')
 
     return boiler.format(**info)
@@ -119,7 +119,7 @@ def prod_boiler(info):
     :return: formatted string
     """
     boiler = ('\n==========================================\n'
-              ' What Was Ordered'
+              ' What Was Ordered\n'
               '==========================================\n'
               ' SR: {sr}\n'
               ' SR Thermal: {therm}\n'
@@ -172,8 +172,8 @@ def db_prodinfo(dbinfo, begin_date, end_date):
               FROM ordering_order o
               JOIN ordering_scene s ON s.order_id = o.id
               WHERE LENGTH(o.product_options) > 0
-              AND o.order_date >= '%s'
-              AND o.order_date <= '%s';''')
+              AND o.order_date >= %s
+              AND o.order_date <= %s;''')
 
     infodict = {'sr': 0,
                 'therm': 0,
@@ -245,25 +245,30 @@ def db_scenestats(source, begin_date, end_date, dbinfo):
     :type dbinfo: dict
     :return: Dictionary of the counts
     """
-    sql = ('''select COUNT(*) as usgs_scene_orders
+    sql = ('''select COUNT(*)
               from ordering_scene
               inner join ordering_order on ordering_scene.order_id = ordering_order.id
-              where ordering_order.order_date >= '%s'
-              and ordering_order.order_date <= '%s'
-              and ordering_order.orderid %slike '%@usgs.gov-%'
-              and ordering_order.order_source = '%s';''')
+              where ordering_order.order_date >= %s
+              and ordering_order.order_date <= %s
+              and ordering_order.orderid like '%%@usgs.gov-%%'
+              and ordering_order.order_source = %s;''',
+           '''select COUNT(*)
+              from ordering_scene
+              inner join ordering_order on ordering_scene.order_id = ordering_order.id
+              where ordering_order.order_date >= %s
+              and ordering_order.order_date <= %s
+              and ordering_order.orderid not like '%%@usgs.gov-%%'
+              and ordering_order.order_source = %s;''')
 
     results = {'sc_month': 0,
                'sc_usgs': 0,
                'sc_non': 0}
 
-    mods = ('', 'not ')
-
     with DBConnect(**dbinfo) as db:
-        for mod in mods:
-            db.select(sql, (begin_date, end_date, mod, source))
+        for q in sql:
+            db.select(q, (begin_date, end_date, source))
 
-            if mod:
+            if 'not like' in q:
                 results['sc_non'] += int(db[0][0])
             else:
                 results['sc_usgs'] += int(db[0][0])
@@ -291,22 +296,26 @@ def db_orderstats(source, begin_date, end_date, dbinfo):
     """
     sql = ('''select COUNT(*)
               from ordering_order
-              where order_date >= '%s'
-              and order_date <= '%s'
-              and orderid %slike '%@usgs.gov-%'
-              and order_source = '%s';''')
+              where order_date >= %s
+              and order_date <= %s
+              and orderid like '%%@usgs.gov-%%'
+              and order_source = %s;''',
+           '''select COUNT(*)
+              from ordering_order
+              where order_date >= %s
+              and order_date <= %s
+              and orderid not like '%%@usgs.gov-%%'
+              and order_source = %s;''')
 
     results = {'or_month': 0,
                'or_usgs': 0,
                'or_non': 0}
 
-    mods = ('', 'not ')
-
     with DBConnect(**dbinfo) as db:
-        for mod in mods:
-            db.select(sql, (begin_date, end_date, mod, source))
+        for q in sql:
+            db.select(q, (begin_date, end_date, source))
 
-            if mod:
+            if 'not like' in q:
                 results['or_non'] += int(db[0][0])
             else:
                 results['or_usgs'] += int(db[0][0])
@@ -315,6 +324,31 @@ def db_orderstats(source, begin_date, end_date, dbinfo):
 
     return results
 
+
+def db_uniquestats(source, begin_date, end_date, dbinfo):
+    """
+    Queries the database to get the total number of unique users
+    dates are given as YYYY-MM-DD
+
+    :param source: EE or ESPA
+    :type source: str
+    :param begin_date: Date to start the count on
+    :type begin_date: str
+    :param end_date: Date to stop the count on
+    :type end_date: str
+    :param dbinfo: Database connection information
+    :type dbinfo: dict
+    :return: Dictionary of the count
+    """
+    sql = '''select count(distinct(split_part(orderid, '-', 1)))
+             from ordering_order
+             where order_date >= %s
+             and order_date <= %s
+             and order_source = %s;'''
+
+    with DBConnect(**dbinfo) as db:
+        db.select(sql, (begin_date, end_date, source))
+        return db[0][0]
 
 def date_range():
     """
@@ -366,15 +400,17 @@ def proc_prevmonth(cfg):
     """
     msg = ''
     emails = get_addresses(cfg)
+    rng = date_range()
+    subject = EMAIL_SUBJECT.format(rng[0], rng[1])
 
     try:
-        rng = date_range()
         infodict = calc_dlinfo(LOG_FILE)
         msg = download_boiler(infodict)
 
         for source in ORDER_SOURCES:
             infodict = db_orderstats(source, rng[0], rng[1], cfg)
             infodict.update(db_scenestats(source, rng[0], rng[1], cfg))
+            infodict['tot_unique'] = db_uniquestats(source, rng[0], rng[1], cfg)
             infodict['who'] = source.upper()
             msg += ondemand_boiler(infodict)
 
@@ -383,11 +419,11 @@ def proc_prevmonth(cfg):
 
     except Exception:
         exc_msg = str(traceback.format_exc()) + '\n\n' + msg
-        send_email(emails[1], emails[2], EMAIL_SUBJECT, exc_msg)
+        send_email(emails[1], emails[2], subject, exc_msg)
         msg = 'There was an error with statistics processing.\n' \
               'The following has been notified of the error: {0}.'.format(', '.join(emails[2]))
     finally:
-        send_email(emails[1], emails[0], EMAIL_SUBJECT, msg)
+        send_email(emails[1], emails[0], subject, msg)
 
 
 def run():
