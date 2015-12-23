@@ -142,7 +142,7 @@ def prod_boiler(info):
 def db_prodinfo(dbinfo, begin_date, end_date):
     """
     Queries the database to build the ordered product counts
-    dates are given as ISO 8601 'YYYY-MM-DD hh:mm:ss'
+    dates are given as ISO 8601 'YYYY-MM-DD'
 
     :param dbinfo: Database connection information
     :type dbinfo: dict
@@ -233,7 +233,7 @@ def db_scenestats(source, begin_date, end_date, dbinfo):
     """
     Queries the database for the number of scenes ordered
     separated by USGS and non-USGS emails
-    dates are given as ISO 8601 'YYYY-MM-DD hh:mm:ss'
+    dates are given as ISO 8601 'YYYY-MM-DD'
 
     :param source: EE or ESPA
     :type source: str
