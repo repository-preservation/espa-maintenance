@@ -142,7 +142,7 @@ def prod_boiler(info):
 def db_prodinfo(dbinfo, begin_date, end_date):
     """
     Queries the database to build the ordered product counts
-    dates are given as YYYY-MM-DD
+    dates are given as ISO 8601 'YYYY-MM-DD hh:mm:ss'
 
     :param dbinfo: Database connection information
     :type dbinfo: dict
@@ -172,8 +172,8 @@ def db_prodinfo(dbinfo, begin_date, end_date):
               FROM ordering_order o
               JOIN ordering_scene s ON s.order_id = o.id
               WHERE LENGTH(o.product_options) > 0
-              AND o.order_date >= %s
-              AND o.order_date <= %s;''')
+              AND o.order_date::date >= %s
+              AND o.order_date::date <= %s;''')
 
     infodict = {'sr': 0,
                 'therm': 0,
@@ -233,7 +233,7 @@ def db_scenestats(source, begin_date, end_date, dbinfo):
     """
     Queries the database for the number of scenes ordered
     separated by USGS and non-USGS emails
-    dates are given as YYYY-MM-DD
+    dates are given as ISO 8601 'YYYY-MM-DD hh:mm:ss'
 
     :param source: EE or ESPA
     :type source: str
@@ -248,15 +248,15 @@ def db_scenestats(source, begin_date, end_date, dbinfo):
     sql = ('''select COUNT(*)
               from ordering_scene
               inner join ordering_order on ordering_scene.order_id = ordering_order.id
-              where ordering_order.order_date >= %s
-              and ordering_order.order_date <= %s
+              where ordering_order.order_date::date >= %s
+              and ordering_order.order_date::date <= %s
               and ordering_order.orderid like '%%@usgs.gov-%%'
               and ordering_order.order_source = %s;''',
            '''select COUNT(*)
               from ordering_scene
               inner join ordering_order on ordering_scene.order_id = ordering_order.id
-              where ordering_order.order_date >= %s
-              and ordering_order.order_date <= %s
+              where ordering_order.order_date::date >= %s
+              and ordering_order.order_date::date <= %s
               and ordering_order.orderid not like '%%@usgs.gov-%%'
               and ordering_order.order_source = %s;''')
 
@@ -282,7 +282,7 @@ def db_orderstats(source, begin_date, end_date, dbinfo):
     """
     Queries the database to get the total number of orders
     separated by USGS and non-USGS emails
-    dates are given as YYYY-MM-DD
+    dates are given as ISO 8601 'YYYY-MM-DD'
 
     :param source: EE or ESPA
     :type source: str
@@ -296,14 +296,14 @@ def db_orderstats(source, begin_date, end_date, dbinfo):
     """
     sql = ('''select COUNT(*)
               from ordering_order
-              where order_date >= %s
-              and order_date <= %s
+              where order_date::date >= %s
+              and order_date::date <= %s
               and orderid like '%%@usgs.gov-%%'
               and order_source = %s;''',
            '''select COUNT(*)
               from ordering_order
-              where order_date >= %s
-              and order_date <= %s
+              where order_date::date >= %s
+              and order_date::date <= %s
               and orderid not like '%%@usgs.gov-%%'
               and order_source = %s;''')
 
@@ -328,7 +328,7 @@ def db_orderstats(source, begin_date, end_date, dbinfo):
 def db_uniquestats(source, begin_date, end_date, dbinfo):
     """
     Queries the database to get the total number of unique users
-    dates are given as YYYY-MM-DD
+    dates are given as ISO 8601 'YYYY-MM-DD'
 
     :param source: EE or ESPA
     :type source: str
@@ -342,8 +342,8 @@ def db_uniquestats(source, begin_date, end_date, dbinfo):
     """
     sql = '''select count(distinct(split_part(orderid, '-', 1)))
              from ordering_order
-             where order_date >= %s
-             and order_date <= %s
+             where order_date::date >= %s
+             and order_date::date <= %s
              and order_source = %s;'''
 
     with DBConnect(**dbinfo) as db:
@@ -353,7 +353,7 @@ def db_uniquestats(source, begin_date, end_date, dbinfo):
 def date_range():
     """
     Builds two strings for the 1st and last day of
-    the previous month, YYYY-MM-DD
+    the previous month, ISO 8601 'YYYY-MM-DD'
 
     :return: 1st day, last day
     """
