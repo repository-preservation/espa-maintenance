@@ -1,3 +1,5 @@
+# TODO Look at making an actual sub-class of connect and cursor to open up more
+# TODO built in functionality
 import psycopg2
 import numbers
 
@@ -79,6 +81,8 @@ class DBConnect(object):
         """
         Verify the type is a sequence
         """
+        # Leery of opening it up to all iter types
+        # though psycopg2 documentation says it is supported
         if isinstance(val, (tuple, list, dict)):
             return True
         else:
@@ -113,5 +117,5 @@ class DBConnect(object):
 
             del self.cursor
             del self.conn
-        except Exception:
-            raise
+        except Exception as e:
+            raise DBConnectException(e)

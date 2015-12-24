@@ -177,32 +177,32 @@ def db_prodinfo(dbinfo, begin_date, end_date):
               AND o.order_date::date >= %s
               AND o.order_date::date <= %s;''')
 
-    infodict = {'sr': 0,
-                'therm': 0,
-                'toa': 0,
-                'source': 0,
-                'meta': 0,
-                'custom': 0,
-                'evi': 0,
-                'msavi': 0,
-                'nbr': 0,
-                'nbr2': 0,
-                'ndmi': 0,
-                'ndvi': 0,
-                'savi': 0,
-                'cfmask': 0}
+    counts = {'sr': 0,
+              'therm': 0,
+              'toa': 0,
+              'source': 0,
+              'meta': 0,
+              'custom': 0,
+              'evi': 0,
+              'msavi': 0,
+              'nbr': 0,
+              'nbr2': 0,
+              'ndmi': 0,
+              'ndvi': 0,
+              'savi': 0,
+              'cfmask': 0}
 
     with DBConnect(**dbinfo) as db:
         db.select(sql, (begin_date, end_date))
-        for i, key in enumerate(sorted(infodict.keys())):
-            infodict[key] = int(db[0][i])
+        for i, key in enumerate(sorted(counts.keys())):
+            counts[key] = int(db[0][i])
 
-    return infodict
+    return counts
 
 
 def calc_dlinfo(log_file):
     """
-    Count the total tarballs downloaded and their combined size
+    Count the total tarballs downloaded from /orders/ and their combined size
 
     :param log_file: Combined Log Format file path
     :type log_file: str
@@ -262,22 +262,22 @@ def db_scenestats(source, begin_date, end_date, dbinfo):
               and ordering_order.orderid not like '%%@usgs.gov-%%'
               and ordering_order.order_source = %s;''')
 
-    results = {'scenes_month': 0,
-               'scenes_usgs': 0,
-               'scenes_non': 0}
+    counts = {'scenes_month': 0,
+              'scenes_usgs': 0,
+              'scenes_non': 0}
 
     with DBConnect(**dbinfo) as db:
         for q in sql:
             db.select(q, (begin_date, end_date, source))
 
             if 'not like' in q:
-                results['scenes_non'] += int(db[0][0])
+                counts['scenes_non'] += int(db[0][0])
             else:
-                results['scenes_usgs'] += int(db[0][0])
+                counts['scenes_usgs'] += int(db[0][0])
 
-    results['scenes_month'] = results['scenes_usgs'] + results['scenes_non']
+    counts['scenes_month'] = counts['scenes_usgs'] + counts['scenes_non']
 
-    return results
+    return counts
 
 
 def db_orderstats(source, begin_date, end_date, dbinfo):
@@ -309,22 +309,22 @@ def db_orderstats(source, begin_date, end_date, dbinfo):
               and orderid not like '%%@usgs.gov-%%'
               and order_source = %s;''')
 
-    results = {'orders_month': 0,
-               'orders_usgs': 0,
-               'orders_non': 0}
+    counts = {'orders_month': 0,
+              'orders_usgs': 0,
+              'orders_non': 0}
 
     with DBConnect(**dbinfo) as db:
         for q in sql:
             db.select(q, (begin_date, end_date, source))
 
             if 'not like' in q:
-                results['orders_non'] += int(db[0][0])
+                counts['orders_non'] += int(db[0][0])
             else:
-                results['orders_usgs'] += int(db[0][0])
+                counts['orders_usgs'] += int(db[0][0])
 
-    results['orders_month'] = results['orders_usgs'] + results['orders_non']
+    counts['orders_month'] = counts['orders_usgs'] + counts['orders_non']
 
-    return results
+    return counts
 
 
 def db_uniquestats(source, begin_date, end_date, dbinfo):
