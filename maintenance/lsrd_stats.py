@@ -3,12 +3,12 @@ import re
 import datetime
 import calendar
 import argparse
-import os
 import subprocess
 import traceback
+import os
 
-from maintenance.dbconnect import DBConnect
-from maintenance.utils import get_cfg, send_email, backup_cron, get_email_addr
+from dbconnect import DBConnect
+from utils import get_cfg, send_email, backup_cron, get_email_addr
 
 
 FILE_PATH = os.path.realpath(__file__)
