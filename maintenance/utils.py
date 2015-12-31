@@ -67,7 +67,7 @@ def get_email_addr(dbinfo, who):
 
     with DBConnect(**dbinfo) as db:
         db.select(sql, key)
-        out = db[0]
+        out = db[0][0].split(',')
 
     return out
 
