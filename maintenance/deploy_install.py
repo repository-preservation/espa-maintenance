@@ -415,7 +415,7 @@ class MaintenanceDeployer(Deployer):
         super(MaintenanceDeployer, self).__post_relink__(*args, **kwargs)
 
         mv_script = ('cd ~; '
-                     'cp espa-site/maintenance/deploy/deploy_install.py deploy_install.py')
+                     'cp espa-site/maintenance/deploy_install.py deploy_install.py')
 
         print('Moving new deploy_install.py to home directory...')
 
