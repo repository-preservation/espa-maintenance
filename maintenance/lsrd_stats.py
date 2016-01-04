@@ -9,9 +9,8 @@ import os
 
 from dbconnect import DBConnect
 from utils import get_cfg, send_email, backup_cron, get_email_addr
+import psycopg2.extras
 
-
-FILE_PATH = os.path.realpath(__file__)
 LOG_FILE = '/data/logs/espa.cr.usgs.gov-access_log.1'
 
 EMAIL_SUBJECT = 'LSRD ESPA Metrics for {0} to {1}'
@@ -46,8 +45,9 @@ def setup_cron():
     backup_cron()
 
     cron_file = 'tmp'
+    file_path = os.path.join(os.path.expanduser('~'), 'espa-site', 'maintenance', 'lsrd_stats.py -p')
 
-    cron_str = '00 06 1 * * /usr/local/bin/python {0} -p'.format(FILE_PATH)
+    cron_str = '00 06 1 * * /usr/local/bin/python {0} -p'.format(file_path)
 
     crons = subprocess.check_output(['crontab', '-l']).split('\n')
 
@@ -123,12 +123,13 @@ def prod_boiler(info):
     boiler = ('\n==========================================\n'
               ' What Was Ordered\n'
               '==========================================\n'
+              ' Total Products: {total}\n'
               ' SR: {sr}\n'
-              ' SR Thermal: {therm}\n'
+              ' SR Thermal: {brightness temperature}\n'
               ' ToA: {toa}\n'
-              ' Source: {source}\n'
-              ' Source Metadata: {meta}\n'
-              ' Customized Source: {custom}\n'
+              ' Source: {original source data}\n'
+              ' Source Metadata: {metadata}\n'
+              ' Customized Source: {level 1}\n'
               ' SR EVI: {evi}\n'
               ' SR MSAVI: {msavi}\n'
               ' SR NBR: {nbr}\n'
@@ -154,12 +155,6 @@ def db_prodinfo(dbinfo, begin_date, end_date):
     :type end_date: str
     :return: Dictionary of count values
     """
-
-    # Alphabetical order according to dictionary key the value will go into
-
-    # It is far better and clearer to be explicit about what you are doing rather than relying
-    # on implicit ordering.  Implicit ordering may change without notice, not just in this case but
-    # in many others, as that makes your code completely dependent on the underlying implementation.
     sql = ('''SELECT COUNT(s.name) "total",
               SUM(CASE WHEN o.product_options::json->>'include_cfmask' = 'true' THEN 1 ELSE 0 END) "cfmask",
               SUM(CASE WHEN o.product_options::json->>'include_customized_source_data' = 'true' THEN 1 ELSE 0 END) "level 1",
@@ -181,39 +176,10 @@ def db_prodinfo(dbinfo, begin_date, end_date):
               AND o.order_date::date >= %s
               AND o.order_date::date <= %s;''')
 
-    #counts = {'sr': 0,
-    #          'therm': 0,
-    #          'toa': 0,
-    #          'source': 0,
-    #          'meta': 0,
-    #          'custom': 0,
-    #          'evi': 0,
-    #          'msavi': 0,
-    #          'nbr': 0,
-    #          'nbr2': 0,
-    #          'ndmi': 0,
-    #          'ndvi': 0,
-    #          'savi': 0,
-    #          'cfmask': 0}
+    with DBConnect(cursor_factory=psycopg2.extras.DictCursor, **dbinfo) as db:
+        db.select(sql, (begin_date, end_date))
+        results = db[0]
 
-    import psycopg2
-    from collections import OrderedDict
-    with DBConnect(**dbinfo) as db:
-        try:
-            db.cursor.execute(sql, [begin_date, end_date])
-            desc = db.cursor.description
-            
-            results = [
-                OrderedDict(zip([col[0] for col in desc], row))
-                for row in db.cursor.fetchall() ]
-        except psycopg2.Error as e:
-            raise Exception(e)
-        
-        #db.select(sql, (begin_date, end_date))
-        #for i, key in enumerate(sorted(counts.keys())):
-        #    counts[key] = int(db[0][i])
-
-    #return counts
     return results
 
 
