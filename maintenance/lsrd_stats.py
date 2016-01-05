@@ -45,7 +45,7 @@ def setup_cron():
     backup_cron()
 
     cron_file = 'tmp'
-    file_path = os.path.join(os.path.expanduser('~'), 'espa-site', 'maintenance', 'lsrd_stats.py -p')
+    file_path = os.path.join(os.path.expanduser('~'), 'espa-site', 'maintenance', 'lsrd_stats.py')
 
     cron_str = '00 06 1 * * /usr/local/bin/python {0} -p'.format(file_path)
 
