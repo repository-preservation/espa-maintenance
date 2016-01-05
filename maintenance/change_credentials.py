@@ -14,8 +14,6 @@ from dbconnect import DBConnect
 from utils import get_cfg, send_email, backup_cron, get_email_addr
 
 
-FILE_PATH = os.path.realpath(__file__)
-
 # This info should come from a config file
 EMAIL_SUBJECT = "LSRD - Auto-credential {0}"
 
@@ -130,10 +128,11 @@ def update_cron(user, freq=60):
     cron_file = 'cron.tmp'
 
     new_date = datetime.date.today() + datetime.timedelta(days=freq)
+    file_path = os.path.join(os.path.expanduser('~'), 'espa-site', 'maintenance', 'change_credentials.py')
 
     cron_str = "00 06 {0} {1} * /usr/local/bin/python {2} -u {3} -f {4}".format(new_date.day,
                                                                                 new_date.month,
-                                                                                FILE_PATH,
+                                                                                file_path,
                                                                                 user,
                                                                                 freq)
 

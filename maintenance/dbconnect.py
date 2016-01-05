@@ -1,6 +1,8 @@
 # TODO Look at making an actual sub-class of connect and cursor to open up more
 # TODO built in functionality
 import psycopg2
+import psycopg2.extras
+import psycopg2.extensions
 import numbers
 
 
@@ -12,11 +14,11 @@ class DBConnect(object):
     Class for connecting to a postgresql database using a single with statement
     """
     def __init__(self, dbhost='localhost', db='postgres', dbuser='postgres', dbpass='postgres',
-                 dbport=5432, autocommit=False, *args, **kwargs):
+                 dbport=5432, autocommit=False, cursor_factory=None, *args, **kwargs):
         try:
             self.conn = psycopg2.connect(host=dbhost, database=db, user=dbuser,
                                          password=dbpass, port=dbport)
-            self.cursor = self.conn.cursor()
+            self.cursor = self.conn.cursor(cursor_factory=cursor_factory)
         except psycopg2.Error as e:
             raise DBConnectException(e)
 
