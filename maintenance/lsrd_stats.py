@@ -123,7 +123,7 @@ def prod_boiler(info):
     boiler = ('\n==========================================\n'
               ' What Was Ordered\n'
               '==========================================\n'
-              ' Total Products: {total}\n'
+              ' Total Scenes: {total}\n'
               ' SR: {sr}\n'
               ' SR Thermal: {brightness temperature}\n'
               ' ToA: {toa}\n'
