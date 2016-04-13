@@ -90,6 +90,29 @@ def download_boiler(info):
     return boiler.format(**info)
 
 
+def download_byproduct_boiler(info):
+    boiler = ('\n==========================================\n'
+              ' On-demand - Download Info by Product\n'
+              '==========================================\n'
+              ' Total Scenes: {total}\n'
+              ' SR: {sr}\n'
+              ' SR Thermal: {brightness temperature}\n'
+              ' ToA: {toa}\n'
+              ' Source: {original source data}\n'
+              ' Source Metadata: {metadata}\n'
+              ' Customized Source: {level 1}\n'
+              ' SR EVI: {evi}\n'
+              ' SR MSAVI: {msavi}\n'
+              ' SR NBR: {nbr}\n'
+              ' SR NBR2: {nbr2}\n'
+              ' SR NDMI: {ndmi}\n'
+              ' SR NDVI: {ndvi}\n'
+              ' SR SAVI: {savi}\n'
+              ' CFMASK: {cfmask}\n')
+
+    return boiler.format(**info)
+
+
 def ondemand_boiler(info):
     """
     Boiler plate text for On-Demand Info for orders
@@ -183,6 +206,48 @@ def db_prodinfo(dbinfo, begin_date, end_date):
     return results
 
 
+def db_dl_prodinfo(dbinfo, orderids, begin_date, end_date):
+    """
+    Queries the database to build the product counts that were downloaded
+    dates are given as ISO 8601 'YYYY-MM-DD'
+
+    :param dbinfo: Database connection information
+    :type dbinfo: dict
+    :param begin_date: Date to start the counts on
+    :type begin_date: str
+    :param end_date: Date to end the counts on
+    :type end_date: str
+    :return: Dictionary of count values
+    """
+    sql = ('''SELECT COUNT(s.name) "total",
+              SUM(CASE WHEN o.product_options::json->>'include_cfmask' = 'true' THEN 1 ELSE 0 END) "cfmask",
+              SUM(CASE WHEN o.product_options::json->>'include_customized_source_data' = 'true' THEN 1 ELSE 0 END) "level 1",
+              SUM(CASE WHEN o.product_options::json->>'include_sr_evi' = 'true' THEN 1 ELSE 0 END) "evi",
+              SUM(CASE WHEN o.product_options::json->>'include_source_metadata' = 'true' THEN 1 ELSE 0 END) "metadata",
+              SUM(CASE WHEN o.product_options::json->>'include_sr_msavi' = 'true' THEN 1 ELSE 0 END) "msavi",
+              SUM(CASE WHEN o.product_options::json->>'include_sr_nbr' = 'true' THEN 1 ELSE 0 END) "nbr",
+              SUM(CASE WHEN o.product_options::json->>'include_sr_nbr2' = 'true' THEN 1 ELSE 0 END) "nbr2",
+              SUM(CASE WHEN o.product_options::json->>'include_sr_ndmi' = 'true' THEN 1 ELSE 0 END) "ndmi",
+              SUM(CASE WHEN o.product_options::json->>'include_sr_ndvi' = 'true' THEN 1 ELSE 0 END) "ndvi",
+              SUM(CASE WHEN o.product_options::json->>'include_sr_savi' = 'true' THEN 1 ELSE 0 END) "savi",
+              SUM(CASE WHEN o.product_options::json->>'include_source_data' = 'true' THEN 1 ELSE 0 END) "original source data",
+              SUM(CASE WHEN o.product_options::json->>'include_sr' = 'true' THEN 1 ELSE 0 END) "sr",
+              SUM(CASE WHEN o.product_options::json->>'include_sr_thermal' = 'true' THEN 1 ELSE 0 END) "brightness temperature",
+              SUM(CASE WHEN o.product_options::json->>'include_sr_toa' = 'true' THEN 1 ELSE 0 END) "toa"
+              FROM ordering_order o
+              JOIN ordering_scene s ON s.order_id = o.id
+              WHERE LENGTH(o.product_options) > 0
+              AND o.orderid in %s
+              AND o.order_date::date >= %s
+              AND o.order_date::date <= %s;''')
+
+    with DBConnect(cursor_factory=psycopg2.extras.DictCursor, **dbinfo) as db:
+        db.select(sql, (orderids, begin_date, end_date))
+        results = db[0]
+
+    return results
+
+
 def calc_dlinfo(log_file):
     """
     Count the total tarballs downloaded from /orders/ and their combined size
@@ -193,6 +258,8 @@ def calc_dlinfo(log_file):
     """
     infodict = {'tot_dl': 0,
                 'tot_vol': 0.0}
+
+    orders = []
 
     # (ip, logname, user, datetime, method, resource, status, size, referrer, agent)
     regex = r'(.*?) (.*?) (.*?) \[(.*?)\] "(.*?) (.*?) (.*?)" (\d+) (\d+) "(.*?)" "(.*?)"'
@@ -205,13 +272,14 @@ def calc_dlinfo(log_file):
                 if gr[7] == '200' and gr[4] == 'GET' and '.tar.gz' in gr[5] and '/orders/' in gr[5]:
                     infodict['tot_vol'] += int(gr[8])
                     infodict['tot_dl'] += 1
+                    orders.append(gr[5])
             except:
                 continue
 
     # Bytes to GB
     infodict['tot_vol'] /= 1073741824.0
 
-    return infodict
+    return infodict, orders
 
 
 def db_scenestats(source, begin_date, end_date, dbinfo):
@@ -368,6 +436,10 @@ def get_addresses(dbinfo):
     return receive, sender, debug
 
 
+def extract_orderid(order_paths):
+    return tuple(x[2] for x in [i.split('/') for i in order_paths])
+
+
 # def proc_daterange(cfg, begin, end):
 #     """
 #     For future use when log filing better supports this
@@ -389,8 +461,12 @@ def proc_prevmonth(cfg):
     subject = EMAIL_SUBJECT.format(rng[0], rng[1])
 
     try:
-        infodict = calc_dlinfo(LOG_FILE)
+        infodict, order_paths = calc_dlinfo(LOG_FILE)
         msg = download_boiler(infodict)
+
+        orderids = extract_orderid(order_paths)
+        infodict = db_dl_prodinfo(cfg, orderids, rng[0], rng[1])
+        msg += download_byproduct_boiler(infodict)
 
         for source in ORDER_SOURCES:
             infodict = db_orderstats(source, rng[0], rng[1], cfg)
