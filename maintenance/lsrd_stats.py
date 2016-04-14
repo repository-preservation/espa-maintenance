@@ -206,7 +206,7 @@ def db_prodinfo(dbinfo, begin_date, end_date):
     return results
 
 
-def db_dl_prodinfo(dbinfo, orderids, begin_date, end_date):
+def db_dl_prodinfo(dbinfo, orderinfo, begin_date, end_date):
     """
     Queries the database to build the product counts that were downloaded
     dates are given as ISO 8601 'YYYY-MM-DD'
@@ -219,6 +219,12 @@ def db_dl_prodinfo(dbinfo, orderids, begin_date, end_date):
     :type end_date: str
     :return: Dictionary of count values
     """
+    ids, scenes = zip(*orderinfo)
+
+    ids = remove_duplicates(ids)
+    scenes = remove_duplicates(scenes)
+    # scenes = add_wildcard(scenes)
+
     sql = ('''SELECT COUNT(s.name) "total",
               SUM(CASE WHEN o.product_options::json->>'include_cfmask' = 'true' THEN 1 ELSE 0 END) "cfmask",
               SUM(CASE WHEN o.product_options::json->>'include_customized_source_data' = 'true' THEN 1 ELSE 0 END) "level 1",
@@ -237,15 +243,24 @@ def db_dl_prodinfo(dbinfo, orderids, begin_date, end_date):
               FROM ordering_order o
               JOIN ordering_scene s ON s.order_id = o.id
               WHERE LENGTH(o.product_options) > 0
-              AND o.orderid in %s
+              AND o.orderid = ANY (%s)
+              AND s.name ~* %s
               AND o.order_date::date >= %s
               AND o.order_date::date <= %s;''')
 
     with DBConnect(cursor_factory=psycopg2.extras.DictCursor, **dbinfo) as db:
-        db.select(sql, (orderids, begin_date, end_date))
+        db.select(sql, (ids, '|'.join(scenes), begin_date, end_date))
         results = db[0]
 
     return results
+
+
+def remove_duplicates(arr_obj):
+    return list(set(arr_obj))
+
+
+def add_wildcard(ids):
+    return [s + '%' for s in ids]
 
 
 def calc_dlinfo(log_file):
@@ -437,7 +452,8 @@ def get_addresses(dbinfo):
 
 
 def extract_orderid(order_paths):
-    return tuple(x[2] for x in [i.split('/') for i in order_paths])
+    return tuple((x[2], x[3].split('-')[0]) for
+                 x in [i.split('/') for i in order_paths])
 
 
 # def proc_daterange(cfg, begin, end):
