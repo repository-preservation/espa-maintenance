@@ -6,6 +6,8 @@ import argparse
 import subprocess
 import traceback
 import os
+import json
+from collections import Counter
 
 from dbconnect import DBConnect
 from utils import get_cfg, send_email, backup_cron, get_email_addr
@@ -121,23 +123,23 @@ def prod_boiler(info):
     :return: formatted string
     """
     boiler = ('\n==========================================\n'
-              ' What Was Ordered\n'
+              ' {title}\n'
               '==========================================\n'
               ' Total Scenes: {total}\n'
-              ' SR: {sr}\n'
-              ' SR Thermal: {brightness temperature}\n'
-              ' ToA: {toa}\n'
-              ' Source: {original source data}\n'
-              ' Source Metadata: {metadata}\n'
-              ' Customized Source: {level 1}\n'
-              ' SR EVI: {evi}\n'
-              ' SR MSAVI: {msavi}\n'
-              ' SR NBR: {nbr}\n'
-              ' SR NBR2: {nbr2}\n'
-              ' SR NDMI: {ndmi}\n'
-              ' SR NDVI: {ndvi}\n'
-              ' SR SAVI: {savi}\n'
-              ' CFMASK: {cfmask}\n')
+              ' SR: {include_sr}\n'
+              ' SR Thermal: {include_sr_thermal}\n'
+              ' ToA: {include_sr_toa}\n'
+              ' Source: {include_source_data}\n'
+              ' Source Metadata: {include_source_metadata}\n'
+              ' Customized Source: {include_customized_source_data}\n'
+              ' SR EVI: {include_sr_evi}\n'
+              ' SR MSAVI: {include_sr_msavi}\n'
+              ' SR NBR: {include_sr_nbr}\n'
+              ' SR NBR2: {include_sr_nbr2}\n'
+              ' SR NDMI: {include_sr_ndmi}\n'
+              ' SR NDVI: {include_sr_ndvi}\n'
+              ' SR SAVI: {include_sr_savi}\n'
+              ' CFMASK: {include_cfmask}\n')
 
     return boiler.format(**info)
 
@@ -156,20 +158,20 @@ def db_prodinfo(dbinfo, begin_date, end_date):
     :return: Dictionary of count values
     """
     sql = ('''SELECT COUNT(s.name) "total",
-              SUM(CASE WHEN o.product_options::json->>'include_cfmask' = 'true' THEN 1 ELSE 0 END) "cfmask",
-              SUM(CASE WHEN o.product_options::json->>'include_customized_source_data' = 'true' THEN 1 ELSE 0 END) "level 1",
-              SUM(CASE WHEN o.product_options::json->>'include_sr_evi' = 'true' THEN 1 ELSE 0 END) "evi",
-              SUM(CASE WHEN o.product_options::json->>'include_source_metadata' = 'true' THEN 1 ELSE 0 END) "metadata",
-              SUM(CASE WHEN o.product_options::json->>'include_sr_msavi' = 'true' THEN 1 ELSE 0 END) "msavi",
-              SUM(CASE WHEN o.product_options::json->>'include_sr_nbr' = 'true' THEN 1 ELSE 0 END) "nbr",
-              SUM(CASE WHEN o.product_options::json->>'include_sr_nbr2' = 'true' THEN 1 ELSE 0 END) "nbr2",
-              SUM(CASE WHEN o.product_options::json->>'include_sr_ndmi' = 'true' THEN 1 ELSE 0 END) "ndmi",
-              SUM(CASE WHEN o.product_options::json->>'include_sr_ndvi' = 'true' THEN 1 ELSE 0 END) "ndvi",
-              SUM(CASE WHEN o.product_options::json->>'include_sr_savi' = 'true' THEN 1 ELSE 0 END) "savi",
-              SUM(CASE WHEN o.product_options::json->>'include_source_data' = 'true' THEN 1 ELSE 0 END) "original source data",
-              SUM(CASE WHEN o.product_options::json->>'include_sr' = 'true' THEN 1 ELSE 0 END) "sr",
-              SUM(CASE WHEN o.product_options::json->>'include_sr_thermal' = 'true' THEN 1 ELSE 0 END) "brightness temperature",
-              SUM(CASE WHEN o.product_options::json->>'include_sr_toa' = 'true' THEN 1 ELSE 0 END) "toa"
+              SUM(CASE WHEN o.product_options::json->>'include_cfmask' = 'true' THEN 1 ELSE 0 END) "include_cfmask",
+              SUM(CASE WHEN o.product_options::json->>'include_customized_source_data' = 'true' THEN 1 ELSE 0 END) "include_customized_source_data",
+              SUM(CASE WHEN o.product_options::json->>'include_sr_evi' = 'true' THEN 1 ELSE 0 END) "include_sr_evi",
+              SUM(CASE WHEN o.product_options::json->>'include_source_metadata' = 'true' THEN 1 ELSE 0 END) "include_source_metadata",
+              SUM(CASE WHEN o.product_options::json->>'include_sr_msavi' = 'true' THEN 1 ELSE 0 END) "include_sr_msavi",
+              SUM(CASE WHEN o.product_options::json->>'include_sr_nbr' = 'true' THEN 1 ELSE 0 END) "include_sr_nbr",
+              SUM(CASE WHEN o.product_options::json->>'include_sr_nbr2' = 'true' THEN 1 ELSE 0 END) "include_sr_nbr2",
+              SUM(CASE WHEN o.product_options::json->>'include_sr_ndmi' = 'true' THEN 1 ELSE 0 END) "include_sr_ndmi",
+              SUM(CASE WHEN o.product_options::json->>'include_sr_ndvi' = 'true' THEN 1 ELSE 0 END) "include_sr_ndvi",
+              SUM(CASE WHEN o.product_options::json->>'include_sr_savi' = 'true' THEN 1 ELSE 0 END) "include_sr_savi",
+              SUM(CASE WHEN o.product_options::json->>'include_source_data' = 'true' THEN 1 ELSE 0 END) "include_source_data",
+              SUM(CASE WHEN o.product_options::json->>'include_sr' = 'true' THEN 1 ELSE 0 END) "include_sr",
+              SUM(CASE WHEN o.product_options::json->>'include_sr_thermal' = 'true' THEN 1 ELSE 0 END) "include_sr_thermal",
+              SUM(CASE WHEN o.product_options::json->>'include_sr_toa' = 'true' THEN 1 ELSE 0 END) "include_sr_toa"
               FROM ordering_order o
               JOIN ordering_scene s ON s.order_id = o.id
               WHERE LENGTH(o.product_options) > 0
@@ -178,9 +180,83 @@ def db_prodinfo(dbinfo, begin_date, end_date):
 
     with DBConnect(cursor_factory=psycopg2.extras.DictCursor, **dbinfo) as db:
         db.select(sql, (begin_date, end_date))
-        results = db[0]
+        results = dict(db[0])
+
+    results['title'] = 'What was Ordered'
+    return results
+
+
+def db_dl_prodinfo(dbinfo, ids):
+    """
+    Queries the database to get the associated product options
+
+    :param dbinfo: Database connection information
+    :type dbinfo: dict
+    :param ids: Order id's that have been downloaded from based on web logs
+    :type ids: tuple
+    :return: Dictionary of count values
+    """
+    ids = remove_duplicates(ids)
+
+    sql = ('SELECT o.orderid, o.product_options '
+           'FROM ordering_order o '
+           'WHERE o.orderid = ANY (%s)')
+
+    with DBConnect(**dbinfo) as db:
+        db.select(sql, (ids, ))
+        results = [x for x in db]
 
     return results
+
+
+def remove_duplicates(arr_obj):
+    return list(set(arr_obj))
+
+
+def tally_product_dls(ids, prod_options):
+    """
+    Counts the number of times a product has been downloaded
+
+    :param ids: Order id's that have been downloaded from based on web logs
+    :type ids: tuple
+    :param prod_options: Unique order id's and their associated product
+        options in paired tuples
+    :type prod_options: list
+    :return: dictionary count
+    """
+    infodict = {'total': 0,
+                'include_cfmask': 0,
+                'include_customized_source_data': 0,
+                'include_sr_evi': 0,
+                'include_source_metadata': 0,
+                'include_sr_msavi': 0,
+                'include_sr_nbr': 0,
+                'include_sr_nbr2': 0,
+                'include_sr_ndmi': 0,
+                'include_sr_ndvi': 0,
+                'include_sr_savi': 0,
+                'include_source_data': 0,
+                'include_sr': 0,
+                'include_sr_thermal': 0,
+                'include_sr_toa': 0,
+                'title': 'What was Downloaded'}
+
+    counts = Counter(ids)
+
+    if len(counts) != len(prod_options):
+        raise Exception('Length of unique order ids from the web log'
+                        'does not match what was received from the'
+                        'database')
+
+    infodict['total'] = len(ids)
+
+    for order_key, val in prod_options:
+        opts = json.loads(val)
+        for opt_key in infodict:
+            if opts.get(opt_key):
+                infodict[opt_key] += counts[order_key]
+
+    return infodict
 
 
 def calc_dlinfo(log_file):
@@ -194,6 +270,8 @@ def calc_dlinfo(log_file):
     infodict = {'tot_dl': 0,
                 'tot_vol': 0.0}
 
+    orders = []
+
     # (ip, logname, user, datetime, method, resource, status, size, referrer, agent)
     regex = r'(.*?) (.*?) (.*?) \[(.*?)\] "(.*?) (.*?) (.*?)" (\d+) (\d+) "(.*?)" "(.*?)"'
 
@@ -205,13 +283,14 @@ def calc_dlinfo(log_file):
                 if gr[7] == '200' and gr[4] == 'GET' and '.tar.gz' in gr[5] and '/orders/' in gr[5]:
                     infodict['tot_vol'] += int(gr[8])
                     infodict['tot_dl'] += 1
+                    orders.append(gr[5])
             except:
                 continue
 
     # Bytes to GB
     infodict['tot_vol'] /= 1073741824.0
 
-    return infodict
+    return infodict, orders
 
 
 def db_scenestats(source, begin_date, end_date, dbinfo):
@@ -368,6 +447,10 @@ def get_addresses(dbinfo):
     return receive, sender, debug
 
 
+def extract_orderid(order_paths):
+    return tuple(x[2] for x in [i.split('/') for i in order_paths])
+
+
 # def proc_daterange(cfg, begin, end):
 #     """
 #     For future use when log filing better supports this
@@ -389,8 +472,13 @@ def proc_prevmonth(cfg):
     subject = EMAIL_SUBJECT.format(rng[0], rng[1])
 
     try:
-        infodict = calc_dlinfo(LOG_FILE)
+        infodict, order_paths = calc_dlinfo(LOG_FILE)
         msg = download_boiler(infodict)
+
+        orderids = extract_orderid(order_paths)
+        prod_opts = db_dl_prodinfo(cfg, orderids)
+        infodict = tally_product_dls(orderids, prod_opts)
+        msg += prod_boiler(infodict)
 
         for source in ORDER_SOURCES:
             infodict = db_orderstats(source, rng[0], rng[1], cfg)
