@@ -13,7 +13,7 @@ constructed appropriately.
 
 ## Changlog
 
-###### Version 1.0.6 (February 2016)
+###### Version 1.0.6 (April 2016)
 * Added download statistics by product
 
 ###### Version 1.0.5 (February 2016)
