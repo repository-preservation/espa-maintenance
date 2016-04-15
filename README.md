@@ -13,6 +13,9 @@ constructed appropriately.
 
 ## Changlog
 
+###### Version 1.0.5 (April 2016)
+* Added download statistics by product
+
 ###### Version 1.0.4 (December 2015)
 * Re-written lsrd_stats.py and change_credentials.py
 * Removed need for pig scripts
