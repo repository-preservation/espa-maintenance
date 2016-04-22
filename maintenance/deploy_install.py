@@ -130,13 +130,15 @@ class RemoteHost(object):
 
 class Deployer(object):
 
-    def __init__(self, branch_or_tag, environment, tier, debug=False):
+    def __init__(self, branch_or_tag, environment, tier, deploy_dir='espa-site', debug=False):
         
         # tier is defined in settings
         if tier not in settings.tiers:
             raise ValueError("%s not found in deployment_settings.tiers"
                              % tier)
         self.tier = tier
+
+        self.deploy_dir = deploy_dir
         
         # branch or tagname must exist in git
         self.branch_or_tag = branch_or_tag
@@ -219,18 +221,18 @@ class Deployer(object):
                *args,
                **kwargs):
         ''' Master deployment logic '''
-        
         self.verbose = verbose
         self.delete_previous_releases = delete_previous_releases
         
         now = datetime.datetime.now()
-        self.deployment_name = "%s-%s%s%s-%s%s%s" % (self.branch_or_tag,
-                                                     str(now.month).zfill(2),
-                                                     str(now.day).zfill(2),
-                                                     str(now.year).zfill(2),
-                                                     str(now.hour).zfill(2),
-                                                     str(now.minute).zfill(2),
-                                                     str(now.second).zfill(2))
+        self.deployment_name = "%s-%s-%s%s%s-%s%s%s" % (self.deploy_dir,
+                                                        self.branch_or_tag,
+                                                        str(now.month).zfill(2),
+                                                        str(now.day).zfill(2),
+                                                        str(now.year).zfill(2),
+                                                        str(now.hour).zfill(2),
+                                                        str(now.minute).zfill(2),
+                                                        str(now.second).zfill(2))
                                                      
         # Initilize the target deployment directory
         self.initialize = ('rm -rf ~/staging;'
@@ -243,7 +245,7 @@ class Deployer(object):
         self.git = 'cd ~/staging;{0}'.format(git)
 
         # Remove previous deployments
-        self.delete_old = 'rm -rf ~/deployments/*'
+        self.delete_old = 'rm -rf ~/deployments/{0}*'.format(self.deploy_dir)
 
         self.deployment_location = ('~/deployments/{0}'
                                    .format(self.deployment_name))
@@ -252,10 +254,10 @@ class Deployer(object):
         self.move = 'mv ~/staging/{0} {1}'.format(self.tier,
                                                   self.deployment_location)
                                                                                             
-        # Relink espa-site to point to the new deployment        
-        self.relink = ('rm ~/espa-site; '
-                       'ln -s ~/deployments/{0} ~/espa-site'
-                       .format(self.deployment_name))
+        # Relink deploy_dir to point to the new deployment
+        self.relink = ('rm ~/{1}; '
+                       'ln -s ~/deployments/{0} ~/{1}'
+                       .format(self.deployment_name, self.deploy_dir))
 
         # Clean up staging dir again.  Already done once in initialize                 
         self.cleanup = 'rm -rf ~/staging'
@@ -392,7 +394,7 @@ class WebappDeployer(Deployer):
                                    
         pip_install = ('cd {0}; '
                        '. bin/activate; '
-                       'pip install -r requirements.txt'
+                       'pip install -r setup/requirements.txt'
                       .format(self.deployment_location))
         print('Installing requirements')
         self.remote_client.execute(command=pip_install, expected_exit_status=0)
@@ -440,7 +442,8 @@ def deploy(branch_or_tag,
         deployer = WebappDeployer(branch_or_tag=branch_or_tag,
                                   environment=environment,
                                   tier=tier,
-                                  debug=debug)
+                                  debug=debug,
+                                  deploy_dir='espa-web')
     elif tier == 'espa-production':
         deployer = ProductionDeployer(branch_or_tag=branch_or_tag,
                                       environment=environment,
@@ -451,6 +454,12 @@ def deploy(branch_or_tag,
                                        environment=environment,
                                        tier=tier,
                                        debug=debug)
+    elif tier == 'espa-api':
+        deployer = WebappDeployer(branch_or_tag=branch_or_tag,
+                                  environment=environment,
+                                  tier=tier,
+                                  debug=debug,
+                                  deploy_dir='espa-api')
     else:
         raise TypeError('{0} is not a recognized tier... exiting'.format(tier))
 
