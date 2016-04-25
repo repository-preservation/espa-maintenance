@@ -469,7 +469,8 @@ def get_addresses(dbinfo):
 
 
 def extract_orderid(order_paths):
-    return tuple(x[2] for x in [i.split('/') for i in order_paths])
+    '/orders/earthengine-landsat@google.com-11022015-210201/LT50310341990240-SC20151130234238.tar.gz'
+    return tuple((x[2], x[3].split('-')[0]) for x in [i.split('/') for i in order_paths])
 
 
 def print_sizeof(name, var):
