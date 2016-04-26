@@ -391,17 +391,25 @@ class WebappDeployer(Deployer):
         print('Creating virtualenv at {0}'.format(self.deployment_location))
         self.remote_client.execute(command=virtual_env,
                                    expected_exit_status=0)
-                                   
-        pip_install = ('cd {0}; '
+
+        # some packages, pycrytpo for espa-api, need exec privileges in $TMPDIR
+        # set to a location where thats acceptable
+        tmpdir_cmd = ''
+        if 'espa-api' in self.deployment_location:
+            tmpdir_cmd = 'mkdir -p {0}/tmp; export TMPDIR={0}/tmp;'.format(self.deployment_location)
+
+        pip_install = ('{1}'
+                       'cd {0}; '
                        '. bin/activate; '
                        'pip install -r setup/requirements.txt'
-                      .format(self.deployment_location))
+                      .format(self.deployment_location, tmpdir_cmd))
+
         print('Installing requirements')
         self.remote_client.execute(command=pip_install, expected_exit_status=0)
 
         if 'espa-api' in self.deployment_location:
            print('opening up write permission to api logs')
-           log_permissions = ('cd {0}; chmod 777 logs/*'.format(self.deployment_location))
+           log_permissions = ('cd {0}; mkdir logs; chmod 777 logs'.format(self.deployment_location))
            self.remote_client.execute(command=log_permissions, expected_exit_status=0)
 
 
