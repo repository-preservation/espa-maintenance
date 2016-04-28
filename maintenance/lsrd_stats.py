@@ -244,8 +244,8 @@ def tally_product_dls(ids, prod_options):
     counts = Counter(ids)
 
     # if len(counts) != len(prod_options):
-    #     raise Exception('Length of unique order ids from the web log '
-    #                     'does not match what was received from the '
+    #     raise Exception('Length of unique order ids from the web log'
+    #                     'does not match what was received from the'
     #                     'database')
 
     infodict['total'] = len(ids)
