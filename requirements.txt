@@ -1,4 +1,4 @@
-pexpect==2.3
+pexpect
 psycopg2==2.6.1
 wheel==0.24.0
-python==2.7
+paramiko
