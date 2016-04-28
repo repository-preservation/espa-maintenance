@@ -13,6 +13,9 @@ constructed appropriately.
 
 ## Changlog
 
+###### Version 1.0.7 (April 2016)
+* deployment changes to support API and web changes
+
 ###### Version 1.0.6 (April 2016)
 * Added download statistics by product
 
