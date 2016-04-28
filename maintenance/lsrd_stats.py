@@ -207,16 +207,20 @@ def counts_prodopts(*dicts):
     return dict(ret)
 
 
-def db_dl_prodinfo(dbinfo, ids):
+def db_dl_prodinfo(dbinfo, orders_scenes):
     """
     Queries the database to get the associated product options
 
+    This query is meant to go with downloads by product
+
     :param dbinfo: Database connection information
     :type dbinfo: dict
-    :param ids: Order id's that have been downloaded from based on web logs
-    :type ids: tuple
+    :param orders_scenes: Order id's that have been downloaded from
+     based on web logs and scene names
+    :type orders_scenes: tuple
     :return: Dictionary of count values
     """
+    ids = zip(*orders_scenes)[0]
     ids = remove_duplicates(ids)
 
     sql = ('SELECT o.orderid, o.product_opts '
@@ -225,7 +229,7 @@ def db_dl_prodinfo(dbinfo, ids):
 
     with DBConnect(**dbinfo) as db:
         db.select(sql, (ids, ))
-        results = [x for x in db]
+        results = {k: val for k, val in db.fetcharr}
 
     return results
 
@@ -234,50 +238,32 @@ def remove_duplicates(arr_obj):
     return list(set(arr_obj))
 
 
-def tally_product_dls(ids, prod_options):
+def tally_product_dls(orders_scenes, prod_options):
     """
     Counts the number of times a product has been downloaded
 
-    :param ids: Order id's that have been downloaded from based on web logs
-    :type ids: tuple
+    :param orders_scenes: Order id's and scenes that have been
+     downloaded from based on web logs, paired tuple
+    :type orders_scenes: tuple
     :param prod_options: Unique order id's and their associated product
-        options in paired tuples
+        options, dict keyed on order id
     :type prod_options: list
     :return: dictionary count
     """
-    infodict = {'total': 0,
-                'cloud': 0,
-                'customized_source_data': 0,
-                'sr_evi': 0,
-                'source_metadata': 0,
-                'sr_msavi': 0,
-                'sr_nbr': 0,
-                'sr_nbr2': 0,
-                'sr_ndmi': 0,
-                'sr_ndvi': 0,
-                'sr_savi': 0,
-                'l1': 0,
-                'sr': 0,
-                'bt': 0,
-                'toa': 0,
-                'title': 'What was Downloaded'}
+    results = defaultdict(int)
 
-    counts = Counter(ids)
+    for orderid, scene in orders_scenes:
+        opts = prod_options[orderid]
+        for opt_key in opts:
+            if opt_key in SENSOR_KEYS:
+                inputs = opts[opt_key]['inputs']
+                if [x for x in inputs if scene in x]:
+                    for prod in opts[opt_key]['products']:
+                        results[prod] += 1
 
-    # if len(counts) != len(prod_options):
-    #     raise Exception('Length of unique order ids from the web log'
-    #                     'does not match what was received from the'
-    #                     'database')
+                    results['total'] += 1
 
-    infodict['total'] = len(ids)
-
-    for order_key, val in prod_options:
-        opts = json.loads(val)
-        for opt_key in infodict:
-            if opts.get(opt_key):
-                infodict[opt_key] += counts[order_key]
-
-    return infodict
+    return results
 
 
 def calc_dlinfo(log_file):
@@ -498,17 +484,17 @@ def proc_prevmonth(cfg):
     subject = EMAIL_SUBJECT.format(rng[0], rng[1])
 
     try:
+        # Process the web log file
         infodict, order_paths = calc_dlinfo(LOG_FILE)
-        print_sizeof('d/l log:', infodict)
         msg = download_boiler(infodict)
 
-        orderids = extract_orderid(order_paths)
-        prod_opts = db_dl_prodinfo(cfg, orderids)
-        print_sizeof('d/l prods:', prod_opts)
-        infodict = tally_product_dls(orderids, prod_opts)
-        print_sizeof('d/l prods:', infodict)
+        # Downloads by Product
+        orders_scenes = extract_orderid(order_paths)
+        prod_opts = db_dl_prodinfo(cfg, orders_scenes)
+        infodict = tally_product_dls(orders_scenes, prod_opts)
         msg += prod_boiler(infodict)
 
+        # On-Demand users and orders placed information
         for source in ORDER_SOURCES:
             infodict = db_orderstats(source, rng[0], rng[1], cfg)
             infodict.update(db_scenestats(source, rng[0], rng[1], cfg))
@@ -516,6 +502,7 @@ def proc_prevmonth(cfg):
             infodict['who'] = source.upper()
             msg += ondemand_boiler(infodict)
 
+        # Orders by Product
         infodict = db_prodinfo(cfg, rng[0], rng[1])
         msg += prod_boiler(infodict)
 
