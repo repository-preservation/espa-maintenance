@@ -409,7 +409,7 @@ class WebappDeployer(Deployer):
 
         if 'espa-api' in self.deployment_location:
            print('opening up write permission to api logs')
-           log_permissions = ('cd {0}; mkdir logs; chmod 777 logs'.format(self.deployment_location))
+           log_permissions = ('cd {0}; mkdir logs; chmod -R 777 logs'.format(self.deployment_location))
            self.remote_client.execute(command=log_permissions, expected_exit_status=0)
 
 
