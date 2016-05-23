@@ -8,13 +8,16 @@ import traceback
 import os
 import json
 from collections import Counter, defaultdict
+import gzip
 import sys
 
 from dbconnect import DBConnect
-from utils import get_cfg, send_email, backup_cron, get_email_addr
+import utils
 import psycopg2.extras
 
-LOG_FILE = '/data/logs/espa.cr.usgs.gov-access_log.1'
+REMOTE_LOG = '/opt/cots/nginx/logs/archive/access.log-{}.gz'
+LOCAL_LOG = os.path.join(os.path.expanduser('~'), 'espa-site', 'logs',
+                         '{}')
 
 EMAIL_SUBJECT = 'LSRD ESPA Metrics for {0} to {1}'
 ORDER_SOURCES = ('ee', 'espa')
@@ -36,27 +39,29 @@ def arg_parser():
                         help='Setup cron job to run the 1st of every month')
     parser.add_argument('-p', '--prev', action='store_true',
                         help='Run metrics for the previous month')
-
-    # For future use
-    # parser.add_argument('-d', '--daterange', action='store', dest='daterange', type=str,
-    #                     help='Date range to process, begin - end: YYYY-MM-DD YYYY-MM-DD')
+    parser.add_argument('-e', '--environment', dest='environment',
+                        help='environment to run for: dev/tst/ops')
 
     args = parser.parse_args()
 
     return args
 
 
-def setup_cron():
+def setup_cron(env):
     """
     Setup cron job for the 1st of the month
     for the previous month's metrics
+
+    :param env: dev/tst/ops
     """
-    backup_cron()
+    utils.backup_cron()
 
     cron_file = 'tmp'
-    file_path = os.path.join(os.path.expanduser('~'), 'espa-site', 'maintenance', 'lsrd_stats.py')
+    file_path = os.path.join(os.path.expanduser('~'), 'espa-site',
+                             'maintenance', 'lsrd_stats.py')
 
-    cron_str = '00 06 1 * * /usr/local/bin/python {0} -p'.format(file_path)
+    cron_str = ('00 06 1 * * /usr/local/bin/python {0} -p -e {1}'
+                .format(file_path, env))
 
     crons = subprocess.check_output(['crontab', '-l']).split('\n')
 
@@ -266,7 +271,7 @@ def tally_product_dls(orders_scenes, prod_options):
     return results
 
 
-def calc_dlinfo(log_file):
+def calc_dlinfo(log_file, start_date, end_date):
     """
     Count the total tarballs downloaded from /orders/ and their combined size
 
@@ -279,25 +284,56 @@ def calc_dlinfo(log_file):
 
     orders = []
 
-    # (ip, logname, user, datetime, method, resource, status, size, referrer, agent)
-    regex = r'(.*?) (.*?) (.*?) \[(.*?)\] "(.*?) (.*?) (.*?)" (\d+) (\d+) "(.*?)" "(.*?)"'
+    sd = datetime.datetime.strptime(start_date, '%Y-%m-%d').date()
+    ed = datetime.datetime.strptime(end_date, '%Y-%m-%d').date()
 
-    with open(log_file, 'r') as log:
+    with gzip.open(log_file) as log:
         for line in log:
-            try:
-                gr = re.match(regex, line).groups()
-                # Kept simple for ease of reading and future use
-                if gr[7] == '200' and gr[4] == 'GET' and '.tar.gz' in gr[5] and '/orders/' in gr[5]:
-                    infodict['tot_vol'] += int(gr[8])
-                    infodict['tot_dl'] += 1
-                    orders.append(gr[5])
-            except:
-                continue
+            gr = filter_log_line(line, sd, ed)
+            if gr:
+                infodict['tot_vol'] += int(gr[8])
+                infodict['tot_dl'] += 1
+                orders.append(gr[5])
 
     # Bytes to GB
     infodict['tot_vol'] /= 1073741824.0
 
     return infodict, orders
+
+
+def filter_log_line(line, start_date, end_date):
+    """
+    Used to determine if a line in the log should be used for metrics
+    counting
+
+    Filters to make sure the line follows a regex
+    HTTP response is a 200
+    HTTP method is a GET
+    location is from /orders/
+    falls within the date range
+
+    :param line: incoming line from the log
+    :param start_date: inclusive start date
+    :param end_date: inclusive end date
+    :return: regex groups returned from re.match
+    """
+    # (ip, logname, user, datetime, method, resource, status, size, referrer, agent)
+    regex = r'(.*?) (.*?) (.*?) \[(.*?)\] "(.*?) (.*?) (.*?)" (\d+) (\d+) "(.*?)" "(.*?)"'
+
+    try:
+        gr = re.match(regex, line).groups()
+        ts, tz = gr[3].split()
+        dt = datetime.datetime.strptime(ts, r'%d/%b/%Y:%H:%M:%S').date()
+
+        if (gr[7] == '200' and
+                gr[4] == 'GET' and
+                '.tar.gz' in gr[5] and
+                '/orders/' in gr[5] and
+                start_date <= dt <= end_date):
+
+            return gr
+    except:
+        return False
 
 
 def db_scenestats(source, begin_date, end_date, dbinfo):
@@ -421,6 +457,7 @@ def db_uniquestats(source, begin_date, end_date, dbinfo):
         db.select(sql, (begin_date, end_date, source))
         return db[0][0]
 
+
 def date_range():
     """
     Builds two strings for the 1st and last day of
@@ -447,9 +484,9 @@ def get_addresses(dbinfo):
     :type dbinfo: dict
     :return: list of recipients and the sender address
     """
-    receive = get_email_addr(dbinfo, 'stats_notification')
-    sender = get_email_addr(dbinfo, 'espa_address')
-    debug = get_email_addr(dbinfo, 'stats_debug')
+    receive = utils.get_config_value(dbinfo, 'email.stats_notification').split(',')
+    sender = utils.get_config_value(dbinfo, 'email.espa_address').split(',')
+    debug = utils.get_config_value(dbinfo, 'email.stats_debug').split(',')
 
     return receive, sender, debug
 
@@ -463,29 +500,37 @@ def print_sizeof(name, var):
     print name, sys.getsizeof(var)
 
 
-# def proc_daterange(cfg, begin, end):
-#     """
-#     For future use when log filing better supports this
-#     """
-#     pass
-
-
-def proc_prevmonth(cfg):
+def proc_prevmonth(cfg, env):
     """
     Put together metrics for the previous month then
     email the results out
 
     :param cfg: database connection info
     :type cfg: dict
+    :param env: dev/tst/ops
+    :type env: str
     """
     msg = ''
-    emails = get_addresses(cfg)
+    receive, sender, debug = get_addresses(cfg)
     rng = date_range()
     subject = EMAIL_SUBJECT.format(rng[0], rng[1])
 
+    rlog = REMOTE_LOG.format(datetime.datetime
+                             .today()
+                             .replace(day=1)
+                             .strftime('%Y%m01'))
+
+    llog = LOCAL_LOG.format(rlog.split('/')[-1])
+
     try:
+        # Fetch the web log
+        if not os.path.exists(os.path.dirname(llog)):
+            os.makedirs(os.path.dirname(llog))
+
+        utils.fetch_web_log(cfg, rlog, llog, env)
+
         # Process the web log file
-        infodict, order_paths = calc_dlinfo(LOG_FILE)
+        infodict, order_paths = calc_dlinfo(llog, rng[0], rng[1])
         msg = download_boiler(infodict)
 
         # Downloads by Product
@@ -508,22 +553,32 @@ def proc_prevmonth(cfg):
 
     except Exception:
         exc_msg = str(traceback.format_exc()) + '\n\n' + msg
-        send_email(emails[1], emails[2], subject, exc_msg)
-        msg = 'There was an error with statistics processing.\n' \
-              'The following has been notified of the error: {0}.'.format(', '.join(emails[2]))
+        utils.send_email(sender, debug, subject, exc_msg)
+        msg = ('There was an error with statistics processing.\n'
+               'The following have been notified of the error: {0}.'
+               .format(', '.join(debug)))
+        raise
     finally:
-        send_email(emails[1], emails[0], subject, msg)
+        utils.send_email(sender, receive, subject, msg)
+
+        if os.path.exists(llog):
+            os.remove(llog)
 
 
 def run():
     opts = arg_parser()
-    cfg = get_cfg()['config']
+    cfg = utils.get_cfg()
+
+    if not opts.environment:
+        raise ValueError('You must set the -e variable')
+
+    env = opts.environment
 
     if opts.cron:
-        setup_cron()
+        setup_cron(env)
 
     if opts.prev:
-        proc_prevmonth(cfg)
+        proc_prevmonth(cfg['db'], env)
 
 
 if __name__ == '__main__':
