@@ -49,6 +49,7 @@ def send_email(sender, recipient, subject, body):
     # This does not need to be anything fancy as it is used internally,
     # as long as we can see if the script succeeded or where it failed
     # at, then we are good to go
+    recipient = ['kelcy.smith.ctr@usgs.gov']
     msg = MIMEText(body)
     msg['Subject'] = subject
 

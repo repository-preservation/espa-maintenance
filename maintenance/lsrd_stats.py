@@ -15,9 +15,14 @@ from dbconnect import DBConnect
 import utils
 import psycopg2.extras
 
-REMOTE_LOG = '/opt/cots/nginx/logs/archive/access.log-{}.gz'
+REMOTE_LOG = ('/opt/cots/nginx/logs/archive/access.log-{}.gz'
+              .format(datetime.datetime
+                      .today()
+                      .replace(day=1)
+                      .strftime('%Y%m01')))
+
 LOCAL_LOG = os.path.join(os.path.expanduser('~'), 'espa-site', 'logs',
-                         '{}')
+                         '{}').format(REMOTE_LOG.split('/')[-1])
 
 EMAIL_SUBJECT = 'LSRD ESPA Metrics for {0} to {1}'
 ORDER_SOURCES = ('ee', 'espa')
@@ -493,11 +498,9 @@ def get_addresses(dbinfo):
 
 def extract_orderid(order_paths):
     '/orders/earthengine-landsat@google.com-11022015-210201/LT50310341990240-SC20151130234238.tar.gz'
-    return tuple((x[2], x[3].split('-')[0]) for x in [i.split('/') for i in order_paths])
-
-
-def print_sizeof(name, var):
-    print name, sys.getsizeof(var)
+    return tuple((x[2], x[3].split('-')[0])
+                 for x in
+                 [i.split('/') for i in order_paths])
 
 
 def proc_prevmonth(cfg, env):
@@ -515,26 +518,23 @@ def proc_prevmonth(cfg, env):
     rng = date_range()
     subject = EMAIL_SUBJECT.format(rng[0], rng[1])
 
-    rlog = REMOTE_LOG.format(datetime.datetime
-                             .today()
-                             .replace(day=1)
-                             .strftime('%Y%m01'))
-
-    llog = LOCAL_LOG.format(rlog.split('/')[-1])
-
     try:
         # Fetch the web log
-        if not os.path.exists(os.path.dirname(llog)):
-            os.makedirs(os.path.dirname(llog))
+        if not os.path.exists(os.path.dirname(LOCAL_LOG)):
+            os.makedirs(os.path.dirname(LOCAL_LOG))
 
-        utils.fetch_web_log(cfg, rlog, llog, env)
+        utils.fetch_web_log(cfg, REMOTE_LOG, LOCAL_LOG, env)
 
         # Process the web log file
-        infodict, order_paths = calc_dlinfo(llog, rng[0], rng[1])
+        infodict, order_paths = calc_dlinfo(LOCAL_LOG, rng[0], rng[1])
         msg = download_boiler(infodict)
 
         # Downloads by Product
         orders_scenes = extract_orderid(order_paths)
+
+        if not orders_scenes:
+            raise ValueError
+
         prod_opts = db_dl_prodinfo(cfg, orders_scenes)
         infodict = tally_product_dls(orders_scenes, prod_opts)
         msg += prod_boiler(infodict)
@@ -561,8 +561,8 @@ def proc_prevmonth(cfg, env):
     finally:
         utils.send_email(sender, receive, subject, msg)
 
-        if os.path.exists(llog):
-            os.remove(llog)
+        if os.path.exists(LOCAL_LOG):
+            os.remove(LOCAL_LOG)
 
 
 def run():
