@@ -407,7 +407,7 @@ class WebappDeployer(Deployer):
         print('Installing requirements')
         self.remote_client.execute(command=pip_install, expected_exit_status=0)
 
-        if 'espa-api' in self.deployment_location:
+        if 'espa-api' in self.deployment_location or 'espa-web' in self.deployment_location:
            print('opening up write permission to api logs')
            log_permissions = ('cd {0}; mkdir logs; chmod -R 777 logs'.format(self.deployment_location))
            self.remote_client.execute(command=log_permissions, expected_exit_status=0)
