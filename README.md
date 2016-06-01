@@ -13,6 +13,9 @@ constructed appropriately.
 
 ## Changlog
 
+###### Version 1.1.0 (May 2016)
+* Support for the new log rotation
+
 ###### Version 1.0.7 (April 2016)
 * deployment changes to support API and web changes
 
