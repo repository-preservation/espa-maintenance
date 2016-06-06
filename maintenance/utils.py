@@ -6,16 +6,20 @@ import datetime
 import subprocess
 
 from dbconnect import DBConnect
+import paramiko
 
 
-def get_cfg():
+def get_cfg(cfg_path=None):
     """
     Retrieve the configuration information from the .cfgnfo file
     located in the current user's home directory
 
-    :return: dict
+    :param cfg_path: Path to the configuration file to use, defaults to
+        '/home/<user>/.usgs/.cfgnfo'
+    :return: dict represention of the configuration file
     """
-    cfg_path = os.path.join(os.path.expanduser('~'), '.cfgnfo')
+    if not cfg_path:
+        cfg_path = os.path.join(os.path.expanduser('~'), '.usgs', '.cfgnfo')
 
     cfg_info = {}
     config = ConfigParser.ConfigParser()
@@ -63,7 +67,7 @@ def get_email_addr(dbinfo, who):
     for a specified role
     """
     key = 'email.{0}'.format(who)
-    sql = "select value from ordering_configuration where key = %s"
+    sql = 'select value from ordering_configuration where key = %s'
 
     with DBConnect(**dbinfo) as db:
         db.select(sql, key)
@@ -86,3 +90,45 @@ def backup_cron():
 
     with open(os.path.join(bk_path, cron_file), 'w') as f:
         subprocess.call(['crontab', '-l'], stdout=f)
+
+
+def get_config_value(dbinfo, key):
+    """
+    Retrieve a specified configuration value
+
+    :param dbinfo: DB connection information
+    :param key: table key to get the value for
+    :return: value
+    """
+
+    sql = ('SELECT value from ordering_configuration '
+           'WHERE key = %s')
+
+    with DBConnect(**dbinfo) as db:
+        db.select(sql, key)
+        ret = db[0][0]
+
+    return ret
+
+
+def fetch_web_log(dbinfo, remote_path, local_path, env):
+    """
+    Copy the web log file from a remote host to the local host
+    for processing
+
+    :param dbinfo: DB configuration
+    :param remote_path: path on the remote to copy
+    :param local_path: local path to place the copy
+    :param env: dev/tst/ops
+    """
+    username = get_config_value(dbinfo, 'landsatds.username')
+    password = get_config_value(dbinfo, 'landsatds.password')
+    host = get_config_value(dbinfo, 'url.{}.webtier'.format(env))
+
+    client = paramiko.SSHClient()
+    client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+
+    client.connect(host, username=username, password=password, timeout=60)
+    sftp = client.open_sftp()
+
+    sftp.get(remote_path, local_path)
