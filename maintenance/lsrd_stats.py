@@ -6,16 +6,14 @@ import argparse
 import subprocess
 import traceback
 import os
-import json
-from collections import Counter, defaultdict
+from collections import defaultdict
 import gzip
-import sys
 
 from dbconnect import DBConnect
 import utils
 import psycopg2.extras
 
-REMOTE_LOG = ('/opt/cots/nginx/logs/archive/access.log-{}.gz'
+REMOTE_LOG = ('/opt/cots/nginx/logs/archive/espa.cr.usgs.gov_access.log-{}.gz'
               .format(datetime.datetime
                       .today()
                       .replace(day=1)
