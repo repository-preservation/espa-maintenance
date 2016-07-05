@@ -8,12 +8,12 @@ import traceback
 import os
 from collections import defaultdict
 import gzip
+import urllib2
 
 from dbconnect import DBConnect
 import utils
-import psycopg2.extras
 
-REMOTE_LOG = ('/opt/cots/nginx/logs/archive/espa.cr.usgs.gov_access.log-{}.gz'
+REMOTE_LOG = ('/opt/cots/nginx/logs/archive/espa.cr.usgs.gov-access_log-{}.gz'
               .format(datetime.datetime
                       .today()
                       .replace(day=1)
@@ -156,7 +156,22 @@ def prod_boiler(info):
               ' SR SAVI: {sr_savi}\n'
               ' CFMASK: {cloud}\n')
 
-    return boiler.format(**info)
+    return boiler.format(title=info.get('title'),
+                         total=info.get('total', 0),
+                         sr=info.get('sr', 0),
+                         bt=info.get('bt', 0),
+                         toa=info.get('toa', 0),
+                         customized_source_data=info.get('customized_source_data', 0),
+                         source_metadata=info.get('source_metadata', 0),
+                         l1=info.get('l1', 0),
+                         sr_evi=info.get('sr_evi', 0),
+                         sr_msavi=info.get('sr_msavi', 0),
+                         sr_nbr=info.get('sr_nbr', 0),
+                         sr_nbr2=info.get('sr_nbr2', 0),
+                         sr_ndmi=info.get('sr_ndmi', 0),
+                         sr_ndvi=info.get('sr_ndvi', 0),
+                         sr_savi=info.get('sr_savi', 0),
+                         cloud=info.get('cloud', 0),)
 
 
 def db_prodinfo(dbinfo, begin_date, end_date):
@@ -261,7 +276,7 @@ def tally_product_dls(orders_scenes, prod_options):
     results = defaultdict(int)
 
     for orderid, scene in orders_scenes:
-        opts = prod_options[orderid]
+        opts = prod_options[urllib2.unquote(orderid)]
         for opt_key in opts:
             if opt_key in SENSOR_KEYS:
                 inputs = opts[opt_key]['inputs']
@@ -271,6 +286,7 @@ def tally_product_dls(orders_scenes, prod_options):
 
                     results['total'] += 1
 
+    results['title'] = 'Downloads by Product'
     return results
 
 
@@ -576,7 +592,7 @@ def run():
         setup_cron(env)
 
     if opts.prev:
-        proc_prevmonth(cfg['db'], env)
+        proc_prevmonth(cfg['config'], env)
 
 
 if __name__ == '__main__':

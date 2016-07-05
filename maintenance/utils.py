@@ -19,7 +19,7 @@ def get_cfg(cfg_path=None):
     :return: dict represention of the configuration file
     """
     if not cfg_path:
-        cfg_path = os.path.join(os.path.expanduser('~'), '.usgs', '.cfgnfo')
+        cfg_path = os.path.join(os.path.expanduser('~'), '.cfgnfo')
 
     cfg_info = {}
     config = ConfigParser.ConfigParser()
