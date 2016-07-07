@@ -144,9 +144,9 @@ def prod_boiler(info):
               ' SR: {sr}\n'
               ' SR Thermal: {bt}\n'
               ' ToA: {toa}\n'
-              ' Source: {customized_source_data}\n'
+              ' Source: {l1}\n'
               ' Source Metadata: {source_metadata}\n'
-              ' Customized Source: {l1}\n'
+              ' Customized Source: {customized_source_data}\n'
               ' SR EVI: {sr_evi}\n'
               ' SR MSAVI: {sr_msavi}\n'
               ' SR NBR: {sr_nbr}\n'
@@ -154,7 +154,8 @@ def prod_boiler(info):
               ' SR NDMI: {sr_ndmi}\n'
               ' SR NDVI: {sr_ndvi}\n'
               ' SR SAVI: {sr_savi}\n'
-              ' CFMASK: {cloud}\n')
+              ' CFMASK: {cloud}\n'
+              ' Plot: {plot}\n')
 
     return boiler.format(title=info.get('title'),
                          total=info.get('total', 0),
@@ -171,7 +172,8 @@ def prod_boiler(info):
                          sr_ndmi=info.get('sr_ndmi', 0),
                          sr_ndvi=info.get('sr_ndvi', 0),
                          sr_savi=info.get('sr_savi', 0),
-                         cloud=info.get('cloud', 0),)
+                         cloud=info.get('cloud', 0),
+                         plot=info.get('plot_statistics', 0))
 
 
 def db_prodinfo(dbinfo, begin_date, end_date):
@@ -203,7 +205,8 @@ def db_prodinfo(dbinfo, begin_date, end_date):
 
 
 def process_db_prodopts(row):
-    ret = {'total': 0}
+    ret = defaultdict(int)
+    # ret = {'total': 0}
     opts = row[0]
 
     for key in SENSOR_KEYS:
@@ -211,12 +214,15 @@ def process_db_prodopts(row):
             num = len(opts[key]['inputs'])
             ret['total'] += num
 
-            prods = opts[key]['products']
-            for prod in prods:
-                if prod in ret:
-                    ret[prod] += num
+            if 'plot_statistics' in opts and opts['plot_statistics']:
+                ret['plot_statistics'] += num
+
+            for prod in opts[key]['products']:
+                if prod == 'l1' and ('projection' in opts or
+                                     'image_extents' in opts):
+                    ret['customized_source_data'] += num
                 else:
-                    ret[prod] = num
+                    ret[prod] += num
 
     return ret
 
@@ -277,14 +283,22 @@ def tally_product_dls(orders_scenes, prod_options):
 
     for orderid, scene in orders_scenes:
         opts = prod_options[urllib2.unquote(orderid)]
-        for opt_key in opts:
-            if opt_key in SENSOR_KEYS:
-                inputs = opts[opt_key]['inputs']
-                if [x for x in inputs if scene in x]:
-                    for prod in opts[opt_key]['products']:
-                        results[prod] += 1
 
+        if 'plot_statistics' in opts and opts['plot_statistics']:
+            results['plot_statistics'] += 1
+
+        for key in SENSOR_KEYS:
+            if key in opts:
+                # Scene names get truncated during distribution
+                if [x for x in opts[key]['inputs'] if scene in x]:
                     results['total'] += 1
+
+                    for prod in opts[key]['products']:
+                        if prod == 'l1' and ('projection' in opts or
+                                             'image_extents' in opts):
+                            results['customized_source_data'] += 1
+                        else:
+                            results[prod] += 1
 
     results['title'] = 'Downloads by Product'
     return results
@@ -377,14 +391,16 @@ def db_scenestats(source, begin_date, end_date, dbinfo):
               where ordering_order.order_date::date >= %s
               and ordering_order.order_date::date <= %s
               and ordering_order.orderid like '%%@usgs.gov-%%'
-              and ordering_order.order_source = %s;''',
+              and ordering_order.order_source = %s
+              and name != 'plot' ''',
            '''select COUNT(*)
               from ordering_scene
               inner join ordering_order on ordering_scene.order_id = ordering_order.id
               where ordering_order.order_date::date >= %s
               and ordering_order.order_date::date <= %s
               and ordering_order.orderid not like '%%@usgs.gov-%%'
-              and ordering_order.order_source = %s;''')
+              and ordering_order.order_source = %s
+              and name != 'plot' ''')
 
     counts = {'scenes_month': 0,
               'scenes_usgs': 0,
