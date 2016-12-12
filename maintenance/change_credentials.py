@@ -171,7 +171,7 @@ def change_pass(old_pass):
     :return: new password string
     """
     child = pexpect.spawn('passwd')
-    child.expect('password: ')
+    child.expect('Password: ')
     child.sendline(old_pass)
     i = child.expect(['New password: ', 'Password incorrect: try again'])
 
