@@ -24,8 +24,10 @@ class CredentialException(Exception):
 
 def arg_parser():
     """
-    Process the command line arguments
+    Process the command line arguments (username, configfile)
     """
+    cfg_path = os.environ.get('ESPA_CONFIG_PATH', '')
+
     parser = argparse.ArgumentParser(description="Changes credentials supplied for\
      -u/--username and updated Django configuration table for ESPA admin site.  Right now it\
       needs to run on the same host where the postgres database lives for ESPA.  This script\
@@ -34,14 +36,18 @@ def arg_parser():
     parser.add_argument("-u", "--username", action="store", nargs=1, dest="username",
                         choices=['espa', 'espadev', 'espatst'],
                         help="Username to changed credentials for (e.g. [espa|espadev|espatst])")
+    parser.add_argument("-c", "--configfile", action="store", type=str, default=cfg_path,
+                        dest="configfile",
+                        help="Configuration details for DB access [{c}]"
+                        .format(c=cfg_path if cfg_path else '$ESPA_CONFIG_PATH'))
 
     args = parser.parse_args()
 
-    if len(sys.argv) - 1 == 0:
+    if not args.username:
         parser.print_help()
         sys.exit(1)
 
-    return args.username[0]
+    return args.username[0], args.configfile
 
 
 def gen_password(length=16):
@@ -164,12 +170,11 @@ def run():
     msg = 'General Failure'
     success = 'Failure'
 
-    db_info = get_cfg()['config']
+    username, cfg_path = arg_parser()
+    db_info = get_cfg(cfg_path, section='config')
     reciever, sender = get_addresses(db_info)
 
     try:
-        username = arg_parser()
-
         old_pass = current_pass(db_info)
         new_pass = change_pass(old_pass)
         update_db(new_pass, db_info)
