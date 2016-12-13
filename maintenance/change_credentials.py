@@ -34,9 +34,6 @@ def arg_parser():
     parser.add_argument("-u", "--username", action="store", nargs=1, dest="username",
                         choices=['espa', 'espadev', 'espatst'],
                         help="Username to changed credentials for (e.g. [espa|espadev|espatst])")
-    parser.add_argument("-f", "--frequency", action="store", type=int, default=60,
-                        dest="frequency",
-                        help="Frequency (in days) to change the following credentials")
 
     args = parser.parse_args()
 
@@ -44,7 +41,7 @@ def arg_parser():
         parser.print_help()
         sys.exit(1)
 
-    return args.username[0], args.frequency
+    return args.username[0]
 
 
 def gen_password(length=16):
@@ -114,54 +111,6 @@ def current_pass(db_info):
     return curr
 
 
-def update_cron(user, freq=60):
-    """
-    Updates the crontab to run this script again with the same user and frequency
-
-    :param user: user to update password for
-    :type user: string
-    :param freq: number days to set the next cron job for
-    :type freq: int
-    """
-    backup_cron()
-
-    cron_file = 'cron.tmp'
-
-    new_date = datetime.date.today() + datetime.timedelta(days=freq)
-    file_path = os.path.join(os.path.expanduser('~'), 'espa-site', 'maintenance', 'change_credentials.py')
-
-    cron_str = "00 06 {0} {1} * /usr/local/bin/python {2} -u {3} -f {4}".format(new_date.day,
-                                                                                new_date.month,
-                                                                                file_path,
-                                                                                user,
-                                                                                freq)
-
-    crons = subprocess.check_output(['crontab', '-l']).split('\n')
-
-    check = False
-    for idx, line in enumerate(crons):
-        if __file__ in line:
-            crons[idx] = cron_str
-            check = True
-
-    if not check:
-        add = ['#-----------------------------',
-               '# Environment Credential Updating',
-               '#-----------------------------',
-               cron_str]
-
-        crons.extend(add)
-
-    with open(cron_file, 'w') as f:
-        f.write('\n'.join(crons) + '\n')
-
-    msg = subprocess.check_output(['crontab', cron_file])
-    if 'errors' in msg:
-        raise CredentialException('Password Updated, but failed crontab update:\n{0}'.format(msg))
-    else:
-        subprocess.call(['rm', cron_file])
-
-
 def change_pass(old_pass):
     """
     Update the password in the linux environment
@@ -207,8 +156,7 @@ def get_addresses(dbinfo):
 
 def run():
     """
-    Change the password for a user and set up a cron job
-    to change it again based on the frequency
+    Change the password for a user
     """
     # Since this is mostly a fire and forget script it needs
     # broad exception handling so whatever traceback gets generated
@@ -220,12 +168,11 @@ def run():
     reciever, sender = get_addresses(db_info)
 
     try:
-        username, freq = arg_parser()
+        username = arg_parser()
 
         old_pass = current_pass(db_info)
         new_pass = change_pass(old_pass)
         update_db(new_pass, db_info)
-        update_cron(username, freq)
         msg = 'User: {0} password has been updated'.format(username)
         success = 'Successful'
     except Exception:
