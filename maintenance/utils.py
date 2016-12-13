@@ -1,3 +1,4 @@
+import sys
 import smtplib
 from email.mime.text import MIMEText
 import ConfigParser
@@ -9,7 +10,7 @@ from dbconnect import DBConnect
 import paramiko
 
 
-def get_cfg(cfg_path=None):
+def get_cfg(cfg_path=None, section=''):
     """
     Retrieve the configuration information from the .cfgnfo file
     located in the current user's home directory
@@ -21,6 +22,10 @@ def get_cfg(cfg_path=None):
     if not cfg_path:
         cfg_path = os.path.join(os.path.expanduser('~'), '.usgs', '.cfgnfo')
 
+    if not os.path.exists(cfg_path):
+        print('! DB configuration not found: {c}'.format(c=cfg_path))
+        sys.exit(1)
+
     cfg_info = {}
     config = ConfigParser.ConfigParser()
     config.read(cfg_path)
@@ -29,6 +34,12 @@ def get_cfg(cfg_path=None):
         cfg_info[sect] = {}
         for opt in config.options(sect):
             cfg_info[sect][opt] = config.get(sect, opt)
+
+    if section:
+        if section not in cfg_info:
+            print('! Section {s} not found in {c}'.format(s=section, c=cfg_path))
+            sys.exit(1)
+        cfg_info = cfg_info[section]
 
     return cfg_info
 
