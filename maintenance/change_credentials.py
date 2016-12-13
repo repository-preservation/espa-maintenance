@@ -168,7 +168,7 @@ def run():
     # broad exception handling so whatever traceback gets generated
     # is sent out in the email
     msg = 'General Failure'
-    success = 'Failure'
+    status = 'Failure'
 
     username, cfg_path = arg_parser()
     db_info = get_cfg(cfg_path, section='config')
@@ -179,11 +179,11 @@ def run():
         new_pass = change_pass(old_pass)
         update_db(new_pass, db_info)
         msg = 'User: {0} password has been updated'.format(username)
-        success = 'Successful'
+        status = 'Successful'
     except Exception:
         msg = str(traceback.format_exc())
     finally:
-        send_email(sender, reciever, EMAIL_SUBJECT.format(success), msg)
+        send_email(sender, reciever, EMAIL_SUBJECT.format(status), msg)
 
 
 if __name__ == '__main__':

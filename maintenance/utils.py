@@ -49,7 +49,7 @@ def send_email(sender, recipient, subject, body):
     Send out an email to give notice of success or failure
 
     :param sender: who the email is from
-    :type sender: string
+    :type sender: list
     :param recipient: list of recipients of the email
     :type recipient: list
     :param subject: subject line of the email
