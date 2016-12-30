@@ -4,10 +4,10 @@ from email.mime.text import MIMEText
 import ConfigParser
 import os
 import datetime
-import subprocess
+
+import paramiko
 
 from dbconnect import DBConnect
-import paramiko
 
 
 def get_cfg(cfg_path=None, section=''):
@@ -60,7 +60,6 @@ def send_email(sender, recipient, subject, body):
     # This does not need to be anything fancy as it is used internally,
     # as long as we can see if the script succeeded or where it failed
     # at, then we are good to go
-    recipient = ['kelcy.smith.ctr@usgs.gov']
     msg = MIMEText(body)
     msg['Subject'] = subject
 
@@ -86,22 +85,6 @@ def get_email_addr(dbinfo, who):
         out = db[0][0].split(',')
 
     return out
-
-
-def backup_cron():
-    """
-    Make a backup of the current user's crontab
-    to /home/~/backups/
-    """
-    bk_path = os.path.join(os.path.expanduser('~'), 'backups')
-    if not os.path.exists(bk_path):
-        os.makedirs(bk_path)
-
-    ts = datetime.datetime.now()
-    cron_file = ts.strftime('crontab-%m%d%y-%H%M%S')
-
-    with open(os.path.join(bk_path, cron_file), 'w') as f:
-        subprocess.call(['crontab', '-l'], stdout=f)
 
 
 def get_config_value(dbinfo, key):
