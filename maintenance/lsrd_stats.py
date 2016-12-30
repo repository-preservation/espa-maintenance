@@ -14,7 +14,8 @@ from dbconnect import DBConnect
 import utils
 
 DATE_FMT = '%Y-%m-%d'
-LOG_FILENAME = 'edclpdsftp.cr.usgs.gov-access_log-????????.gz'
+LOG_FILENAME = 'edclpdsftp.cr.usgs.gov-access_log-'
+LOG_FILE_TIMESTAMP = LOG_FILENAME + '%Y%m%d' + '.gz'
 
 EMAIL_SUBJECT = 'LSRD ESPA Metrics for {begin} to {stop}'
 ORDER_SOURCES = ('ee', 'espa')
@@ -469,22 +470,28 @@ def db_uniquestats(source, begin_date, end_date, dbinfo):
         return db[0][0]
 
 
-def date_range():
+def date_range(offset=0):
     """
     Builds two strings for the 1st and last day of
     the previous month, ISO 8601 'YYYY-MM-DD'
 
+    :param offset: Months to offset this calculation by
     :return: 1st day, last day
     """
     first = datetime.datetime.today().replace(day=1)
     last = first - datetime.timedelta(days=2)
+
+    if offset:
+        first = first.replace(month=first.month-offset)
+        last = last.replace(month=first.month-offset)
 
     num_days = calendar.monthrange(last.year, last.month)[1]
 
     begin_date = '{0}-{1}-1'.format(last.year, last.month)
     end_date = '{0}-{1}-{2}'.format(last.year, last.month, num_days)
 
-    return begin_date, end_date
+    return (datetime.datetime.strptime(begin_date, DATE_FMT).date(),
+            datetime.datetime.strptime(end_date, DATE_FMT).date())
 
 
 def get_addresses(dbinfo):
@@ -509,15 +516,23 @@ def extract_orderid(order_paths):
                  [i.split('/') for i in order_paths])
 
 
-def proc_prevmonth(cfg, env):
+def process_monthly_metrics(cfg, env, remote_dir, local_dir, begin, stop):
     """
     Put together metrics for the previous month then
     email the results out
 
-    :param cfg: database connection info
+    :param cfg: database connection info (host, port, username, password)
     :type cfg: dict
-    :param env: dev/tst/ops
+    :param env: dev/tst/ops (used to get the hostname of the external download servers)
     :type env: str
+    :param remote_dir: location of download logs (nginx)
+    :type remote_dir: str
+    :param local_dir: location to save log files
+    :type local_dir: str
+    :param begin: timestamp to begin searching the logs
+    :type begin: datetime.date
+    :param stop: timestamp to stop searching the logs
+    :type stop: datetime.date
     """
     msg = ''
     receive, sender, debug = get_addresses(cfg)
@@ -528,7 +543,10 @@ def proc_prevmonth(cfg, env):
         if not os.path.exists(local_dir):
             os.makedirs(local_dir)
 
-        utils.fetch_web_log(cfg, REMOTE_LOG, LOCAL_LOG, env)
+        dmzinfo = utils.query_connection_info(cfg, env)
+        files = utils.find_remote_files_sudo(dmzinfo['host'], dmzinfo['username'], dmzinfo['password'], dmzinfo['port'],
+                                             remote_dir, LOG_FILENAME)
+        files = utils.subset_by_date(files, begin, stop, LOG_FILE_TIMESTAMP)
 
         # Process the web log file
         log_glob = os.path.join(local_dir, LOG_FILENAME)
@@ -582,10 +600,8 @@ def run():
 
     opts = arg_parser(defaults)
     cfg = utils.get_cfg(opts['conf_file'], section='config')
-    opts.update(cfg)
 
-    if opts.prev:
-        proc_prevmonth(cfg['config'], env)
+    process_monthly_metrics(cfg, opts['env'], opts['remote'], opts['dir'], opts['begin'], opts['stop'])
 
 
 if __name__ == '__main__':
