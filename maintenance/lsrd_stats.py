@@ -13,16 +13,10 @@ import urllib2
 from dbconnect import DBConnect
 import utils
 
-REMOTE_LOG = ('/opt/cots/nginx/logs/archive/espa.cr.usgs.gov-access_log-{}.gz'
-              .format(datetime.datetime
-                      .today()
-                      .replace(day=1)
-                      .strftime('%Y%m01')))
+DATE_FMT = '%Y-%m-%d'
+LOG_FILENAME = 'edclpdsftp.cr.usgs.gov-access_log-????????.gz'
 
-LOCAL_LOG = os.path.join(os.path.expanduser('~'), 'espa-site', 'logs',
-                         '{}').format(REMOTE_LOG.split('/')[-1])
-
-EMAIL_SUBJECT = 'LSRD ESPA Metrics for {0} to {1}'
+EMAIL_SUBJECT = 'LSRD ESPA Metrics for {begin} to {stop}'
 ORDER_SOURCES = ('ee', 'espa')
 
 SENSOR_KEYS = ('tm4', 'tm5', 'etm7', 'olitirs8', 'oli8',
@@ -50,44 +44,6 @@ def arg_parser():
     return args
 
 
-def setup_cron(env):
-    """
-    Setup cron job for the 1st of the month
-    for the previous month's metrics
-
-    :param env: dev/tst/ops
-    """
-    utils.backup_cron()
-
-    cron_file = 'tmp'
-    file_path = os.path.join(os.path.expanduser('~'), 'espa-site',
-                             'maintenance', 'lsrd_stats.py')
-
-    cron_str = ('00 06 1 * * /usr/local/bin/python {0} -p -e {1}'
-                .format(file_path, env))
-
-    crons = subprocess.check_output(['crontab', '-l']).split('\n')
-
-    for idx, line in enumerate(crons):
-        if __file__ in line:
-            print('Cron job already exists')
-            return
-
-    add = ['#-----------------------------',
-           '# LSRD ESPA stats',
-           '#-----------------------------',
-           cron_str]
-
-    crons.extend(add)
-
-    with open(cron_file, 'w') as f:
-        f.write('\n'.join(crons) + '\n')
-
-    msg = subprocess.check_output(['crontab', cron_file])
-    if 'errors' in msg:
-        print('Error creating cron job')
-    else:
-        subprocess.call(['rm', cron_file])
 
 
 def download_boiler(info):
@@ -545,18 +501,18 @@ def proc_prevmonth(cfg, env):
     """
     msg = ''
     receive, sender, debug = get_addresses(cfg)
-    rng = date_range()
-    subject = EMAIL_SUBJECT.format(rng[0], rng[1])
+    subject = EMAIL_SUBJECT.format(begin=begin, stop=stop)
 
     try:
         # Fetch the web log
-        if not os.path.exists(os.path.dirname(LOCAL_LOG)):
-            os.makedirs(os.path.dirname(LOCAL_LOG))
+        if not os.path.exists(local_dir):
+            os.makedirs(local_dir)
 
         utils.fetch_web_log(cfg, REMOTE_LOG, LOCAL_LOG, env)
 
         # Process the web log file
-        infodict, order_paths = calc_dlinfo(LOCAL_LOG, rng[0], rng[1])
+        log_glob = os.path.join(local_dir, LOG_FILENAME)
+        infodict, order_paths = calc_dlinfo(log_glob, begin, stop)
         msg = download_boiler(infodict)
 
         # Downloads by Product
