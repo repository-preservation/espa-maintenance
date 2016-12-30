@@ -26,24 +26,44 @@ SENSOR_KEYS = ('tm4', 'tm5', 'etm7', 'olitirs8', 'oli8',
                'myd13a1', 'myd13a2', 'myd13a3', 'myd13q1', 'invalid')
 
 
-def arg_parser():
+def arg_parser(defaults):
     """
     Process the command line arguments
     """
     parser = argparse.ArgumentParser(description="LSRD ESPA Metrics")
 
-    parser.add_argument('-c', '--cron', action='store_true',
-                        help='Setup cron job to run the 1st of every month')
-    parser.add_argument('-p', '--prev', action='store_true',
-                        help='Run metrics for the previous month')
     parser.add_argument('-e', '--environment', dest='environment',
+                        choices=['dev', 'tst', 'ops'], required=True,
                         help='environment to run for: dev/tst/ops')
+    parser.add_argument('-b', '--begin', dest='begin',
+                        default=defaults['begin'],
+                        help='Start date to search (%s)' %
+                        defaults['begin'].strftime(DATE_FMT))
+    parser.add_argument('-s', '--stop', dest='stop',
+                        default=defaults['stop'],
+                        help='End date to search (%s)' %
+                        defaults['stop'].strftime(DATE_FMT))
+    parser.add_argument('-c', '--conf_file', dest='conf_file',
+                        default=defaults['conf_file'],
+                        help='Configuration file [%s]' % defaults['conf_file'])
+    parser.add_argument('-r', '--remote', dest='remote',
+                        default=defaults['remote'],
+                        help='Directory structure of remote log location (%s)'
+                        % defaults['remote'])
+    parser.add_argument('-d', '--dir', dest='dir',
+                        default=defaults['dir'],
+                        help='Directory to temporarily store logs')
+    parser.add_argument('-l', '--local', dest='local', action='store_true',
+                        help='[DEBUG] For using a local file')  # FIXME remove
 
     args = parser.parse_args()
+    defaults.update(args.__dict__)
 
-    return args
+    for _ in ['begin', 'stop']:
+        if type(defaults[_]) is str:
+            defaults[_] = datetime.datetime.strptime(defaults[_], DATE_FMT).date()
 
-
+    return defaults
 
 
 def download_boiler(info):
@@ -552,16 +572,17 @@ def proc_prevmonth(cfg, env):
 
 
 def run():
-    opts = arg_parser()
-    cfg = utils.get_cfg()
+    rng = date_range()
+    defaults = {'remote': '/var/log/nginx/archive/',
+                'begin': rng[0],
+                'stop': rng[1],
+                'conf_file': utils.CONF_FILE,
+                'dir': os.path.join(os.path.expanduser('~'), 'temp-logs')}
+    # TODO: Add category (collections, pre-collections...)
 
-    if not opts.environment:
-        raise ValueError('You must set the -e variable')
-
-    env = opts.environment
-
-    if opts.cron:
-        setup_cron(env)
+    opts = arg_parser(defaults)
+    cfg = utils.get_cfg(opts['conf_file'], section='config')
+    opts.update(cfg)
 
     if opts.prev:
         proc_prevmonth(cfg['config'], env)
