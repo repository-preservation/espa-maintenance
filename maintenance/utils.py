@@ -106,24 +106,18 @@ def get_config_value(dbinfo, key):
     return ret
 
 
-def fetch_web_log(dbinfo, remote_path, local_path, env):
+def query_connection_info(dbinfo, env):
     """
     Copy the web log file from a remote host to the local host
     for processing
 
     :param dbinfo: DB configuration
-    :param remote_path: path on the remote to copy
-    :param local_path: local path to place the copy
     :param env: dev/tst/ops
+    :return: dict of username, password, host, port
     """
     username = get_config_value(dbinfo, 'landsatds.username')
     password = get_config_value(dbinfo, 'landsatds.password')
     host = get_config_value(dbinfo, 'url.{}.webtier'.format(env))
+    port = 22  # ssh default port
+    return {'username': username, 'password': password, 'host': host, 'port': port}
 
-    client = paramiko.SSHClient()
-    client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-
-    client.connect(host, username=username, password=password, timeout=60)
-    sftp = client.open_sftp()
-
-    sftp.get(remote_path, local_path)
