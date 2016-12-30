@@ -121,3 +121,105 @@ def query_connection_info(dbinfo, env):
     port = 22  # ssh default port
     return {'username': username, 'password': password, 'host': host, 'port': port}
 
+
+def find_remote_files_sudo(host, user, password, port, remote_dir, prefix):
+    """
+    List files in folder on a remote host which start with a given prefix (`sudo ls`)
+
+    :param host: host machine name or ip address
+    :param user: username to connect as (must have sudo rights)
+    :param password: the password of the user
+    :param port: the port number on the host machine
+    :param remote_dir: the absolute location of the folder to search
+    :param prefix: the beginning of all files names to find
+    :return: list of remote full paths
+    """
+    # A lot of this code is nearly identical to `download_remote_file_sudo`
+    # because it requires a new session for every `exec_command` call
+    ssh = paramiko.SSHClient()
+    ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    ssh.connect(host, username=user, password=password, port=port, timeout=60)
+    transport = ssh.get_transport()
+    session = transport.open_session()
+    session.set_combine_stderr(True)
+    session.get_pty()
+
+    # for testing purposes we want to force sudo to always to ask for password. because of that we use "-k" key
+    session.exec_command('sudo -k ls "{remote}"'.format(remote=remote_dir))
+    stdin = session.makefile('wb', -1)
+    stdout = session.makefile('rb', -1)
+    # you have to check if you really need to send password here
+    stdin.write(password + '\n')
+    stdin.flush()
+
+    lines = stdout.read().splitlines()
+    files = []
+    for line in lines:
+        if line.startswith(prefix):
+            files.append(os.path.join(remote_dir, line))
+    if len(files):
+        return files
+    else:
+        print('\n'.join(lines))
+        raise ValueError('No files found at {0}:{1}*'.format(host, os.path.join(remote_dir, prefix)))
+
+
+def subset_by_date(files, begin, stop, tsfrmt='edclpdsftp.cr.usgs.gov-access_log-%Y%m%d.gz'):
+    """
+    Find files that are within the timestamp range
+
+    :param files: list of file names which have a timestamp
+    :param begin: date to begin searching
+    :param stop: date to stop searching
+    :param tsfrmt: How to parse the timestamp
+    :return: list
+    """
+    def parser(x):
+        return datetime.datetime.strptime(os.path.basename(x), tsfrmt).date()
+
+    def criteria(x):
+        # This assumes every month on the first, the previous month's
+        # logs will be archived. Searching for 11/1-11/30? Needs 11/2-12/1 logs!
+        return ((x[1] <= stop + datetime.timedelta(days=1))
+                & (x[1] >= begin + datetime.timedelta(days=1)))
+
+    timestamps = map(parser, files)
+    return [x[0] for x in filter(criteria, zip(files, timestamps))]
+
+
+def download_remote_file_sudo(host, user, password, port, remote_path, local_path):
+    """
+    Transfer a file from a remote host locally via SSH transfer (`sudo cat`)
+
+    :param host: host machine name or ip address
+    :param user: username to connect as (must have sudo rights)
+    :param password: the password of the user
+    :param port: the port number on the host machine
+    :param remote_path: the absolute location of the file to grab
+    :param local_path: the local file to write to
+    """
+    if os.path.exists(local_path):
+        raise IOError('! File already exists: {}'.format(local_path))
+    if os.path.isdir(local_path):
+        local_path = os.path.join(local_path, os.path.basename(remote_path))
+
+    # A lot of this code is nearly identical to `find_remote_files_sudo`
+    # because it requires a new session for every `exec_command` call
+    ssh = paramiko.SSHClient()
+    ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    ssh.connect(host, username=user, password=password, port=port, timeout=60)
+    transport = ssh.get_transport()
+    session = transport.open_session()
+    session.set_combine_stderr(True)
+    session.get_pty()
+
+    # for testing purposes we want to force sudo to always to ask for password. because of that we use "-k" key
+    session.exec_command('sudo -k cat {remote}'.format(remote=remote_path))
+    stdin = session.makefile('wb', -1)
+    stdout = session.makefile('rb', -1)
+    # you have to check if you really need to send password here
+    stdin.write(password + '\n')
+    stdin.flush()
+    output = stdout.read()
+    with open(local_path, 'w') as fid:
+        fid.write(output)
