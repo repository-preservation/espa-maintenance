@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import re
+import glob
 import datetime
 import calendar
 import argparse
@@ -47,10 +48,6 @@ def arg_parser(defaults):
     parser.add_argument('-c', '--conf_file', dest='conf_file',
                         default=defaults['conf_file'],
                         help='Configuration file [%s]' % defaults['conf_file'])
-    parser.add_argument('-r', '--remote', dest='remote',
-                        default=defaults['remote'],
-                        help='Directory structure of remote log location (%s)'
-                        % defaults['remote'])
     parser.add_argument('-d', '--dir', dest='dir',
                         default=defaults['dir'],
                         help='Directory to temporarily store logs')
@@ -259,7 +256,12 @@ def tally_product_dls(orders_scenes, prod_options):
     results = defaultdict(int)
 
     for orderid, scene in orders_scenes:
-        opts = prod_options[urllib2.unquote(orderid)]
+        oid = urllib2.unquote(orderid)
+
+        if oid not in prod_options:
+            continue
+
+        opts = prod_options[oid]
 
         if 'plot_statistics' in opts and opts['plot_statistics']:
             results['plot_statistics'] += 1
@@ -281,34 +283,41 @@ def tally_product_dls(orders_scenes, prod_options):
     return results
 
 
-def calc_dlinfo(log_file, start_date, end_date):
+def calc_dlinfo(log_glob, start_date, end_date):
     """
     Count the total tarballs downloaded from /orders/ and their combined size
 
-    :param log_file: Combined Log Format file path
-    :type log_file: str
+    :param log_glob: Glob for Log Format file path (e.g. '/path/to/logs*')
+    :type log_glob: str
+    :param start_date: Compares >= timestamp in log
+    :type start_date: datetime.date
+    :param end_date: Compares <= timestamp in log
+    :typ end_date: datetime.date
     :return: Dictionary of values
     """
     infodict = {'tot_dl': 0,
                 'tot_vol': 0.0}
+    bytes_in_a_gb = 1073741824.0
 
-    orders = []
+    files = glob.glob(log_glob)
+    if len(files) < 1:
+        raise IOError('Could not find %s' % log_glob)
 
-    sd = datetime.datetime.strptime(start_date, '%Y-%m-%d').date()
-    ed = datetime.datetime.strptime(end_date, '%Y-%m-%d').date()
-
-    with gzip.open(log_file) as log:
-        for line in log:
-            gr = filter_log_line(line, sd, ed)
-            if gr:
-                infodict['tot_vol'] += int(gr[8])
-                infodict['tot_dl'] += 1
-                orders.append(gr[5])
+    order_paths = set()
+    for log_file in files:
+        print('* Parse: {}'.format(log_file))
+        with gzip.open(log_file) as log:
+            for line in log:
+                gr = filter_log_line(line, start_date, end_date)
+                if gr:
+                    infodict['tot_vol'] += int(gr['size'])
+                    infodict['tot_dl'] += 1
+                    order_paths.add(gr['resource'])
 
     # Bytes to GB
-    infodict['tot_vol'] /= 1073741824.0
+    infodict['tot_vol'] /= bytes_in_a_gb
 
-    return infodict, orders
+    return infodict, list(order_paths)
 
 
 def filter_log_line(line, start_date, end_date):
@@ -327,22 +336,41 @@ def filter_log_line(line, start_date, end_date):
     :param end_date: inclusive end date
     :return: regex groups returned from re.match
     """
-    # (ip, logname, user, datetime, method, resource, status, size, referrer, agent)
-    regex = r'(.*?) (.*?) (.*?) \[(.*?)\] "(.*?) (.*?) (.*?)" (\d+) (\d+) "(.*?)" "(.*?)"'
+    # Leaving the old nginx log output style for previous months
+    regexs = [(r'(?P<ip>.*?) - \[(?P<datetime>.*?)\] "(?P<method>.*?) (?P<resource>.*?) (?P<protocol>.*?)" '
+              r'(?P<status>\d+) (?P<len>\d+) (?P<range>.*?) (?P<size>\d+) \[(?P<reqtime>\d+\.\d+)\] "(?P<referrer>.*?)" '
+              r'"(?P<agent>.*?)"'),
+              (r'(?P<ip>.*?) (?P<logname>.*?) (?P<user>.*?) \[(?P<datetime>.*?)\] "(?P<method>.*?) (?P<resource>.*?) '
+              r'(?P<status>\d+)" (?P<size>\d+) (?P<referrer>\d+) "(?P<agent>.*?)" "(?P<extra>.*?)"'),
+             (r'(?P<ip>[0-9\.]*) .* \[(?P<datetime>.*)\] \"(?P<method>[A-Z]*) (?P<resource>.*) '
+               r'(?P<protocol>.*)\" (?P<status>\d+) (?P<size>\d+) "(?P<referrer>.*?)" "(?P<agent>.*)"'),
+              (r'(?P<ip>[0-9\.]*) .* \[(?P<datetime>.*)\] "(?P<method>[A-Z]*) (?P<resource>.*) (?P<protocol>.*)" '
+               r'(?P<status>\d+) (?P<len>\d+) (?P<range>.*) (?P<size>\d+) \[(?P<reqtime>\d+\.\d+)\] "(?P<referrer>.*)" '
+               r'"(?P<agent>.*)"')
+              ]
 
-    try:
-        gr = re.match(regex, line).groups()
-        ts, tz = gr[3].split()
-        dt = datetime.datetime.strptime(ts, r'%d/%b/%Y:%H:%M:%S').date()
+    if ('tar.gz' in line) and ('GET' in line):
+        for regex in regexs:
+            res = re.match(regex, line)
+            if res:
+                break
+        if res:
+            gr = res.groupdict()
+            ts, tz = gr['datetime'].split()
+            dt = datetime.datetime.strptime(ts, r'%d/%b/%Y:%H:%M:%S').date()
 
-        if (gr[7] == '200' and
-                gr[4] == 'GET' and
-                '.tar.gz' in gr[5] and
-                '/orders/' in gr[5] and
-                start_date <= dt <= end_date):
+            if ((gr['status'] in ['200', '206']) and
+                    gr['method'] == 'GET' and
+                    '.tar.gz' in gr['resource'] and
+                    '/orders/' in gr['resource'] and
+                    start_date <= dt <= end_date):
 
-            return gr
-    except:
+                return gr
+            else:
+                return False
+        else:
+            raise ValueError('! Unable to parse download line: \n\t{}'.format(line))
+    else:
         return False
 
 
@@ -516,7 +544,7 @@ def extract_orderid(order_paths):
                  [i.split('/') for i in order_paths])
 
 
-def process_monthly_metrics(cfg, env, remote_dir, local_dir, begin, stop):
+def process_monthly_metrics(cfg, env, local_dir, begin, stop):
     """
     Put together metrics for the previous month then
     email the results out
@@ -525,8 +553,6 @@ def process_monthly_metrics(cfg, env, remote_dir, local_dir, begin, stop):
     :type cfg: dict
     :param env: dev/tst/ops (used to get the hostname of the external download servers)
     :type env: str
-    :param remote_dir: location of download logs (nginx)
-    :type remote_dir: str
     :param local_dir: location to save log files
     :type local_dir: str
     :param begin: timestamp to begin searching the logs
@@ -537,6 +563,7 @@ def process_monthly_metrics(cfg, env, remote_dir, local_dir, begin, stop):
     msg = ''
     receive, sender, debug = get_addresses(cfg)
     subject = EMAIL_SUBJECT.format(begin=begin, stop=stop)
+    log_glob = os.path.join(local_dir, '*' + LOG_FILENAME + '*access_log*.gz')
 
     try:
         # Fetch the web log
@@ -544,20 +571,18 @@ def process_monthly_metrics(cfg, env, remote_dir, local_dir, begin, stop):
             os.makedirs(local_dir)
 
         dmzinfo = utils.query_connection_info(cfg, env)
-        files = utils.find_remote_files_sudo(dmzinfo['host'], dmzinfo['username'], dmzinfo['password'], dmzinfo['port'],
-                                             remote_dir, LOG_FILENAME)
+        files = utils.find_remote_files_sudo(user=dmzinfo['username'], password=dmzinfo['password'], remote_dirs=dmzinfo['log_locs'], prefix=LOG_FILENAME)
         files = utils.subset_by_date(files, begin, stop, LOG_FILE_TIMESTAMP)
+        for remote_path in files:
+            utils.download_remote_file_sudo(user=dmzinfo['username'], password=dmzinfo['password'], remote_paths=remote_path, local_path=local_dir)
 
-        # Process the web log file
-        log_glob = os.path.join(local_dir, LOG_FILENAME)
         infodict, order_paths = calc_dlinfo(log_glob, begin, stop)
         msg = download_boiler(infodict)
 
         # Downloads by Product
         orders_scenes = extract_orderid(order_paths)
 
-        if not orders_scenes:
-            raise ValueError
+        assert(len(orders_scenes))
 
         prod_opts = db_dl_prodinfo(cfg, orders_scenes)
         infodict = tally_product_dls(orders_scenes, prod_opts)
@@ -565,14 +590,14 @@ def process_monthly_metrics(cfg, env, remote_dir, local_dir, begin, stop):
 
         # On-Demand users and orders placed information
         for source in ORDER_SOURCES:
-            infodict = db_orderstats(source, rng[0], rng[1], cfg)
-            infodict.update(db_scenestats(source, rng[0], rng[1], cfg))
-            infodict['tot_unique'] = db_uniquestats(source, rng[0], rng[1], cfg)
+            infodict = db_orderstats(source, begin, stop, cfg)
+            infodict.update(db_scenestats(source, begin, stop, cfg))
+            infodict['tot_unique'] = db_uniquestats(source, begin, stop, cfg)
             infodict['who'] = source.upper()
             msg += ondemand_boiler(infodict)
 
         # Orders by Product
-        infodict = db_prodinfo(cfg, rng[0], rng[1])
+        infodict = db_prodinfo(cfg, begin, stop)
         msg += prod_boiler(infodict)
 
     except Exception:
@@ -585,14 +610,15 @@ def process_monthly_metrics(cfg, env, remote_dir, local_dir, begin, stop):
     finally:
         utils.send_email(sender, receive, subject, msg)
 
-        if os.path.exists(LOCAL_LOG):
-            os.remove(LOCAL_LOG)
+        left_overs = glob.glob(log_glob)
+        if left_overs:
+            for fname in left_overs:
+                os.remove(fname)
 
 
 def run():
     rng = date_range()
-    defaults = {'remote': '/var/log/nginx/archive/',
-                'begin': rng[0],
+    defaults = {'begin': rng[0],
                 'stop': rng[1],
                 'conf_file': utils.CONF_FILE,
                 'dir': os.path.join(os.path.expanduser('~'), 'temp-logs')}
@@ -601,7 +627,7 @@ def run():
     opts = arg_parser(defaults)
     cfg = utils.get_cfg(opts['conf_file'], section='config')
 
-    process_monthly_metrics(cfg, opts['env'], opts['remote'], opts['dir'], opts['begin'], opts['stop'])
+    process_monthly_metrics(cfg, opts['environment'], opts['dir'], opts['begin'], opts['stop'])
 
 
 if __name__ == '__main__':
