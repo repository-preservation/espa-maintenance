@@ -150,6 +150,22 @@ def prod_boiler(info):
                          plot=info.get('plot_statistics', 0))
 
 
+def top_users_boiler(info):
+    """
+    Boiler plate text for user Top Scenes Ordered Info for orders
+
+    :param info: values to insert into the boiler plate
+    :type info: list of tuples
+    :return: formatted string
+    """
+    boiler = ('\n==========================================\n'
+              ' Scenes ordered by Top Users\n'
+              '==========================================\n')
+    boiler += ''.join(' {%s[0]}: {%s[1]}\n' % (i, i) for i in range(10))
+
+    return boiler.format(*info)
+
+
 def db_prodinfo(dbinfo, begin_date, end_date):
     """
     Queries the database to build the ordered product counts
@@ -498,6 +514,38 @@ def db_uniquestats(source, begin_date, end_date, dbinfo):
         return db[0][0]
 
 
+def db_top10stats(begin_date, end_date, dbinfo):
+    """
+    Queries the database to get the total number of unique users
+    dates are given as ISO 8601 'YYYY-MM-DD'
+
+    :param source: EE or ESPA
+    :type source: str
+    :param begin_date: Date to start the count on
+    :type begin_date: str
+    :param end_date: Date to stop the count on
+    :type end_date: str
+    :param dbinfo: Database connection information
+    :type dbinfo: dict
+    :return: Dictionary of the count
+    """
+    sql = '''select u.email, count(s.id) scenes
+             from ordering_scene s
+             join ordering_order o
+                  on s.order_id = o.id
+             join auth_user u
+                  on o.user_id = u.id
+             where o.order_date::date >= %s
+             and o.order_date::date <= %s
+             group by u.email
+             order by scenes desc
+             limit 10;'''
+
+    with DBConnect(**dbinfo) as db:
+        db.select(sql, (begin_date, end_date))
+        return db[:]
+
+
 def date_range(offset=0):
     """
     Builds two strings for the 1st and last day of
@@ -599,6 +647,10 @@ def process_monthly_metrics(cfg, env, local_dir, begin, stop):
         # Orders by Product
         infodict = db_prodinfo(cfg, begin, stop)
         msg += prod_boiler(infodict)
+
+        # Top 10 users by scenes ordered
+        info = db_top10stats(begin, stop, cfg)
+        msg += top_users_boiler(info)
 
     except Exception:
         exc_msg = str(traceback.format_exc()) + '\n\n' + msg
