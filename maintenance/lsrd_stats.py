@@ -15,8 +15,8 @@ from dbconnect import DBConnect
 import utils
 
 DATE_FMT = '%Y-%m-%d'
-LOG_FILENAME = 'edclpdsftp.cr.usgs.gov-access_log-'
-LOG_FILE_TIMESTAMP = LOG_FILENAME + '%Y%m%d' + '.gz'
+LOG_FILENAME = 'edclpdsftp.cr.usgs.gov-' # Change to ssl-access-log
+LOG_FILE_TIMESTAMP = '%Y%m%d' + '.gz'
 
 EMAIL_SUBJECT = 'LSRD ESPA Metrics for {begin} to {stop}'
 ORDER_SOURCES = ('ee', 'espa')
