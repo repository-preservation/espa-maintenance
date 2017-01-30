@@ -6,6 +6,7 @@ import os
 import datetime
 
 import paramiko
+from plumbum.machines.paramiko_machine import ParamikoMachine
 
 from dbconnect import DBConnect
 
@@ -123,46 +124,45 @@ def query_connection_info(dbinfo, env):
     return {'username': username, 'password': password, 'log_locs': log_locations}
 
 
-def find_remote_files_sudo(user, password, remote_dirs, prefix, port=22):
-    """
-    List files in folder on a remote host which start with a given prefix (`sudo ls`)
+class RemoteConnection():
+    def __init__(self, host, user, password=None, port=22):
+        """
+        Initialize connection to a remote host
 
-    :param user: username to connect as (must have sudo rights)
-    :param password: the password of the user
-    :param port: the port number on the host machine
-    :param remote_dirs: the absolute location of the folder to search (including host)
-    :param prefix: the beginning of all files names to find
-    :return: list of remote full paths
-    """
-    files = []
-    for rloc in remote_dirs:
-        ssh = paramiko.SSHClient()
-        ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-        host, remote_dir = rloc.split(':')
-        ssh.connect(host, username=user, password=password, port=port, timeout=60)
-        transport = ssh.get_transport()
-        session = transport.open_session()
-        session.set_combine_stderr(True)
-        session.get_pty()
+        :param host: hostname to connect to
+        :param user: username to connect as
+        :param password: the password of the user
+        :param port: the port number on the host machine
+        """
+        self.host, self.user, self.port = host, user, port
+        self.remote = ParamikoMachine(self.host, user=self.user, password=password, port=self.port,
+                                      missing_host_policy=paramiko.AutoAddPolicy())
 
-        # for testing purposes we want to force sudo to always to ask for password. because of that we use "-k" key
-        session.exec_command('sudo -k ls "{remote}"'.format(remote=remote_dir))
-        stdin = session.makefile('wb', -1)
-        stdout = session.makefile('rb', -1)
-        # you have to check if you really need to send password here
-        stdin.write(password + '\n')
-        stdin.flush()
+    def list_remote_files(self, remote_dir, prefix):
+        """
+        List files in folder on a remote host which start with a given prefix
 
-        lines = stdout.read().splitlines()
-        for line in lines:
-            if line.startswith(prefix) and 'access_log' in line and line.endswith('.gz'):
-                files.append('{h}:{p}'.format(h=host, p=os.path.join(remote_dir, line)))
+        :param remote_dir: the absolute location of the folder to search
+        :param prefix: the beginning of all files names to find
+        :return: list of remote full paths
+        """
+        r_ls = self.remote['ls']
+        files = r_ls(remote_dir).split('\n')
 
-    if len(files):
-        return files
-    else:
-        print('\n'.join(lines))
-        raise ValueError('No files found at {0}:{1}'.format(host, os.path.join(remote_dir, prefix)))
+        if len(files):
+            files = [os.path.join(remote_dir, f) for f in files if f.startswith(prefix)]
+            return files
+        else:
+            raise ValueError('No files found at {host}:{loc}'.format(host=self.host, loc=remote_dir))
+
+    def download_remote_file(self, remote_path, local_path):
+        """
+        Transfer a file from a remote host locally
+
+        :param remote_path: the absolute location of the file to grab (including host)
+        :param local_path: the local file to write to
+        """
+        self.remote.download(remote_path, local_path)
 
 
 def subset_by_date(files, begin, stop, tsfrmt='%Y%m%d.gz'):
@@ -186,52 +186,3 @@ def subset_by_date(files, begin, stop, tsfrmt='%Y%m%d.gz'):
 
     timestamps = map(parser, files)
     return [x[0] for x in filter(criteria, zip(files, timestamps))]
-
-
-def download_remote_file_sudo(user, password, remote_paths, local_path, port=22):
-    """
-    Transfer a file from a remote host locally via SSH transfer (`sudo cat`)
-
-    :param user: username to connect as (must have sudo rights)
-    :param password: the password of the user
-    :param port: the port number on the host machine
-    :param remote_paths: the absolute location of the file to grab (including host)
-    :param local_path: the local file to write to
-    """
-    # A lot of this code is nearly identical to `find_remote_files_sudo`
-    # because it requires a new session for every `exec_command` call
-    ssh = paramiko.SSHClient()
-    ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-    host, remote_path = remote_paths.split(':')
-
-    ssh.connect(host, username=user, password=password, port=port, timeout=60)
-    transport = ssh.get_transport()
-    with transport.open_channel(kind='session') as session:
-        session.get_pty()
-
-        session.exec_command('sudo -k cat {0} > {1} && wc -c {1}'.format(remote_path, os.path.basename(remote_path)))
-        stdin = session.makefile('wb', -1)
-        stdout = session.makefile('rb', -1)
-        stdin.write(password + '\n')
-        stdin.flush()
-        nbytes = int(stdout.readlines()[-1].split()[0])
-
-    transport = ssh.get_transport()
-    with transport.open_channel(kind='session') as session:
-        session.exec_command('cat {0} && rm {0}'.format(os.path.basename(remote_path)))
-        while True:
-            if session.recv_ready():
-                break
-        stdout_data = []
-        try:
-            part = session.recv(4096)
-            while part:
-                stdout_data.append(part)
-                part = session.recv(nbytes)
-        except:
-            raise
-
-    if os.path.isdir(local_path):
-        local_path = os.path.join(local_path, '{h}_{p}'.format(h=host, p=os.path.basename(remote_paths)))
-    with open(local_path, 'w') as fid:
-        fid.write(''.join(stdout_data))
