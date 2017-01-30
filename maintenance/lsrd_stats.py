@@ -51,8 +51,6 @@ def arg_parser(defaults):
     parser.add_argument('-d', '--dir', dest='dir',
                         default=defaults['dir'],
                         help='Directory to temporarily store logs')
-    parser.add_argument('-l', '--local', dest='local', action='store_true',
-                        help='[DEBUG] For using a local file')  # FIXME remove
 
     args = parser.parse_args()
     defaults.update(args.__dict__)
@@ -619,10 +617,15 @@ def process_monthly_metrics(cfg, env, local_dir, begin, stop):
             os.makedirs(local_dir)
 
         dmzinfo = utils.query_connection_info(cfg, env)
-        files = utils.find_remote_files_sudo(user=dmzinfo['username'], password=dmzinfo['password'], remote_dirs=dmzinfo['log_locs'], prefix=LOG_FILENAME)
-        files = utils.subset_by_date(files, begin, stop, LOG_FILE_TIMESTAMP)
-        for remote_path in files:
-            utils.download_remote_file_sudo(user=dmzinfo['username'], password=dmzinfo['password'], remote_paths=remote_path, local_path=local_dir)
+        for log_loc in dmzinfo['log_locs']:
+            host, remote_dir = log_loc.split(':')
+            client = utils.RemoteConnection(host, user=dmzinfo['username'], password=dmzinfo['password'])
+            files = client.list_remote_files(remote_dir=remote_dir, prefix=LOG_FILENAME)
+            files = utils.subset_by_date(files, begin, stop, LOG_FILE_TIMESTAMP)
+            for remote_path in files:
+                filename = "{host}_{fname}".format(host=host, fname=os.path.basename(remote_path))
+                local_path = os.path.join(local_dir, filename)
+                client.download_remote_file(remote_path=remote_path, local_path=local_path)
 
         infodict, order_paths = calc_dlinfo(log_glob, begin, stop)
         msg = download_boiler(infodict)
