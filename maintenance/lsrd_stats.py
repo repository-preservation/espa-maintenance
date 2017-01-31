@@ -27,7 +27,26 @@ SENSOR_KEYS = ('tm4', 'tm5', 'etm7', 'olitirs8', 'oli8',
                'myd09a1', 'myd09ga', 'myd09gq', 'myd09q1',
                'myd13a1', 'myd13a2', 'myd13a3', 'myd13q1', 'invalid')
 
-LANDSAT_COLLECTIONS = ('pre', 'c1')
+LANDSAT_COLLECTIONS = {'pre': {'name': ''' and (s.name like 'LT4%%'
+                                          or s.name like 'LT5%%'
+                                          or s.name like 'LE7%%'
+                                          or s.name like 'LC8%%'
+                                          or s.name like 'LO8%%')''',
+                               'opts': ''' and (product_opts::text like '%%tm4":%%'
+                                       or product_opts::text like '%%tm5":%%'
+                                       or product_opts::text like '%%etm7":%%'
+                                       or product_opts::text like '%%olitirs8":%%'
+                                       or product_opts::text like '%%oli8":%%') '''},
+                       'c1': {'name': ''' and (s.name like 'LT04_%%'
+                                          or s.name like 'LT05_%%'
+                                          or s.name like 'LE07_%%'
+                                          or s.name like 'LC08_%%'
+                                          or s.name like 'LO08_%%')''',
+                              'opts': ''' and (product_opts::text like '%%tm4_collection":%%'
+                                       or product_opts::text like '%%tm5_collection":%%'
+                                       or product_opts::text like '%%etm7_collection":%%'
+                                       or product_opts::text like '%%olitirs8_collection":%%'
+                                       or product_opts::text like '%%oli8_collection":%%') '''}}
 
 
 def arg_parser(defaults):
@@ -56,7 +75,7 @@ def arg_parser(defaults):
     parser.add_argument('--collection', dest='collection',
                         default=defaults['collection'],
                         help='Landsat collections to include {} (or ignore)'
-                        .format(LANDSAT_COLLECTIONS))
+                        .format(LANDSAT_COLLECTIONS.keys()))
 
     args = parser.parse_args()
     defaults.update(args.__dict__)
@@ -77,7 +96,7 @@ def download_boiler(info):
     :return: formatted string
     """
     boiler = ('\n==========================================\n'
-              ' On-demand - Download Info\n'
+              ' {title}\n'
               '==========================================\n'
               'Total number of ordered scenes downloaded through ESPA order interface order links: {tot_dl}\n'
               'Total volume of ordered scenes downloaded (GB): {tot_vol}\n')
@@ -170,7 +189,7 @@ def top_users_boiler(info):
     return boiler.format(*info)
 
 
-def db_prodinfo(dbinfo, begin_date, end_date):
+def db_prodinfo(dbinfo, begin_date, end_date, collection):
     """
     Queries the database to build the ordered product counts
     dates are given as ISO 8601 'YYYY-MM-DD'
@@ -181,6 +200,8 @@ def db_prodinfo(dbinfo, begin_date, end_date):
     :type begin_date: str
     :param end_date: Date to end the counts on
     :type end_date: str
+    :param collection: what collection to process
+    :type collection: str
     :return: Dictionary of count values
     """
     sql = ('SELECT product_opts '
@@ -191,6 +212,8 @@ def db_prodinfo(dbinfo, begin_date, end_date):
     init = {'total': 0}
 
     with DBConnect(**dbinfo) as db:
+        if collection != 'ignore':
+            sql += LANDSAT_COLLECTIONS[collection]['opts']
         db.select(sql, (begin_date, end_date))
         results = reduce(counts_prodopts, map(process_db_prodopts, db.fetcharr), init)
 
@@ -422,7 +445,7 @@ def is_filename_collections(filename, collection):
     :param collection: either (pre/c1)
     :return: bool
     """
-    if collection not in LANDSAT_COLLECTIONS:
+    if collection not in LANDSAT_COLLECTIONS.keys():
         raise ValueError('Invalid collection: %s' % collection)
     info = landsat_output_regex(filename)
     if info:
@@ -435,7 +458,7 @@ def is_filename_collections(filename, collection):
     return False
 
 
-def db_scenestats(source, begin_date, end_date, dbinfo):
+def db_scenestats(source, begin_date, end_date, collection, dbinfo):
     """
     Queries the database for the number of scenes ordered
     separated by USGS and non-USGS emails
@@ -447,26 +470,28 @@ def db_scenestats(source, begin_date, end_date, dbinfo):
     :type begin_date: str
     :param end_date: Date to stop the count on
     :type end_date: str
+    :param collection: what collection to include ('pre', 'c1')
+    :type collection: str
     :param dbinfo: Database connection information
     :type dbinfo: dict
     :return: Dictionary of the counts
     """
     sql = ('''select COUNT(*)
-              from ordering_scene
-              inner join ordering_order on ordering_scene.order_id = ordering_order.id
+              from ordering_scene s
+              inner join ordering_order on s.order_id = ordering_order.id
               where ordering_order.order_date::date >= %s
               and ordering_order.order_date::date <= %s
               and ordering_order.orderid like '%%@usgs.gov-%%'
               and ordering_order.order_source = %s
-              and name != 'plot' ''',
+              and s.name != 'plot' ''',
            '''select COUNT(*)
-              from ordering_scene
-              inner join ordering_order on ordering_scene.order_id = ordering_order.id
+              from ordering_scene s
+              inner join ordering_order on s.order_id = ordering_order.id
               where ordering_order.order_date::date >= %s
               and ordering_order.order_date::date <= %s
               and ordering_order.orderid not like '%%@usgs.gov-%%'
               and ordering_order.order_source = %s
-              and name != 'plot' ''')
+              and s.name != 'plot' ''')
 
     counts = {'scenes_month': 0,
               'scenes_usgs': 0,
@@ -474,6 +499,8 @@ def db_scenestats(source, begin_date, end_date, dbinfo):
 
     with DBConnect(**dbinfo) as db:
         for q in sql:
+            if collection != 'ignore':
+                q += LANDSAT_COLLECTIONS[collection]['name']
             db.select(q, (begin_date, end_date, source))
 
             if 'not like' in q:
@@ -486,7 +513,7 @@ def db_scenestats(source, begin_date, end_date, dbinfo):
     return counts
 
 
-def db_orderstats(source, begin_date, end_date, dbinfo):
+def db_orderstats(source, begin_date, end_date, collection, dbinfo):
     """
     Queries the database to get the total number of orders
     separated by USGS and non-USGS emails
@@ -498,6 +525,8 @@ def db_orderstats(source, begin_date, end_date, dbinfo):
     :type begin_date: str
     :param end_date: Date to stop the count on
     :type end_date: str
+    :param collection: what collection of information to get
+    :type collection: str
     :param dbinfo: Database connection information
     :type dbinfo: dict
     :return: Dictionary of the counts
@@ -521,6 +550,8 @@ def db_orderstats(source, begin_date, end_date, dbinfo):
 
     with DBConnect(**dbinfo) as db:
         for q in sql:
+            if collection != 'ignore':
+                q = q.replace(';', LANDSAT_COLLECTIONS[collection]['opts'])
             db.select(q, (begin_date, end_date, source))
 
             if 'not like' in q:
@@ -533,7 +564,7 @@ def db_orderstats(source, begin_date, end_date, dbinfo):
     return counts
 
 
-def db_uniquestats(source, begin_date, end_date, dbinfo):
+def db_uniquestats(source, begin_date, end_date, collection, dbinfo):
     """
     Queries the database to get the total number of unique users
     dates are given as ISO 8601 'YYYY-MM-DD'
@@ -544,6 +575,8 @@ def db_uniquestats(source, begin_date, end_date, dbinfo):
     :type begin_date: str
     :param end_date: Date to stop the count on
     :type end_date: str
+    :param collection: which collections to process
+    :type collection: str
     :param dbinfo: Database connection information
     :type dbinfo: dict
     :return: Dictionary of the count
@@ -555,11 +588,13 @@ def db_uniquestats(source, begin_date, end_date, dbinfo):
              and order_source = %s;'''
 
     with DBConnect(**dbinfo) as db:
+        if collection != 'ignore':
+            sql = sql.replace(';', LANDSAT_COLLECTIONS[collection]['opts'])
         db.select(sql, (begin_date, end_date, source))
         return db[0][0]
 
 
-def db_top10stats(begin_date, end_date, dbinfo):
+def db_top10stats(begin_date, end_date, collection, dbinfo):
     """
     Queries the database to get the total number of unique users
     dates are given as ISO 8601 'YYYY-MM-DD'
@@ -570,6 +605,8 @@ def db_top10stats(begin_date, end_date, dbinfo):
     :type begin_date: str
     :param end_date: Date to stop the count on
     :type end_date: str
+    :param collection: which collections to process
+    :type collection: str
     :param dbinfo: Database connection information
     :type dbinfo: dict
     :return: Dictionary of the count
@@ -581,12 +618,15 @@ def db_top10stats(begin_date, end_date, dbinfo):
              join auth_user u
                   on o.user_id = u.id
              where o.order_date::date >= %s
-             and o.order_date::date <= %s
-             group by u.email
+             and o.order_date::date <= %s '''
+    sql2 = ''' group by u.email
              order by scenes desc
-             limit 10;'''
+             limit 10'''
 
     with DBConnect(**dbinfo) as db:
+        if collection != 'ignore':
+            sql += LANDSAT_COLLECTIONS[collection]['name']
+        sql += sql2
         db.select(sql, (begin_date, end_date))
         return db[:]
 
@@ -677,32 +717,34 @@ def process_monthly_metrics(cfg, env, local_dir, begin, stop, collection):
                 client.download_remote_file(remote_path=remote_path, local_path=local_path)
 
         infodict, order_paths = calc_dlinfo(log_glob, begin, stop, collection)
+        infodict['title'] = ('On-demand - Total Download Info' if collection == 'ignore'
+                             else 'On-demand {} Download Info'.format(collection.upper()))
         msg = download_boiler(infodict)
 
         # Downloads by Product
         orders_scenes = extract_orderid(order_paths)
 
-        assert(len(orders_scenes))
-
-        prod_opts = db_dl_prodinfo(cfg, orders_scenes)
-        infodict = tally_product_dls(orders_scenes, prod_opts)
-        msg += prod_boiler(infodict)
+        if len(orders_scenes):
+            prod_opts = db_dl_prodinfo(cfg, orders_scenes)
+            infodict = tally_product_dls(orders_scenes, prod_opts)
+            msg += prod_boiler(infodict)
 
         # On-Demand users and orders placed information
         for source in ORDER_SOURCES:
-            infodict = db_orderstats(source, begin, stop, cfg)
-            infodict.update(db_scenestats(source, begin, stop, cfg))
-            infodict['tot_unique'] = db_uniquestats(source, begin, stop, cfg)
+            infodict = db_orderstats(source, begin, stop, collection, cfg)
+            infodict.update(db_scenestats(source, begin, stop, collection, cfg))
+            infodict['tot_unique'] = db_uniquestats(source, begin, stop, collection, cfg)
             infodict['who'] = source.upper()
             msg += ondemand_boiler(infodict)
 
         # Orders by Product
-        infodict = db_prodinfo(cfg, begin, stop)
+        infodict = db_prodinfo(cfg, begin, stop, collection)
         msg += prod_boiler(infodict)
 
         # Top 10 users by scenes ordered
-        info = db_top10stats(begin, stop, cfg)
-        msg += top_users_boiler(info)
+        info = db_top10stats(begin, stop, collection, cfg)
+        if len(info) == 10:
+            msg += top_users_boiler(info)
 
     except Exception:
         exc_msg = str(traceback.format_exc()) + '\n\n' + msg
