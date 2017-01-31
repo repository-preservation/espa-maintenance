@@ -714,7 +714,8 @@ def process_monthly_metrics(cfg, env, local_dir, begin, stop, collection):
             for remote_path in files:
                 filename = "{host}_{fname}".format(host=host, fname=os.path.basename(remote_path))
                 local_path = os.path.join(local_dir, filename)
-                client.download_remote_file(remote_path=remote_path, local_path=local_path)
+                if not os.path.exists(local_path):
+                    client.download_remote_file(remote_path=remote_path, local_path=local_path)
 
         infodict, order_paths = calc_dlinfo(log_glob, begin, stop, collection)
         infodict['title'] = ('On-demand - Total Download Info' if collection == 'ignore'
@@ -755,11 +756,6 @@ def process_monthly_metrics(cfg, env, local_dir, begin, stop, collection):
         raise
     finally:
         utils.send_email(sender, receive, subject, msg)
-
-        left_overs = glob.glob(log_glob)
-        if left_overs:
-            for fname in left_overs:
-                os.remove(fname)
 
 
 def run():
