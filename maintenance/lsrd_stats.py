@@ -695,67 +695,55 @@ def process_monthly_metrics(cfg, env, local_dir, begin, stop, collection):
     :param collection: which landsat collections to process (or 'ignore')
     :type collection: str
     """
-    msg = ''
-    receive, sender, debug = get_addresses(cfg)
-    subject = EMAIL_SUBJECT.format(begin=begin, stop=stop)
     log_glob = os.path.join(local_dir, '*' + LOG_FILENAME + '*access_log*.gz')
 
-    try:
-        # Fetch the web log
-        if not os.path.exists(local_dir):
-            os.makedirs(local_dir)
+    # Fetch the web log
+    if not os.path.exists(local_dir):
+        os.makedirs(local_dir)
 
-        dmzinfo = utils.query_connection_info(cfg, env)
-        for log_loc in dmzinfo['log_locs']:
-            host, remote_dir = log_loc.split(':')
-            client = utils.RemoteConnection(host, user=dmzinfo['username'], password=dmzinfo['password'])
-            files = client.list_remote_files(remote_dir=remote_dir, prefix=LOG_FILENAME)
-            files = utils.subset_by_date(files, begin, stop, LOG_FILE_TIMESTAMP)
-            for remote_path in files:
-                filename = "{host}_{fname}".format(host=host, fname=os.path.basename(remote_path))
-                local_path = os.path.join(local_dir, filename)
-                if not os.path.exists(local_path):
-                    client.download_remote_file(remote_path=remote_path, local_path=local_path)
+    dmzinfo = utils.query_connection_info(cfg, env)
+    for log_loc in dmzinfo['log_locs']:
+        host, remote_dir = log_loc.split(':')
+        client = utils.RemoteConnection(host, user=dmzinfo['username'], password=dmzinfo['password'])
+        files = client.list_remote_files(remote_dir=remote_dir, prefix=LOG_FILENAME)
+        files = utils.subset_by_date(files, begin, stop, LOG_FILE_TIMESTAMP)
+        for remote_path in files:
+            filename = "{host}_{fname}".format(host=host, fname=os.path.basename(remote_path))
+            local_path = os.path.join(local_dir, filename)
+            if not os.path.exists(local_path):
+                client.download_remote_file(remote_path=remote_path, local_path=local_path)
 
-        infodict, order_paths = calc_dlinfo(log_glob, begin, stop, collection)
-        infodict['title'] = ('On-demand - Total Download Info' if collection == 'ignore'
-                             else 'On-demand {} Download Info'.format(collection.upper()))
-        msg = download_boiler(infodict)
+    infodict, order_paths = calc_dlinfo(log_glob, begin, stop, collection)
+    infodict['title'] = ('On-demand - Total Download Info' if collection == 'ignore'
+                         else 'On-demand {} Download Info'.format(collection.upper()))
+    msg = download_boiler(infodict)
 
-        # Downloads by Product
-        orders_scenes = extract_orderid(order_paths)
+    # Downloads by Product
+    orders_scenes = extract_orderid(order_paths)
 
-        if len(orders_scenes):
-            prod_opts = db_dl_prodinfo(cfg, orders_scenes)
-            infodict = tally_product_dls(orders_scenes, prod_opts)
-            msg += prod_boiler(infodict)
-
-        # On-Demand users and orders placed information
-        for source in ORDER_SOURCES:
-            infodict = db_orderstats(source, begin, stop, collection, cfg)
-            infodict.update(db_scenestats(source, begin, stop, collection, cfg))
-            infodict['tot_unique'] = db_uniquestats(source, begin, stop, collection, cfg)
-            infodict['who'] = source.upper()
-            msg += ondemand_boiler(infodict)
-
-        # Orders by Product
-        infodict = db_prodinfo(cfg, begin, stop, collection)
+    if len(orders_scenes):
+        prod_opts = db_dl_prodinfo(cfg, orders_scenes)
+        infodict = tally_product_dls(orders_scenes, prod_opts)
         msg += prod_boiler(infodict)
 
-        # Top 10 users by scenes ordered
-        info = db_top10stats(begin, stop, collection, cfg)
-        if len(info) == 10:
-            msg += top_users_boiler(info)
+    # On-Demand users and orders placed information
+    for source in ORDER_SOURCES:
+        infodict = db_orderstats(source, begin, stop, collection, cfg)
+        infodict.update(db_scenestats(source, begin, stop, collection, cfg))
+        infodict['tot_unique'] = db_uniquestats(source, begin, stop, collection, cfg)
+        infodict['who'] = source.upper()
+        msg += ondemand_boiler(infodict)
 
-    except Exception:
-        exc_msg = str(traceback.format_exc()) + '\n\n' + msg
-        utils.send_email(sender, debug, subject, exc_msg)
-        msg = ('There was an error with statistics processing.\n'
-               'The following have been notified of the error: {0}.'
-               .format(', '.join(debug)))
-        raise
-    finally:
-        utils.send_email(sender, receive, subject, msg)
+    # Orders by Product
+    infodict = db_prodinfo(cfg, begin, stop, collection)
+    msg += prod_boiler(infodict)
+
+    # Top 10 users by scenes ordered
+    info = db_top10stats(begin, stop, collection, cfg)
+    if len(info) == 10:
+        msg += top_users_boiler(info)
+
+    return msg
 
 
 def run():
@@ -769,7 +757,21 @@ def run():
     opts = arg_parser(defaults)
     cfg = utils.get_cfg(opts['conf_file'], section='config')
 
-    process_monthly_metrics(cfg, opts['environment'], opts['dir'], opts['begin'], opts['stop'], opts['collection'])
+    msg = ''
+    receive, sender, debug = get_addresses(cfg)
+    subject = EMAIL_SUBJECT.format(begin=opts['begin'], stop=opts['stop'])
+    try:
+        msg = process_monthly_metrics(cfg, opts['environment'], opts['dir'], opts['begin'], opts['stop'], opts['collection'])
+
+    except Exception:
+        exc_msg = str(traceback.format_exc()) + '\n\n' + msg
+        utils.send_email(sender, debug, subject, exc_msg)
+        msg = ('There was an error with statistics processing.\n'
+               'The following have been notified of the error: {0}.'
+               .format(', '.join(debug)))
+        raise
+    finally:
+        utils.send_email(sender, receive, subject, msg)
 
 
 if __name__ == '__main__':
