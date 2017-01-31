@@ -27,6 +27,8 @@ SENSOR_KEYS = ('tm4', 'tm5', 'etm7', 'olitirs8', 'oli8',
                'myd09a1', 'myd09ga', 'myd09gq', 'myd09q1',
                'myd13a1', 'myd13a2', 'myd13a3', 'myd13q1', 'invalid')
 
+LANDSAT_COLLECTIONS = ('pre', 'c1')
+
 
 def arg_parser(defaults):
     """
@@ -51,6 +53,10 @@ def arg_parser(defaults):
     parser.add_argument('-d', '--dir', dest='dir',
                         default=defaults['dir'],
                         help='Directory to temporarily store logs')
+    parser.add_argument('--collection', dest='collection',
+                        default=defaults['collection'],
+                        help='Landsat collections to include {} (or ignore)'
+                        .format(LANDSAT_COLLECTIONS))
 
     args = parser.parse_args()
     defaults.update(args.__dict__)
@@ -297,7 +303,7 @@ def tally_product_dls(orders_scenes, prod_options):
     return results
 
 
-def calc_dlinfo(log_glob, start_date, end_date):
+def calc_dlinfo(log_glob, start_date, end_date, collection):
     """
     Count the total tarballs downloaded from /orders/ and their combined size
 
@@ -306,7 +312,9 @@ def calc_dlinfo(log_glob, start_date, end_date):
     :param start_date: Compares >= timestamp in log
     :type start_date: datetime.date
     :param end_date: Compares <= timestamp in log
-    :typ end_date: datetime.date
+    :type end_date: datetime.date
+    :param collection: which landsat collections to process (or 'ignore')
+    :type collection: str
     :return: Dictionary of values
     """
     infodict = {'tot_dl': 0,
@@ -324,6 +332,9 @@ def calc_dlinfo(log_glob, start_date, end_date):
             for line in log:
                 gr = filter_log_line(line, start_date, end_date)
                 if gr:
+                    if collection != 'ignore':
+                        if not is_filename_collections(gr['resource'], collection):
+                            continue
                     infodict['tot_vol'] += int(gr['size'])
                     infodict['tot_dl'] += 1
                     order_paths.add(gr['resource'])
@@ -386,6 +397,40 @@ def filter_log_line(line, start_date, end_date):
             raise ValueError('! Unable to parse download line: \n\t{}'.format(line))
     else:
         return False
+
+
+def landsat_output_regex(filename):
+    """
+    Convert a download location into information for landsat scene-ids
+    :param filename: full path to download resource
+    :return: dict
+    """
+    fname = os.path.basename(filename)
+    sceneid = fname.split('-')[0]
+    regex_pre = '^(?P<sensor>\w{3})[0-9]{6}[0-9]{7}$'
+    regex_collect = '^(?P<sensor>\w{4})[0-9]{6}[0-9]{8}(?P<collect>\w{4})$'
+    for regex in [regex_pre, regex_collect]:
+        res = re.match(regex, sceneid)
+        if res:
+            return res.groupdict()
+
+
+def is_filename_collections(filename, collection):
+    """
+    Determine if output filename (shortname) is a collection scene-id
+    :param filename: full path download filename
+    :param collection: either (pre/c1)
+    :return: bool
+    """
+    info = landsat_output_regex(filename)
+    if info:
+        if collection == 'c1': # TODO This assumes only collection 1
+            if 'collect' in info.keys():
+                return True
+        if collection == 'pre':
+            if 'collect' not in info.keys():
+                return True
+    return False
 
 
 def db_scenestats(source, begin_date, end_date, dbinfo):
@@ -590,7 +635,7 @@ def extract_orderid(order_paths):
                  [i.split('/') for i in order_paths])
 
 
-def process_monthly_metrics(cfg, env, local_dir, begin, stop):
+def process_monthly_metrics(cfg, env, local_dir, begin, stop, collection):
     """
     Put together metrics for the previous month then
     email the results out
@@ -605,6 +650,8 @@ def process_monthly_metrics(cfg, env, local_dir, begin, stop):
     :type begin: datetime.date
     :param stop: timestamp to stop searching the logs
     :type stop: datetime.date
+    :param collection: which landsat collections to process (or 'ignore')
+    :type collection: str
     """
     msg = ''
     receive, sender, debug = get_addresses(cfg)
@@ -627,7 +674,7 @@ def process_monthly_metrics(cfg, env, local_dir, begin, stop):
                 local_path = os.path.join(local_dir, filename)
                 client.download_remote_file(remote_path=remote_path, local_path=local_path)
 
-        infodict, order_paths = calc_dlinfo(log_glob, begin, stop)
+        infodict, order_paths = calc_dlinfo(log_glob, begin, stop, collection)
         msg = download_boiler(infodict)
 
         # Downloads by Product
@@ -676,13 +723,13 @@ def run():
     defaults = {'begin': rng[0],
                 'stop': rng[1],
                 'conf_file': utils.CONF_FILE,
-                'dir': os.path.join(os.path.expanduser('~'), 'temp-logs')}
-    # TODO: Add category (collections, pre-collections...)
+                'dir': os.path.join(os.path.expanduser('~'), 'temp-logs'),
+                'collection': 'ignore'}
 
     opts = arg_parser(defaults)
     cfg = utils.get_cfg(opts['conf_file'], section='config')
 
-    process_monthly_metrics(cfg, opts['environment'], opts['dir'], opts['begin'], opts['stop'])
+    process_monthly_metrics(cfg, opts['environment'], opts['dir'], opts['begin'], opts['stop'], opts['collection'])
 
 
 if __name__ == '__main__':
