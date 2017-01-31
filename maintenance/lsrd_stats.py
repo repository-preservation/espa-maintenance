@@ -422,6 +422,8 @@ def is_filename_collections(filename, collection):
     :param collection: either (pre/c1)
     :return: bool
     """
+    if collection not in LANDSAT_COLLECTIONS:
+        raise ValueError('Invalid collection: %s' % collection)
     info = landsat_output_regex(filename)
     if info:
         if collection == 'c1': # TODO This assumes only collection 1
