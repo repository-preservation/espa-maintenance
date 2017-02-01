@@ -22,6 +22,7 @@ EMAIL_SUBJECT = 'LSRD ESPA Metrics for {begin} to {stop}'
 ORDER_SOURCES = ('ee', 'espa')
 
 SENSOR_KEYS = ('tm4', 'tm5', 'etm7', 'olitirs8', 'oli8',
+               'tm4_collection', 'tm5_collection', 'etm7_collection', 'olitirs8_collection', 'oli8_collection',
                'mod09a1', 'mod09ga', 'mod09gq', 'mod09q1',
                'mod13a1', 'mod13a2', 'mod13a3', 'mod13q1',
                'myd09a1', 'myd09ga', 'myd09gq', 'myd09q1',
