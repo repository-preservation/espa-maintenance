@@ -27,6 +27,7 @@ SENSOR_KEYS = ('tm4', 'tm5', 'etm7', 'olitirs8', 'oli8',
                'mod13a1', 'mod13a2', 'mod13a3', 'mod13q1',
                'myd09a1', 'myd09ga', 'myd09gq', 'myd09q1',
                'myd13a1', 'myd13a2', 'myd13a3', 'myd13q1', 'invalid')
+LSAT_COLLECTION = 'ignore'
 
 LANDSAT_COLLECTIONS = {'pre': {'name': ''' and (s.name like 'LT4%%'
                                           or s.name like 'LT5%%'
@@ -228,6 +229,13 @@ def process_db_prodopts(row):
     opts = row[0]
 
     for key in SENSOR_KEYS:
+        if LSAT_COLLECTION != 'ignore':
+            if LSAT_COLLECTION == 'pre':
+                if key not in ['tm4', 'tm5', 'etm7', 'oli8', 'olitirs8']:
+                    continue
+            if LSAT_COLLECTION == 'c1':
+                if key not in ['tm4_collection', 'tm5_collection', 'etm7_collection', 'oli8_collection', 'olitirs8_collection']:
+                    continue
         if key in opts:
             num = len(opts[key]['inputs'])
             ret['total'] += num
@@ -308,12 +316,37 @@ def tally_product_dls(orders_scenes, prod_options):
         opts = prod_options[oid]
 
         if 'plot_statistics' in opts and opts['plot_statistics']:
-            results['plot_statistics'] += 1
+            if LSAT_COLLECTION != 'ignore':
+                if LSAT_COLLECTION == 'pre':
+                    if any(x in ['tm4', 'tm5', 'etm7', 'oli8', 'olitirs8'] for x in opts.keys()):
+                        results['plot_statistics'] += 1
+                if LSAT_COLLECTION == 'c1':
+                    if any(x in ['tm4_collection', 'tm5_collection', 'etm7_collection', 'oli8_collection', 'olitirs8_collection'] for x in opts.keys()):
+                        results['plot_statistics'] += 1
+            else:
+                results['plot_statistics'] += 1
 
         for key in SENSOR_KEYS:
+            if LSAT_COLLECTION != 'ignore':
+                if LSAT_COLLECTION == 'pre':
+                    if key not in ['tm4', 'tm5', 'etm7', 'oli8', 'olitirs8']:
+                        continue
+                if LSAT_COLLECTION == 'c1':
+                    if key not in ['tm4_collection', 'tm5_collection', 'etm7_collection', 'oli8_collection', 'olitirs8_collection']:
+                        continue
             if key in opts:
                 # Scene names get truncated during distribution
-                if [x for x in opts[key]['inputs'] if scene in x]:
+                res = [x for x in opts[key]['inputs'] if scene in x]
+
+                info = landsat_output_regex(scene)
+                if info:
+                    if 'collect' in info: # This is a landsat collection scene
+                        # scene = LE070430332014070901T1, x = LE07_L1TP_043033_20140709_20160909_01_T1
+                        # scene_regex = 'LE07_\\w{4}_043033_20140709_'
+                        scene_regex = scene[0:4] + '_\w{4}_' + scene[4:10] + '_' + scene[10:18] + '_'
+                        res = [x for x in opts[key]['inputs'] if re.match(scene_regex, x)]
+
+                if res:
                     results['total'] += 1
 
                     for prod in opts[key]['products']:
@@ -431,8 +464,8 @@ def landsat_output_regex(filename):
     """
     fname = os.path.basename(filename)
     sceneid = fname.split('-')[0]
-    regex_pre = '^(?P<sensor>\w{3})[0-9]{6}[0-9]{7}$'
-    regex_collect = '^(?P<sensor>\w{4})[0-9]{6}[0-9]{8}(?P<collect>\w{4})$'
+    regex_pre = '^(?P<sensor>L\w{2})[0-9]{6}[0-9]{7}$'
+    regex_collect = '^(?P<sensor>L\w{3})[0-9]{6}[0-9]{8}(?P<collect>\w{4})$'
     for regex in [regex_pre, regex_collect]:
         res = re.match(regex, sceneid)
         if res:
@@ -748,6 +781,7 @@ def process_monthly_metrics(cfg, env, local_dir, begin, stop, collection):
 
 
 def run():
+    global LSAT_COLLECTION  # This is a bad thing to do...
     rng = date_range()
     defaults = {'begin': rng[0],
                 'stop': rng[1],
@@ -762,6 +796,7 @@ def run():
     receive, sender, debug = get_addresses(cfg)
     subject = EMAIL_SUBJECT.format(begin=opts['begin'], stop=opts['stop'])
     try:
+        LSAT_COLLECTION = opts['collection']
         msg = process_monthly_metrics(cfg, opts['environment'], opts['dir'], opts['begin'], opts['stop'], opts['collection'])
 
     except Exception:
