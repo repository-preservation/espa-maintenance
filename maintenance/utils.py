@@ -4,11 +4,14 @@ from email.mime.text import MIMEText
 import ConfigParser
 import os
 import datetime
-import subprocess
+
+import paramiko
+from plumbum.machines.paramiko_machine import ParamikoMachine
 
 from dbconnect import DBConnect
-import paramiko
 
+
+CONF_FILE = cfg_path = os.path.join(os.path.expanduser('~'), '.cfgnfo')
 
 def get_cfg(cfg_path=None, section=''):
     """
@@ -20,7 +23,7 @@ def get_cfg(cfg_path=None, section=''):
     :return: dict represention of the configuration file
     """
     if not cfg_path:
-        cfg_path = os.path.join(os.path.expanduser('~'), '.usgs', '.cfgnfo')
+        cfg_path = CONF_FILE
 
     if not os.path.exists(cfg_path):
         print('! DB configuration not found: {c}'.format(c=cfg_path))
@@ -87,22 +90,6 @@ def get_email_addr(dbinfo, who):
     return out
 
 
-def backup_cron():
-    """
-    Make a backup of the current user's crontab
-    to /home/~/backups/
-    """
-    bk_path = os.path.join(os.path.expanduser('~'), 'backups')
-    if not os.path.exists(bk_path):
-        os.makedirs(bk_path)
-
-    ts = datetime.datetime.now()
-    cron_file = ts.strftime('crontab-%m%d%y-%H%M%S')
-
-    with open(os.path.join(bk_path, cron_file), 'w') as f:
-        subprocess.call(['crontab', '-l'], stdout=f)
-
-
 def get_config_value(dbinfo, key):
     """
     Retrieve a specified configuration value
@@ -122,24 +109,80 @@ def get_config_value(dbinfo, key):
     return ret
 
 
-def fetch_web_log(dbinfo, remote_path, local_path, env):
+def query_connection_info(dbinfo, env):
     """
     Copy the web log file from a remote host to the local host
     for processing
 
     :param dbinfo: DB configuration
-    :param remote_path: path on the remote to copy
-    :param local_path: local path to place the copy
     :param env: dev/tst/ops
+    :return: dict of username, password, host, port
     """
     username = get_config_value(dbinfo, 'landsatds.username')
     password = get_config_value(dbinfo, 'landsatds.password')
-    host = get_config_value(dbinfo, 'url.{}.webtier'.format(env))
+    log_locations = get_config_value(dbinfo, 'url.{}.weblogs'.format(env)).split(',')
+    return {'username': username, 'password': password, 'log_locs': log_locations}
 
-    client = paramiko.SSHClient()
-    client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 
-    client.connect(host, username=username, password=password, timeout=60)
-    sftp = client.open_sftp()
+class RemoteConnection():
+    def __init__(self, host, user, password=None, port=22):
+        """
+        Initialize connection to a remote host
 
-    sftp.get(remote_path, local_path)
+        :param host: hostname to connect to
+        :param user: username to connect as
+        :param password: the password of the user
+        :param port: the port number on the host machine
+        """
+        self.host, self.user, self.port = host, user, port
+        self.remote = ParamikoMachine(self.host, user=self.user, password=password, port=self.port,
+                                      missing_host_policy=paramiko.AutoAddPolicy())
+
+    def list_remote_files(self, remote_dir, prefix):
+        """
+        List files in folder on a remote host which start with a given prefix
+
+        :param remote_dir: the absolute location of the folder to search
+        :param prefix: the beginning of all files names to find
+        :return: list of remote full paths
+        """
+        r_ls = self.remote['ls']
+        files = r_ls(remote_dir).split('\n')
+
+        if len(files):
+            files = [os.path.join(remote_dir, f) for f in files if f.startswith(prefix)]
+            return files
+        else:
+            raise ValueError('No files found at {host}:{loc}'.format(host=self.host, loc=remote_dir))
+
+    def download_remote_file(self, remote_path, local_path):
+        """
+        Transfer a file from a remote host locally
+
+        :param remote_path: the absolute location of the file to grab (including host)
+        :param local_path: the local file to write to
+        """
+        self.remote.download(remote_path, local_path)
+
+
+def subset_by_date(files, begin, stop, tsfrmt='%Y%m%d.gz'):
+    """
+    Find files that are within the timestamp range
+
+    :param files: list of file names which have a timestamp
+    :param begin: date to begin searching
+    :param stop: date to stop searching
+    :param tsfrmt: How to parse the timestamp
+    :return: list
+    """
+    def parser(x):
+        return datetime.datetime.strptime(os.path.basename(x).split('-')[-1], tsfrmt).date()
+
+    def criteria(x):
+        # This assumes every month on the first, the previous month's
+        # logs will be archived. Searching for 11/1-11/30? Needs 11/2-12/1 logs!
+        return ((x[1] <= stop + datetime.timedelta(days=1))
+                & (x[1] >= begin))
+
+    timestamps = map(parser, files)
+    return [x[0] for x in filter(criteria, zip(files, timestamps))]
