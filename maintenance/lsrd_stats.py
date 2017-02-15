@@ -22,10 +22,33 @@ EMAIL_SUBJECT = 'LSRD ESPA Metrics for {begin} to {stop}'
 ORDER_SOURCES = ('ee', 'espa')
 
 SENSOR_KEYS = ('tm4', 'tm5', 'etm7', 'olitirs8', 'oli8',
+               'tm4_collection', 'tm5_collection', 'etm7_collection', 'olitirs8_collection', 'oli8_collection',
                'mod09a1', 'mod09ga', 'mod09gq', 'mod09q1',
                'mod13a1', 'mod13a2', 'mod13a3', 'mod13q1',
                'myd09a1', 'myd09ga', 'myd09gq', 'myd09q1',
                'myd13a1', 'myd13a2', 'myd13a3', 'myd13q1', 'invalid')
+LSAT_COLLECTION = 'ignore'
+
+LANDSAT_COLLECTIONS = {'pre': {'name': ''' and (s.name like 'LT4%%'
+                                          or s.name like 'LT5%%'
+                                          or s.name like 'LE7%%'
+                                          or s.name like 'LC8%%'
+                                          or s.name like 'LO8%%')''',
+                               'opts': ''' and (product_opts::text like '%%tm4":%%'
+                                       or product_opts::text like '%%tm5":%%'
+                                       or product_opts::text like '%%etm7":%%'
+                                       or product_opts::text like '%%olitirs8":%%'
+                                       or product_opts::text like '%%oli8":%%') '''},
+                       'c1': {'name': ''' and (s.name like 'LT04_%%'
+                                          or s.name like 'LT05_%%'
+                                          or s.name like 'LE07_%%'
+                                          or s.name like 'LC08_%%'
+                                          or s.name like 'LO08_%%')''',
+                              'opts': ''' and (product_opts::text like '%%tm4_collection":%%'
+                                       or product_opts::text like '%%tm5_collection":%%'
+                                       or product_opts::text like '%%etm7_collection":%%'
+                                       or product_opts::text like '%%olitirs8_collection":%%'
+                                       or product_opts::text like '%%oli8_collection":%%') '''}}
 
 
 def arg_parser(defaults):
@@ -51,6 +74,10 @@ def arg_parser(defaults):
     parser.add_argument('-d', '--dir', dest='dir',
                         default=defaults['dir'],
                         help='Directory to temporarily store logs')
+    parser.add_argument('--collection', dest='collection',
+                        default=defaults['collection'],
+                        help='Landsat collections to include {} (or ignore)'
+                        .format(LANDSAT_COLLECTIONS.keys()))
 
     args = parser.parse_args()
     defaults.update(args.__dict__)
@@ -71,7 +98,7 @@ def download_boiler(info):
     :return: formatted string
     """
     boiler = ('\n==========================================\n'
-              ' On-demand - Download Info\n'
+              ' {title}\n'
               '==========================================\n'
               'Total number of ordered scenes downloaded through ESPA order interface order links: {tot_dl}\n'
               'Total volume of ordered scenes downloaded (GB): {tot_vol}\n')
@@ -164,7 +191,7 @@ def top_users_boiler(info):
     return boiler.format(*info)
 
 
-def db_prodinfo(dbinfo, begin_date, end_date):
+def db_prodinfo(dbinfo, begin_date, end_date, collection):
     """
     Queries the database to build the ordered product counts
     dates are given as ISO 8601 'YYYY-MM-DD'
@@ -175,6 +202,8 @@ def db_prodinfo(dbinfo, begin_date, end_date):
     :type begin_date: str
     :param end_date: Date to end the counts on
     :type end_date: str
+    :param collection: what collection to process
+    :type collection: str
     :return: Dictionary of count values
     """
     sql = ('SELECT product_opts '
@@ -185,6 +214,8 @@ def db_prodinfo(dbinfo, begin_date, end_date):
     init = {'total': 0}
 
     with DBConnect(**dbinfo) as db:
+        if collection != 'ignore':
+            sql += LANDSAT_COLLECTIONS[collection]['opts']
         db.select(sql, (begin_date, end_date))
         results = reduce(counts_prodopts, map(process_db_prodopts, db.fetcharr), init)
 
@@ -198,6 +229,13 @@ def process_db_prodopts(row):
     opts = row[0]
 
     for key in SENSOR_KEYS:
+        if LSAT_COLLECTION != 'ignore':
+            if LSAT_COLLECTION == 'pre':
+                if key not in ['tm4', 'tm5', 'etm7', 'oli8', 'olitirs8']:
+                    continue
+            if LSAT_COLLECTION == 'c1':
+                if key not in ['tm4_collection', 'tm5_collection', 'etm7_collection', 'oli8_collection', 'olitirs8_collection']:
+                    continue
         if key in opts:
             num = len(opts[key]['inputs'])
             ret['total'] += num
@@ -278,12 +316,37 @@ def tally_product_dls(orders_scenes, prod_options):
         opts = prod_options[oid]
 
         if 'plot_statistics' in opts and opts['plot_statistics']:
-            results['plot_statistics'] += 1
+            if LSAT_COLLECTION != 'ignore':
+                if LSAT_COLLECTION == 'pre':
+                    if any(x in ['tm4', 'tm5', 'etm7', 'oli8', 'olitirs8'] for x in opts.keys()):
+                        results['plot_statistics'] += 1
+                if LSAT_COLLECTION == 'c1':
+                    if any(x in ['tm4_collection', 'tm5_collection', 'etm7_collection', 'oli8_collection', 'olitirs8_collection'] for x in opts.keys()):
+                        results['plot_statistics'] += 1
+            else:
+                results['plot_statistics'] += 1
 
         for key in SENSOR_KEYS:
+            if LSAT_COLLECTION != 'ignore':
+                if LSAT_COLLECTION == 'pre':
+                    if key not in ['tm4', 'tm5', 'etm7', 'oli8', 'olitirs8']:
+                        continue
+                if LSAT_COLLECTION == 'c1':
+                    if key not in ['tm4_collection', 'tm5_collection', 'etm7_collection', 'oli8_collection', 'olitirs8_collection']:
+                        continue
             if key in opts:
                 # Scene names get truncated during distribution
-                if [x for x in opts[key]['inputs'] if scene in x]:
+                res = [x for x in opts[key]['inputs'] if scene in x]
+
+                info = landsat_output_regex(scene)
+                if info:
+                    if 'collect' in info: # This is a landsat collection scene
+                        # scene = LE070430332014070901T1, x = LE07_L1TP_043033_20140709_20160909_01_T1
+                        # scene_regex = 'LE07_\\w{4}_043033_20140709_'
+                        scene_regex = scene[0:4] + '_\w{4}_' + scene[4:10] + '_' + scene[10:18] + '_'
+                        res = [x for x in opts[key]['inputs'] if re.match(scene_regex, x)]
+
+                if res:
                     results['total'] += 1
 
                     for prod in opts[key]['products']:
@@ -297,7 +360,7 @@ def tally_product_dls(orders_scenes, prod_options):
     return results
 
 
-def calc_dlinfo(log_glob, start_date, end_date):
+def calc_dlinfo(log_glob, start_date, end_date, collection):
     """
     Count the total tarballs downloaded from /orders/ and their combined size
 
@@ -306,7 +369,9 @@ def calc_dlinfo(log_glob, start_date, end_date):
     :param start_date: Compares >= timestamp in log
     :type start_date: datetime.date
     :param end_date: Compares <= timestamp in log
-    :typ end_date: datetime.date
+    :type end_date: datetime.date
+    :param collection: which landsat collections to process (or 'ignore')
+    :type collection: str
     :return: Dictionary of values
     """
     infodict = {'tot_dl': 0,
@@ -324,6 +389,9 @@ def calc_dlinfo(log_glob, start_date, end_date):
             for line in log:
                 gr = filter_log_line(line, start_date, end_date)
                 if gr:
+                    if collection != 'ignore':
+                        if not is_filename_collections(gr['resource'], collection):
+                            continue
                     infodict['tot_vol'] += int(gr['size'])
                     infodict['tot_dl'] += 1
                     order_paths.add(gr['resource'])
@@ -388,7 +456,43 @@ def filter_log_line(line, start_date, end_date):
         return False
 
 
-def db_scenestats(source, begin_date, end_date, dbinfo):
+def landsat_output_regex(filename):
+    """
+    Convert a download location into information for landsat scene-ids
+    :param filename: full path to download resource
+    :return: dict
+    """
+    fname = os.path.basename(filename)
+    sceneid = fname.split('-')[0]
+    regex_pre = '^(?P<sensor>L\w{2})[0-9]{6}[0-9]{7}$'
+    regex_collect = '^(?P<sensor>L\w{3})[0-9]{6}[0-9]{8}(?P<collect>\w{4})$'
+    for regex in [regex_pre, regex_collect]:
+        res = re.match(regex, sceneid)
+        if res:
+            return res.groupdict()
+
+
+def is_filename_collections(filename, collection):
+    """
+    Determine if output filename (shortname) is a collection scene-id
+    :param filename: full path download filename
+    :param collection: either (pre/c1)
+    :return: bool
+    """
+    if collection not in LANDSAT_COLLECTIONS.keys():
+        raise ValueError('Invalid collection: %s' % collection)
+    info = landsat_output_regex(filename)
+    if info:
+        if collection == 'c1': # TODO This assumes only collection 1
+            if 'collect' in info.keys():
+                return True
+        if collection == 'pre':
+            if 'collect' not in info.keys():
+                return True
+    return False
+
+
+def db_scenestats(source, begin_date, end_date, collection, dbinfo):
     """
     Queries the database for the number of scenes ordered
     separated by USGS and non-USGS emails
@@ -400,26 +504,28 @@ def db_scenestats(source, begin_date, end_date, dbinfo):
     :type begin_date: str
     :param end_date: Date to stop the count on
     :type end_date: str
+    :param collection: what collection to include ('pre', 'c1')
+    :type collection: str
     :param dbinfo: Database connection information
     :type dbinfo: dict
     :return: Dictionary of the counts
     """
     sql = ('''select COUNT(*)
-              from ordering_scene
-              inner join ordering_order on ordering_scene.order_id = ordering_order.id
+              from ordering_scene s
+              inner join ordering_order on s.order_id = ordering_order.id
               where ordering_order.order_date::date >= %s
               and ordering_order.order_date::date <= %s
               and ordering_order.orderid like '%%@usgs.gov-%%'
               and ordering_order.order_source = %s
-              and name != 'plot' ''',
+              and s.name != 'plot' ''',
            '''select COUNT(*)
-              from ordering_scene
-              inner join ordering_order on ordering_scene.order_id = ordering_order.id
+              from ordering_scene s
+              inner join ordering_order on s.order_id = ordering_order.id
               where ordering_order.order_date::date >= %s
               and ordering_order.order_date::date <= %s
               and ordering_order.orderid not like '%%@usgs.gov-%%'
               and ordering_order.order_source = %s
-              and name != 'plot' ''')
+              and s.name != 'plot' ''')
 
     counts = {'scenes_month': 0,
               'scenes_usgs': 0,
@@ -427,6 +533,8 @@ def db_scenestats(source, begin_date, end_date, dbinfo):
 
     with DBConnect(**dbinfo) as db:
         for q in sql:
+            if collection != 'ignore':
+                q += LANDSAT_COLLECTIONS[collection]['name']
             db.select(q, (begin_date, end_date, source))
 
             if 'not like' in q:
@@ -439,7 +547,7 @@ def db_scenestats(source, begin_date, end_date, dbinfo):
     return counts
 
 
-def db_orderstats(source, begin_date, end_date, dbinfo):
+def db_orderstats(source, begin_date, end_date, collection, dbinfo):
     """
     Queries the database to get the total number of orders
     separated by USGS and non-USGS emails
@@ -451,6 +559,8 @@ def db_orderstats(source, begin_date, end_date, dbinfo):
     :type begin_date: str
     :param end_date: Date to stop the count on
     :type end_date: str
+    :param collection: what collection of information to get
+    :type collection: str
     :param dbinfo: Database connection information
     :type dbinfo: dict
     :return: Dictionary of the counts
@@ -474,6 +584,8 @@ def db_orderstats(source, begin_date, end_date, dbinfo):
 
     with DBConnect(**dbinfo) as db:
         for q in sql:
+            if collection != 'ignore':
+                q = q.replace(';', LANDSAT_COLLECTIONS[collection]['opts'])
             db.select(q, (begin_date, end_date, source))
 
             if 'not like' in q:
@@ -486,7 +598,7 @@ def db_orderstats(source, begin_date, end_date, dbinfo):
     return counts
 
 
-def db_uniquestats(source, begin_date, end_date, dbinfo):
+def db_uniquestats(source, begin_date, end_date, collection, dbinfo):
     """
     Queries the database to get the total number of unique users
     dates are given as ISO 8601 'YYYY-MM-DD'
@@ -497,6 +609,8 @@ def db_uniquestats(source, begin_date, end_date, dbinfo):
     :type begin_date: str
     :param end_date: Date to stop the count on
     :type end_date: str
+    :param collection: which collections to process
+    :type collection: str
     :param dbinfo: Database connection information
     :type dbinfo: dict
     :return: Dictionary of the count
@@ -508,11 +622,13 @@ def db_uniquestats(source, begin_date, end_date, dbinfo):
              and order_source = %s;'''
 
     with DBConnect(**dbinfo) as db:
+        if collection != 'ignore':
+            sql = sql.replace(';', LANDSAT_COLLECTIONS[collection]['opts'])
         db.select(sql, (begin_date, end_date, source))
         return db[0][0]
 
 
-def db_top10stats(begin_date, end_date, dbinfo):
+def db_top10stats(begin_date, end_date, collection, dbinfo):
     """
     Queries the database to get the total number of unique users
     dates are given as ISO 8601 'YYYY-MM-DD'
@@ -523,6 +639,8 @@ def db_top10stats(begin_date, end_date, dbinfo):
     :type begin_date: str
     :param end_date: Date to stop the count on
     :type end_date: str
+    :param collection: which collections to process
+    :type collection: str
     :param dbinfo: Database connection information
     :type dbinfo: dict
     :return: Dictionary of the count
@@ -534,12 +652,15 @@ def db_top10stats(begin_date, end_date, dbinfo):
              join auth_user u
                   on o.user_id = u.id
              where o.order_date::date >= %s
-             and o.order_date::date <= %s
-             group by u.email
+             and o.order_date::date <= %s '''
+    sql2 = ''' group by u.email
              order by scenes desc
-             limit 10;'''
+             limit 10'''
 
     with DBConnect(**dbinfo) as db:
+        if collection != 'ignore':
+            sql += LANDSAT_COLLECTIONS[collection]['name']
+        sql += sql2
         db.select(sql, (begin_date, end_date))
         return db[:]
 
@@ -590,7 +711,7 @@ def extract_orderid(order_paths):
                  [i.split('/') for i in order_paths])
 
 
-def process_monthly_metrics(cfg, env, local_dir, begin, stop):
+def process_monthly_metrics(cfg, env, local_dir, begin, stop, collection):
     """
     Put together metrics for the previous month then
     email the results out
@@ -605,55 +726,78 @@ def process_monthly_metrics(cfg, env, local_dir, begin, stop):
     :type begin: datetime.date
     :param stop: timestamp to stop searching the logs
     :type stop: datetime.date
+    :param collection: which landsat collections to process (or 'ignore')
+    :type collection: str
     """
-    msg = ''
-    receive, sender, debug = get_addresses(cfg)
-    subject = EMAIL_SUBJECT.format(begin=begin, stop=stop)
     log_glob = os.path.join(local_dir, '*' + LOG_FILENAME + '*access_log*.gz')
 
-    try:
-        # Fetch the web log
-        if not os.path.exists(local_dir):
-            os.makedirs(local_dir)
+    # Fetch the web log
+    if not os.path.exists(local_dir):
+        os.makedirs(local_dir)
 
-        dmzinfo = utils.query_connection_info(cfg, env)
-        for log_loc in dmzinfo['log_locs']:
-            host, remote_dir = log_loc.split(':')
-            client = utils.RemoteConnection(host, user=dmzinfo['username'], password=dmzinfo['password'])
-            files = client.list_remote_files(remote_dir=remote_dir, prefix=LOG_FILENAME)
-            files = utils.subset_by_date(files, begin, stop, LOG_FILE_TIMESTAMP)
-            for remote_path in files:
-                filename = "{host}_{fname}".format(host=host, fname=os.path.basename(remote_path))
-                local_path = os.path.join(local_dir, filename)
+    dmzinfo = utils.query_connection_info(cfg, env)
+    for log_loc in dmzinfo['log_locs']:
+        host, remote_dir = log_loc.split(':')
+        client = utils.RemoteConnection(host, user=dmzinfo['username'], password=dmzinfo['password'])
+        files = client.list_remote_files(remote_dir=remote_dir, prefix=LOG_FILENAME)
+        files = utils.subset_by_date(files, begin, stop, LOG_FILE_TIMESTAMP)
+        for remote_path in files:
+            filename = "{host}_{fname}".format(host=host, fname=os.path.basename(remote_path))
+            local_path = os.path.join(local_dir, filename)
+            if not os.path.exists(local_path):
                 client.download_remote_file(remote_path=remote_path, local_path=local_path)
 
-        infodict, order_paths = calc_dlinfo(log_glob, begin, stop)
-        msg = download_boiler(infodict)
+    infodict, order_paths = calc_dlinfo(log_glob, begin, stop, collection)
+    infodict['title'] = ('On-demand - Total Download Info' if collection == 'ignore'
+                         else 'On-demand {} Download Info'.format(collection.upper()))
+    msg = download_boiler(infodict)
 
-        # Downloads by Product
-        orders_scenes = extract_orderid(order_paths)
+    # Downloads by Product
+    orders_scenes = extract_orderid(order_paths)
 
-        assert(len(orders_scenes))
-
+    if len(orders_scenes):
         prod_opts = db_dl_prodinfo(cfg, orders_scenes)
         infodict = tally_product_dls(orders_scenes, prod_opts)
         msg += prod_boiler(infodict)
 
-        # On-Demand users and orders placed information
-        for source in ORDER_SOURCES:
-            infodict = db_orderstats(source, begin, stop, cfg)
-            infodict.update(db_scenestats(source, begin, stop, cfg))
-            infodict['tot_unique'] = db_uniquestats(source, begin, stop, cfg)
-            infodict['who'] = source.upper()
-            msg += ondemand_boiler(infodict)
+    # On-Demand users and orders placed information
+    for source in ORDER_SOURCES:
+        infodict = db_orderstats(source, begin, stop, collection, cfg)
+        infodict.update(db_scenestats(source, begin, stop, collection, cfg))
+        infodict['tot_unique'] = db_uniquestats(source, begin, stop, collection, cfg)
+        infodict['who'] = source.upper()
+        msg += ondemand_boiler(infodict)
 
-        # Orders by Product
-        infodict = db_prodinfo(cfg, begin, stop)
-        msg += prod_boiler(infodict)
+    # Orders by Product
+    infodict = db_prodinfo(cfg, begin, stop, collection)
+    msg += prod_boiler(infodict)
 
-        # Top 10 users by scenes ordered
-        info = db_top10stats(begin, stop, cfg)
+    # Top 10 users by scenes ordered
+    info = db_top10stats(begin, stop, collection, cfg)
+    if len(info) == 10:
         msg += top_users_boiler(info)
+
+    return msg
+
+
+def run():
+    global LSAT_COLLECTION  # This is a bad thing to do...
+    rng = date_range()
+    defaults = {'begin': rng[0],
+                'stop': rng[1],
+                'conf_file': utils.CONF_FILE,
+                'dir': os.path.join(os.path.expanduser('~'), 'temp-logs'),
+                'collection': 'ignore'}
+
+    opts = arg_parser(defaults)
+    cfg = utils.get_cfg(opts['conf_file'], section='config')
+
+    msg = ''
+    receive, sender, debug = get_addresses(cfg)
+    subject = EMAIL_SUBJECT.format(begin=opts['begin'], stop=opts['stop'])
+    try:
+        LSAT_COLLECTION = opts['collection']
+        msg = process_monthly_metrics(cfg, opts['environment'], opts['dir'], opts['begin'], opts['stop'], opts['collection'])
 
     except Exception:
         exc_msg = str(traceback.format_exc()) + '\n\n' + msg
@@ -664,25 +808,6 @@ def process_monthly_metrics(cfg, env, local_dir, begin, stop):
         raise
     finally:
         utils.send_email(sender, receive, subject, msg)
-
-        left_overs = glob.glob(log_glob)
-        if left_overs:
-            for fname in left_overs:
-                os.remove(fname)
-
-
-def run():
-    rng = date_range()
-    defaults = {'begin': rng[0],
-                'stop': rng[1],
-                'conf_file': utils.CONF_FILE,
-                'dir': os.path.join(os.path.expanduser('~'), 'temp-logs')}
-    # TODO: Add category (collections, pre-collections...)
-
-    opts = arg_parser(defaults)
-    cfg = utils.get_cfg(opts['conf_file'], section='config')
-
-    process_monthly_metrics(cfg, opts['environment'], opts['dir'], opts['begin'], opts['stop'])
 
 
 if __name__ == '__main__':
