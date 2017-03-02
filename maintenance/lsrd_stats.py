@@ -711,6 +711,37 @@ def extract_orderid(order_paths):
                  [i.split('/') for i in order_paths])
 
 
+def fetch_web_logs(dbconfig, env, outdir, begin, stop):
+    """
+    Connect to weblog storage location and move weblogs locally
+
+    :param dbconfig: database connection info (host, port, username, password)
+    :param env: dev/tst/ops (to get hostname of the external download servers)
+    :param outdir: location to save log files
+    :param begin: timestamp to begin searching the logs
+    :param stop: timestamp to stop searching the logs
+    :return: None
+    """
+    if not os.path.exists(outdir):
+        os.makedirs(outdir)
+
+    dmzinfo = utils.query_connection_info(dbconfig, env)
+    for log_loc in dmzinfo['log_locs']:
+        host, remote_dir = log_loc.split(':')
+        client = utils.RemoteConnection(host, user=dmzinfo['username'],
+                                        password=dmzinfo['password'])
+        files = client.list_remote_files(remote_dir=remote_dir,
+                                         prefix=LOG_FILENAME)
+        files = utils.subset_by_date(files, begin, stop, LOG_FILE_TIMESTAMP)
+        for remote_path in files:
+            filename = ("{host}_{fname}"
+                        .format(host=host, fname=os.path.basename(remote_path)))
+            local_path = os.path.join(outdir, filename)
+            if not os.path.exists(local_path):
+                client.download_remote_file(remote_path=remote_path,
+                                            local_path=local_path)
+
+
 def process_monthly_metrics(cfg, env, local_dir, begin, stop, collection):
     """
     Put together metrics for the previous month then
@@ -729,24 +760,9 @@ def process_monthly_metrics(cfg, env, local_dir, begin, stop, collection):
     :param collection: which landsat collections to process (or 'ignore')
     :type collection: str
     """
+    fetch_web_logs(cfg, env, local_dir, begin, stop)
+
     log_glob = os.path.join(local_dir, '*' + LOG_FILENAME + '*access_log*.gz')
-
-    # Fetch the web log
-    if not os.path.exists(local_dir):
-        os.makedirs(local_dir)
-
-    dmzinfo = utils.query_connection_info(cfg, env)
-    for log_loc in dmzinfo['log_locs']:
-        host, remote_dir = log_loc.split(':')
-        client = utils.RemoteConnection(host, user=dmzinfo['username'], password=dmzinfo['password'])
-        files = client.list_remote_files(remote_dir=remote_dir, prefix=LOG_FILENAME)
-        files = utils.subset_by_date(files, begin, stop, LOG_FILE_TIMESTAMP)
-        for remote_path in files:
-            filename = "{host}_{fname}".format(host=host, fname=os.path.basename(remote_path))
-            local_path = os.path.join(local_dir, filename)
-            if not os.path.exists(local_path):
-                client.download_remote_file(remote_path=remote_path, local_path=local_path)
-
     infodict, order_paths = calc_dlinfo(log_glob, begin, stop, collection)
     infodict['title'] = ('On-demand - Total Download Info' if collection == 'ignore'
                          else 'On-demand {} Download Info'.format(collection.upper()))
