@@ -27,28 +27,6 @@ SENSOR_KEYS = ('tm4', 'tm5', 'etm7', 'olitirs8', 'oli8',
                'mod13a1', 'mod13a2', 'mod13a3', 'mod13q1',
                'myd09a1', 'myd09ga', 'myd09gq', 'myd09q1',
                'myd13a1', 'myd13a2', 'myd13a3', 'myd13q1', 'invalid')
-LSAT_COLLECTION = 'ignore'
-
-LANDSAT_COLLECTIONS = {'pre': {'name': ''' and (s.name like 'LT4%%'
-                                          or s.name like 'LT5%%'
-                                          or s.name like 'LE7%%'
-                                          or s.name like 'LC8%%'
-                                          or s.name like 'LO8%%')''',
-                               'opts': ''' and (product_opts::text like '%%tm4":%%'
-                                       or product_opts::text like '%%tm5":%%'
-                                       or product_opts::text like '%%etm7":%%'
-                                       or product_opts::text like '%%olitirs8":%%'
-                                       or product_opts::text like '%%oli8":%%') '''},
-                       'c1': {'name': ''' and (s.name like 'LT04_%%'
-                                          or s.name like 'LT05_%%'
-                                          or s.name like 'LE07_%%'
-                                          or s.name like 'LC08_%%'
-                                          or s.name like 'LO08_%%')''',
-                              'opts': ''' and (product_opts::text like '%%tm4_collection":%%'
-                                       or product_opts::text like '%%tm5_collection":%%'
-                                       or product_opts::text like '%%etm7_collection":%%'
-                                       or product_opts::text like '%%olitirs8_collection":%%'
-                                       or product_opts::text like '%%oli8_collection":%%') '''}}
 
 
 def arg_parser(defaults):
@@ -74,10 +52,10 @@ def arg_parser(defaults):
     parser.add_argument('-d', '--dir', dest='dir',
                         default=defaults['dir'],
                         help='Directory to temporarily store logs')
-    parser.add_argument('--collection', dest='collection',
-                        default=defaults['collection'],
-                        help='Landsat collections to include {} (or ignore)'
-                        .format(LANDSAT_COLLECTIONS.keys()))
+    parser.add_argument('--sensors', dest='sensors',
+                        default=defaults['sensors'],
+                        nargs='+', help='Sensors to include (ALL) or {}'
+                        .format(SENSOR_KEYS))
 
     args = parser.parse_args()
     defaults.update(args.__dict__)
@@ -214,9 +192,6 @@ def db_prodinfo(dbinfo, begin_date, end_date, collection):
     init = {'total': 0}
 
     with DBConnect(**dbinfo) as db:
-        if collection != 'ignore':
-            sql += LANDSAT_COLLECTIONS[collection]['opts']
-        db.select(sql, (begin_date, end_date))
         results = reduce(counts_prodopts, map(process_db_prodopts, db.fetcharr), init)
 
     results['title'] = 'What was Ordered'
@@ -229,13 +204,6 @@ def process_db_prodopts(row):
     opts = row[0]
 
     for key in SENSOR_KEYS:
-        if LSAT_COLLECTION != 'ignore':
-            if LSAT_COLLECTION == 'pre':
-                if key not in ['tm4', 'tm5', 'etm7', 'oli8', 'olitirs8']:
-                    continue
-            if LSAT_COLLECTION == 'c1':
-                if key not in ['tm4_collection', 'tm5_collection', 'etm7_collection', 'oli8_collection', 'olitirs8_collection']:
-                    continue
         if key in opts:
             num = len(opts[key]['inputs'])
             ret['total'] += num
@@ -316,35 +284,12 @@ def tally_product_dls(orders_scenes, prod_options):
         opts = prod_options[oid]
 
         if 'plot_statistics' in opts and opts['plot_statistics']:
-            if LSAT_COLLECTION != 'ignore':
-                if LSAT_COLLECTION == 'pre':
-                    if any(x in ['tm4', 'tm5', 'etm7', 'oli8', 'olitirs8'] for x in opts.keys()):
-                        results['plot_statistics'] += 1
-                if LSAT_COLLECTION == 'c1':
-                    if any(x in ['tm4_collection', 'tm5_collection', 'etm7_collection', 'oli8_collection', 'olitirs8_collection'] for x in opts.keys()):
-                        results['plot_statistics'] += 1
-            else:
-                results['plot_statistics'] += 1
+            results['plot_statistics'] += 1
 
         for key in SENSOR_KEYS:
-            if LSAT_COLLECTION != 'ignore':
-                if LSAT_COLLECTION == 'pre':
-                    if key not in ['tm4', 'tm5', 'etm7', 'oli8', 'olitirs8']:
-                        continue
-                if LSAT_COLLECTION == 'c1':
-                    if key not in ['tm4_collection', 'tm5_collection', 'etm7_collection', 'oli8_collection', 'olitirs8_collection']:
-                        continue
             if key in opts:
                 # Scene names get truncated during distribution
                 res = [x for x in opts[key]['inputs'] if scene in x]
-
-                info = landsat_output_regex(scene)
-                if info:
-                    if 'collect' in info: # This is a landsat collection scene
-                        # scene = LE070430332014070901T1, x = LE07_L1TP_043033_20140709_20160909_01_T1
-                        # scene_regex = 'LE07_\\w{4}_043033_20140709_'
-                        scene_regex = scene[0:4] + '_\w{4}_' + scene[4:10] + '_' + scene[10:18] + '_'
-                        res = [x for x in opts[key]['inputs'] if re.match(scene_regex, x)]
 
                 if res:
                     results['total'] += 1
@@ -389,9 +334,6 @@ def calc_dlinfo(log_glob, start_date, end_date, collection):
             for line in log:
                 gr = filter_log_line(line, start_date, end_date)
                 if gr:
-                    if collection != 'ignore':
-                        if not is_filename_collections(gr['resource'], collection):
-                            continue
                     infodict['tot_vol'] += int(gr['size'])
                     infodict['tot_dl'] += 1
                     order_paths.add(gr['resource'])
@@ -456,43 +398,11 @@ def filter_log_line(line, start_date, end_date):
         return False
 
 
-def landsat_output_regex(filename):
     """
-    Convert a download location into information for landsat scene-ids
-    :param filename: full path to download resource
-    :return: dict
     """
     fname = os.path.basename(filename)
-    sceneid = fname.split('-')[0]
-    regex_pre = '^(?P<sensor>L\w{2})[0-9]{6}[0-9]{7}$'
-    regex_collect = '^(?P<sensor>L\w{3})[0-9]{6}[0-9]{8}(?P<collect>\w{4})$'
-    for regex in [regex_pre, regex_collect]:
-        res = re.match(regex, sceneid)
-        if res:
-            return res.groupdict()
 
 
-def is_filename_collections(filename, collection):
-    """
-    Determine if output filename (shortname) is a collection scene-id
-    :param filename: full path download filename
-    :param collection: either (pre/c1)
-    :return: bool
-    """
-    if collection not in LANDSAT_COLLECTIONS.keys():
-        raise ValueError('Invalid collection: %s' % collection)
-    info = landsat_output_regex(filename)
-    if info:
-        if collection == 'c1': # TODO This assumes only collection 1
-            if 'collect' in info.keys():
-                return True
-        if collection == 'pre':
-            if 'collect' not in info.keys():
-                return True
-    return False
-
-
-def db_scenestats(source, begin_date, end_date, collection, dbinfo):
     """
     Queries the database for the number of scenes ordered
     separated by USGS and non-USGS emails
@@ -533,9 +443,6 @@ def db_scenestats(source, begin_date, end_date, collection, dbinfo):
 
     with DBConnect(**dbinfo) as db:
         for q in sql:
-            if collection != 'ignore':
-                q += LANDSAT_COLLECTIONS[collection]['name']
-            db.select(q, (begin_date, end_date, source))
 
             if 'not like' in q:
                 counts['scenes_non'] += int(db[0][0])
@@ -584,9 +491,6 @@ def db_orderstats(source, begin_date, end_date, collection, dbinfo):
 
     with DBConnect(**dbinfo) as db:
         for q in sql:
-            if collection != 'ignore':
-                q = q.replace(';', LANDSAT_COLLECTIONS[collection]['opts'])
-            db.select(q, (begin_date, end_date, source))
 
             if 'not like' in q:
                 counts['orders_non'] += int(db[0][0])
@@ -622,13 +526,9 @@ def db_uniquestats(source, begin_date, end_date, collection, dbinfo):
              and order_source = %s;'''
 
     with DBConnect(**dbinfo) as db:
-        if collection != 'ignore':
-            sql = sql.replace(';', LANDSAT_COLLECTIONS[collection]['opts'])
-        db.select(sql, (begin_date, end_date, source))
         return db[0][0]
 
 
-def db_top10stats(begin_date, end_date, collection, dbinfo):
     """
     Queries the database to get the total number of unique users
     dates are given as ISO 8601 'YYYY-MM-DD'
@@ -658,10 +558,6 @@ def db_top10stats(begin_date, end_date, collection, dbinfo):
              limit 10'''
 
     with DBConnect(**dbinfo) as db:
-        if collection != 'ignore':
-            sql += LANDSAT_COLLECTIONS[collection]['name']
-        sql += sql2
-        db.select(sql, (begin_date, end_date))
         return db[:]
 
 
@@ -797,16 +693,17 @@ def process_monthly_metrics(cfg, env, local_dir, begin, stop, collection):
 
 
 def run():
-    global LSAT_COLLECTION  # This is a bad thing to do...
     rng = date_range()
     defaults = {'begin': rng[0],
                 'stop': rng[1],
                 'conf_file': utils.CONF_FILE,
                 'dir': os.path.join(os.path.expanduser('~'), 'temp-logs'),
-                'collection': 'ignore'}
+                'sensors': 'ALL'}
 
     opts = arg_parser(defaults)
     cfg = utils.get_cfg(opts['conf_file'], section='config')
+    if opts['sensors'] == 'ALL':
+        opts['sensors'] = [k for k in SENSOR_KEYS if k != 'invalid']
 
     msg = ''
     receive, sender, debug = get_addresses(cfg)
