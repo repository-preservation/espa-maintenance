@@ -169,7 +169,7 @@ def top_users_boiler(info):
     return boiler.format(*info)
 
 
-def db_prodinfo(dbinfo, begin_date, end_date, collection):
+def db_prodinfo(dbinfo, begin_date, end_date, sensors):
     """
     Queries the database to build the ordered product counts
     dates are given as ISO 8601 'YYYY-MM-DD'
@@ -180,18 +180,23 @@ def db_prodinfo(dbinfo, begin_date, end_date, collection):
     :type begin_date: str
     :param end_date: Date to end the counts on
     :type end_date: str
-    :param collection: what collection to process
-    :type collection: str
+    :param sensors: which sensors to process (['tm4','etm7',...])
+    :type sensors: tuple
     :return: Dictionary of count values
     """
     sql = ('SELECT product_opts '
            'FROM ordering_order '
+           'left join lateral jsonb_object_keys(product_opts) sensors on True '
            'WHERE order_date::date >= %s '
-           'AND order_date::date <= %s')
+           'AND order_date::date <= %s '
+           'AND sensors in %s '
+           "and product_opts->sensors ? 'inputs' "
+           "group by product_opts, id")
 
     init = {'total': 0}
 
     with DBConnect(**dbinfo) as db:
+        db.select(sql, (begin_date, end_date, sensors))
         results = reduce(counts_prodopts, map(process_db_prodopts, db.fetcharr), init)
 
     results['title'] = 'What was Ordered'
@@ -261,6 +266,22 @@ def remove_duplicates(arr_obj):
     return list(set(arr_obj))
 
 
+def landsat_output_regex(filename):
+    """
+    Convert a download location into information for landsat scene-ids
+    :param filename: full path to download resource
+    :return: dict
+    """
+    fname = os.path.basename(filename)
+    sceneid = fname.split('-')[0]
+    regex_pre = '^(?P<sensor>L\w{2})[0-9]{6}[0-9]{7}$'
+    regex_collect = '^(?P<sensor>L\w{3})[0-9]{6}[0-9]{8}(?P<collect>\w{4})$'
+    for regex in [regex_pre, regex_collect]:
+        res = re.match(regex, sceneid)
+        if res:
+            return res.groupdict()
+
+
 def tally_product_dls(orders_scenes, prod_options):
     """
     Counts the number of times a product has been downloaded
@@ -291,6 +312,14 @@ def tally_product_dls(orders_scenes, prod_options):
                 # Scene names get truncated during distribution
                 res = [x for x in opts[key]['inputs'] if scene in x]
 
+                info = landsat_output_regex(scene)
+                if info:
+                    if 'collect' in info: # This is a landsat collection scene
+                        # scene = LE070430332014070901T1, x = LE07_L1TP_043033_20140709_20160909_01_T1
+                        # scene_regex = 'LE07_\\w{4}_043033_20140709_'
+                        scene_regex = scene[0:4] + '_\w{4}_' + scene[4:10] + '_' + scene[10:18] + '_'
+                        res = [x for x in opts[key]['inputs'] if re.match(scene_regex, x)]
+
                 if res:
                     results['total'] += 1
 
@@ -305,7 +334,7 @@ def tally_product_dls(orders_scenes, prod_options):
     return results
 
 
-def calc_dlinfo(log_glob, start_date, end_date, collection):
+def calc_dlinfo(log_glob, start_date, end_date, sensors):
     """
     Count the total tarballs downloaded from /orders/ and their combined size
 
@@ -315,8 +344,8 @@ def calc_dlinfo(log_glob, start_date, end_date, collection):
     :type start_date: datetime.date
     :param end_date: Compares <= timestamp in log
     :type end_date: datetime.date
-    :param collection: which landsat collections to process (or 'ignore')
-    :type collection: str
+    :param sensors: which sensors to process (['tm4','etm7',...])
+    :type sensors: tuple
     :return: Dictionary of values
     """
     infodict = {'tot_dl': 0,
@@ -326,6 +355,9 @@ def calc_dlinfo(log_glob, start_date, end_date, collection):
     files = glob.glob(log_glob)
     if len(files) < 1:
         raise IOError('Could not find %s' % log_glob)
+    files = utils.subset_by_date(files, start_date, end_date, LOG_FILE_TIMESTAMP)
+    if len(files) < 1:
+        raise RuntimeError('No files found in date range: %s' % log_glob)
 
     order_paths = set()
     for log_file in files:
@@ -334,6 +366,10 @@ def calc_dlinfo(log_glob, start_date, end_date, collection):
             for line in log:
                 gr = filter_log_line(line, start_date, end_date)
                 if gr:
+                    if get_sensor_name(gr['resource']) not in sensors:
+                        # Difficult to say if statistics should be counted...
+                        # if not gr['resource'].endswith('statistics.tar.gz'):
+                        continue
                     infodict['tot_vol'] += int(gr['size'])
                     infodict['tot_dl'] += 1
                     order_paths.add(gr['resource'])
@@ -398,11 +434,31 @@ def filter_log_line(line, start_date, end_date):
         return False
 
 
+def get_sensor_name(filename):
     """
+    Converts a filename into a sensor key (SENSOR_KEYS)
+    :param filename: product output path [/orders/<oid>/<prod>-<time>.tar.gz]
+    :return: str
     """
+    lut = {'LC8': 'olitirs8', 'LC08': 'olitirs8_collection',
+           'LO8': 'oli8', 'LT8': 'tirs8',
+           'LO08': 'oli8_collection', 'LT08': 'tirs8_collection',
+           'LE7': 'etm7', 'LE07': 'etm7_collection',
+           'LT5': 'tm5', 'LT05': 'tm5_collection',
+           'LT4': 'tm4', 'LT04': 'tm4_collection',
+           'MOD09A1': 'mod09a1', 'MOD09GA': 'mod09ga', 'MOD09GQ': 'mod09gq',
+           'MOD09Q1': 'mod09q1', 'MOD13A1': 'mod13a1', 'MOD13A2': 'mod13a2',
+           'MOD13A3': 'mod13a3', 'MOD13Q1': 'mod13q1',
+           'MYD09A1': 'myd09a1', 'MYD09GA': 'myd09ga', 'MYD09GQ': 'myd09gq',
+           'MYD09Q1': 'myd09q1', 'MYD13A1': 'myd13a1', 'MYD13A2': 'myd13a2',
+           'MYD13A3': 'myd13a3', 'MYD13Q1': 'myd13q1'}
     fname = os.path.basename(filename)
+    for prefix, sensor in lut.iteritems():
+        if fname.startswith(prefix):
+            return sensor
 
 
+def db_scenestats(source, begin_date, end_date, sensors, dbinfo):
     """
     Queries the database for the number of scenes ordered
     separated by USGS and non-USGS emails
@@ -414,28 +470,30 @@ def filter_log_line(line, start_date, end_date):
     :type begin_date: str
     :param end_date: Date to stop the count on
     :type end_date: str
-    :param collection: what collection to include ('pre', 'c1')
-    :type collection: str
+    :param sensors: which sensors to process (['tm4', 'etm7', ...])
+    :type sensors: tuple
     :param dbinfo: Database connection information
     :type dbinfo: dict
     :return: Dictionary of the counts
     """
-    sql = ('''select COUNT(*)
-              from ordering_scene s
-              inner join ordering_order on s.order_id = ordering_order.id
+    sql = ('''select coalesce(sum(jsonb_array_length(product_opts->sensors->'inputs')),0)
+              from ordering_order
+              left join lateral jsonb_object_keys(product_opts) sensors on True
               where ordering_order.order_date::date >= %s
               and ordering_order.order_date::date <= %s
               and ordering_order.orderid like '%%@usgs.gov-%%'
               and ordering_order.order_source = %s
-              and s.name != 'plot' ''',
-           '''select COUNT(*)
-              from ordering_scene s
-              inner join ordering_order on s.order_id = ordering_order.id
+              and sensors in %s
+              and product_opts->sensors ? 'inputs' ''',
+           '''select coalesce(sum(jsonb_array_length(product_opts->sensors->'inputs')),0)
+              from ordering_order
+              left join lateral jsonb_object_keys(product_opts) sensors on True
               where ordering_order.order_date::date >= %s
               and ordering_order.order_date::date <= %s
               and ordering_order.orderid not like '%%@usgs.gov-%%'
               and ordering_order.order_source = %s
-              and s.name != 'plot' ''')
+              and sensors in %s
+              and product_opts->sensors ? 'inputs' ''')
 
     counts = {'scenes_month': 0,
               'scenes_usgs': 0,
@@ -443,6 +501,7 @@ def filter_log_line(line, start_date, end_date):
 
     with DBConnect(**dbinfo) as db:
         for q in sql:
+            db.select(q, (begin_date, end_date, source, sensors))
 
             if 'not like' in q:
                 counts['scenes_non'] += int(db[0][0])
@@ -454,7 +513,7 @@ def filter_log_line(line, start_date, end_date):
     return counts
 
 
-def db_orderstats(source, begin_date, end_date, collection, dbinfo):
+def db_orderstats(source, begin_date, end_date, sensors, dbinfo):
     """
     Queries the database to get the total number of orders
     separated by USGS and non-USGS emails
@@ -466,24 +525,30 @@ def db_orderstats(source, begin_date, end_date, collection, dbinfo):
     :type begin_date: str
     :param end_date: Date to stop the count on
     :type end_date: str
-    :param collection: what collection of information to get
-    :type collection: str
+    :param sensors: which sensor types to process (['tm4', 'etm7',...])
+    :type sensors: tuple
     :param dbinfo: Database connection information
     :type dbinfo: dict
     :return: Dictionary of the counts
     """
-    sql = ('''select COUNT(*)
+    sql = ('''select COUNT(distinct orderid)
               from ordering_order
+              left join lateral jsonb_object_keys(product_opts) sensors on True
               where order_date::date >= %s
               and order_date::date <= %s
               and orderid like '%%@usgs.gov-%%'
-              and order_source = %s;''',
-           '''select COUNT(*)
+              and order_source = %s
+              and sensors in %s
+              and product_opts->sensors ? 'inputs' ;''',
+           '''select COUNT(distinct orderid)
               from ordering_order
+              left join lateral jsonb_object_keys(product_opts) sensors on True
               where order_date::date >= %s
               and order_date::date <= %s
               and orderid not like '%%@usgs.gov-%%'
-              and order_source = %s;''')
+              and order_source = %s
+              and sensors in %s
+              and product_opts->sensors ? 'inputs' ;''')
 
     counts = {'orders_month': 0,
               'orders_usgs': 0,
@@ -491,6 +556,7 @@ def db_orderstats(source, begin_date, end_date, collection, dbinfo):
 
     with DBConnect(**dbinfo) as db:
         for q in sql:
+            db.select(q, (begin_date, end_date, source, sensors))
 
             if 'not like' in q:
                 counts['orders_non'] += int(db[0][0])
@@ -502,7 +568,7 @@ def db_orderstats(source, begin_date, end_date, collection, dbinfo):
     return counts
 
 
-def db_uniquestats(source, begin_date, end_date, collection, dbinfo):
+def db_uniquestats(source, begin_date, end_date, sensors, dbinfo):
     """
     Queries the database to get the total number of unique users
     dates are given as ISO 8601 'YYYY-MM-DD'
@@ -513,22 +579,27 @@ def db_uniquestats(source, begin_date, end_date, collection, dbinfo):
     :type begin_date: str
     :param end_date: Date to stop the count on
     :type end_date: str
-    :param collection: which collections to process
-    :type collection: str
+    :param sensors: which sensor types to process (['tm4', 'etm7',...])
+    :type sensors: tuple
     :param dbinfo: Database connection information
     :type dbinfo: dict
     :return: Dictionary of the count
     """
     sql = '''select count(distinct(split_part(orderid, '-', 1)))
              from ordering_order
+             left join lateral jsonb_object_keys(product_opts) sensors on True
              where order_date::date >= %s
              and order_date::date <= %s
-             and order_source = %s;'''
+             and order_source = %s
+             and sensors in %s
+             and product_opts->sensors ? 'inputs' ;'''
 
     with DBConnect(**dbinfo) as db:
+        db.select(sql, (begin_date, end_date, source, sensors))
         return db[0][0]
 
 
+def db_top10stats(begin_date, end_date, sensors, dbinfo):
     """
     Queries the database to get the total number of unique users
     dates are given as ISO 8601 'YYYY-MM-DD'
@@ -539,25 +610,27 @@ def db_uniquestats(source, begin_date, end_date, collection, dbinfo):
     :type begin_date: str
     :param end_date: Date to stop the count on
     :type end_date: str
-    :param collection: which collections to process
-    :type collection: str
+    :param sensors: which sensor types to process (['tm4', 'etm7',...])
+    :type sensors: tuple
     :param dbinfo: Database connection information
     :type dbinfo: dict
     :return: Dictionary of the count
     """
-    sql = '''select u.email, count(s.id) scenes
-             from ordering_scene s
-             join ordering_order o
-                  on s.order_id = o.id
+    sql = '''select u.email, coalesce(sum(jsonb_array_length(product_opts->sensors->'inputs')),0) scenes
+             from ordering_order o
+             left join lateral jsonb_object_keys(product_opts) sensors on True
              join auth_user u
                   on o.user_id = u.id
              where o.order_date::date >= %s
-             and o.order_date::date <= %s '''
-    sql2 = ''' group by u.email
+             and o.order_date::date <= %s
+             and sensors in %s
+             and product_opts->sensors ? 'inputs'
+             group by u.email
              order by scenes desc
              limit 10'''
 
     with DBConnect(**dbinfo) as db:
+        db.select(sql, (begin_date, end_date, sensors))
         return db[:]
 
 
@@ -638,7 +711,7 @@ def fetch_web_logs(dbconfig, env, outdir, begin, stop):
                                             local_path=local_path)
 
 
-def process_monthly_metrics(cfg, env, local_dir, begin, stop, collection):
+def process_monthly_metrics(cfg, env, local_dir, begin, stop, sensors):
     """
     Put together metrics for the previous month then
     email the results out
@@ -653,20 +726,20 @@ def process_monthly_metrics(cfg, env, local_dir, begin, stop, collection):
     :type begin: datetime.date
     :param stop: timestamp to stop searching the logs
     :type stop: datetime.date
-    :param collection: which landsat collections to process (or 'ignore')
-    :type collection: str
+    :param sensors: which landsat/modis sensors to process (['tm4', 'etm7',...])
+    :type sensors: tuple
     """
     fetch_web_logs(cfg, env, local_dir, begin, stop)
 
     log_glob = os.path.join(local_dir, '*' + LOG_FILENAME + '*access_log*.gz')
-    infodict, order_paths = calc_dlinfo(log_glob, begin, stop, collection)
-    infodict['title'] = ('On-demand - Total Download Info' if collection == 'ignore'
-                         else 'On-demand {} Download Info'.format(collection.upper()))
+    infodict, order_paths = calc_dlinfo(log_glob, begin, stop, sensors)
+    infodict['title'] = ('On-demand - Total Download Info\n Sensors:{}'
+                         .format(','.join(sensors)))
     msg = download_boiler(infodict)
-
+    
     # Downloads by Product
     orders_scenes = extract_orderid(order_paths)
-
+    
     if len(orders_scenes):
         prod_opts = db_dl_prodinfo(cfg, orders_scenes)
         infodict = tally_product_dls(orders_scenes, prod_opts)
@@ -674,21 +747,23 @@ def process_monthly_metrics(cfg, env, local_dir, begin, stop, collection):
 
     # On-Demand users and orders placed information
     for source in ORDER_SOURCES:
-        infodict = db_orderstats(source, begin, stop, collection, cfg)
-        infodict.update(db_scenestats(source, begin, stop, collection, cfg))
-        infodict['tot_unique'] = db_uniquestats(source, begin, stop, collection, cfg)
+        infodict = db_orderstats(source, begin, stop, sensors, cfg)
+        infodict.update(db_scenestats(source, begin, stop, sensors, cfg))
+        infodict['tot_unique'] = db_uniquestats(source, begin, stop, sensors, cfg)
         infodict['who'] = source.upper()
         msg += ondemand_boiler(infodict)
 
+
     # Orders by Product
-    infodict = db_prodinfo(cfg, begin, stop, collection)
+    infodict = db_prodinfo(cfg, begin, stop, sensors)
     msg += prod_boiler(infodict)
 
     # Top 10 users by scenes ordered
-    info = db_top10stats(begin, stop, collection, cfg)
+    info = db_top10stats(begin, stop, sensors, cfg)
     if len(info) == 10:
         msg += top_users_boiler(info)
 
+    print(msg)
     return msg
 
 
@@ -709,8 +784,12 @@ def run():
     receive, sender, debug = get_addresses(cfg)
     subject = EMAIL_SUBJECT.format(begin=opts['begin'], stop=opts['stop'])
     try:
-        LSAT_COLLECTION = opts['collection']
-        msg = process_monthly_metrics(cfg, opts['environment'], opts['dir'], opts['begin'], opts['stop'], opts['collection'])
+        msg = process_monthly_metrics(cfg,
+                                      opts['environment'],
+                                      opts['dir'],
+                                      opts['begin'],
+                                      opts['stop'],
+                                      tuple(opts['sensors']))
 
     except Exception:
         exc_msg = str(traceback.format_exc()) + '\n\n' + msg
