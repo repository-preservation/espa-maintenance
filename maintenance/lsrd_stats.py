@@ -201,18 +201,18 @@ def db_prodinfo(dbinfo, begin_date, end_date, sensors):
 
     with DBConnect(**dbinfo) as db:
         db.select(sql, (begin_date, end_date, sensors))
-        results = reduce(counts_prodopts, map(process_db_prodopts, db.fetcharr), init)
+        results = reduce(counts_prodopts, [process_db_prodopts(r, sensors) for r in db.fetcharr], init)
 
     results['title'] = 'What was Ordered'
     return results
 
 
-def process_db_prodopts(row):
+def process_db_prodopts(row, sensors=SENSOR_KEYS):
     ret = defaultdict(int)
     # ret = {'total': 0}
     opts = row[0]
 
-    for key in SENSOR_KEYS:
+    for key in sensors:
         if key in opts:
             num = len(opts[key]['inputs'])
             ret['total'] += num
