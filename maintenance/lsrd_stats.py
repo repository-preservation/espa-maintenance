@@ -132,6 +132,8 @@ def prod_boiler(info):
               ' SR NDVI: {sr_ndvi}\n'
               ' SR SAVI: {sr_savi}\n'
               ' CFMASK: {cloud}\n'
+              ' LST: {lst}\n'
+              ' DSWE: {swe}\n'
               ' Plot: {plot}\n')
 
     return boiler.format(title=info.get('title'),
@@ -150,6 +152,8 @@ def prod_boiler(info):
                          sr_ndvi=info.get('sr_ndvi', 0),
                          sr_savi=info.get('sr_savi', 0),
                          cloud=info.get('cloud', 0),
+                         lst=info.get('lst', 0),
+                         swe=info.get('swe', 0),
                          plot=info.get('plot_statistics', 0))
 
 
