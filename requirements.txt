@@ -3,3 +3,4 @@ plumbum==1.6.3
 psycopg2==2.6.1
 wheel==0.24.0
 paramiko
+requests==2.12.4
