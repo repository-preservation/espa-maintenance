@@ -137,6 +137,8 @@ def prod_boiler(info):
               ' SR NDVI: {sr_ndvi}\n'
               ' SR SAVI: {sr_savi}\n'
               ' CFMASK: {cloud}\n'
+              ' LST: {lst}\n'
+              ' DSWE: {swe}\n'
               ' Plot: {plot}\n')
 
     return boiler.format(title=info.get('title'),
@@ -155,6 +157,8 @@ def prod_boiler(info):
                          sr_ndvi=info.get('sr_ndvi', 0),
                          sr_savi=info.get('sr_savi', 0),
                          cloud=info.get('cloud', 0),
+                         swe=info.get('swe', 0),
+                         lst=info.get('lst', 0),
                          plot=info.get('plot_statistics', 0))
 
 
@@ -169,7 +173,7 @@ def top_users_boiler(info):
     boiler = ('\n==========================================\n'
               ' Scenes ordered by Top Users\n'
               '==========================================\n')
-    boiler += ''.join(' {%s[0]}: {%s[1]}\n' % (i, i) for i in range(10))
+    boiler += ''.join(' {%s[email]}: {%s[scenes]}\n' % (i, i) for i in range(10))
 
     return boiler.format(*info)
 
@@ -189,20 +193,126 @@ def api_up(url, json, verb='post'):
     return response
 
 
-    with DBConnect(**dbinfo) as db:
-        db.select(sql, (begin_date, end_date, sensors))
-        results = reduce(counts_prodopts, map(process_db_prodopts, db.fetcharr), init)
+def db_prodinfo(begin_date, end_date, sensors):
+    """
+    get the product options (sr, sr_ndvi, etc) for orders
 
+    :param begin_date: Beginning of query search range
+    :param end_date: End of query search range
+    :param sensors: Sensor-names (etm7, tm4, tm5, etc.)
+    :return:
+    """
+    payload = {'start_date': begin_date.strftime('%Y-%m-%d'),
+               'stop_date': end_date.strftime('%Y-%m-%d'),
+               'sensors': sensors}
+    response = api_up('/metrics/metrics_ordered_products', json=payload)
+    init = dict(total=0)
+    results = reduce(counts_prodopts,
+                     [process_db_prodopts(l, sensors) for l in response.json()], init)
     results['title'] = 'What was Ordered'
     return results
 
 
-def process_db_prodopts(row):
+def db_scenestats(source, begin_date, end_date, sensors):
+    """
+    get the total number of scenes separated by USGS and non-USGS emails
+
+    :param source: limits the query by ordering_order.order_source (ee, espa)
+    :param begin_date: Beginning of query search range
+    :param end_date: End of query search range
+    :param sensors: Sensor-names (etm7, tm4, tm5, etc.)
+    :return:
+    """
+    payload = {'start_date': begin_date.strftime('%Y-%m-%d'),
+               'stop_date': end_date.strftime('%Y-%m-%d'),
+               'sensors': sensors,
+               'order_source': source}
+
+    counts = dict(scenes_month=0, scenes_usgs=0, scenes_non=0)
+    for is_internal_email in [True, False]:
+        payload['internal_email'] = {True: 'like', False: 'not like'}[is_internal_email]
+        response = api_up('/metrics/metrics_scenes_ordered', json=payload)
+        if is_internal_email:
+            key = 'scenes_usgs'
+        else:
+            key = 'scenes_non'
+        counts[key] = response.json()[0]['scenes']
+
+    counts['scenes_month'] = counts['scenes_usgs'] + counts['scenes_non']
+    return counts
+
+
+def db_orderstats(source, begin_date, end_date, sensors):
+    """
+    get the total number of orders separated by USGS and non-USGS emails
+
+    :param source: limits the query by ordering_order.order_source (ee, espa)
+    :param begin_date: Beginning of query search range
+    :param end_date: End of query search range
+    :param sensors: Sensor-names (etm7, tm4, tm5, etc.)
+    :return:
+    """
+    payload = {'start_date': begin_date.strftime('%Y-%m-%d'),
+               'stop_date': end_date.strftime('%Y-%m-%d'),
+               'sensors': sensors,
+               'order_source': source}
+
+    counts = dict(orders_month=0, orders_usgs=0, orders_non=0)
+    for is_internal_email in [True, False]:
+        payload['internal_email'] = {True: 'like', False: 'not like'}[is_internal_email]
+        response = api_up('/metrics/metrics_orders_ordered', json=payload)
+        if is_internal_email:
+            key = 'orders_usgs'
+        else:
+            key = 'orders_non'
+        counts[key] = response.json()[0]['orders']
+
+    counts['orders_month'] = counts['orders_usgs'] + counts['orders_non']
+    return counts
+
+
+def db_uniquestats(source, begin_date, end_date, sensors):
+    """
+    get the total number of unique users
+
+    :param source: limits the query by ordering_order.order_source (ee, espa)
+    :param begin_date: Beginning of query search range
+    :param end_date: End of query search range
+    :param sensors: Sensor-names (etm7, tm4, tm5, etc.)
+    :return:
+    """
+    payload = {'start_date': begin_date.strftime('%Y-%m-%d'),
+               'stop_date': end_date.strftime('%Y-%m-%d'),
+               'sensors': sensors,
+               'order_source': source}
+
+    response = api_up('/metrics/metrics_unique_users', json=payload)
+    return response.json()[0]['count']
+
+
+def db_top10stats(begin_date, end_date, sensors):
+    """
+    get the users with top 10 number of scenes ordered
+
+    :param begin_date: Beginning of query search range
+    :param end_date: End of query search range
+    :param sensors: Sensor-names (etm7, tm4, tm5, etc.)
+    :return:
+    """
+    payload = {'start_date': begin_date.strftime('%Y-%m-%d'),
+               'stop_date': end_date.strftime('%Y-%m-%d'),
+               'sensors': sensors}
+
+    response = api_up('/metrics/metrics_top_users', json=payload)
+    return response.json()
+
+
+def process_db_prodopts(row, sensors=SENSOR_KEYS):
     ret = defaultdict(int)
     # ret = {'total': 0}
-    opts = row[0]
+    opts = row['product_opts']
 
-    for key in SENSOR_KEYS:
+    for key in sensors:
         if key in opts:
             num = len(opts[key]['inputs'])
             ret['total'] += num
@@ -568,21 +678,20 @@ def process_monthly_metrics(cfg, env, local_dir, begin, stop, sensors):
 
     # On-Demand users and orders placed information
     for source in ORDER_SOURCES:
-        infodict = db_orderstats(source, begin, stop, sensors, cfg)
-        infodict.update(db_scenestats(source, begin, stop, sensors, cfg))
-        infodict['tot_unique'] = db_uniquestats(source, begin, stop, sensors, cfg)
+        infodict = db_orderstats(source, begin, stop, sensors)
+        infodict.update(db_scenestats(source, begin, stop, sensors))
+        infodict['tot_unique'] = db_uniquestats(source, begin, stop, sensors)
         infodict['who'] = source.upper()
         msg += ondemand_boiler(infodict)
 
 
     # Orders by Product
-    infodict = db_prodinfo(cfg, begin, stop, sensors)
+    infodict = db_prodinfo(begin, stop, sensors)
     msg += prod_boiler(infodict)
 
     # Top 10 users by scenes ordered
-    info = db_top10stats(begin, stop, sensors, cfg)
-    if len(info) == 10:
-        msg += top_users_boiler(info)
+    info = db_top10stats(begin, stop, sensors)
+    msg += top_users_boiler(info)
 
     print(msg)
     return msg
