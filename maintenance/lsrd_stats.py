@@ -56,7 +56,7 @@ def arg_parser(defaults):
                         help='Configuration file [%s]' % defaults['conf_file'])
     parser.add_argument('-d', '--dir', dest='dir',
                         default=defaults['dir'],
-                        help='Directory to temporarily store logs')
+                        help='Directory to store logs (if blank, skip weblogs)')
     parser.add_argument('--sensors', dest='sensors',
                         default=defaults['sensors'],
                         nargs='+', help='Sensors to include (ALL) or {}'
@@ -547,21 +547,24 @@ def process_monthly_metrics(cfg, env, local_dir, begin, stop, sensors):
     :param sensors: which landsat/modis sensors to process (['tm4', 'etm7',...])
     :type sensors: tuple
     """
-    fetch_web_logs(cfg, env, local_dir, begin, stop)
+    if local_dir:
+        fetch_web_logs(cfg, env, local_dir, begin, stop)
 
-    log_glob = os.path.join(local_dir, '*' + LOG_FILENAME + '*access_log*.gz')
-    infodict, order_paths = calc_dlinfo(log_glob, begin, stop, sensors)
-    infodict['title'] = ('On-demand - Total Download Info\n Sensors:{}'
-                         .format(','.join(sensors)))
-    msg = download_boiler(infodict)
-    
-    # Downloads by Product
-    orders_scenes = extract_orderid(order_paths)
-    
-    if len(orders_scenes):
-        prod_opts = db_dl_prodinfo(cfg, orders_scenes)
-        infodict = tally_product_dls(orders_scenes, prod_opts)
-        msg += prod_boiler(infodict)
+        log_glob = os.path.join(local_dir, '*' + LOG_FILENAME + '*access_log*.gz')
+        infodict, order_paths = calc_dlinfo(log_glob, begin, stop, sensors)
+        infodict['title'] = ('On-demand - Total Download Info\n Sensors:{}'
+                             .format(','.join(sensors)))
+        msg = download_boiler(infodict)
+
+        # Downloads by Product
+        orders_scenes = extract_orderid(order_paths)
+
+        if len(orders_scenes):
+            prod_opts = db_dl_prodinfo(cfg, orders_scenes)
+            infodict = tally_product_dls(orders_scenes, prod_opts)
+            msg += prod_boiler(infodict)
+    else:  # Skip Download information
+        msg = ''
 
     # On-Demand users and orders placed information
     for source in ORDER_SOURCES:
@@ -590,7 +593,7 @@ def run():
     defaults = {'begin': rng[0],
                 'stop': rng[1],
                 'conf_file': utils.CONF_FILE,
-                'dir': os.path.join(os.path.expanduser('~'), 'temp-logs'),
+                'dir': '',
                 'sensors': 'ALL'}
 
     opts = arg_parser(defaults)
