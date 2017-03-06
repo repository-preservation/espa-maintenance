@@ -11,6 +11,8 @@ from collections import defaultdict
 import gzip
 import urllib2
 
+import requests
+
 from dbconnect import DBConnect
 import utils
 
@@ -27,6 +29,9 @@ SENSOR_KEYS = ('tm4', 'tm5', 'etm7', 'olitirs8', 'oli8',
                'mod13a1', 'mod13a2', 'mod13a3', 'mod13q1',
                'myd09a1', 'myd09ga', 'myd09gq', 'myd09q1',
                'myd13a1', 'myd13a2', 'myd13a3', 'myd13q1', 'invalid')
+
+API_BASE_URL = ("http://{0}:{1}/production-api/{2}"
+                .format('localhost', '5000', 'v1'))  # TODO --------------------
 
 
 def arg_parser(defaults):
@@ -169,31 +174,20 @@ def top_users_boiler(info):
     return boiler.format(*info)
 
 
-def db_prodinfo(dbinfo, begin_date, end_date, sensors):
+def api_up(url, json, verb='post'):
     """
-    Queries the database to build the ordered product counts
-    dates are given as ISO 8601 'YYYY-MM-DD'
+    Interface to query API endpoints
 
-    :param dbinfo: Database connection information
-    :type dbinfo: dict
-    :param begin_date: Date to start the counts on
-    :type begin_date: str
-    :param end_date: Date to end the counts on
-    :type end_date: str
-    :param sensors: which sensors to process (['tm4','etm7',...])
-    :type sensors: tuple
-    :return: Dictionary of count values
+    :param url: Suffix to find api resource
+    :param json: Payload of POST request
+    :param verb: Action to take (POST or PUT)
+    :return:
     """
-    sql = ('SELECT product_opts '
-           'FROM ordering_order '
-           'left join lateral jsonb_object_keys(product_opts) sensors on True '
-           'WHERE order_date::date >= %s '
-           'AND order_date::date <= %s '
-           'AND sensors in %s '
-           "and product_opts->sensors ? 'inputs' "
-           "group by product_opts, id")
+    if verb not in ('post', 'put'):
+        return {'message': 'api verb not found: {}'.format(verb)}, 404
+    response = getattr(requests, verb)(API_BASE_URL + url, json=json)
+    return response
 
-    init = {'total': 0}
 
     with DBConnect(**dbinfo) as db:
         db.select(sql, (begin_date, end_date, sensors))
@@ -456,182 +450,6 @@ def get_sensor_name(filename):
     for prefix, sensor in lut.iteritems():
         if fname.startswith(prefix):
             return sensor
-
-
-def db_scenestats(source, begin_date, end_date, sensors, dbinfo):
-    """
-    Queries the database for the number of scenes ordered
-    separated by USGS and non-USGS emails
-    dates are given as ISO 8601 'YYYY-MM-DD'
-
-    :param source: EE or ESPA
-    :type source: str
-    :param begin_date: Date to start the count on
-    :type begin_date: str
-    :param end_date: Date to stop the count on
-    :type end_date: str
-    :param sensors: which sensors to process (['tm4', 'etm7', ...])
-    :type sensors: tuple
-    :param dbinfo: Database connection information
-    :type dbinfo: dict
-    :return: Dictionary of the counts
-    """
-    sql = ('''select coalesce(sum(jsonb_array_length(product_opts->sensors->'inputs')),0)
-              from ordering_order
-              left join lateral jsonb_object_keys(product_opts) sensors on True
-              where ordering_order.order_date::date >= %s
-              and ordering_order.order_date::date <= %s
-              and ordering_order.orderid like '%%@usgs.gov-%%'
-              and ordering_order.order_source = %s
-              and sensors in %s
-              and product_opts->sensors ? 'inputs' ''',
-           '''select coalesce(sum(jsonb_array_length(product_opts->sensors->'inputs')),0)
-              from ordering_order
-              left join lateral jsonb_object_keys(product_opts) sensors on True
-              where ordering_order.order_date::date >= %s
-              and ordering_order.order_date::date <= %s
-              and ordering_order.orderid not like '%%@usgs.gov-%%'
-              and ordering_order.order_source = %s
-              and sensors in %s
-              and product_opts->sensors ? 'inputs' ''')
-
-    counts = {'scenes_month': 0,
-              'scenes_usgs': 0,
-              'scenes_non': 0}
-
-    with DBConnect(**dbinfo) as db:
-        for q in sql:
-            db.select(q, (begin_date, end_date, source, sensors))
-
-            if 'not like' in q:
-                counts['scenes_non'] += int(db[0][0])
-            else:
-                counts['scenes_usgs'] += int(db[0][0])
-
-    counts['scenes_month'] = counts['scenes_usgs'] + counts['scenes_non']
-
-    return counts
-
-
-def db_orderstats(source, begin_date, end_date, sensors, dbinfo):
-    """
-    Queries the database to get the total number of orders
-    separated by USGS and non-USGS emails
-    dates are given as ISO 8601 'YYYY-MM-DD'
-
-    :param source: EE or ESPA
-    :type source: str
-    :param begin_date: Date to start the count on
-    :type begin_date: str
-    :param end_date: Date to stop the count on
-    :type end_date: str
-    :param sensors: which sensor types to process (['tm4', 'etm7',...])
-    :type sensors: tuple
-    :param dbinfo: Database connection information
-    :type dbinfo: dict
-    :return: Dictionary of the counts
-    """
-    sql = ('''select COUNT(distinct orderid)
-              from ordering_order
-              left join lateral jsonb_object_keys(product_opts) sensors on True
-              where order_date::date >= %s
-              and order_date::date <= %s
-              and orderid like '%%@usgs.gov-%%'
-              and order_source = %s
-              and sensors in %s
-              and product_opts->sensors ? 'inputs' ;''',
-           '''select COUNT(distinct orderid)
-              from ordering_order
-              left join lateral jsonb_object_keys(product_opts) sensors on True
-              where order_date::date >= %s
-              and order_date::date <= %s
-              and orderid not like '%%@usgs.gov-%%'
-              and order_source = %s
-              and sensors in %s
-              and product_opts->sensors ? 'inputs' ;''')
-
-    counts = {'orders_month': 0,
-              'orders_usgs': 0,
-              'orders_non': 0}
-
-    with DBConnect(**dbinfo) as db:
-        for q in sql:
-            db.select(q, (begin_date, end_date, source, sensors))
-
-            if 'not like' in q:
-                counts['orders_non'] += int(db[0][0])
-            else:
-                counts['orders_usgs'] += int(db[0][0])
-
-    counts['orders_month'] = counts['orders_usgs'] + counts['orders_non']
-
-    return counts
-
-
-def db_uniquestats(source, begin_date, end_date, sensors, dbinfo):
-    """
-    Queries the database to get the total number of unique users
-    dates are given as ISO 8601 'YYYY-MM-DD'
-
-    :param source: EE or ESPA
-    :type source: str
-    :param begin_date: Date to start the count on
-    :type begin_date: str
-    :param end_date: Date to stop the count on
-    :type end_date: str
-    :param sensors: which sensor types to process (['tm4', 'etm7',...])
-    :type sensors: tuple
-    :param dbinfo: Database connection information
-    :type dbinfo: dict
-    :return: Dictionary of the count
-    """
-    sql = '''select count(distinct(split_part(orderid, '-', 1)))
-             from ordering_order
-             left join lateral jsonb_object_keys(product_opts) sensors on True
-             where order_date::date >= %s
-             and order_date::date <= %s
-             and order_source = %s
-             and sensors in %s
-             and product_opts->sensors ? 'inputs' ;'''
-
-    with DBConnect(**dbinfo) as db:
-        db.select(sql, (begin_date, end_date, source, sensors))
-        return db[0][0]
-
-
-def db_top10stats(begin_date, end_date, sensors, dbinfo):
-    """
-    Queries the database to get the total number of unique users
-    dates are given as ISO 8601 'YYYY-MM-DD'
-
-    :param source: EE or ESPA
-    :type source: str
-    :param begin_date: Date to start the count on
-    :type begin_date: str
-    :param end_date: Date to stop the count on
-    :type end_date: str
-    :param sensors: which sensor types to process (['tm4', 'etm7',...])
-    :type sensors: tuple
-    :param dbinfo: Database connection information
-    :type dbinfo: dict
-    :return: Dictionary of the count
-    """
-    sql = '''select u.email, coalesce(sum(jsonb_array_length(product_opts->sensors->'inputs')),0) scenes
-             from ordering_order o
-             left join lateral jsonb_object_keys(product_opts) sensors on True
-             join auth_user u
-                  on o.user_id = u.id
-             where o.order_date::date >= %s
-             and o.order_date::date <= %s
-             and sensors in %s
-             and product_opts->sensors ? 'inputs'
-             group by u.email
-             order by scenes desc
-             limit 10'''
-
-    with DBConnect(**dbinfo) as db:
-        db.select(sql, (begin_date, end_date, sensors))
-        return db[:]
 
 
 def date_range(offset=0):
