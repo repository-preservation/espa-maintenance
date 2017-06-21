@@ -119,7 +119,7 @@ def prod_boiler(info):
               '==========================================\n'
               ' Total Scenes: {total}\n'
               ' SR: {sr}\n'
-              ' SR Thermal: {bt}\n'
+              ' BT Thermal: {bt}\n'
               ' ToA: {toa}\n'
               ' Source: {l1}\n'
               ' Source Metadata: {source_metadata}\n'
