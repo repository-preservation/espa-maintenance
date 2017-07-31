@@ -1,0 +1,29 @@
+version: '2'
+
+services:
+  filebeat:
+    build: ./filebeat
+    volumes:
+      #- ./logfiles/nginx/:/var/log/nginx/
+      - beatdata:/usr/local/filebeat/data
+  logstash:
+    build: ./logstash
+    ports:
+      - "5044:5044"
+  elastic:
+    build: ./elastic
+    ports:
+      - "9200:9200"
+      - "9300:9300"
+    volumes:
+      - elasticdata:/usr/share/elasticsearch/data
+  kibana:
+    build: ./kibana
+    ports:
+      - "5601:5601"
+    environment:
+      ELASTICSEARCH_URL: "http://elastic:9200"
+
+volumes:
+  elasticdata:
+  beatdata:
