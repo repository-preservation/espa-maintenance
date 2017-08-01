@@ -170,7 +170,7 @@ def top_users_boiler(info):
     boiler = ('\n==========================================\n'
               ' Scenes ordered by Top Users\n'
               '==========================================\n')
-    boiler += ''.join(' {%s[0]}: {%s[1]}\n' % (i, i) for i in range(10))
+    boiler += ''.join(' {%s[0]}: {%s[1]}\n' % (i, i) for i in range(len(info))
 
     return boiler.format(*info)
 
@@ -766,7 +766,7 @@ def process_monthly_metrics(cfg, env, local_dir, begin, stop, sensors):
 
     # Top 10 users by scenes ordered
     info = db_top10stats(begin, stop, sensors, cfg)
-    if len(info) == 10:
+    if len(info) > 0:
         msg += top_users_boiler(info)
 
     print(msg)
