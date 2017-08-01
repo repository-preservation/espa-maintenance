@@ -591,7 +591,7 @@ def db_uniquestats(source, begin_date, end_date, sensors, dbinfo):
     :type dbinfo: dict
     :return: Dictionary of the count
     """
-    sql = '''select count(distinct(split_part(orderid, '-', 1)))
+    sql = '''select count(distinct(email))
              from ordering_order
              left join lateral jsonb_object_keys(product_opts) sensors on True
              where order_date::date >= %s
