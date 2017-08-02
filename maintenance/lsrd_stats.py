@@ -288,6 +288,20 @@ def landsat_output_regex(filename):
             return res.groupdict()
 
 
+def modis_output_regex(filename):
+    """
+    Convert a download location into information for landsat scene-ids
+    :param filename: full path to download resource
+    :return: dict
+    """
+    fname = os.path.basename(filename)
+    sceneid = fname.split('-')[0]
+    regex = '^(?P<sensor>M\w{6})h[0-9]{2}v[0-9]{2}[0-9]{7}(?P<collect>\w{3})$'
+    res = re.match(regex, sceneid)
+    if res:
+        return res.groupdict()
+
+
 def tally_product_dls(orders_scenes, prod_options):
     """
     Counts the number of times a product has been downloaded
@@ -324,6 +338,11 @@ def tally_product_dls(orders_scenes, prod_options):
                         # scene = LE070430332014070901T1, x = LE07_L1TP_043033_20140709_20160909_01_T1
                         # scene_regex = 'LE07_\\w{4}_043033_20140709_'
                         scene_regex = scene[0:4] + '_\w{4}_' + scene[4:10] + '_' + scene[10:18] + '_'
+                        res = [x for x in opts[key]['inputs'] if re.match(scene_regex, x)]
+                else:
+                    info = modis_output_regex(scene)
+                    if info:
+                        scene_regex = scene[0:7] + '.A' + scene[13:20] + '.' + scene[7:13]
                         res = [x for x in opts[key]['inputs'] if re.match(scene_regex, x)]
 
                 if res:
