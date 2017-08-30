@@ -226,7 +226,7 @@ class Deployer(object):
         
         now = datetime.datetime.now()
         self.deployment_name = "%s-%s-%s%s%s-%s%s%s" % (self.deploy_dir,
-                                                        self.branch_or_tag,
+                                                        self.branch_or_tag.replace('/', '-'),
                                                         str(now.month).zfill(2),
                                                         str(now.day).zfill(2),
                                                         str(now.year).zfill(2),
