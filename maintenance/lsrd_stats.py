@@ -451,12 +451,11 @@ def filter_log_line(line, start_date, end_date):
                     start_date <= dt <= end_date):
 
                 return gr
-            else:
-                return False
         else:
-            raise ValueError('! Unable to parse download line: \n\t{}'.format(line))
-    else:
-        return False
+            #raise ValueError('! Unable to parse download line: \n\t{}'.format(line))
+            print('!'*50 + '\nUnable to parse download line: \n\t{}'.format(line))
+
+    return False
 
 
 def get_sensor_name(filename):
