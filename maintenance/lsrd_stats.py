@@ -804,6 +804,10 @@ def run():
     cfg = utils.get_cfg(opts['conf_file'], section='config')
     if opts['sensors'] == 'ALL':
         opts['sensors'] = [k for k in SENSOR_KEYS if k != 'invalid']
+    if opts['sensors'] == ['MODIS']:
+        opts['sensors'] = [k for k in SENSOR_KEYS if k.lower().startswith('m')]
+    if opts['sensors'] == ['LANDSAT']:
+        opts['sensors'] = [k for k in SENSOR_KEYS if k != 'invalid' and not k.lower().startswith('m')]
 
     msg = ''
     receive, sender, debug = get_addresses(cfg)
