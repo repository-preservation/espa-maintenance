@@ -10,6 +10,11 @@ import os
 from collections import defaultdict
 import gzip
 import urllib2
+import logging
+import sys
+
+logging.basicConfig(level='INFO', stream=sys.stderr)
+logger = logging.getLogger(__name__)
 
 from dbconnect import DBConnect
 import utils
@@ -721,6 +726,7 @@ def fetch_web_logs(dbconfig, env, outdir, begin, stop):
     dmzinfo = utils.query_connection_info(dbconfig, env)
     for log_loc in dmzinfo['log_locs']:
         host, remote_dir = log_loc.split(':')
+        logger.warning('*** Connect: {}@{}'.format(dmzinfo['username'], host))
         client = utils.RemoteConnection(host, user=dmzinfo['username'],
                                         password=dmzinfo['password'])
         files = client.list_remote_files(remote_dir=remote_dir,
@@ -731,6 +737,7 @@ def fetch_web_logs(dbconfig, env, outdir, begin, stop):
                         .format(host=host, fname=os.path.basename(remote_path)))
             local_path = os.path.join(outdir, filename)
             if not os.path.exists(local_path):
+                logger.warning('*** Download: {} -> {}'.format(remote_path, local_path))
                 client.download_remote_file(remote_path=remote_path,
                                             local_path=local_path)
 
