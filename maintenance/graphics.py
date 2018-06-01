@@ -94,8 +94,6 @@ def query_scene_count(dbinfo, start, end, who=None):
 def get_poly_wrs(path, row, features=None, facecolor='w'):
     """Extract longitude/latitude box for a path/row from shapefile."""
     prid = '{}_{}'.format(path, row)
-    if features is None:
-        features = load_wrs()
     ix = (features['PATH'] == path) & (features['ROW'] == row)
     geom = features[ix]
 
@@ -129,6 +127,8 @@ def make_basemap(path_rows_alpha,
         projection='mill'
     )
 
+    features = load_wrs()
+
     mapm.drawmapboundary()
     mapm.drawcoastlines()
     mapm.fillcontinents(color=earth, lake_color=water)
@@ -141,7 +141,7 @@ def make_basemap(path_rows_alpha,
 
     ax = plt.gca()
     for path, row, alpha in path_rows_alpha:
-        lons, lats = get_poly_wrs(path, row)
+        lons, lats = get_poly_wrs(path, row, features)
         delta_lons = abs(max(lons) - min(lons))
         if delta_lons > 180:
             def p_dateline(x):
