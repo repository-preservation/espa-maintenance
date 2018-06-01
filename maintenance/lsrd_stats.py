@@ -18,6 +18,7 @@ logger = logging.getLogger(__name__)
 
 from dbconnect import DBConnect
 import utils
+import graphics
 
 DATE_FMT = '%Y-%m-%d'
 LOG_FILENAME = 'edclpdsftp.cr.usgs.gov-' # Change to ssl-access-log
@@ -767,10 +768,10 @@ def process_monthly_metrics(cfg, env, local_dir, begin, stop, sensors):
     infodict['title'] = ('On-demand - Total Download Info\n Sensors:{}'
                          .format(','.join(sensors)))
     msg = download_boiler(infodict)
-    
+
     # Downloads by Product
     orders_scenes = extract_orderid(order_paths)
-    
+
     if len(orders_scenes):
         prod_opts = db_dl_prodinfo(cfg, orders_scenes)
         infodict = tally_product_dls(orders_scenes, prod_opts)
@@ -835,6 +836,28 @@ def run():
         raise
     finally:
         utils.send_email(sender, receive, subject, msg)
+
+    # FIXME: adding cruft to the codebase... time constraints....
+    try:
+        html = graphics.sensor_barchart(cfg, opts['begin'], opts['stop'])
+        html += graphics.pathrow_heatmap(cfg, opts['begin'],
+                                         opts['stop'], 'ALL')
+
+        info = db_top10stats(opts['begin'], opts['stop'],
+                             tuple(opts['sensors']), cfg)
+        for i, (email, _) in zip(range(3), info):
+            html += graphics.pathrow_heatmap(cfg, opts['begin'],
+                                             opts['stop'], email)
+
+    except Exception:
+        exc_msg = str(traceback.format_exc()) + '\n\n' + msg
+        utils.send_email(sender, debug, subject, exc_msg)
+        msg = ('There was an error with statistics processing.\n'
+               'The following have been notified of the error: {0}.'
+               .format(', '.join(debug)))
+        raise
+    finally:
+        utils.send_email(sender, receive, subject, html, html=True)
 
 
 if __name__ == '__main__':
