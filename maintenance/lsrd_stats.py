@@ -62,6 +62,9 @@ def arg_parser(defaults):
                         default=defaults['sensors'],
                         nargs='+', help='Sensors to include (ALL) or {}'
                         .format(SENSOR_KEYS))
+    parser.add_argument('--plotting', dest='plotting',
+                        action='store_true,
+                        help='Also generate plots')
 
     args = parser.parse_args()
     defaults.update(args.__dict__)
@@ -805,7 +808,8 @@ def run():
                 'stop': rng[1],
                 'conf_file': utils.CONF_FILE,
                 'dir': os.path.join(os.path.expanduser('~'), 'temp-logs'),
-                'sensors': 'ALL'}
+                'sensors': 'ALL',
+                'plotting': False}
 
     opts = arg_parser(defaults)
     cfg = utils.get_cfg(opts['conf_file'], section='config')
@@ -838,26 +842,27 @@ def run():
         utils.send_email(sender, receive, subject, msg)
 
     # FIXME: adding cruft to the codebase... time constraints....
-    try:
-        html = graphics.sensor_barchart(cfg, opts['begin'], opts['stop'])
-        html += graphics.pathrow_heatmap(cfg, opts['begin'],
-                                         opts['stop'], 'ALL')
-
-        info = db_top10stats(opts['begin'], opts['stop'],
-                             tuple(opts['sensors']), cfg)
-        for i, (email, _) in zip(range(3), info):
+    if opts['plotting']:
+        try:
+            html = graphics.sensor_barchart(cfg, opts['begin'], opts['stop'])
             html += graphics.pathrow_heatmap(cfg, opts['begin'],
-                                             opts['stop'], email)
+                                             opts['stop'], 'ALL')
 
-    except Exception:
-        exc_msg = str(traceback.format_exc()) + '\n\n' + msg
-        utils.send_email(sender, debug, subject, exc_msg)
-        msg = ('There was an error with statistics processing.\n'
-               'The following have been notified of the error: {0}.'
-               .format(', '.join(debug)))
-        raise
-    finally:
-        utils.send_email(sender, receive, subject, html, html=True)
+            info = db_top10stats(opts['begin'], opts['stop'],
+                                 tuple(opts['sensors']), cfg)
+            for i, (email, _) in zip(range(3), info):
+                html += graphics.pathrow_heatmap(cfg, opts['begin'],
+                                                 opts['stop'], email)
+
+        except Exception:
+            exc_msg = str(traceback.format_exc()) + '\n\n' + msg
+            utils.send_email(sender, debug, subject, exc_msg)
+            msg = ('There was an error with statistics processing.\n'
+                   'The following have been notified of the error: {0}.'
+                   .format(', '.join(debug)))
+            raise
+        finally:
+            utils.send_email(sender, receive, subject, html, html=True)
 
 
 if __name__ == '__main__':
