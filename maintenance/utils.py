@@ -48,7 +48,7 @@ def get_cfg(cfg_path=None, section=''):
     return cfg_info
 
 
-def send_email(sender, recipient, subject, body, html=False):
+def send_email(sender, recipient, subject, body, html=None):
     """Send out an email to give notice of success or failure.
 
     Args:
@@ -69,7 +69,11 @@ def send_email(sender, recipient, subject, body, html=False):
     msg['To'] = ', '.join(recipient)
 
     # Format email according to RFC 2046
-    msg.attach(MIMEText(body, 'html' if html else 'plain'))
+    part = MIMEText(body, 'plain')
+    msg.attach(part)
+    if html is not None:
+        part = MIMEText(html, 'html')
+        msg.attach(part)
 
     smtp = smtplib.SMTP("localhost")
     smtp.sendmail(sender, recipient, msg.as_string())

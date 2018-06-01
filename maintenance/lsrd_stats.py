@@ -844,15 +844,16 @@ def run():
             utils.send_email(sender, receive, subject, msg)
 
     else:
+        msg, html = '⚠ PLOTTING IS STILL UNDER DEVELOPMENT! ⚠', None
         try:
-            msg = graphics.sensor_barchart(cfg, opts['begin'], opts['stop'])
-            msg += graphics.pathrow_heatmap(cfg, opts['begin'],
+            html = graphics.sensor_barchart(cfg, opts['begin'], opts['stop'])
+            html += graphics.pathrow_heatmap(cfg, opts['begin'],
                                             opts['stop'], 'ALL')
 
             info = db_top10stats(opts['begin'], opts['stop'],
                                  tuple(opts['sensors']), cfg)
             for i, (email, _) in zip(range(3), info):
-                msg += graphics.pathrow_heatmap(cfg, opts['begin'],
+                html += graphics.pathrow_heatmap(cfg, opts['begin'],
                                                 opts['stop'], email)
 
         except Exception:
@@ -863,7 +864,7 @@ def run():
                    .format(', '.join(debug)))
             raise
         finally:
-            utils.send_email(sender, receive, subject, msg, html=True)
+            utils.send_email(sender, receive, subject, msg, html)
 
 
 if __name__ == '__main__':
