@@ -24,7 +24,7 @@ from dbconnect import DBConnect
 FIGSIZE = (16, 9)
 MINALPHA = 0.035
 MAXALPHA = 1.0
-COLOR = '#4daf4a'
+COLOR = '#e31a1c'
 
 
 def load_wrs(filename='wrs2_asc_desc/wrs2_asc_desc.shp'):
@@ -121,8 +121,8 @@ def make_basemap(path_rows_alpha,
     """Create a heatmap of WRS2 path/rows ordered."""
     fig, ax = plt.subplots(figsize=FIGSIZE)
     mapm = Basemap(
-        llcrnrlon=-180, llcrnrlat=-75,
-        urcrnrlon=180, urcrnrlat=75,
+        llcrnrlon=-180, llcrnrlat=-85,
+        urcrnrlon=180, urcrnrlat=85,
         projection='mill'
     )
 
