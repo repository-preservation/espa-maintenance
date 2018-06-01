@@ -845,9 +845,10 @@ def run():
             utils.send_email(sender, receive, subject, msg)
 
     else:
-        msg, html = '⚠ PLOTTING IS STILL UNDER DEVELOPMENT! ⚠', None
+        msg = '⚠ PLOTTING IS STILL UNDER DEVELOPMENT! ⚠'
+        html = '<html><head></head><body>'
         try:
-            html = graphics.sensor_barchart(cfg, opts['begin'], opts['stop'])
+            html += graphics.sensor_barchart(cfg, opts['begin'], opts['stop'])
             html += graphics.pathrow_heatmap(cfg, opts['begin'],
                                             opts['stop'], 'ALL')
 
@@ -856,6 +857,7 @@ def run():
             for i, (email, _) in zip(range(3), info):
                 html += graphics.pathrow_heatmap(cfg, opts['begin'],
                                                 opts['stop'], email)
+            html += '</body></html>'
 
         except Exception:
             exc_msg = str(traceback.format_exc()) + '\n\n' + msg
