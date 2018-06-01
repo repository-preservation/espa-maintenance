@@ -2,9 +2,11 @@ import sys
 import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
+from email.mime.application import MIMEApplication
 import ConfigParser
 import os
 import datetime
+import base64
 
 import paramiko
 from plumbum.machines.paramiko_machine import ParamikoMachine
@@ -48,7 +50,7 @@ def get_cfg(cfg_path=None, section=''):
     return cfg_info
 
 
-def send_email(sender, recipient, subject, body, html=None):
+def send_email(sender, recipient, subject, body, files=None):
     """Send out an email to give notice of success or failure.
 
     Args:
@@ -61,7 +63,7 @@ def send_email(sender, recipient, subject, body, html=None):
     # This does not need to be anything fancy as it is used internally,
     # as long as we can see if the script succeeded or where it failed
     # at, then we are good to go
-    msg = MIMEMultipart('alternative')
+    msg = MIMEMultipart()
     msg['Subject'] = subject
 
     # Expecting tuples from the db query
@@ -69,11 +71,13 @@ def send_email(sender, recipient, subject, body, html=None):
     msg['To'] = ', '.join(recipient)
 
     # Format email according to RFC 2046
-    part1 = MIMEText(body, 'plain')
-    msg.attach(part1)
-    if html is not None:
-        part2 = MIMEText(html, 'html')
-        msg.attach(part2)
+    msg.attach(MIMEText(body, 'plain'))
+    for fname in files or []:
+        with open(fname, "rb") as fil:
+            part = MIMEApplication(fil.read(), Name=os.path.basename(fname))
+        part['Content-Disposition'] = ('attachment; filename="%s"'
+                                       % os.path.basename(fname))
+        msg.attach(part)
 
     smtp = smtplib.SMTP("localhost")
     smtp.sendmail(sender, recipient, msg.as_string())

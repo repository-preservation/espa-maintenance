@@ -846,18 +846,17 @@ def run():
 
     else:
         msg = '⚠ PLOTTING IS STILL UNDER DEVELOPMENT! ⚠'
-        html = '\n'.join(['<html>', '\t<head></head>', '\t<body>'])
+        files = []
         try:
-            html += graphics.sensor_barchart(cfg, opts['begin'], opts['stop'])
-            html += graphics.pathrow_heatmap(cfg, opts['begin'],
-                                            opts['stop'], 'ALL')
+            files.append(graphics.sensor_barchart(cfg, opts['begin'], opts['stop']))
+            files.append(graphics.pathrow_heatmap(cfg, opts['begin'],
+                                                  opts['stop'], 'ALL'))
 
             info = db_top10stats(opts['begin'], opts['stop'],
                                  tuple(opts['sensors']), cfg)
             for i, (email, _) in zip(range(3), info):
-                html += graphics.pathrow_heatmap(cfg, opts['begin'],
-                                                opts['stop'], email)
-            html += '\n'.join(['\t</body>', '</html>'])
+                files.append(graphics.pathrow_heatmap(cfg, opts['begin'],
+                                                      opts['stop'], email))
 
         except Exception:
             exc_msg = str(traceback.format_exc()) + '\n\n' + msg
@@ -867,7 +866,7 @@ def run():
                    .format(', '.join(debug)))
             raise
         finally:
-            utils.send_email(sender, receive, subject, msg, html)
+            utils.send_email(sender, receive, subject, msg, files)
 
 
 if __name__ == '__main__':

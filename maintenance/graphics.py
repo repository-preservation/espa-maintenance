@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 """Create useful charts for insights into the monthly metrics"""
 
-import base64
 import datetime
 import logging
 
@@ -175,15 +174,6 @@ def create_fake_cb(mmin, mmax, color, step=100):
     return CS3
 
 
-def fmt_chart_as_html(pltfname):
-    """Make PNG file encoded as a data uri."""
-    encoded = ("data:image/png;base64,{}"
-               .format(base64.urlsafe_b64encode
-                       (open(pltfname, "rb").read())))
-    html = '<br><img src="{}" alt="ESPA Monthly Metrics" /><br>'
-    return html.format(encoded)
-
-
 def pathrow_heatmap(dbinfo, start, end, user='ALL', color=COLOR):
     """Create graphic for number of scenes per path/row."""
     alphas, mmin, mmax = query_scene_count(dbinfo, start, end, user)
@@ -196,7 +186,7 @@ def pathrow_heatmap(dbinfo, start, end, user='ALL', color=COLOR):
     cbar.ax.tick_params(labelsize=12)
     pltfname = '/tmp/paths_rows_ordered_{}.png'.format(user)
     plt.savefig(pltfname, bbox_inches='tight')
-    return fmt_chart_as_html(pltfname)
+    return pltfname
 
 
 def query_sensor_count(dbinfo, start, end, sensors=None):
@@ -257,4 +247,4 @@ def sensor_barchart(dbinfo, start, end):
     pltfname = '/tmp/n_scenes_ordered_this_month.png'
     plt.margins(0.0, 0.1)
     plt.savefig(pltfname, bbox_inches='tight')
-    return fmt_chart_as_html(pltfname)
+    return pltfname
