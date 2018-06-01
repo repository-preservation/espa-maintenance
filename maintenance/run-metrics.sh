@@ -6,8 +6,8 @@ logdir=~/monthly-logs/
 
 mkdir -p $logdir
 python lsrd_stats.py -e ops -c ~/.usgs/.cfgnfo_metrics -d $logdir
-python lsrd_stats.py -e ops -c ~/.usgs/.cfgnfo_metrics -d $logdir --plotting
 python lsrd_stats.py -e ops -c ~/.usgs/.cfgnfo_metrics -d $logdir --sensors MODIS
+python lsrd_stats.py -e ops -c ~/.usgs/.cfgnfo_metrics -d $logdir --plotting
 
 # Need to save space month-to-month
 rm -Rf $logdir/*

@@ -845,15 +845,15 @@ def run():
 
     else:
         try:
-            html = graphics.sensor_barchart(cfg, opts['begin'], opts['stop'])
-            html += graphics.pathrow_heatmap(cfg, opts['begin'],
-                                             opts['stop'], 'ALL')
+            msg = graphics.sensor_barchart(cfg, opts['begin'], opts['stop'])
+            msg += graphics.pathrow_heatmap(cfg, opts['begin'],
+                                            opts['stop'], 'ALL')
 
             info = db_top10stats(opts['begin'], opts['stop'],
                                  tuple(opts['sensors']), cfg)
             for i, (email, _) in zip(range(3), info):
-                html += graphics.pathrow_heatmap(cfg, opts['begin'],
-                                                 opts['stop'], email)
+                msg += graphics.pathrow_heatmap(cfg, opts['begin'],
+                                                opts['stop'], email)
 
         except Exception:
             exc_msg = str(traceback.format_exc()) + '\n\n' + msg
@@ -863,7 +863,7 @@ def run():
                    .format(', '.join(debug)))
             raise
         finally:
-            utils.send_email(sender, receive, subject, html, html=True)
+            utils.send_email(sender, receive, subject, msg, html=True)
 
 
 if __name__ == '__main__':
