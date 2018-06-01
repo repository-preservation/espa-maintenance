@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -*-
 import re
 import glob
 import datetime
@@ -18,6 +19,7 @@ logger = logging.getLogger(__name__)
 
 from dbconnect import DBConnect
 import utils
+import graphics
 
 DATE_FMT = '%Y-%m-%d'
 LOG_FILENAME = 'edclpdsftp.cr.usgs.gov-' # Change to ssl-access-log
@@ -61,6 +63,9 @@ def arg_parser(defaults):
                         default=defaults['sensors'],
                         nargs='+', help='Sensors to include (ALL) or {}'
                         .format(SENSOR_KEYS))
+    parser.add_argument('--plotting', dest='plotting',
+                        action='store_true',
+                        help='Also generate plots')
 
     args = parser.parse_args()
     defaults.update(args.__dict__)
@@ -767,10 +772,10 @@ def process_monthly_metrics(cfg, env, local_dir, begin, stop, sensors):
     infodict['title'] = ('On-demand - Total Download Info\n Sensors:{}'
                          .format(','.join(sensors)))
     msg = download_boiler(infodict)
-    
+
     # Downloads by Product
     orders_scenes = extract_orderid(order_paths)
-    
+
     if len(orders_scenes):
         prod_opts = db_dl_prodinfo(cfg, orders_scenes)
         infodict = tally_product_dls(orders_scenes, prod_opts)
@@ -804,7 +809,8 @@ def run():
                 'stop': rng[1],
                 'conf_file': utils.CONF_FILE,
                 'dir': os.path.join(os.path.expanduser('~'), 'temp-logs'),
-                'sensors': 'ALL'}
+                'sensors': 'ALL',
+                'plotting': False}
 
     opts = arg_parser(defaults)
     cfg = utils.get_cfg(opts['conf_file'], section='config')
@@ -818,23 +824,49 @@ def run():
     msg = ''
     receive, sender, debug = get_addresses(cfg)
     subject = EMAIL_SUBJECT.format(begin=opts['begin'], stop=opts['stop'])
-    try:
-        msg = process_monthly_metrics(cfg,
-                                      opts['environment'],
-                                      opts['dir'],
-                                      opts['begin'],
-                                      opts['stop'],
-                                      tuple(opts['sensors']))
+    # FIXME: adding cruft to the codebase... time constraints....
+    if not opts['plotting']:
+        try:
+            msg = process_monthly_metrics(cfg,
+                                          opts['environment'],
+                                          opts['dir'],
+                                          opts['begin'],
+                                          opts['stop'],
+                                          tuple(opts['sensors']))
 
-    except Exception:
-        exc_msg = str(traceback.format_exc()) + '\n\n' + msg
-        utils.send_email(sender, debug, subject, exc_msg)
-        msg = ('There was an error with statistics processing.\n'
-               'The following have been notified of the error: {0}.'
-               .format(', '.join(debug)))
-        raise
-    finally:
-        utils.send_email(sender, receive, subject, msg)
+        except Exception:
+            exc_msg = str(traceback.format_exc()) + '\n\n' + msg
+            utils.send_email(sender, debug, subject, exc_msg)
+            msg = ('There was an error with statistics processing.\n'
+                   'The following have been notified of the error: {0}.'
+                   .format(', '.join(debug)))
+            raise
+        finally:
+            utils.send_email(sender, receive, subject, msg)
+
+    else:
+        msg = '⚠ PLOTTING IS STILL UNDER DEVELOPMENT! ⚠'
+        files = []
+        try:
+            files.append(graphics.sensor_barchart(cfg, opts['begin'], opts['stop']))
+            files.append(graphics.pathrow_heatmap(cfg, opts['begin'],
+                                                  opts['stop'], 'ALL'))
+
+            info = db_top10stats(opts['begin'], opts['stop'],
+                                 tuple(opts['sensors']), cfg)
+            for i, (email, _) in zip(range(3), info):
+                files.append(graphics.pathrow_heatmap(cfg, opts['begin'],
+                                                      opts['stop'], email))
+
+        except Exception:
+            exc_msg = str(traceback.format_exc()) + '\n\n' + msg
+            utils.send_email(sender, debug, subject, exc_msg)
+            msg = ('There was an error with statistics processing.\n'
+                   'The following have been notified of the error: {0}.'
+                   .format(', '.join(debug)))
+            raise
+        finally:
+            utils.send_email(sender, receive, subject, msg, files)
 
 
 if __name__ == '__main__':

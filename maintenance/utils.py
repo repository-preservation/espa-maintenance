@@ -1,9 +1,12 @@
 import sys
 import smtplib
+from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
+from email.mime.application import MIMEApplication
 import ConfigParser
 import os
 import datetime
+import base64
 
 import paramiko
 from plumbum.machines.paramiko_machine import ParamikoMachine
@@ -47,28 +50,34 @@ def get_cfg(cfg_path=None, section=''):
     return cfg_info
 
 
-def send_email(sender, recipient, subject, body):
-    """
-    Send out an email to give notice of success or failure
+def send_email(sender, recipient, subject, body, files=None):
+    """Send out an email to give notice of success or failure.
 
-    :param sender: who the email is from
-    :type sender: list
-    :param recipient: list of recipients of the email
-    :type recipient: list
-    :param subject: subject line of the email
-    :type subject: string
-    :param body: success or failure message to be passed
-    :type body: string
+    Args:
+        sender (list): who the email is from
+        recipient (list): list of recipients of the email
+        subject (str): subject line of the email
+        body (str): success or failure message to be passed
+        html (bool): whether the content is HTML
     """
     # This does not need to be anything fancy as it is used internally,
     # as long as we can see if the script succeeded or where it failed
     # at, then we are good to go
-    msg = MIMEText(body)
+    msg = MIMEMultipart()
     msg['Subject'] = subject
 
     # Expecting tuples from the db query
     msg['From'] = ', '.join(sender)
     msg['To'] = ', '.join(recipient)
+
+    # Format email according to RFC 2046
+    msg.attach(MIMEText(body, 'plain'))
+    for fname in files or []:
+        with open(fname, "rb") as fil:
+            part = MIMEApplication(fil.read(), Name=os.path.basename(fname))
+        part['Content-Disposition'] = ('attachment; filename="%s"'
+                                       % os.path.basename(fname))
+        msg.attach(part)
 
     smtp = smtplib.SMTP("localhost")
     smtp.sendmail(sender, recipient, msg.as_string())
