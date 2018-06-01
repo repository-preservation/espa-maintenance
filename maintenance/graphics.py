@@ -178,7 +178,8 @@ def create_fake_cb(mmin, mmax, color, step=100):
 def fmt_chart_as_html(pltfname):
     """Make PNG file encoded as a data uri."""
     encoded = ("data:image/png;base64,{}"
-               .format(base64.b64encode(open(pltfname, "rb").read())))
+               .format(base64.urlsafe_b64encode
+                       (open(pltfname, "rb").read())))
     html = '<br><img src="{}" alt="ESPA Monthly Metrics" /><br>'
     return html.format(encoded)
 
