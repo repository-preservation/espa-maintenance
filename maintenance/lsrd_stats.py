@@ -823,26 +823,27 @@ def run():
     msg = ''
     receive, sender, debug = get_addresses(cfg)
     subject = EMAIL_SUBJECT.format(begin=opts['begin'], stop=opts['stop'])
-    try:
-        msg = process_monthly_metrics(cfg,
-                                      opts['environment'],
-                                      opts['dir'],
-                                      opts['begin'],
-                                      opts['stop'],
-                                      tuple(opts['sensors']))
-
-    except Exception:
-        exc_msg = str(traceback.format_exc()) + '\n\n' + msg
-        utils.send_email(sender, debug, subject, exc_msg)
-        msg = ('There was an error with statistics processing.\n'
-               'The following have been notified of the error: {0}.'
-               .format(', '.join(debug)))
-        raise
-    finally:
-        utils.send_email(sender, receive, subject, msg)
-
     # FIXME: adding cruft to the codebase... time constraints....
-    if opts['plotting']:
+    if not opts['plotting']:
+        try:
+            msg = process_monthly_metrics(cfg,
+                                          opts['environment'],
+                                          opts['dir'],
+                                          opts['begin'],
+                                          opts['stop'],
+                                          tuple(opts['sensors']))
+
+        except Exception:
+            exc_msg = str(traceback.format_exc()) + '\n\n' + msg
+            utils.send_email(sender, debug, subject, exc_msg)
+            msg = ('There was an error with statistics processing.\n'
+                   'The following have been notified of the error: {0}.'
+                   .format(', '.join(debug)))
+            raise
+        finally:
+            utils.send_email(sender, receive, subject, msg)
+
+    else:
         try:
             html = graphics.sensor_barchart(cfg, opts['begin'], opts['stop'])
             html += graphics.pathrow_heatmap(cfg, opts['begin'],

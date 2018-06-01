@@ -5,6 +5,7 @@ set -e
 logdir=~/monthly-logs/
 
 mkdir -p $logdir
+python lsrd_stats.py -e ops -c ~/.usgs/.cfgnfo_metrics -d $logdir
 python lsrd_stats.py -e ops -c ~/.usgs/.cfgnfo_metrics -d $logdir --plotting
 python lsrd_stats.py -e ops -c ~/.usgs/.cfgnfo_metrics -d $logdir --sensors MODIS
 

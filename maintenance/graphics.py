@@ -3,6 +3,7 @@
 
 import base64
 import datetime
+import logging
 
 import pandas as pd
 import pandas.io.sql as sqlio
@@ -29,6 +30,7 @@ COLOR = '#4daf4a'
 
 def load_wrs(filename='wrs2_asc_desc/wrs2_asc_desc.shp'):
     """Read WRS2 features shapefile."""
+    logging.info('Read %s', filename)
     wrs = gp.GeoDataFrame.from_file(filename)
     # PATH, ROW, geometry
     return wrs
@@ -63,14 +65,17 @@ def query_scene_count(dbinfo, start, end, who=None):
             o.order_date::date >= '{0}'
             and o.order_date::date <= '{1}'
             and s.sensor_type = 'landsat'
+            {2}
 
         group by path, row
 
         ;
         '''
 
+    email_str = '' if who is 'ALL' else ("and o.email = '%s'" % who)
+
     with DBConnect(**dbinfo) as db:
-        dat = sqlio.read_sql_query(sql.format(start, end), db.conn)
+        dat = sqlio.read_sql_query(sql.format(start, end, email_str), db.conn)
 
     dat['path'] = dat['path'].astype(int)
     dat['row'] = dat['row'].astype(int)
@@ -79,12 +84,18 @@ def query_scene_count(dbinfo, start, end, who=None):
                                           dat['n_scenes'].min(),
                                           dat['n_scenes'].max()))
     dat = dat.sort_values(by='alpha')
-    return dat[['path', 'row', 'alpha']].values
+    return (
+        dat[['path', 'row', 'alpha']].values,
+        dat['n_scenes'].min(),
+        dat['n_scenes'].max()
+    )
 
 
 def get_poly_wrs(path, row, features=None, facecolor='w'):
     """Extract longitude/latitude box for a path/row from shapefile."""
     prid = '{}_{}'.format(path, row)
+    if features is None:
+        features = load_wrs()
     ix = (features['PATH'] == path) & (features['ROW'] == row)
     geom = features[ix]
 
@@ -105,7 +116,7 @@ def get_poly_wrs(path, row, features=None, facecolor='w'):
 
 def plot_poly(lons, lats, mapm, **kwargs):
     """Convert bounding box into a styled Patch object."""
-    return Polygon(zip(mapm(lons, lats)), **kwargs)
+    return Polygon(zip(*mapm(lons, lats)), **kwargs)
 
 
 def make_basemap(path_rows_alpha,
@@ -174,8 +185,8 @@ def fmt_chart_as_html(pltfname):
 
 def pathrow_heatmap(dbinfo, start, end, user='ALL', color=COLOR):
     """Create graphic for number of scenes per path/row."""
-    alphas = query_scene_count(dbinfo, start, end, user)
-    cb = create_fake_cb(alphas[:, 2].min(), alphas[:, 2].max(), color)
+    alphas, mmin, mmax = query_scene_count(dbinfo, start, end, user)
+    cb = create_fake_cb(mmin, mmax, color)
     make_basemap(alphas)
     plt.title('Landsat Scenes (path/row) Ordered\nUSER {}: {} - {}'
               .format(user, start, end), fontsize=14)
@@ -226,7 +237,7 @@ def sensor_barchart(dbinfo, start, end):
     dat = query_sensor_count(dbinfo, start, end, sensors)
 
     dat[sensors].loc[start.strftime('%b')
-                     ].plot(kind='bar', ax=ax, colors=my_colors)
+                     ].plot(kind='bar', ax=ax, color=my_colors)
     plt.title('Scenes Ordered - {}'.format(end.strftime('%B %Y')))
     plt.ylabel('# Scenes')
     plt.xlabel('Spacecraft')
