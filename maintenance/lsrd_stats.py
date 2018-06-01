@@ -63,7 +63,7 @@ def arg_parser(defaults):
                         nargs='+', help='Sensors to include (ALL) or {}'
                         .format(SENSOR_KEYS))
     parser.add_argument('--plotting', dest='plotting',
-                        action='store_true,
+                        action='store_true',
                         help='Also generate plots')
 
     args = parser.parse_args()
