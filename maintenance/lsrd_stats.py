@@ -846,7 +846,7 @@ def run():
 
     else:
         msg = '⚠ PLOTTING IS STILL UNDER DEVELOPMENT! ⚠'
-        html = '<html><head></head><body>'
+        html = '\n'.join(['<html>', '\t<head></head>', '\t<body>'])
         try:
             html += graphics.sensor_barchart(cfg, opts['begin'], opts['stop'])
             html += graphics.pathrow_heatmap(cfg, opts['begin'],
@@ -857,7 +857,7 @@ def run():
             for i, (email, _) in zip(range(3), info):
                 html += graphics.pathrow_heatmap(cfg, opts['begin'],
                                                 opts['stop'], email)
-            html += '</body></html>'
+            html += '\n'.join(['\t</body>', '</html>'])
 
         except Exception:
             exc_msg = str(traceback.format_exc()) + '\n\n' + msg

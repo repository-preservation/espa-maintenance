@@ -69,11 +69,11 @@ def send_email(sender, recipient, subject, body, html=None):
     msg['To'] = ', '.join(recipient)
 
     # Format email according to RFC 2046
-    part = MIMEText(body, 'plain')
-    msg.attach(part)
+    part1 = MIMEText(body, 'plain')
+    msg.attach(part1)
     if html is not None:
-        part = MIMEText(html, 'html')
-        msg.attach(part)
+        part2 = MIMEText(html, 'html')
+        msg.attach(part2)
 
     smtp = smtplib.SMTP("localhost")
     smtp.sendmail(sender, recipient, msg.as_string())
