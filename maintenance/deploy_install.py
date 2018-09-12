@@ -401,7 +401,7 @@ class WebappDeployer(Deployer):
         pip_install = ('{1}'
                        'cd {0}; '
                        '. bin/activate; '
-                       'pip install -r setup/requirements.txt'
+                       'pip install --upgrade pip; pip install -r setup/requirements.txt'
                       .format(self.deployment_location, tmpdir_cmd))
 
         print('Installing requirements')
