@@ -174,13 +174,27 @@ def create_fake_cb(mmin, mmax, color, step=100):
     return CS3
 
 
+def scrub_email(address):
+    """
+    Remove the local-part from an email address
+    for the sake of anonymity
+    :param address: <str>
+    :return: <str>
+    """
+    domain = address.split('@')[1]
+
+    return 'user@{}'.format(domain)
+
+
 def pathrow_heatmap(dbinfo, start, end, user='ALL', color=COLOR):
     """Create graphic for number of scenes per path/row."""
     alphas, mmin, mmax = query_scene_count(dbinfo, start, end, user)
     cb = create_fake_cb(mmin, mmax, color)
     make_basemap(alphas)
     plt.title('Landsat Scenes (path/row) Ordered\nUSER {}: {} - {}'
-              .format(user, start, end), fontsize=14)
+              .format(scrub_email(address=user),
+                      start,
+                      end), fontsize=14)
     cbar = plt.colorbar(cb)
     cbar.ax.set_title('  Scenes', weight='bold', fontsize=14)
     cbar.ax.tick_params(labelsize=12)
