@@ -181,9 +181,11 @@ def scrub_email(address):
     :param address: <str>
     :return: <str>
     """
-    domain = address.split('@')[1]
-
-    return 'user@{}'.format(domain)
+    if '@' in address:
+        domain = address.split('@')[1]
+        return 'user@{}'.format(domain)
+    else:
+        return address
 
 
 def pathrow_heatmap(dbinfo, start, end, user='ALL', color=COLOR):
@@ -192,9 +194,7 @@ def pathrow_heatmap(dbinfo, start, end, user='ALL', color=COLOR):
     cb = create_fake_cb(mmin, mmax, color)
     make_basemap(alphas)
     plt.title('Landsat Scenes (path/row) Ordered\nUSER {}: {} - {}'
-              .format(scrub_email(address=user),
-                      start,
-                      end), fontsize=14)
+              .format(scrub_email(address=user), start, end), fontsize=14)
     cbar = plt.colorbar(cb)
     cbar.ax.set_title('  Scenes', weight='bold', fontsize=14)
     cbar.ax.tick_params(labelsize=12)
