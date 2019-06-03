@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Create useful charts for insights into the monthly metrics"""
 
+import os
 import datetime
 import logging
 
@@ -181,9 +182,11 @@ def scrub_email(address):
     :param address: <str>
     :return: <str>
     """
-    domain = address.split('@')[1]
-
-    return 'user@{}'.format(domain)
+    if '@' in address:
+        domain = address.split('@')[1]
+        return 'user@{}'.format(domain)
+    else:
+        return address
 
 
 def pathrow_heatmap(dbinfo, start, end, user='ALL', color=COLOR):
@@ -191,14 +194,19 @@ def pathrow_heatmap(dbinfo, start, end, user='ALL', color=COLOR):
     alphas, mmin, mmax = query_scene_count(dbinfo, start, end, user)
     cb = create_fake_cb(mmin, mmax, color)
     make_basemap(alphas)
+    user = scrub_email(address=user)
     plt.title('Landsat Scenes (path/row) Ordered\nUSER {}: {} - {}'
-              .format(scrub_email(address=user),
-                      start,
-                      end), fontsize=14)
+              .format(user, start, end), fontsize=14)
     cbar = plt.colorbar(cb)
     cbar.ax.set_title('  Scenes', weight='bold', fontsize=14)
     cbar.ax.tick_params(labelsize=12)
     pltfname = '/tmp/paths_rows_ordered_{}.png'.format(user)
+    # check if we already generated a PNG with this filename
+    # might happen if multiple users w/ same domain are in top 3
+    i = 1
+    while os.path.exists(pltfname):
+        pltfname = '/tmp/paths_rows_ordered_{}_{}.png'.format(user, i)
+        i += 1
     plt.savefig(pltfname, bbox_inches='tight')
     return pltfname
 
