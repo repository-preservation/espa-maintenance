@@ -33,7 +33,8 @@ SENSOR_KEYS = ('tm4', 'tm5', 'etm7', 'olitirs8', 'oli8',
                'mod09a1', 'mod09ga', 'mod09gq', 'mod09q1',
                'mod13a1', 'mod13a2', 'mod13a3', 'mod13q1',
                'myd09a1', 'myd09ga', 'myd09gq', 'myd09q1',
-               'myd13a1', 'myd13a2', 'myd13a3', 'myd13q1', 'invalid')
+               'myd13a1', 'myd13a2', 'myd13a3', 'myd13q1',
+               'vnp09ga', 'invalid')
 
 
 def arg_parser(defaults):
@@ -141,6 +142,8 @@ def prod_boiler(info):
               ' SR NDMI: {sr_ndmi}\n'
               ' SR NDVI: {sr_ndvi}\n'
               ' SR SAVI: {sr_savi}\n'
+              ' MODIS NDVI: {modis_ndvi}\n'
+              ' VIIRS NDVI: {viirs_ndvi}\n'
               ' CFMASK: {cloud}\n'
               ' PixelQA: {pixel_qa}\n'
               ' LST: {lst}\n'
@@ -162,6 +165,8 @@ def prod_boiler(info):
                          sr_ndmi=info.get('sr_ndmi', 0),
                          sr_ndvi=info.get('sr_ndvi', 0),
                          sr_savi=info.get('sr_savi', 0),
+                         modis_ndvi=info.get('modis_ndvi', 0),
+                         viirs_ndvi=info.get('viirs_ndvi', 0),
                          cloud=info.get('cloud', 0),
                          pixel_qa=info.get('pixel_qa', 0),
                          lst=info.get('lst', 0),
@@ -300,13 +305,27 @@ def landsat_output_regex(filename):
 
 def modis_output_regex(filename):
     """
-    Convert a download location into information for landsat scene-ids
+    Convert a download location into information for modis scene-ids
     :param filename: full path to download resource
     :return: dict
     """
     fname = os.path.basename(filename)
     sceneid = fname.split('-')[0]
     regex = '^(?P<sensor>M\w{6})h[0-9]{2}v[0-9]{2}[0-9]{7}(?P<collect>\w{3})$'
+    res = re.match(regex, sceneid)
+    if res:
+        return res.groupdict()
+
+
+def viirs_output_regex(filename):
+    """
+    Convert a download location into formation for viirs scene-ids
+    :param filename: full path to download resource
+    :return: dict
+    """
+    fname = os.path.basename(filename)
+    sceneid = fname.split('-')[0]
+    regex = '^(?P<sensor>V\w{6})h[0-9]{2}v[0-9]{2}[0-9]{7}(?P<collect>\w{3})$'
     res = re.match(regex, sceneid)
     if res:
         return res.groupdict()
@@ -354,6 +373,12 @@ def tally_product_dls(orders_scenes, prod_options):
                     if info:
                         scene_regex = scene[0:7] + '.A' + scene[13:20] + '.' + scene[7:13]
                         res = [x for x in opts[key]['inputs'] if re.match(scene_regex, x)]
+
+                    else:
+                        info = viirs_output_regex(scene)
+                        if info:
+                            scene_regex = scene[0:7] + '.A' + scene[13:20] + '.' + scene[7:13]
+                            res = [x for x in opts[key]['inputs'] if re.match(scene_regex, x)]
 
                 if res:
                     results['total'] += 1
@@ -485,7 +510,8 @@ def get_sensor_name(filename):
            'MOD13A3': 'mod13a3', 'MOD13Q1': 'mod13q1',
            'MYD09A1': 'myd09a1', 'MYD09GA': 'myd09ga', 'MYD09GQ': 'myd09gq',
            'MYD09Q1': 'myd09q1', 'MYD13A1': 'myd13a1', 'MYD13A2': 'myd13a2',
-           'MYD13A3': 'myd13a3', 'MYD13Q1': 'myd13q1'}
+           'MYD13A3': 'myd13a3', 'MYD13Q1': 'myd13q1',
+           'VNP09GA': 'vnp09ga'}
     fname = os.path.basename(filename)
     for prefix, sensor in lut.iteritems():
         if fname.startswith(prefix):
@@ -818,6 +844,8 @@ def run():
         opts['sensors'] = [k for k in SENSOR_KEYS if k != 'invalid']
     if opts['sensors'] == ['MODIS']:
         opts['sensors'] = [k for k in SENSOR_KEYS if k.lower().startswith('m')]
+    if opts['sensors'] == ['VIIRS']:
+        opts['sensors'] = [k for k in SENSOR_KEYS if k.lower().startswith('v')]
     if opts['sensors'] == ['LANDSAT']:
         opts['sensors'] = [k for k in SENSOR_KEYS if k != 'invalid' and not k.lower().startswith('m')]
 
