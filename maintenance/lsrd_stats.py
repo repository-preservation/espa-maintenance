@@ -148,6 +148,7 @@ def prod_boiler(info):
               ' PixelQA: {pixel_qa}\n'
               ' LST: {lst}\n'
               ' DSWE: {swe}\n'
+              ' ORCA: {orca}\n'
               ' Plot: {plot}\n')
 
     return boiler.format(title=info.get('title'),
@@ -171,6 +172,7 @@ def prod_boiler(info):
                          pixel_qa=info.get('pixel_qa', 0),
                          lst=info.get('lst', 0),
                          swe=info.get('swe', 0),
+                         orca=info.get('orca', 0),
                          plot=info.get('plot_statistics', 0))
 
 
