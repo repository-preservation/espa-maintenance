@@ -1,3 +1,6 @@
+###### Version 1.2.0 (July 2019)
+* Added support for new products
+
 ###### Version 1.1.0 (May 2016)
 * Support for the new log rotation
 
