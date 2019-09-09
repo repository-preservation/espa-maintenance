@@ -6,3 +6,5 @@ local/
 lib/
 pip-selfcheck.json
 .idea
+
+.vscode
