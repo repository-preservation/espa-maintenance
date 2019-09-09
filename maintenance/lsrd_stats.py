@@ -875,7 +875,7 @@ def run():
             utils.send_email(sender, receive, subject, msg)
 
     else:
-        msg = '⚠ PLOTTING IS STILL UNDER DEVELOPMENT! ⚠'
+        # msg = '⚠ PLOTTING IS STILL UNDER DEVELOPMENT! ⚠'
         files = []
         try:
             files.append(graphics.sensor_barchart(cfg, opts['begin'], opts['stop']))
