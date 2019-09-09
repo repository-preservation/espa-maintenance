@@ -148,7 +148,7 @@ def prod_boiler(info):
               ' PixelQA: {pixel_qa}\n'
               ' LST: {lst}\n'
               ' DSWE: {swe}\n'
-              ' ORCA: {orca}\n'
+              ' Water Reflectance: {orca}\n'
               ' Plot: {plot}\n')
 
     return boiler.format(title=info.get('title'),
