@@ -1,3 +1,7 @@
+###### Version 1.2.1 (September 2019)
+* Removed unused products
+* Minor changes to email text 
+
 ###### Version 1.2.0 (July 2019)
 * Added support for new products
 

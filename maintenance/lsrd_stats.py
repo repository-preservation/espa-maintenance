@@ -144,11 +144,9 @@ def prod_boiler(info):
               ' SR SAVI: {sr_savi}\n'
               ' MODIS NDVI: {modis_ndvi}\n'
               ' VIIRS NDVI: {viirs_ndvi}\n'
-              ' CFMASK: {cloud}\n'
               ' PixelQA: {pixel_qa}\n'
-              ' LST: {lst}\n'
               ' DSWE: {swe}\n'
-              ' ORCA: {orca}\n'
+              ' Water Reflectance: {orca}\n'
               ' Plot: {plot}\n')
 
     return boiler.format(title=info.get('title'),
@@ -168,9 +166,7 @@ def prod_boiler(info):
                          sr_savi=info.get('sr_savi', 0),
                          modis_ndvi=info.get('modis_ndvi', 0),
                          viirs_ndvi=info.get('viirs_ndvi', 0),
-                         cloud=info.get('cloud', 0),
                          pixel_qa=info.get('pixel_qa', 0),
-                         lst=info.get('lst', 0),
                          swe=info.get('swe', 0),
                          orca=info.get('orca', 0),
                          plot=info.get('plot_statistics', 0))
@@ -875,7 +871,7 @@ def run():
             utils.send_email(sender, receive, subject, msg)
 
     else:
-        msg = '⚠ PLOTTING IS STILL UNDER DEVELOPMENT! ⚠'
+        # msg = '⚠ PLOTTING IS STILL UNDER DEVELOPMENT! ⚠'
         files = []
         try:
             files.append(graphics.sensor_barchart(cfg, opts['begin'], opts['stop']))
