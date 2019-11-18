@@ -1,6 +1,6 @@
 plumbum==1.6.3
 psycopg2==2.6.1
-paramiko==2.0.2
+paramiko>=2.0.9
 geopandas
 shapely
 matplotlib
