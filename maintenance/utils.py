@@ -3,7 +3,7 @@ import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.mime.application import MIMEApplication
-import ConfigParser
+import configparser
 import os
 import datetime
 import base64
@@ -11,7 +11,7 @@ import base64
 import paramiko
 from plumbum.machines.paramiko_machine import ParamikoMachine
 
-from dbconnect import DBConnect
+from .dbconnect import DBConnect
 
 
 CONF_FILE = cfg_path = os.path.join(os.path.expanduser('~'), '.cfgnfo')
@@ -29,11 +29,11 @@ def get_cfg(cfg_path=None, section=''):
         cfg_path = CONF_FILE
 
     if not os.path.exists(cfg_path):
-        print('! DB configuration not found: {c}'.format(c=cfg_path))
+        print(('! DB configuration not found: {c}'.format(c=cfg_path)))
         sys.exit(1)
 
     cfg_info = {}
-    config = ConfigParser.ConfigParser()
+    config = configparser.ConfigParser()
     config.read(cfg_path)
 
     for sect in config.sections():
@@ -43,7 +43,7 @@ def get_cfg(cfg_path=None, section=''):
 
     if section:
         if section not in cfg_info:
-            print('! Section {s} not found in {c}'.format(s=section, c=cfg_path))
+            print(('! Section {s} not found in {c}'.format(s=section, c=cfg_path)))
             sys.exit(1)
         cfg_info = cfg_info[section]
 
@@ -193,5 +193,5 @@ def subset_by_date(files, begin, stop, tsfrmt='%Y%m%d.gz'):
         return ((x[1] <= stop + datetime.timedelta(days=1))
                 & (x[1] >= begin))
 
-    timestamps = map(parser, files)
-    return [x[0] for x in filter(criteria, zip(files, timestamps))]
+    timestamps = list(map(parser, files))
+    return [x[0] for x in filter(criteria, list(zip(files, timestamps)))]

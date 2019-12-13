@@ -5,8 +5,8 @@ import argparse
 import datetime
 
 try:
-    import deployment_settings as settings
-except Exception, e:
+    from . import deployment_settings as settings
+except Exception as e:
     s = '''tiers = ['espa-web', 'espa-maintenance', 'espa-production', 'all']
 
 environments = {
@@ -490,7 +490,7 @@ if __name__ == '__main__':
 
     parser.add_argument("--environment",
                         required=True,
-                        choices=settings.environments.keys(),
+                        choices=list(settings.environments.keys()),
                         help="The environment to deploy to")
 
     parser.add_argument("--delete_previous_releases",

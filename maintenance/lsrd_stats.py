@@ -10,16 +10,17 @@ import traceback
 import os
 from collections import defaultdict
 import gzip
-import urllib2
+import urllib.request, urllib.error, urllib.parse
 import logging
 import sys
+from functools import reduce
 
 logging.basicConfig(level='INFO', stream=sys.stderr)
 logger = logging.getLogger(__name__)
 
-from dbconnect import DBConnect
-import utils
-import graphics
+from .dbconnect import DBConnect
+from . import utils
+from . import graphics
 
 DATE_FMT = '%Y-%m-%d'
 LOG_FILENAME = 'edclpdsftp.cr.usgs.gov-' # Change to ssl-access-log
@@ -248,7 +249,7 @@ def process_db_prodopts(row, sensors=SENSOR_KEYS):
 def counts_prodopts(*dicts):
     ret = defaultdict(int)
     for d in dicts:
-        for k, v in d.items():
+        for k, v in list(d.items()):
             ret[k] += v
 
     return dict(ret)
@@ -267,7 +268,7 @@ def db_dl_prodinfo(dbinfo, orders_scenes):
     :type orders_scenes: tuple
     :return: Dictionary of count values
     """
-    ids = zip(*orders_scenes)[0]
+    ids = list(zip(*orders_scenes))[0]
     ids = remove_duplicates(ids)
 
     sql = ('SELECT o.orderid, o.product_opts '
@@ -344,7 +345,7 @@ def tally_product_dls(orders_scenes, prod_options):
     results = defaultdict(int)
 
     for orderid, scene in orders_scenes:
-        oid = urllib2.unquote(orderid)
+        oid = urllib.parse.unquote(orderid)
 
         if oid not in prod_options:
             continue
@@ -419,7 +420,7 @@ def calc_dlinfo(log_glob, start_date, end_date, sensors):
 
     order_paths = set()
     for log_file in files:
-        print('* Parse: {}'.format(log_file))
+        print(('* Parse: {}'.format(log_file)))
         with gzip.open(log_file) as log:
             for line in log:
                 gr = filter_log_line(line, start_date, end_date)
@@ -486,7 +487,7 @@ def filter_log_line(line, start_date, end_date):
                 return gr
         else:
             #raise ValueError('! Unable to parse download line: \n\t{}'.format(line))
-            print('!'*50 + '\nUnable to parse download line: \n\t{}'.format(line))
+            print(('!'*50 + '\nUnable to parse download line: \n\t{}'.format(line)))
 
     return False
 
@@ -511,7 +512,7 @@ def get_sensor_name(filename):
            'MYD13A3': 'myd13a3', 'MYD13Q1': 'myd13q1',
            'VNP09GA': 'vnp09ga'}
     fname = os.path.basename(filename)
-    for prefix, sensor in lut.iteritems():
+    for prefix, sensor in lut.items():
         if fname.startswith(prefix):
             return sensor
 
@@ -880,7 +881,7 @@ def run():
 
             info = db_top10stats(opts['begin'], opts['stop'],
                                  tuple(opts['sensors']), cfg)
-            for i, (email, _) in zip(range(3), info):
+            for i, (email, _) in zip(list(range(3)), info):
                 files.append(graphics.pathrow_heatmap(cfg, opts['begin'],
                                                       opts['stop'], email))
 

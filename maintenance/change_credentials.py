@@ -10,8 +10,8 @@ import traceback
 import re
 
 import pexpect
-from dbconnect import DBConnect
-from utils import get_cfg, send_email, get_email_addr
+from .dbconnect import DBConnect
+from .utils import get_cfg, send_email, get_email_addr
 
 
 # This info should come from a config file
@@ -95,6 +95,7 @@ def update_db(passwrd, db_info):
         with DBConnect(**db_info) as db:
             db.execute(sql_str, passwrd)
             db.commit()
+        return True
     except Exception:
         raise CredentialException('Error updating the database with the new password')
 

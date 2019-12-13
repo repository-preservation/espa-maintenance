@@ -12,10 +12,10 @@ import argparse
 import traceback
 import os
 import gzip
-import urllib2
+import urllib.request, urllib.error, urllib.parse
 import multiprocessing as mp
 
-import utils
+from . import utils
 
 DATE_FMT = '%Y-%m-%d'
 LOG_FILENAME = 'edclpdsftp.cr.usgs.gov-' # Change to ssl-access-log
@@ -89,7 +89,7 @@ def parse_dls(log_glob, start_date, end_date, resource_regex):
 
     order_paths = set()
     for log_file in files:
-        print('* Parse: {}'.format(log_file))
+        print(('* Parse: {}'.format(log_file)))
         with gzip.open(log_file) as log:
             for line in log:
                 gr = filter_log_line(line, start_date, end_date)
