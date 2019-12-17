@@ -387,7 +387,7 @@ class WebappDeployer(Deployer):
         # the deploy directory
         super(WebappDeployer, self).__post_move__(*args, **kwargs)
         
-        virtual_env = 'cd {0}; virtualenv .'.format(self.deployment_location)
+        virtual_env = 'cd {0}; python3 -m venv .'.format(self.deployment_location)
         print('Creating virtualenv at {0}'.format(self.deployment_location))
         self.remote_client.execute(command=virtual_env,
                                    expected_exit_status=0)
