@@ -181,6 +181,7 @@ def run():
         update_db(new_pass, db_info)
         msg = 'User: {0} password has been updated'.format(username)
         status = 'Successful'
+        return msg
     except Exception:
         msg = str(traceback.format_exc())
     finally:
