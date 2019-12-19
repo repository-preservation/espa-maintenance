@@ -1,3 +1,7 @@
+###### Version 2.0.0 (December 2019)
+* Migrate to python 3
+* Remove support for deploying Production tier
+
 ###### Version 1.2.1 (September 2019)
 * Removed unused products
 * Minor changes to email text 

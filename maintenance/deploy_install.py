@@ -7,7 +7,7 @@ import datetime
 try:
     from . import deployment_settings as settings
 except Exception as e:
-    s = '''tiers = ['espa-web', 'espa-maintenance', 'espa-production', 'all']
+    s = '''tiers = ['espa-web', 'espa-maintenance', 'all']
 
 environments = {
     'dev': {
@@ -16,9 +16,7 @@ environments = {
             'espa-web': {'host': 'dev webapp hostname',
                          'repo': 'repository url'},
             'espa-maintenance': {'host': 'dev maint hostname',
-                                 'repo': 'repository url'},
-            'espa-production': {'host': 'dev production hostname',
-                                'repo': 'repository url'}
+                                 'repo': 'repository url'}
         }
     },
     'tst': {
@@ -27,9 +25,7 @@ environments = {
             'espa-web': {'host': 'tst webapp hostname',
                          'repo': 'repository url'},
             'espa-maintenance': {'host': 'tst maint hostname',
-                                 'repo': 'repository url'},
-            'espa-production': {'host': 'tst production hostname',
-                                'repo': 'repository url'}
+                                 'repo': 'repository url'}
         }
     },
     'ops': {
@@ -38,9 +34,7 @@ environments = {
             'espa-web': {'host': 'ops webapp hostname',
                          'repo': 'repository url'},
             'espa-maintenance': {'host': 'ops maint hostname',
-                                 'repo': 'repository url'},
-            'espa-production': {'host': 'ops production hostname',
-                                'repo': 'repository url'}
+                                 'repo': 'repository url'}
         }
     }
 
@@ -408,12 +402,6 @@ class WebappDeployer(Deployer):
         self.remote_client.execute(command=pip_install, expected_exit_status=0)
 
 
-class ProductionDeployer(Deployer):
-    ''' Deploys the espa-production project '''
-    def __init__(self, *args, **kwargs):
-        super(ProductionDeployer, self).__init__(*args, **kwargs)
-
-
 class MaintenanceDeployer(Deployer):
     ''' Deploys the espa-maintenance project '''
     def __init__(self, *args, **kwargs):
@@ -452,11 +440,6 @@ def deploy(branch_or_tag,
                                   tier=tier,
                                   debug=debug,
                                   deploy_dir='espa-web')
-    elif tier == 'espa-production':
-        deployer = ProductionDeployer(branch_or_tag=branch_or_tag,
-                                      environment=environment,
-                                      tier=tier,
-                                      debug=debug)
     elif tier == 'espa-maintenance':
         deployer = MaintenanceDeployer(branch_or_tag=branch_or_tag,
                                        environment=environment,
