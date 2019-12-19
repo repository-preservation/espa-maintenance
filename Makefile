@@ -1,8 +1,3 @@
-CONTAINERS=`docker ps -a -q`
-IMAGES=`docker images -q`
-
-# pull the tag from version.py
-TAG=0.0.1
 
 docker-deps-up:
 	docker-compose -f setup/docker-compose.yml up -d
