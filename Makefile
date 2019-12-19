@@ -7,11 +7,10 @@ docker-deps-up-nodaemon:
 
 docker-deps-down:
 	docker-compose -f setup/docker-compose.yml down
-
-docker-deps-down-nuke:
-	docker-compose -f setup/docker-compose.yml down
 	docker image rm setup_postgres:latest
-	docker system prune -f --volumes
 
-runtests: docker-deps-up
+runtests: 
 	. ./test_env.sh && nose2
+
+tests: docker-deps-up runtests docker-deps-down
+
