@@ -146,7 +146,7 @@ def prod_boiler(info):
               ' VIIRS NDVI: {viirs_ndvi}\n'
               ' PixelQA: {pixel_qa}\n'
               ' DSWE: {swe}\n'
-              ' Water Reflectance: {orca}\n'
+              ' Aquatic Reflectance: {aq_refl}\n'
               ' Sentinel-2 SR: {s2_sr}\n'
               ' Sentinel-2 SR EVI: {s2_evi}\n'
               ' Sentinel-2 SR MSAVI: {s2_msavi}\n'
@@ -176,7 +176,7 @@ def prod_boiler(info):
                          viirs_ndvi=info.get('viirs_ndvi', 0),
                          pixel_qa=info.get('pixel_qa', 0),
                          swe=info.get('swe', 0),
-                         orca=info.get('orca', 0),
+                         aq_refl=info.get('aq_refl', 0),
                          s2_sr=info.get('s2_sr', 0),
                          s2_evi=info.get('s2_evi', 0),
                          s2_msavi=info.get('s2_msavi', 0),
