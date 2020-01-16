@@ -22,7 +22,7 @@ import utils
 import graphics
 
 DATE_FMT = '%Y-%m-%d'
-LOG_FILENAME = 'edclpdsftp.cr.usgs.gov-' # Change to ssl-access-log
+LOG_FILENAME = 'edclpdsftp.cr.usgs.gov-'  # Change to ssl-access-log
 LOG_FILE_TIMESTAMP = '%Y%m%d' + '.gz'
 
 EMAIL_SUBJECT = 'LSRD ESPA Metrics for {begin} to {stop}'
@@ -34,7 +34,7 @@ SENSOR_KEYS = ('tm4', 'tm5', 'etm7', 'olitirs8', 'oli8',
                'mod13a1', 'mod13a2', 'mod13a3', 'mod13q1',
                'myd09a1', 'myd09ga', 'myd09gq', 'myd09q1',
                'myd13a1', 'myd13a2', 'myd13a3', 'myd13q1',
-               'vnp09ga', 'invalid')
+               'vnp09ga', 'sentinel', 'invalid')
 
 
 def arg_parser(defaults):
@@ -49,11 +49,11 @@ def arg_parser(defaults):
     parser.add_argument('-b', '--begin', dest='begin',
                         default=defaults['begin'],
                         help='Start date to search (%s)' %
-                        defaults['begin'].strftime(DATE_FMT))
+                             defaults['begin'].strftime(DATE_FMT))
     parser.add_argument('-s', '--stop', dest='stop',
                         default=defaults['stop'],
                         help='End date to search (%s)' %
-                        defaults['stop'].strftime(DATE_FMT))
+                             defaults['stop'].strftime(DATE_FMT))
     parser.add_argument('-c', '--conf_file', dest='conf_file',
                         default=defaults['conf_file'],
                         help='Configuration file [%s]' % defaults['conf_file'])
@@ -147,6 +147,14 @@ def prod_boiler(info):
               ' PixelQA: {pixel_qa}\n'
               ' DSWE: {swe}\n'
               ' Water Reflectance: {orca}\n'
+              ' Sentinel-2 SR: {s2_sr}\n'
+              ' Sentinel-2 SR EVI: {s2_evi}\n'
+              ' Sentinel-2 SR MSAVI: {s2_msavi}\n'
+              ' Sentinel-2 SR NBR: {s2_nbr}\n'
+              ' Sentinel-2 SR NBR2: {s2_nbr2}\n'
+              ' Sentinel-2 SR NDMI: {s2_ndmi}\n'
+              ' Sentinel-2 SR NDVI: {s2_ndvi}\n'
+              ' Sentinel-2 SR SAVI: {s2_savi}\n'
               ' Plot: {plot}\n')
 
     return boiler.format(title=info.get('title'),
@@ -169,6 +177,14 @@ def prod_boiler(info):
                          pixel_qa=info.get('pixel_qa', 0),
                          swe=info.get('swe', 0),
                          orca=info.get('orca', 0),
+                         s2_sr=info.get('s2_sr', 0),
+                         s2_evi=info.get('s2_evi', 0),
+                         s2_msavi=info.get('s2_msavi', 0),
+                         s2_nbr=info.get('s2_nbr', 0),
+                         s2_nbr2=info.get('s2_nbr2', 0),
+                         s2_ndmi=info.get('s2_ndmi', 0),
+                         s2_ndvi=info.get('s2_ndvi', 0),
+                         s2_savi=info.get('s2_savi', 0),
                          plot=info.get('plot_statistics', 0))
 
 
@@ -275,7 +291,7 @@ def db_dl_prodinfo(dbinfo, orders_scenes):
            'WHERE o.orderid = ANY (%s)')
 
     with DBConnect(**dbinfo) as db:
-        db.select(sql, (ids, ))
+        db.select(sql, (ids,))
         results = {k: val for k, val in db.fetcharr}
 
     return results
@@ -289,7 +305,7 @@ def landsat_output_regex(filename):
     """
     Convert a download location into information for landsat scene-ids
     :param filename: full path to download resource
-    :return: dict
+    :return: dict or None
     """
     fname = os.path.basename(filename)
     sceneid = fname.split('-')[0]
@@ -305,11 +321,11 @@ def modis_output_regex(filename):
     """
     Convert a download location into information for modis scene-ids
     :param filename: full path to download resource
-    :return: dict
+    :return: dict or None
     """
     fname = os.path.basename(filename)
     sceneid = fname.split('-')[0]
-    regex = '^(?P<sensor>M\w{6})h[0-9]{2}v[0-9]{2}[0-9]{7}(?P<collect>\w{3})$'
+    regex = r'^(?P<sensor>M\w{6})h[0-9]{2}v[0-9]{2}[0-9]{7}(?P<collect>\w{3})$'
     res = re.match(regex, sceneid)
     if res:
         return res.groupdict()
@@ -319,11 +335,25 @@ def viirs_output_regex(filename):
     """
     Convert a download location into formation for viirs scene-ids
     :param filename: full path to download resource
-    :return: dict
+    :return: dict or None
     """
     fname = os.path.basename(filename)
     sceneid = fname.split('-')[0]
-    regex = '^(?P<sensor>V\w{6})h[0-9]{2}v[0-9]{2}[0-9]{7}(?P<collect>\w{3})$'
+    regex = r'^(?P<sensor>V\w{6})h[0-9]{2}v[0-9]{2}[0-9]{7}(?P<collect>\w{3})$'
+    res = re.match(regex, sceneid)
+    if res:
+        return res.groupdict()
+
+
+def sentinel_output_regex(filename):
+    """
+    Convert a download location into information for sentinel-2 scene-ids
+    :param filename:
+    :return: dict or None
+    """
+    fname = os.path.basename(filename)
+    sceneid = fname.split('-')[0]
+    regex = r'^(?P<sensor>S2[A, B]\w{3}[a-zA-Z0-9]{3})[a-zA-Z0-9]{6}\d{8}$'
     res = re.match(regex, sceneid)
     if res:
         return res.groupdict()
@@ -338,7 +368,7 @@ def tally_product_dls(orders_scenes, prod_options):
     :type orders_scenes: tuple
     :param prod_options: Unique order id's and their associated product
         options, dict keyed on order id
-    :type prod_options: list
+    :type prod_options: dict
     :return: dictionary count
     """
     results = defaultdict(int)
@@ -359,24 +389,64 @@ def tally_product_dls(orders_scenes, prod_options):
                 # Scene names get truncated during distribution
                 res = [x for x in opts[key]['inputs'] if scene in x]
 
-                info = landsat_output_regex(scene)
-                if info:
-                    if 'collect' in info: # This is a landsat collection scene
-                        # scene = LE070430332014070901T1, x = LE07_L1TP_043033_20140709_20160909_01_T1
-                        # scene_regex = 'LE07_\\w{4}_043033_20140709_'
-                        scene_regex = scene[0:4] + '_\w{4}_' + scene[4:10] + '_' + scene[10:18] + '_'
-                        res = [x for x in opts[key]['inputs'] if re.match(scene_regex, x)]
-                else:
-                    info = modis_output_regex(scene)
-                    if info:
-                        scene_regex = scene[0:7] + '.A' + scene[13:20] + '.' + scene[7:13]
-                        res = [x for x in opts[key]['inputs'] if re.match(scene_regex, x)]
+                if landsat_output_regex(scene):
+                    # scene = LE070430332014070901T1, x = LE07_L1TP_043033_20140709_20160909_01_T1
+                    # scene_regex = 'LE07_\\w{4}_043033_20140709_'
+                    scene_regex = r'{sensor}_\w{{4}}_{pr}_{date}_'.format(sensor=scene[0:4],
+                                                                          pr=scene[4:10],
+                                                                          date=scene[10:18])
+                    res = [x for x in opts[key]['inputs'] if re.match(scene_regex, x)]
 
-                    else:
-                        info = viirs_output_regex(scene)
-                        if info:
-                            scene_regex = scene[0:7] + '.A' + scene[13:20] + '.' + scene[7:13]
-                            res = [x for x in opts[key]['inputs'] if re.match(scene_regex, x)]
+                elif modis_output_regex(scene):
+                    # scene = MOD09GAh13v102019182006, x = MOD09GA.A2019182.h13v10.006.2019184025316
+                    # scene_regex = 'MOD09GA.A2019182.h13v10'
+                    scene_regex = r'{prod}.A{date}.{hv}'.format(prod=scene[0:7],
+                                                                date=scene[13:20],
+                                                                hv=scene[7:13])
+                    res = [x for x in opts[key]['inputs'] if re.match(scene_regex, x)]
+
+                elif viirs_output_regex(scene):
+                    scene_regex = r'{prod}.A{date}.{hv}'.format(prod=scene[0:7],
+                                                                date=scene[13:20],
+                                                                hv=scene[7:13])
+                    res = [x for x in opts[key]['inputs'] if re.match(scene_regex, x)]
+
+                elif sentinel_output_regex(scene):
+                    # Will have to check both formats
+                    # scene (new) = L1C_T58GGQ_A003387_20171029T223649, x = S2BMSIL1CT58GGQ20171029 (could be A or B)
+                    # scene (old) = S2A_OPER_MSI_L1C_TL_MTI__20151223T075606_20151223T093844_A002620_T38PLB_N02_01_01
+                    # x = S2AMSIL1CT38PLB20151223 (old scenes should all be A)
+                    # scene_regex = L1C_T58GGQ_[A-Z0-9]{7}_20171029|S2A.{22}20171029.{32}T58GGQ
+                    scene_regex = r'L1C_{tile}_[A-Z0-9]{{7}}_{date}|' \
+                                  r'S2A.{{22}}{date}.{{32}}{tile}'.format(tile=scene[9:15], date=scene[15:23])
+                    res = []
+
+                else:
+                    msg = 'warning message about unidentified sensor'
+
+                # info = landsat_output_regex(scene)
+                # if info:
+                #     if 'collect' in info:  # This is a landsat collection scene
+                #         # scene = LE070430332014070901T1, x = LE07_L1TP_043033_20140709_20160909_01_T1
+                #         # scene_regex = 'LE07_\\w{4}_043033_20140709_'
+                #         scene_regex = r'{sensor}_\w{{4}}_{pr}_{date}_'.format(sensor=scene[0:4],
+                #                                                               pr=scene[4:10],
+                #                                                               date=scene[10:18])
+                #         res = [x for x in opts[key]['inputs'] if re.match(scene_regex, x)]
+                # else:
+                #     # not landsat
+                #     info = modis_output_regex(scene)
+                #     if info:
+                #         # scene = MOD09GAh13v102019182006, x = MOD09GA.A2019182.h13v10.006.2019184025316
+                #         # scene_regex = 'MOD09GA.A2019182.h13v10'
+                #         scene_regex = r'{prod}.A{date}.{hv}'.format(prod=scene[0:7], date=scene[13:20], hv=scene[7:13])
+                #         res = [x for x in opts[key]['inputs'] if re.match(scene_regex, x)]
+                #
+                #     else:
+                #         info = viirs_output_regex(scene)
+                #         if info:
+                #             scene_regex = scene[0:7] + '.A' + scene[13:20] + '.' + scene[7:13]
+                #             res = [x for x in opts[key]['inputs'] if re.match(scene_regex, x)]
 
                 if res:
                     results['total'] += 1
@@ -456,11 +526,11 @@ def filter_log_line(line, start_date, end_date):
     """
     # Leaving the old nginx log output style for previous months
     regexs = [(r'(?P<ip>.*?) - \[(?P<datetime>.*?)\] "(?P<method>.*?) (?P<resource>.*?) (?P<protocol>.*?)" '
-              r'(?P<status>\d+) (?P<len>\d+) (?P<range>.*?) (?P<size>\d+) \[(?P<reqtime>\d+\.\d+)\] "(?P<referrer>.*?)" '
-              r'"(?P<agent>.*?)"'),
+               r'(?P<status>\d+) (?P<len>\d+) (?P<range>.*?) (?P<size>\d+) \[(?P<reqtime>\d+\.\d+)\] "(?P<referrer>.*?)" '
+               r'"(?P<agent>.*?)"'),
               (r'(?P<ip>.*?) (?P<logname>.*?) (?P<user>.*?) \[(?P<datetime>.*?)\] "(?P<method>.*?) (?P<resource>.*?) '
-              r'(?P<status>\d+)" (?P<size>\d+) (?P<referrer>\d+) "(?P<agent>.*?)" "(?P<extra>.*?)"'),
-             (r'(?P<ip>[0-9\.]*) .* \[(?P<datetime>.*)\] \"(?P<method>[A-Z]*) (?P<resource>.*) '
+               r'(?P<status>\d+)" (?P<size>\d+) (?P<referrer>\d+) "(?P<agent>.*?)" "(?P<extra>.*?)"'),
+              (r'(?P<ip>[0-9\.]*) .* \[(?P<datetime>.*)\] \"(?P<method>[A-Z]*) (?P<resource>.*) '
                r'(?P<protocol>.*)\" (?P<status>\d+) (?P<size>\d+) "(?P<referrer>.*?)" "(?P<agent>.*)"'),
               (r'(?P<ip>[0-9\.]*) .* \[(?P<datetime>.*)\] "(?P<method>[A-Z]*) (?P<resource>.*) (?P<protocol>.*)" '
                r'(?P<status>\d+) (?P<len>\d+) (?P<range>.*) (?P<size>\d+) \[(?P<reqtime>\d+\.\d+)\] "(?P<referrer>.*)" '
@@ -482,11 +552,10 @@ def filter_log_line(line, start_date, end_date):
                     '.tar.gz' in gr['resource'] and
                     '/orders/' in gr['resource'] and
                     start_date <= dt <= end_date):
-
                 return gr
         else:
-            #raise ValueError('! Unable to parse download line: \n\t{}'.format(line))
-            print('!'*50 + '\nUnable to parse download line: \n\t{}'.format(line))
+            # raise ValueError('! Unable to parse download line: \n\t{}'.format(line))
+            print('!' * 50 + '\nUnable to parse download line: \n\t{}'.format(line))
 
     return False
 
@@ -509,7 +578,8 @@ def get_sensor_name(filename):
            'MYD09A1': 'myd09a1', 'MYD09GA': 'myd09ga', 'MYD09GQ': 'myd09gq',
            'MYD09Q1': 'myd09q1', 'MYD13A1': 'myd13a1', 'MYD13A2': 'myd13a2',
            'MYD13A3': 'myd13a3', 'MYD13Q1': 'myd13q1',
-           'VNP09GA': 'vnp09ga'}
+           'VNP09GA': 'vnp09ga',
+           'S2A': 'sentinel', 'S2B': 'sentinel'}
     fname = os.path.basename(filename)
     for prefix, sensor in lut.iteritems():
         if fname.startswith(prefix):
@@ -704,8 +774,8 @@ def date_range(offset=0):
     last = first - datetime.timedelta(days=2)
 
     if offset:
-        first = first.replace(month=first.month-offset)
-        last = last.replace(month=first.month-offset)
+        first = first.replace(month=first.month - offset)
+        last = last.replace(month=first.month - offset)
 
     num_days = calendar.monthrange(last.year, last.month)[1]
 
@@ -813,7 +883,6 @@ def process_monthly_metrics(cfg, env, local_dir, begin, stop, sensors):
         infodict['who'] = source.upper()
         msg += ondemand_boiler(infodict)
 
-
     # Orders by Product
     infodict = db_prodinfo(cfg, begin, stop, sensors)
     msg += prod_boiler(infodict)
@@ -845,7 +914,9 @@ def run():
     if opts['sensors'] == ['VIIRS']:
         opts['sensors'] = [k for k in SENSOR_KEYS if k.lower().startswith('v')]
     if opts['sensors'] == ['LANDSAT']:
-        opts['sensors'] = [k for k in SENSOR_KEYS if k != 'invalid' and not k.lower().startswith('m')]
+        opts['sensors'] = [k for k in SENSOR_KEYS if k.lower()[0] not in ['m', 'v', 's']]
+    if opts['sensors'] == ['SENTINEL']:
+        opts['sensors'] = [k for k in SENSOR_KEYS if k.lower().startswith('s')]
 
     msg = ''
     receive, sender, debug = get_addresses(cfg)
