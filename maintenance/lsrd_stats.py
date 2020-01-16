@@ -5,7 +5,6 @@ import glob
 import datetime
 import calendar
 import argparse
-import subprocess
 import traceback
 import os
 from collections import defaultdict
@@ -537,6 +536,7 @@ def filter_log_line(line, start_date, end_date):
                r'"(?P<agent>.*)"')
               ]
 
+    res = None
     if ('tar.gz' in line) and ('GET' in line):
         for regex in regexs:
             res = re.match(regex, line)
@@ -732,8 +732,6 @@ def db_top10stats(begin_date, end_date, sensors, dbinfo):
     Queries the database to get the total number of unique users
     dates are given as ISO 8601 'YYYY-MM-DD'
 
-    :param source: EE or ESPA
-    :type source: str
     :param begin_date: Date to start the count on
     :type begin_date: str
     :param end_date: Date to stop the count on
@@ -874,6 +872,12 @@ def process_monthly_metrics(cfg, env, local_dir, begin, stop, sensors):
         prod_opts = db_dl_prodinfo(cfg, orders_scenes)
         infodict = tally_product_dls(orders_scenes, prod_opts)
         msg += prod_boiler(infodict)
+
+    # These are expected to be of type str from here on out
+    if not isinstance(begin, str):
+        begin = str(begin)
+    if not isinstance(stop, str):
+        stop = str(stop)
 
     # On-Demand users and orders placed information
     for source in ORDER_SOURCES:
