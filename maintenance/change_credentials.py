@@ -10,8 +10,8 @@ import traceback
 import re
 
 import pexpect
-from .dbconnect import DBConnect
-from .utils import get_cfg, send_email, get_email_addr
+from maintenance.dbconnect import DBConnect
+from maintenance.utils import get_cfg, send_email, get_email_addr
 
 
 # This info should come from a config file
