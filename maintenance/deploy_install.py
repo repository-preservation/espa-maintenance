@@ -5,9 +5,9 @@ import argparse
 import datetime
 
 try:
-    import deployment_settings as settings
-except Exception, e:
-    s = '''tiers = ['espa-web', 'espa-maintenance', 'espa-production', 'all']
+    from . import deployment_settings as settings
+except Exception as e:
+    s = '''tiers = ['espa-web', 'espa-maintenance', 'all']
 
 environments = {
     'dev': {
@@ -16,9 +16,7 @@ environments = {
             'espa-web': {'host': 'dev webapp hostname',
                          'repo': 'repository url'},
             'espa-maintenance': {'host': 'dev maint hostname',
-                                 'repo': 'repository url'},
-            'espa-production': {'host': 'dev production hostname',
-                                'repo': 'repository url'}
+                                 'repo': 'repository url'}
         }
     },
     'tst': {
@@ -27,9 +25,7 @@ environments = {
             'espa-web': {'host': 'tst webapp hostname',
                          'repo': 'repository url'},
             'espa-maintenance': {'host': 'tst maint hostname',
-                                 'repo': 'repository url'},
-            'espa-production': {'host': 'tst production hostname',
-                                'repo': 'repository url'}
+                                 'repo': 'repository url'}
         }
     },
     'ops': {
@@ -38,9 +34,7 @@ environments = {
             'espa-web': {'host': 'ops webapp hostname',
                          'repo': 'repository url'},
             'espa-maintenance': {'host': 'ops maint hostname',
-                                 'repo': 'repository url'},
-            'espa-production': {'host': 'ops production hostname',
-                                'repo': 'repository url'}
+                                 'repo': 'repository url'}
         }
     }
 
@@ -387,7 +381,7 @@ class WebappDeployer(Deployer):
         # the deploy directory
         super(WebappDeployer, self).__post_move__(*args, **kwargs)
         
-        virtual_env = 'cd {0}; virtualenv .'.format(self.deployment_location)
+        virtual_env = 'cd {0}; python3 -m venv .'.format(self.deployment_location)
         print('Creating virtualenv at {0}'.format(self.deployment_location))
         self.remote_client.execute(command=virtual_env,
                                    expected_exit_status=0)
@@ -406,12 +400,6 @@ class WebappDeployer(Deployer):
 
         print('Installing requirements')
         self.remote_client.execute(command=pip_install, expected_exit_status=0)
-
-
-class ProductionDeployer(Deployer):
-    ''' Deploys the espa-production project '''
-    def __init__(self, *args, **kwargs):
-        super(ProductionDeployer, self).__init__(*args, **kwargs)
 
 
 class MaintenanceDeployer(Deployer):
@@ -452,11 +440,6 @@ def deploy(branch_or_tag,
                                   tier=tier,
                                   debug=debug,
                                   deploy_dir='espa-web')
-    elif tier == 'espa-production':
-        deployer = ProductionDeployer(branch_or_tag=branch_or_tag,
-                                      environment=environment,
-                                      tier=tier,
-                                      debug=debug)
     elif tier == 'espa-maintenance':
         deployer = MaintenanceDeployer(branch_or_tag=branch_or_tag,
                                        environment=environment,
@@ -490,7 +473,7 @@ if __name__ == '__main__':
 
     parser.add_argument("--environment",
                         required=True,
-                        choices=settings.environments.keys(),
+                        choices=list(settings.environments.keys()),
                         help="The environment to deploy to")
 
     parser.add_argument("--delete_previous_releases",

@@ -20,7 +20,7 @@ from matplotlib.collections import PatchCollection
 from matplotlib.patches import Polygon
 from matplotlib.ticker import FuncFormatter
 
-from dbconnect import DBConnect
+from .dbconnect import DBConnect
 
 FIGSIZE = (16, 9)
 MINALPHA = 0.035
@@ -114,7 +114,7 @@ def get_poly_wrs(path, row, features=None, facecolor='w'):
 
 def plot_poly(lons, lats, mapm, **kwargs):
     """Convert bounding box into a styled Patch object."""
-    return Polygon(zip(*mapm(lons, lats)), **kwargs)
+    return Polygon(list(zip(*mapm(lons, lats))), **kwargs)
 
 
 def make_basemap(path_rows_alpha,
@@ -149,7 +149,7 @@ def make_basemap(path_rows_alpha,
                 if x > 0:
                     return x-360
                 return x
-            lons = map(p_dateline, lons)
+            lons = list(map(p_dateline, lons))
         patch = plot_poly(lons, lats, mapm, facecolor=color, edgecolor=color,
                           alpha=alpha)
         ax.add_patch(patch)
@@ -168,7 +168,7 @@ def create_fake_cb(mmin, mmax, color, step=100):
     # Using contourf to provide my colorbar info, then clearing the figure
     Z = [[0, 0], [0, 0]]
     plt.subplots(figsize=FIGSIZE, facecolor='w')
-    levels = range(mmin, mmax+step, step)
+    levels = list(range(mmin, mmax+step, step))
     CS3 = plt.contourf(Z, levels, cmap=mymap)
     plt.clf()
 
@@ -258,7 +258,7 @@ def sensor_barchart(dbinfo, start, end):
         """Scale y-axis by 1,000 for k"""
         return '{}k'.format(int(y/1e3))
     ax.yaxis.set_major_formatter(FuncFormatter(fmt_yaxis))
-    plt.xticks(range(len(sensors)), sensors, rotation=45)
+    plt.xticks(list(range(len(sensors))), sensors, rotation=45)
 
     # Label bars with exact height
     for p in ax.patches:
